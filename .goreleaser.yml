@@ -3,7 +3,6 @@ version: 2
 before:
   hooks:
     - go mod download
-    - sh -c 'cd web && npm ci && npm run build'
 
 builds:
   - env:

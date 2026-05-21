@@ -10,7 +10,7 @@ your machine
        └─ kubectl discover → DB pod IP
             └─ TCP tunnel → PostgreSQL (port 15432)
 
-browser → http://localhost:8080  (served by the same binary)
+browser (Cloudflare Pages) → http://localhost:8080/api/v1
 ```
 
 ## Prerequisites
@@ -38,11 +38,11 @@ chmod 600 ./sshKey
 # Run the setup wizard — connects via SSH, discovers config, writes .env:
 make setup
 
-# Build the UI + binary, then launch:
+# Build and launch:
 make build && ./dune-admin
 ```
 
-Open **http://localhost:8080** in your browser.
+Open the hosted frontend at **https://dune-admin.pages.dev** and point it at `http://localhost:8080`.
 
 ---
 
@@ -65,11 +65,11 @@ Re-run `make setup` any time your VM IP or credentials change.
 | Target | Description |
 |--------|-------------|
 | `make setup` | Run the interactive setup wizard |
-| `make build` | Build the React frontend + Go binary |
-| `make go` | Build the Go binary only (uses existing `web/dist`) |
-| `make web` | Build the React frontend only |
+| `make build` | Build the Go binary |
 | `make linux` | Cross-compile a Linux amd64 binary |
 | `make dev-server` | Run without building (`go run .`) |
+| `make web` | Build the frontend only (for local inspection) |
+| `make deploy-web` | Build + deploy frontend to Cloudflare Pages |
 
 ---
 

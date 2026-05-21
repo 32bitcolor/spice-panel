@@ -1,16 +1,11 @@
 package main
 
 import (
-	"embed"
 	"encoding/json"
 	"fmt"
-	"io/fs"
 	"log"
 	"net/http"
 )
-
-//go:embed web/dist
-var staticFiles embed.FS
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -98,36 +93,8 @@ func startServer(addr string) {
 	mux.HandleFunc("GET /api/v1/blueprints/{id}/export", handleExportBlueprint)
 	mux.HandleFunc("POST /api/v1/blueprints/import", handleImportBlueprint)
 
-	// ── SPA ───────────────────────────────────────────────────────────────────
-	sub, err := fs.Sub(staticFiles, "web/dist")
-	if err != nil {
-		log.Fatal("embed:", err)
-	}
-	mux.Handle("/", spaHandler{fs: http.FS(sub)})
-
-	log.Printf("dune-admin listening on http://localhost%s", addr)
+	log.Printf("dune-admin listening on %s", addr)
 	log.Fatal(http.ListenAndServe(addr, corsMiddleware(mux)))
-}
-
-// spaHandler serves static files and falls back to index.html for SPA routing.
-type spaHandler struct{ fs http.FileSystem }
-
-func (h spaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	f, err := h.fs.Open(r.URL.Path)
-	if err != nil {
-		// File not found — serve index.html for client-side routing.
-		r.URL.Path = "/"
-		f2, err2 := h.fs.Open("/")
-		if err2 != nil {
-			http.Error(w, "not found", 404)
-			return
-		}
-		f2.Close()
-		http.FileServer(h.fs).ServeHTTP(w, r)
-		return
-	}
-	f.Close()
-	http.FileServer(h.fs).ServeHTTP(w, r)
 }
 
 // ── JSON helpers ──────────────────────────────────────────────────────────────
