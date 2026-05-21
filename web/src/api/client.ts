@@ -9,6 +9,11 @@ function getApiBase(): string {
   if (stored) return stored.replace(/\/$/, '') + '/api/v1'
   return 'http://localhost:8080/api/v1'
 }
+
+export function getWsBase(): string {
+  return getApiBase().replace(/^http/, 'ws')
+}
+
 const BASE = getApiBase()
 
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button, Spinner, toast } from '@heroui/react'
-import { api } from '../api/client'
+import { api, getWsBase } from '../api/client'
 import type { LogPod, CheatEntry } from '../api/client'
 
 type ActiveView = 'pod' | 'cheats'
@@ -75,7 +75,7 @@ export default function LogsTab() {
     setSelectedPod(pod)
     setActiveView('pod')
 
-    const url = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/api/v1/logs/stream?ns=${encodeURIComponent(pod.namespace)}&pod=${encodeURIComponent(pod.name)}`
+    const url = `${getWsBase()}/logs/stream?ns=${encodeURIComponent(pod.namespace)}&pod=${encodeURIComponent(pod.name)}`
     const ws = new WebSocket(url)
     wsRef.current = ws
 
