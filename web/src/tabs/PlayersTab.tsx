@@ -882,7 +882,7 @@ function PlayerActionsModal({ player, open, onClose }: { player: Player; open: b
                     {actionRow('Give Scrip', numInput(scrip, setScrip, 1, 9999999), 'Give',
                       () => run(() => api.players.giveScrip(player.controller_id, scrip), `Gave ${scrip} scrip to ${player.name}`))}
                     {actionRow('Award Intel', numInput(intel, setIntel, 1, 9999999), 'Award',
-                      () => run(() => api.players.awardIntel(player.controller_id, intel), `Awarded ${intel} intel to ${player.name}`))}
+                      () => run(() => api.players.awardIntel(player.id, intel), `Awarded ${intel} intel to ${player.name}`))}
 
                     {/* ── Character XP ──────────────────────────────────────── */}
                     <div className="text-xs font-semibold uppercase tracking-widest px-1 py-2 mt-4" style={{ color: 'var(--color-primary)', borderBottom: '1px solid #2a2418' }}>
