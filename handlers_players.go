@@ -591,17 +591,16 @@ func handleGetPlayerSpecs(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, rows)
 }
 
-func handleSetSpecXP(w http.ResponseWriter, r *http.Request) {
+func handleGrantMaxSpec(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		PlayerID  int64  `json:"player_id"`
 		TrackType string `json:"track_type"`
-		XPAmount  int64  `json:"xp_amount"`
 	}
 	if err := decode(r, &req); err != nil {
 		jsonErr(w, err, 400)
 		return
 	}
-	msg, ok := cmdSetSpecXP(req.PlayerID, req.TrackType, req.XPAmount)().(msgMutate)
+	msg, ok := cmdGrantMaxSpec(req.PlayerID, req.TrackType)().(msgMutate)
 	if !ok {
 		jsonErr(w, fmt.Errorf("internal error"), 500)
 		return

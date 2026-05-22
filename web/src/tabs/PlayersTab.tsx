@@ -713,7 +713,6 @@ function PlayerActionsModal({ player, open, onClose }: { player: Player; open: b
   const [playerSpecs, setPlayerSpecs] = useState<SpecTrack[]>([])
   const [specsLoaded, setSpecsLoaded] = useState(false)
   const [specsLoading, setSpecsLoading] = useState(false)
-  const [specXPInputs, setSpecXPInputs] = useState<Record<string, number>>({})
 
   // Journey
   const [nodes, setNodes] = useState<JourneyNode[]>([])
@@ -738,7 +737,6 @@ function PlayerActionsModal({ player, open, onClose }: { player: Player; open: b
       setNodes([])
       setPlayerSpecs([])
       setSpecsLoaded(false)
-      setSpecXPInputs({})
       setHistoryLoaded(false)
       setEvents([])
       setDungeons([])
@@ -767,12 +765,6 @@ function PlayerActionsModal({ player, open, onClose }: { player: Player; open: b
         .then(s => {
           setPlayerSpecs(s)
           setSpecsLoaded(true)
-          const inputs: Record<string, number> = {}
-          XP_TRACKS.forEach(track => {
-            const found = s.find(x => x.track_type === track)
-            inputs[track] = found ? found.xp : 0
-          })
-          setSpecXPInputs(inputs)
         })
         .catch((e: unknown) => toast.danger(e instanceof Error ? e.message : String(e)))
         .finally(() => setSpecsLoading(false))
@@ -949,7 +941,7 @@ function PlayerActionsModal({ player, open, onClose }: { player: Player; open: b
                         <table className="w-full text-xs">
                           <thead>
                             <tr style={{ background: '#1a1610', borderBottom: '1px solid #2a2418' }}>
-                              {['Track', 'Current XP', 'Set XP', '', ''].map((h, idx) => (
+                              {['Track', 'XP', 'Level', '', ''].map((h, idx) => (
                                 <th key={idx} className="text-left px-3 py-2 font-semibold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>{h}</th>
                               ))}
                             </tr>
@@ -958,34 +950,27 @@ function PlayerActionsModal({ player, open, onClose }: { player: Player; open: b
                             {XP_TRACKS.map((track, i) => {
                               const found = playerSpecs.find(s => s.track_type === track)
                               const currentXP = found ? found.xp : 0
-                              const inputVal = specXPInputs[track] ?? currentXP
+                              const currentLevel = found ? found.level : 0
                               return (
                                 <tr key={track} style={{ borderBottom: '1px solid #1a1610', background: i % 2 === 0 ? '#0d0b07' : '#0f0d09' }}>
                                   <td className="px-3 py-2 font-semibold" style={{ color: 'var(--color-text)' }}>{track}</td>
                                   <td className="px-3 py-2 font-mono" style={{ color: 'var(--color-text-dim)' }}>{currentXP.toLocaleString()}</td>
-                                  <td className="px-3 py-2">
-                                    <input
-                                      type="number" min={0} max={44182} value={inputVal}
-                                      onChange={e => setSpecXPInputs(prev => ({ ...prev, [track]: Math.max(0, Math.min(44182, parseInt(e.target.value) || 0)) }))}
-                                      className="rounded px-2 py-1 text-sm border w-28"
-                                      style={{ background: '#0d0b07', color: 'var(--color-text)', borderColor: '#3a3020', outline: 'none' }}
-                                    />
-                                  </td>
+                                  <td className="px-3 py-2 font-mono" style={{ color: 'var(--color-text-dim)' }}>{currentLevel}</td>
                                   <td className="px-3 py-2">
                                     <Button size="sm" variant="ghost" isDisabled={busy}
                                       onPress={() => run(
-                                        () => api.players.setSpecXP(player.controller_id, track, inputVal),
-                                        `Set ${track} XP to ${inputVal} for ${player.name}`
+                                        () => api.players.grantMaxSpec(player.controller_id, track),
+                                        `Grant max ${track} spec to ${player.name}`
                                       ).then(() => {
                                         setPlayerSpecs(prev => {
                                           const exists = prev.find(s => s.track_type === track)
                                           if (exists) {
-                                            return prev.map(s => s.track_type === track ? { ...s, xp: inputVal } : s)
+                                            return prev.map(s => s.track_type === track ? { ...s, xp: 44182, level: 100 } : s)
                                           }
-                                          return [...prev, { player_id: player.controller_id, track_type: track, xp: inputVal, level: 0 }]
+                                          return [...prev, { player_id: player.controller_id, track_type: track, xp: 44182, level: 100 }]
                                         })
                                       })}>
-                                      Set
+                                      Grant Max
                                     </Button>
                                   </td>
                                   <td className="px-3 py-2">
@@ -995,7 +980,6 @@ function PlayerActionsModal({ player, open, onClose }: { player: Player; open: b
                                         `Reset ${track} spec for ${player.name}`
                                       ).then(() => {
                                         setPlayerSpecs(prev => prev.filter(s => s.track_type !== track))
-                                        setSpecXPInputs(prev => ({ ...prev, [track]: 0 }))
                                       })}>
                                       Reset
                                     </Button>

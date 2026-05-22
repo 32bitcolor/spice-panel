@@ -1864,37 +1864,31 @@ func cmdImportBlueprint(playerPawnID int64, filename string) Cmd {
 	}
 }
 
-func cmdSetSpecXP(playerID int64, trackType string, xpAmount int64) Cmd {
+func cmdGrantMaxSpec(playerID int64, trackType string) Cmd {
 	return func() Msg {
 		if globalDB == nil {
 			return msgMutate{err: fmt.Errorf("not connected")}
 		}
-		const maxXP int64 = 44182
-		if xpAmount < 0 {
-			xpAmount = 0
-		}
-		if xpAmount > maxXP {
-			xpAmount = maxXP
-		}
-		// Only update xp_amount — do NOT touch level (level = melange spent on keystones)
+		const maxXP = 44182
+		const maxLevel = 100
 		res, err := globalDB.Exec(context.Background(), `
 			UPDATE dune.specialization_tracks
-			SET xp_amount = $1::integer
-			WHERE player_id = $2::bigint AND track_type::text = $3::text`,
-			xpAmount, playerID, trackType)
+			SET xp_amount = $1::integer, level = $2::real
+			WHERE player_id = $3::bigint AND track_type::text = $4::text`,
+			maxXP, maxLevel, playerID, trackType)
 		if err != nil {
 			return msgMutate{err: err}
 		}
 		if res.RowsAffected() == 0 {
 			_, err = globalDB.Exec(context.Background(), `
 				INSERT INTO dune.specialization_tracks (player_id, track_type, xp_amount, level)
-				VALUES ($1::bigint, $2::dune.specializationtracktype, $3::integer, 0::real)`,
-				playerID, trackType, xpAmount)
+				VALUES ($1::bigint, $2::dune.specializationtracktype, $3::integer, $4::real)`,
+				playerID, trackType, maxXP, maxLevel)
 			if err != nil {
 				return msgMutate{err: err}
 			}
 		}
-		return msgMutate{ok: fmt.Sprintf("Set %s XP to %d for player %d", trackType, xpAmount, playerID)}
+		return msgMutate{ok: fmt.Sprintf("Granted max %s spec to player %d", trackType, playerID)}
 	}
 }
 
@@ -2010,7 +2004,8 @@ func cmdFetchCheatLog() Cmd {
 			       to_char(ct.event_time AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS'),
 			       COALESCE(ps.character_name, ct.fls_id)
 			FROM dune.cheater_tracking ct
-			LEFT JOIN dune.player_state ps ON ps.fls_id = ct.fls_id
+			LEFT JOIN dune.encrypted_accounts e ON convert_from(e.encrypted_funcom_id, 'UTF8') = ct.fls_id
+			LEFT JOIN dune.player_state ps ON ps.account_id = e.id
 			WHERE ct.event_time > NOW() - INTERVAL '7 days'
 			ORDER BY ct.event_time DESC
 			LIMIT 500`)
@@ -2138,9 +2133,10 @@ func cmdTeleportPlayer(flsID string, locationName string) Cmd {
 		var partitionID int64
 		err := globalDB.QueryRow(ctx, `
 			SELECT COALESCE(a.partition_id, 0)
-			FROM dune.player_state ps
+			FROM dune.encrypted_accounts e
+			JOIN dune.player_state ps ON ps.account_id = e.id
 			JOIN dune.actors a ON a.id = ps.player_pawn_id
-			WHERE ps.fls_id = $1`, flsID).Scan(&partitionID)
+			WHERE convert_from(e.encrypted_funcom_id, 'UTF8') = $1`, flsID).Scan(&partitionID)
 		if err != nil || partitionID == 0 {
 			_ = globalDB.QueryRow(ctx,
 				`SELECT id FROM dune.world_partition WHERE blocked = false LIMIT 1`).Scan(&partitionID)

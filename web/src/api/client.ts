@@ -114,8 +114,8 @@ export const api = {
       req<MutateResult>('POST', '/players/wipe-codex', { account_id }),
     charXPCurrent: (id: number) => req<{xp: number; level: number}>('GET', `/players/${id}/char-xp`),
     specs_for: (id: number) => req<SpecTrack[]>('GET', `/players/${id}/specs`),
-    setSpecXP: (player_id: number, track_type: string, xp_amount: number) =>
-      req<MutateResult>('POST', '/players/set-spec-xp', { player_id, track_type, xp_amount }),
+    grantMaxSpec: (player_id: number, track_type: string) =>
+      req<MutateResult>('POST', '/players/grant-max-spec', { player_id, track_type }),
     vehicles: (account_id: number) => req<VehicleRow[]>('GET', `/players/${account_id}/vehicles`),
     repairItem: (id: number) => req<MutateResult>('POST', '/players/repair-item', { id }),
     partitions: () => req<TeleportLocation[]>('GET', '/players/partitions'),

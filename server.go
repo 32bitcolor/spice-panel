@@ -60,7 +60,7 @@ func startServer(addr string) {
 	mux.HandleFunc("POST /api/v1/players/wipe-codex", handleWipeCodex)
 	mux.HandleFunc("GET /api/v1/players/{id}/char-xp", handleGetCharXP)
 	mux.HandleFunc("GET /api/v1/players/{id}/specs", handleGetPlayerSpecs)
-	mux.HandleFunc("POST /api/v1/players/set-spec-xp", handleSetSpecXP)
+	mux.HandleFunc("POST /api/v1/players/grant-max-spec", handleGrantMaxSpec)
 	mux.HandleFunc("GET /api/v1/players/{id}/vehicles", handleGetPlayerVehicles)
 	mux.HandleFunc("POST /api/v1/players/repair-item", handleRepairItem)
 	mux.HandleFunc("GET /api/v1/players/partitions", handleGetPartitions)
