@@ -1201,6 +1201,35 @@ api.players.partitions().then(setPartitions).catch(() => {})
                       </div>
                     )}
 
+                    {/* ── Unlock Main Quest ──────────────────────────────────── */}
+                    <div className="rounded-lg p-3 shrink-0 flex flex-col gap-2" style={{ background: '#0f0d09', border: '1px solid #2a2418' }}>
+                      <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-primary)' }}>Unlock Main Quest</div>
+                      <div className="text-xs" style={{ color: 'var(--color-text-dim)' }}>Flips every <code>DA_MQ_&lt;name&gt;.*</code> journey row complete and applies the m_TagsToAdd union (Journey.Act/Chapter markers, BigMoments triggers, Fremkit set tags, etc.).</div>
+                      <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
+                        {([
+                          { id: 'DA_MQ_ANewBeginning', label: '1. A New Beginning', nodes: 132 },
+                          { id: 'DA_MQ_AssassinsHandbook', label: '2. Assassin’s Handbook', nodes: 91 },
+                          { id: 'DA_MQ_FindTheFremen', label: '3. Find the Fremen', nodes: 46 },
+                          { id: 'DA_MQ_TheGreatConvention', label: '4. The Great Convention', nodes: 90 },
+                          { id: 'DA_MQ_TheGreatConventionPt2', label: '5. Great Convention Pt 2', nodes: 109 },
+                          { id: 'DA_MQ_TheBloodline', label: '6. The Bloodline (standalone)', nodes: 0 },
+                        ] as const).map(mq => (
+                          <Button
+                            key={mq.id}
+                            size="sm"
+                            variant="secondary"
+                            isDisabled={busy}
+                            onPress={() => run(
+                              () => api.players.journeyComplete(player.account_id, mq.id),
+                              `Unlocked ${mq.label} for ${player.name}`
+                            ).then(() => { setNodesLoaded(false) })}
+                          >
+                            {mq.label} {mq.nodes > 0 && <span style={{ color: 'var(--color-text-dim)' }}>({mq.nodes})</span>}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
                     {/* ── Complete Contract(s) ───────────────────────────────── */}
                     <div className="rounded-lg p-3 shrink-0 flex flex-col gap-2" style={{ background: '#0f0d09', border: '1px solid #2a2418' }}>
                       <div className="flex items-baseline gap-2">

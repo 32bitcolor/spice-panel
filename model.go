@@ -84,6 +84,11 @@ type tagsDataFile struct {
 	JourneyNodeTags map[string][]string `json:"journey_node_tags"`
 	ContractTags    map[string][]string `json:"contract_tags"`
 	ContractAliases map[string]string   `json:"contract_aliases"`
+	// ContractSkillGrants[contract_id] = skill-block tags this contract's
+	// SkillsKeyRewards would unlock in-game (e.g. "Skills.Key.Trooper3").
+	// Without applying these the trainer contract's tags land but the skill
+	// tree branch stays locked.
+	ContractSkillGrants map[string][]string `json:"contract_skill_grants"`
 }
 
 type blueprintRow struct {

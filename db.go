@@ -1532,8 +1532,9 @@ func cmdCompleteContract(accountID int64, contractID string) Cmd {
 
 // cmdCompleteContracts applies the union of AddedFlagsOnCompletion across
 // multiple contracts in one go — one update_player_tags call, one tier-bump
-// pass. Unknown contracts cause the whole batch to fail before any write so
-// the operation is all-or-nothing.
+// pass, plus any SkillsKeyRewards skill-block unlocks. Unknown contracts
+// cause the whole batch to fail before any write so the operation is
+// all-or-nothing.
 func cmdCompleteContracts(accountID int64, contractIDs []string) Cmd {
 	return func() Msg {
 		if globalDB == nil {
@@ -1546,8 +1547,10 @@ func cmdCompleteContracts(accountID int64, contractIDs []string) Cmd {
 			return msgMutate{err: fmt.Errorf("at least one contract required")}
 		}
 
-		seen := map[string]bool{}
+		seenTag := map[string]bool{}
 		var allTags []string
+		seenSkill := map[string]bool{}
+		var allSkillGrants []string
 		var resolved []string
 		for _, id := range contractIDs {
 			name, tags, err := resolveContractTags(id)
@@ -1556,9 +1559,15 @@ func cmdCompleteContracts(accountID int64, contractIDs []string) Cmd {
 			}
 			resolved = append(resolved, name)
 			for _, t := range tags {
-				if !seen[t] {
-					seen[t] = true
+				if !seenTag[t] {
+					seenTag[t] = true
 					allTags = append(allTags, t)
+				}
+			}
+			for _, sk := range tagsData.ContractSkillGrants[name] {
+				if !seenSkill[sk] {
+					seenSkill[sk] = true
+					allSkillGrants = append(allSkillGrants, sk)
 				}
 			}
 		}
@@ -1568,12 +1577,65 @@ func cmdCompleteContracts(accountID int64, contractIDs []string) Cmd {
 		if err != nil {
 			return msgMutate{err: err}
 		}
+
+		if len(allSkillGrants) > 0 {
+			grantedExtra, err := grantSkillBlocks(ctx, accountID, allSkillGrants)
+			if err != nil {
+				return msgMutate{err: err}
+			}
+			extra += grantedExtra
+		}
+
 		summary := resolved[0]
 		if len(resolved) > 1 {
 			summary = fmt.Sprintf("%d contracts", len(resolved))
 		}
 		return msgMutate{ok: fmt.Sprintf("Applied %s%s — takes effect on next login", summary, extra)}
 	}
+}
+
+// grantSkillBlocks ensures each Skills.Key.<X> entry exists in the player's
+// FLevelComponent.ModuleData with SkillPointsSpent: 1 (the format the game
+// itself writes when a trainer's SkillsKeyRewards fires). If an entry already
+// exists it's left alone — preserves any further SP the player may have
+// already spent on that branch's child nodes. Returns a short fragment to
+// append to the caller's success message.
+func grantSkillBlocks(ctx context.Context, accountID int64, skillKeys []string) (string, error) {
+	var pawnID int64
+	_ = globalDB.QueryRow(ctx, `
+		SELECT player_pawn_id FROM dune.player_state
+		WHERE account_id = $1 LIMIT 1`, accountID).Scan(&pawnID)
+	if pawnID == 0 {
+		return ", skill grants skipped (no pawn yet)", nil
+	}
+
+	granted := 0
+	for _, sk := range skillKeys {
+		key := fmt.Sprintf(`(TagName="%s")`, sk)
+		tag, err := globalDB.Exec(ctx, `
+			UPDATE dune.fgl_entities fe
+			SET components = jsonb_set(
+				fe.components,
+				ARRAY['FLevelComponent','1','ModuleData',$2],
+				'{"SkillPointsSpent": 1}'::jsonb,
+				true)
+			WHERE fe.entity_id = (
+				SELECT entity_id FROM dune.actor_fgl_entities
+				WHERE actor_id = $1 AND slot_name = 'DuneCharacter'
+			)
+			AND NOT (fe.components->'FLevelComponent'->1->'ModuleData') ? $2`,
+			pawnID, key)
+		if err != nil {
+			return "", fmt.Errorf("grant %s: %w", sk, err)
+		}
+		if tag.RowsAffected() > 0 {
+			granted++
+		}
+	}
+	if granted == 0 {
+		return ", no new skill blocks (already unlocked)", nil
+	}
+	return fmt.Sprintf(", unlocked %d skill block(s)", granted), nil
 }
 
 // allJourneyTags returns the union of every tag any journey node would emit

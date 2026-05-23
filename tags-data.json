@@ -1430,5 +1430,37 @@
     "Trainer_Trooper2_04": "DA_CT_Trainer_Trooper2_04",
     "Trainer_Trooper2_05": "DA_CT_Trainer_Trooper2_05",
     "Trainer_Trooper2_06": "DA_CT_Trainer_Trooper2_06"
+  },
+  "contract_skill_grants": {
+    "DA_CT_Trainer_Mentat2_06": [
+      "Skills.Key.CapstoneMentalCalculus"
+    ],
+    "DA_CT_Trainer_Planetologist2_08": [
+      "Skills.Key.CapstoneScientist"
+    ],
+    "DA_CT_Trainer_Swordmaster1_01": [
+      "Skills.Key.Swordmaster1"
+    ],
+    "DA_CT_Trainer_Swordmaster2_01": [
+      "Skills.Key.Swordmaster2"
+    ],
+    "DA_CT_Trainer_Swordmaster2_05_pt1": [
+      "Skills.Key.CapstoneResolve"
+    ],
+    "DA_CT_Trainer_Swordmaster2_06": [
+      "Skills.Key.CapstoneAggression"
+    ],
+    "DA_CT_Trainer_Swordmaster2_06_dummy": [
+      "Skills.Key.CapstoneAggression"
+    ],
+    "DA_CT_Trainer_Trooper2_03": [
+      "Skills.Key.Trooper3"
+    ],
+    "DA_CT_Trainer_Trooper2_04": [
+      "Skills.Key.CapstoneSuspensorTech"
+    ],
+    "DA_CT_Trainer_Trooper2_05": [
+      "Skills.Key.CapstoneGadgets"
+    ]
   }
 }
