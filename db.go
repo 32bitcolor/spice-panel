@@ -3282,6 +3282,104 @@ func cmdRepairItem(itemID int64) Cmd {
 	}
 }
 
+// Carried inventories: backpack, equipment, emote wheel, equipped weapons, action wheel, bank.
+var repairGearInventoryTypes = []int32{0, 1, 14, 15, 27, 30}
+
+func cmdRepairPlayerGear(playerID int64) Cmd {
+	return func() Msg {
+		if globalDB == nil {
+			return msgRepairGear{err: fmt.Errorf("not connected")}
+		}
+		if playerID == 0 {
+			return msgRepairGear{err: fmt.Errorf("player ID required")}
+		}
+		ctx := context.Background()
+		if err := checkPlayerOffline(ctx, playerID); err != nil {
+			return msgRepairGear{err: err}
+		}
+
+		rows, err := globalDB.Query(ctx, `
+			SELECT i.id, i.template_id,
+			       (i.stats->'FItemStackAndDurabilityStats'->1->>'MaxDurability'),
+			       (i.stats->'FItemStackAndDurabilityStats'->1->>'CurrentDurability'),
+			       (i.stats->'FItemStackAndDurabilityStats'->1->>'DecayedMaxDurability')
+			FROM dune.items i
+			JOIN dune.inventories inv ON inv.id = i.inventory_id
+			WHERE inv.actor_id = $1::bigint
+			  AND inv.inventory_type = ANY($2::int[])
+			  AND i.stats ? 'FItemStackAndDurabilityStats'`,
+			playerID, repairGearInventoryTypes)
+		if err != nil {
+			return msgRepairGear{err: fmt.Errorf("scan items: %w", err)}
+		}
+		defer rows.Close()
+
+		type repairCandidate struct {
+			id     int64
+			target float64
+		}
+		var toRepair []repairCandidate
+		scanned := 0
+		for rows.Next() {
+			scanned++
+			var id int64
+			var templateID string
+			var maxStr, curStr, decayedStr pgtype.Text
+			if err := rows.Scan(&id, &templateID, &maxStr, &curStr, &decayedStr); err != nil {
+				continue
+			}
+
+			// Target priority: catalog (vehicle modules stored as items) → stats.MaxDurability → 100.
+			var target float64
+			if v, ok := itemMaxDurability(templateID); ok && v > 0 {
+				target = v
+			} else if maxStr.Valid {
+				if v, perr := strconv.ParseFloat(maxStr.String, 64); perr == nil && v > 0 {
+					target = v
+				} else {
+					target = 100.0
+				}
+			} else {
+				target = 100.0
+			}
+
+			cur := 0.0
+			if curStr.Valid {
+				cur, _ = strconv.ParseFloat(curStr.String, 64)
+			}
+			decayed := 0.0
+			if decayedStr.Valid {
+				decayed, _ = strconv.ParseFloat(decayedStr.String, 64)
+			}
+			if math.Abs(cur-target) < 0.01 && math.Abs(decayed-target) < 0.01 {
+				continue
+			}
+			toRepair = append(toRepair, repairCandidate{id: id, target: target})
+		}
+		if err := rows.Err(); err != nil {
+			return msgRepairGear{err: fmt.Errorf("scan rows: %w", err)}
+		}
+
+		repaired := 0
+		for _, rc := range toRepair {
+			_, err := globalDB.Exec(ctx, `
+				UPDATE dune.items
+				SET stats = jsonb_set(
+					jsonb_set(stats,
+						'{FItemStackAndDurabilityStats,1,CurrentDurability}',
+						to_jsonb($2::float8), true),
+					'{FItemStackAndDurabilityStats,1,DecayedMaxDurability}',
+					to_jsonb($2::float8), true)
+				WHERE id = $1::bigint`, rc.id, rc.target)
+			if err != nil {
+				return msgRepairGear{repaired: repaired, scanned: scanned, err: fmt.Errorf("repair item %d: %w", rc.id, err)}
+			}
+			repaired++
+		}
+		return msgRepairGear{repaired: repaired, scanned: scanned}
+	}
+}
+
 func cmdFetchCheatLog() Cmd {
 	return func() Msg {
 		if globalDB == nil {
