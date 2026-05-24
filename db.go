@@ -10,10 +10,45 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+// ── journey-node fetch cache ────────────────────────────────────────────────
+// Journey fetches return ~300-800 rows per character through an SSH tunnel,
+// which makes them visibly slow. A short TTL cache keeps the common
+// "open modal → close → reopen" loop snappy. Mutations call
+// invalidateJourneyCache(accountID) to drop stale entries.
+
+const journeyCacheTTL = 30 * time.Second
+
+type journeyCacheEntry struct {
+	nodes  []journeyNode
+	cached time.Time
+}
+
+var (
+	journeyCacheMu sync.RWMutex
+	journeyCache   = map[int64]journeyCacheEntry{}
+)
+
+func invalidateJourneyCache(accountID int64) {
+	journeyCacheMu.Lock()
+	delete(journeyCache, accountID)
+	journeyCacheMu.Unlock()
+}
+
+// Used by mutations keyed on player_id where we don't have the account_id handy
+// (progression unlock, contract completion). A single-user admin tool, so
+// dropping every entry is cheap.
+func invalidateAllJourneyCache() {
+	journeyCacheMu.Lock()
+	journeyCache = map[int64]journeyCacheEntry{}
+	journeyCacheMu.Unlock()
+}
 
 // ── data fetch commands ───────────────────────────────────────────────────────
 
@@ -1281,6 +1316,15 @@ func cmdFetchJourneyNodes(accountID int64) Cmd {
 		if globalDB == nil {
 			return msgJourney{err: fmt.Errorf("not connected")}
 		}
+
+		// Cache hit?
+		journeyCacheMu.RLock()
+		entry, ok := journeyCache[accountID]
+		journeyCacheMu.RUnlock()
+		if ok && time.Since(entry.cached) < journeyCacheTTL {
+			return msgJourney{rows: entry.nodes}
+		}
+
 		rows, err := globalDB.Query(context.Background(), `
 			SELECT story_node_id,
 			       (complete_condition_state = 'true'::jsonb) AS is_complete,
@@ -1308,6 +1352,9 @@ func cmdFetchJourneyNodes(accountID int64) Cmd {
 		if err := rows.Err(); err != nil {
 			return msgJourney{err: err}
 		}
+		journeyCacheMu.Lock()
+		journeyCache[accountID] = journeyCacheEntry{nodes: nodes, cached: time.Now()}
+		journeyCacheMu.Unlock()
 		return msgJourney{rows: nodes}
 	}
 }
