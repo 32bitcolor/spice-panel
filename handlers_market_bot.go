@@ -29,7 +29,7 @@ func botProxy(method, path string, body io.Reader) ([]byte, int, error) {
 		req.Header.Set("Content-Type", "application/json")
 	}
 	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := client.Do(req) // #nosec G704 -- marketBotAddr is admin-configured, not user-supplied
 	if err != nil {
 		return nil, 503, err
 	}
