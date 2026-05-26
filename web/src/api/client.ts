@@ -57,7 +57,7 @@ export type ServerSetting = {
   category: string
   current: string
   is_overridden: boolean
-  source: 'userOverrides' | 'userGame' | 'userEngine' | 'defaultGame' | 'defaultEngine' | ''
+  source: 'userGame' | 'userEngine' | 'defaultGame' | 'defaultEngine' | ''
   layers: SettingLayer[]
 }
 
@@ -75,7 +75,7 @@ export type RawLine = {
 
 export type RawSection = {
   section: string
-  source: 'userGame' | 'userOverrides' | 'userEngine' | 'defaultGame' | 'defaultEngine'
+  source: 'userGame' | 'userEngine' | 'defaultGame' | 'defaultEngine'
   lines: RawLine[]
 }
 
@@ -240,8 +240,8 @@ export const api = {
     get: () => req<ServerSettingsResponse>('GET', '/server-settings'),
     update: (updates: ServerSettingUpdate[]) =>
       req<{ ok: string; applied: number; cleared: number }>('PUT', '/server-settings', { updates }),
-    updateRaw: (section: string, target: 'userOverrides', lines: string) =>
-      req<{ ok: string }>('PUT', '/server-settings/raw', { section, target, lines }),
+    updateRaw: (section: string, lines: string) =>
+      req<{ ok: string }>('PUT', '/server-settings/raw', { section, lines }),
   },
 
   battlegroup: {

@@ -44,14 +44,14 @@ type ServerSetting struct {
 	Category    string         `json:"category"`
 	Current     string         `json:"current"`
 	IsOverride  bool           `json:"is_overridden"`
-	Source      string         `json:"source"` // "userOverrides"|"userGame"|"userEngine"|"defaultGame"|"defaultEngine"|""
+	Source      string         `json:"source"` // "userGame"|"userEngine"|"defaultGame"|"defaultEngine"|""
 	Layers      []SettingLayer `json:"layers"` // ordered low→high priority; empty when setting is unconfigured
 }
 
 // SettingLayer records one file's contribution to a setting's value,
 // ordered low → high priority in the Layers slice.
 type SettingLayer struct {
-	Source string `json:"source"` // "defaultEngine"|"defaultGame"|"userEngine"|"userGame"|"userOverrides"
+	Source string `json:"source"` // "defaultEngine"|"defaultGame"|"userEngine"|"userGame"
 	Value  string `json:"value"`
 }
 
@@ -73,7 +73,7 @@ type RawLine struct {
 // RawSection groups non-schema / array lines by their INI section and source file.
 type RawSection struct {
 	Section string    `json:"section"`
-	Source  string    `json:"source"` // "userGame"|"userOverrides"|"userEngine"|"defaultGame"|"defaultEngine"
+	Source  string    `json:"source"` // "userGame"|"userEngine"|"defaultGame"|"defaultEngine"
 	Lines   []RawLine `json:"lines"`
 }
 
@@ -403,9 +403,6 @@ func readINIContent(path string) string {
 	if err != nil {
 		return ""
 	}
-	if idx := strings.Index(out, "; >>>>> AMP: UserOverrides.ini appended below"); idx >= 0 {
-		out = out[:idx]
-	}
 	return out
 }
 
@@ -421,13 +418,11 @@ func handleGetServerSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	gameContent          := readINIContent(dir + "/UserGame.ini")
-	overrideContent      := readINIContent(dir + "/UserOverrides.ini")
 	engineContent        := readINIContent(dir + "/UserEngine.ini")
 	defaultGameContent   := readDefaultINIContent(dir, "DefaultGame.ini")
 	defaultEngineContent := readDefaultINIContent(dir, "DefaultEngine.ini")
 
 	gameIni          := parseINI(gameContent)
-	overrideIni      := parseINI(overrideContent)
 	engineIni        := parseINI(engineContent)
 	defaultGameIni   := parseINI(defaultGameContent)
 	defaultEngineIni := parseINI(defaultEngineContent)
@@ -448,7 +443,6 @@ func handleGetServerSettings(w http.ResponseWriter, r *http.Request) {
 		{"defaultGame", defaultGameIni},
 		{"userEngine", engineIni},
 		{"userGame", gameIni},
-		{"userOverrides", overrideIni},
 	}
 
 	var settings []ServerSetting
@@ -470,7 +464,7 @@ func handleGetServerSettings(w http.ResponseWriter, r *http.Request) {
 				s.Source = src.name
 			}
 		}
-		s.IsOverride = s.Source == "userOverrides"
+		s.IsOverride = strings.HasPrefix(s.Source, "user")
 		if s.Layers == nil {
 			s.Layers = []SettingLayer{}
 		}
@@ -527,19 +521,18 @@ func handleGetServerSettings(w http.ResponseWriter, r *http.Request) {
 		if s.Type == "" {
 			s.Type = string(settingString)
 		}
-		s.IsOverride = s.Source == "userOverrides"
+		s.IsOverride = strings.HasPrefix(s.Source, "user")
 		settings = append(settings, s)
 		schemaKeys[dk.section+"|"+dk.key] = true
 	}
 
 	// Raw lines — array entries and anything not promoted to a typed setting.
-	// All five files use the same schemaKeys (which now includes discovered keys)
+	// All four files use the same schemaKeys (which now includes discovered keys)
 	// so nothing appears in both the typed panel and the raw panel.
 	var raw []RawSection
 	raw = append(raw, parseINILines(defaultGameContent, "defaultGame", schemaKeys)...)
 	raw = append(raw, parseINILines(defaultEngineContent, "defaultEngine", schemaKeys)...)
 	raw = append(raw, parseINILines(gameContent, "userGame", schemaKeys)...)
-	raw = append(raw, parseINILines(overrideContent, "userOverrides", schemaKeys)...)
 	raw = append(raw, parseINILines(engineContent, "userEngine", schemaKeys)...)
 
 	jsonOK(w, map[string]any{
@@ -741,11 +734,31 @@ func handleUpdateServerSettings(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	overridePath := dir + "/UserOverrides.ini"
-	patched := patchINI(readINIContent(overridePath), updates)
-	if err := globalExecutor.WriteFile(overridePath, strings.NewReader(patched)); err != nil {
-		jsonErr(w, fmt.Errorf("write UserOverrides.ini: %w", err), 500)
-		return
+	// Route each section to UserGame.ini or UserEngine.ini based on which default
+	// file declares it. Sections found in DefaultEngine.ini go to UserEngine.ini;
+	// everything else goes to UserGame.ini.
+	defaultEngineIni := parseINI(readDefaultINIContent(dir, "DefaultEngine.ini"))
+	gameUpdates, engineUpdates := map[string]map[string]string{}, map[string]map[string]string{}
+	for sec, kvs := range updates {
+		if _, inEngine := defaultEngineIni[sec]; inEngine {
+			engineUpdates[sec] = kvs
+		} else {
+			gameUpdates[sec] = kvs
+		}
+	}
+	if len(gameUpdates) > 0 {
+		path := dir + "/UserGame.ini"
+		if err := globalExecutor.WriteFile(path, strings.NewReader(patchINI(readINIContent(path), gameUpdates))); err != nil {
+			jsonErr(w, fmt.Errorf("write UserGame.ini: %w", err), 500)
+			return
+		}
+	}
+	if len(engineUpdates) > 0 {
+		path := dir + "/UserEngine.ini"
+		if err := globalExecutor.WriteFile(path, strings.NewReader(patchINI(readINIContent(path), engineUpdates))); err != nil {
+			jsonErr(w, fmt.Errorf("write UserEngine.ini: %w", err), 500)
+			return
+		}
 	}
 
 	jsonOK(w, map[string]any{
@@ -755,9 +768,9 @@ func handleUpdateServerSettings(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handleUpdateRawSection replaces a single INI section in UserOverrides.ini
-// with the caller-supplied raw lines. All edits go to UserOverrides.ini
-// regardless of source — it is the final overlay layer for all settings.
+// handleUpdateRawSection replaces a single INI section in the appropriate user
+// INI file. Sections declared in DefaultEngine.ini are written to UserEngine.ini;
+// all others are written to UserGame.ini.
 func handleUpdateRawSection(w http.ResponseWriter, r *http.Request) {
 	if globalExecutor == nil {
 		jsonErr(w, fmt.Errorf("not connected"), 503)
@@ -778,7 +791,13 @@ func handleUpdateRawSection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filePath := dir + "/UserOverrides.ini"
+	defaultEngineIni := parseINI(readDefaultINIContent(dir, "DefaultEngine.ini"))
+	var filePath string
+	if _, inEngine := defaultEngineIni[req.Section]; inEngine {
+		filePath = dir + "/UserEngine.ini"
+	} else {
+		filePath = dir + "/UserGame.ini"
+	}
 
 	existing := readINIContent(filePath)
 	updated := replaceSectionContent(existing, req.Section, strings.TrimSpace(req.Lines))

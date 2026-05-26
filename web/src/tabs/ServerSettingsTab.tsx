@@ -10,11 +10,10 @@ const CATEGORY_ORDER = [
 ]
 
 const SOURCE_FILE: Record<string, string> = {
-  defaultGame:    'DefaultGame.ini',
-  defaultEngine:  'DefaultEngine.ini',
-  userGame:       'UserGame.ini',
-  userEngine:     'UserEngine.ini',
-  userOverrides:  'UserOverrides.ini',
+  defaultGame:   'DefaultGame.ini',
+  defaultEngine: 'DefaultEngine.ini',
+  userGame:      'UserGame.ini',
+  userEngine:    'UserEngine.ini',
 }
 
 const LAYER_STYLE: Record<string, { cls: string }> = {
@@ -22,10 +21,9 @@ const LAYER_STYLE: Record<string, { cls: string }> = {
   defaultEngine: { cls: 'text-muted/60' },
   userEngine:    { cls: 'text-foreground/70' },
   userGame:      { cls: 'text-warning' },
-  userOverrides: { cls: 'text-accent' },
 }
 
-const SOURCE_PRIORITY = ['defaultGame', 'defaultEngine', 'userGame', 'userEngine', 'userOverrides'] as const
+const SOURCE_PRIORITY = ['defaultGame', 'defaultEngine', 'userEngine', 'userGame'] as const
 
 function groupByCategory(items: ServerSetting[]) {
   const map = new Map<string, ServerSetting[]>()
@@ -131,10 +129,10 @@ function SettingRow({
             className="w-28 bg-surface border border-border rounded px-2 py-1 text-xs font-mono text-foreground focus:outline-none focus:border-accent/60 text-right"
           />
         )}
-        {item.source === 'userOverrides' && (
+        {(item.source === 'userGame' || item.source === 'userEngine') && (
           <button
             onClick={onDelete}
-            title="Remove from UserOverrides.ini"
+            title={`Remove from ${SOURCE_FILE[item.source]}`}
             className="text-muted/50 hover:text-danger transition-colors"
           >
             <Icon name="trash-2" className="w-3.5 h-3.5" />
@@ -173,17 +171,18 @@ function groupLinesByKey(lines: RawSection['lines']) {
 
 // One panel per INI section name, merging all source files that contain it.
 function RawSectionPanel({ sections, onSaved }: { sections: RawSection[]; onSaved: () => void }) {
-  const sectionName    = sections[0].section
-  const overridesSec   = sections.find(s => s.source === 'userOverrides')
+  const sectionName = sections[0].section
+  // Find the active user-writable source for this section (userGame or userEngine).
+  const userSec = sections.find(s => s.source === 'userGame')
+               ?? sections.find(s => s.source === 'userEngine')
 
-  // Editing always targets UserOverrides.ini regardless of which sources are present.
   const [editing, setEditing] = useState(false)
   const [draft, setDraft]     = useState('')
   const [saving, setSaving]   = useState(false)
   const textareaRef           = useRef<HTMLTextAreaElement>(null)
 
   const startEdit = () => {
-    setDraft(overridesSec ? linesToText(overridesSec.lines) : '')
+    setDraft(userSec ? linesToText(userSec.lines) : '')
     setEditing(true)
     setTimeout(() => textareaRef.current?.focus(), 0)
   }
@@ -193,8 +192,8 @@ function RawSectionPanel({ sections, onSaved }: { sections: RawSection[]; onSave
   const save = async () => {
     setSaving(true)
     try {
-      await api.serverSettings.updateRaw(sectionName, 'userOverrides', draft)
-      toast.success('Saved to UserOverrides.ini')
+      await api.serverSettings.updateRaw(sectionName, draft)
+      toast.success(`Saved to ${userSec ? SOURCE_FILE[userSec.source] : 'UserGame.ini'}`)
       setEditing(false)
       onSaved()
     } catch (e: unknown) {
@@ -204,11 +203,11 @@ function RawSectionPanel({ sections, onSaved }: { sections: RawSection[]; onSave
     }
   }
 
-  const deleteOverride = async () => {
+  const deleteUserEntry = async () => {
     setSaving(true)
     try {
-      await api.serverSettings.updateRaw(sectionName, 'userOverrides', '')
-      toast.success('Removed from UserOverrides.ini')
+      await api.serverSettings.updateRaw(sectionName, '')
+      toast.success(`Removed from ${userSec ? SOURCE_FILE[userSec.source] : 'UserGame.ini'}`)
       onSaved()
     } catch (e: unknown) {
       toast.danger(`Delete failed: ${e instanceof Error ? e.message : String(e)}`)
@@ -244,10 +243,10 @@ function RawSectionPanel({ sections, onSaved }: { sections: RawSection[]; onSave
             </>
           ) : (
             <>
-              {overridesSec && (
+              {userSec && (
                 <button
-                  onClick={deleteOverride}
-                  title="Remove from UserOverrides.ini"
+                  onClick={deleteUserEntry}
+                  title={`Remove from ${SOURCE_FILE[userSec.source]}`}
                   className="text-muted/50 hover:text-danger transition-colors"
                   disabled={saving}
                 >
@@ -313,7 +312,7 @@ function RawSectionPanel({ sections, onSaved }: { sections: RawSection[]; onSave
   )
 }
 
-const USER_SOURCES = new Set(['userGame', 'userEngine', 'userOverrides'])
+const USER_SOURCES = new Set(['userGame', 'userEngine'])
 
 export default function ServerSettingsTab() {
   const [items, setItems]     = useState<ServerSetting[]>([])
@@ -353,7 +352,7 @@ export default function ServerSettingsTab() {
   const handleDelete = async (item: ServerSetting) => {
     try {
       await api.serverSettings.update([{ section: item.section, key: item.key, value: '' }])
-      toast.success('Removed from UserOverrides.ini')
+      toast.success(`Removed from ${SOURCE_FILE[item.source] ?? item.source}`)
       load()
     } catch (e: unknown) {
       toast.danger(`Delete failed: ${e instanceof Error ? e.message : String(e)}`)
@@ -409,7 +408,7 @@ export default function ServerSettingsTab() {
   })
 
   // In "user settings" mode, show only items that have at least one value
-  // from a user-controlled file (userGame / userEngine / userOverrides).
+  // from a user-controlled file (userGame / userEngine).
   const visibleItems = showAll
     ? items
     : items.filter(item => item.layers.some(l => USER_SOURCES.has(l.source)))
@@ -461,7 +460,7 @@ export default function ServerSettingsTab() {
       </PageHeader>
 
       <p className="text-xs text-muted shrink-0">
-        Changes are written to <span className="font-mono">UserOverrides.ini</span>.
+        Changes are written to <span className="font-mono">UserGame.ini</span> or <span className="font-mono">UserEngine.ini</span>.
         A server restart is required for them to take effect.
       </p>
 
