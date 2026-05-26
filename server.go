@@ -163,6 +163,13 @@ func startServer(addr string) {
 	mux.HandleFunc("GET /api/v1/market/stats", handleMarketStats)
 	mux.HandleFunc("GET /api/v1/market/categories", handleMarketCategories)
 
+	// ── market bot control ────────────────────────────────────────────────────
+	mux.HandleFunc("GET /api/v1/market-bot/status", handleMarketBotStatus)
+	mux.HandleFunc("GET /api/v1/market-bot/config", handleMarketBotConfig)
+	mux.HandleFunc("PUT /api/v1/market-bot/config", handleMarketBotConfig)
+	mux.HandleFunc("POST /api/v1/market-bot/exec", handleMarketBotExec)
+	mux.HandleFunc("GET /api/v1/market-bot/logs", handleMarketBotLogs)
+
 	srv := &http.Server{
 		Addr:              addr,
 		Handler:           corsMiddleware(mux),

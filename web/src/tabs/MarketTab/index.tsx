@@ -7,15 +7,21 @@ import MarketSidebar from './MarketSidebar'
 import MarketSearch, { type MarketFilters } from './MarketSearch'
 import MarketTable from './MarketTable'
 import ItemDetail from './ItemDetail'
+import BotControlPanel from './bot/BotControlPanel'
 
 const DEFAULT_FILTERS: MarketFilters = { search: '', category: '', owner: '' }
 
-export default function MarketTab() {
+type Props = {
+  isSignedIn?: boolean
+}
+
+export default function MarketTab({ isSignedIn = false }: Props) {
   const [items, setItems] = useState<MarketItem[]>([])
   const [categories, setCategories] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [filters, setFilters] = useState<MarketFilters>(DEFAULT_FILTERS)
   const [selected, setSelected] = useState<MarketItem | null>(null)
+  const [botOpen, setBotOpen] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -52,6 +58,11 @@ export default function MarketTab() {
   return (
     <div className="flex flex-col h-full gap-3 min-h-0">
       <PageHeader title="Market Board" subtitle="Browse active exchange listings from bot and player sellers.">
+        {isSignedIn && (
+          <Button size="sm" variant={botOpen ? 'solid' : 'ghost'} onPress={() => setBotOpen(v => !v)}>
+            <Icon name="bot" /> Bot Control
+          </Button>
+        )}
         <Button size="sm" variant="ghost" onPress={load} isDisabled={loading}>
           {loading ? <Spinner size="sm" color="current" /> : <><Icon name="refresh-cw" /> Refresh</>}
         </Button>
@@ -80,6 +91,12 @@ export default function MarketTab() {
 
         <ItemDetail item={selected} onClose={() => setSelected(null)} />
       </div>
+
+      {isSignedIn && botOpen && (
+        <div className="shrink-0 border-t border-border pt-3 overflow-y-auto max-h-[50vh]">
+          <BotControlPanel />
+        </div>
+      )}
     </div>
   )
 }

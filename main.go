@@ -47,8 +47,12 @@ var (
 	brokerGameAddr  string
 	brokerAdminAddr string
 	brokerTLS       bool
-	backupDir       string
-	serverIniDir    string
+	backupDir           string
+	serverIniDir        string
+	marketBotAddr       string
+	marketBotToken      string
+	marketBotContainer  string
+	marketBotNamespace  string
 )
 
 // appConfig mirrors the fields written to ~/.dune-admin/config.yaml.
@@ -112,6 +116,15 @@ type appConfig struct {
 
 	ScripCurrency int    `yaml:"scrip_currency"`
 	ListenAddr    string `yaml:"listen_addr"`
+
+	// Market bot — optional; enables bot control panel.
+	// MarketBotAddr is the bot's HTTP API address (e.g. "http://market-bot.svc:8081").
+	// MarketBotContainer is the deployment name (kubectl) or container name (docker).
+	// MarketBotNamespace is only used by the kubectl control plane.
+	MarketBotAddr      string `yaml:"market_bot_addr"`
+	MarketBotToken     string `yaml:"market_bot_token"`
+	MarketBotContainer string `yaml:"market_bot_container"`
+	MarketBotNamespace string `yaml:"market_bot_namespace"`
 }
 
 func configDir() string {
@@ -167,6 +180,10 @@ func loadConfig() {
 			setEnvIfMissing("BROKER_ADMIN_ADDR", cfg.BrokerAdminAddr)
 			setEnvIfMissing("BACKUP_DIR", cfg.BackupDir)
 			setEnvIfMissing("SERVER_INI_DIR", cfg.ServerIniDir)
+			setEnvIfMissing("MARKET_BOT_ADDR", cfg.MarketBotAddr)
+			setEnvIfMissing("MARKET_BOT_TOKEN", cfg.MarketBotToken)
+			setEnvIfMissing("MARKET_BOT_CONTAINER", cfg.MarketBotContainer)
+			setEnvIfMissing("MARKET_BOT_NAMESPACE", cfg.MarketBotNamespace)
 			return
 		}
 	}
@@ -234,6 +251,10 @@ func init() {
 	flag.StringVar(&brokerAdminAddr, "broker-admin", envOr("BROKER_ADMIN_ADDR", ""), "mq-admin broker address host:port")
 	flag.StringVar(&backupDir, "backup-dir", envOr("BACKUP_DIR", ""), "Backup directory path")
 	flag.StringVar(&serverIniDir, "ini-dir", envOr("SERVER_INI_DIR", ""), "Directory containing UserGame.ini / UserOverrides.ini")
+	flag.StringVar(&marketBotAddr, "market-bot-addr", envOr("MARKET_BOT_ADDR", ""), "Market bot HTTP API address (e.g. http://host:8081)")
+	flag.StringVar(&marketBotToken, "market-bot-token", envOr("MARKET_BOT_TOKEN", ""), "Market bot bearer token")
+	flag.StringVar(&marketBotContainer, "market-bot-container", envOr("MARKET_BOT_CONTAINER", "market-bot"), "Market bot container/deployment name")
+	flag.StringVar(&marketBotNamespace, "market-bot-namespace", envOr("MARKET_BOT_NAMESPACE", ""), "Market bot k8s namespace")
 	flag.BoolVar(&captureMode, "capture", false, "Capture RabbitMQ messages (grant + notifications) and print to stdout")
 	flag.BoolVar(&setupMode, "setup", false, "Interactive setup wizard — writes ~/.dune-admin/config.yaml")
 	flag.StringVar(&sqlQuery, "sql", "", "Run a SQL query and print results to stdout, then exit")
