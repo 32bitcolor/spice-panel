@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -37,15 +38,24 @@ func botProxy(method, path string, body io.Reader) ([]byte, int, error) {
 	return data, resp.StatusCode, err
 }
 
-// handleMarketBotStatus proxies GET /status from the bot API.
+// handleMarketBotStatus proxies GET /status from the bot API and injects a
+// "running" field (true when the bot responds, false when unreachable).
 func handleMarketBotStatus(w http.ResponseWriter, r *http.Request) {
-	data, code, err := botProxy(http.MethodGet, "/status", nil)
+	data, _, err := botProxy(http.MethodGet, "/status", nil)
 	if err != nil {
-		jsonErr(w, err, code)
+		// Bot is unreachable — return a minimal status rather than an error so
+		// the frontend can show a "stopped" state instead of an error banner.
+		jsonOK(w, map[string]any{"running": false, "error": err.Error()})
 		return
 	}
+	var m map[string]any
+	if json.Unmarshal(data, &m) == nil {
+		m["running"] = true
+		jsonOK(w, m)
+		return
+	}
+	// Passthrough if JSON parsing fails.
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
 	w.Write(data) //nolint:errcheck
 }
 
@@ -113,11 +123,11 @@ func execBotCommand(ctx context.Context, cmd string) (string, error) {
 		}
 		switch cmd {
 		case "start":
-			return globalExecutor.Exec(fmt.Sprintf("kubectl scale deployment/%s -n %s --replicas=1 2>&1", marketBotContainer, ns))
+			return globalExecutor.Exec(fmt.Sprintf("sudo kubectl scale deployment/%s -n %s --replicas=1 2>&1", marketBotContainer, ns))
 		case "stop":
-			return globalExecutor.Exec(fmt.Sprintf("kubectl scale deployment/%s -n %s --replicas=0 2>&1", marketBotContainer, ns))
+			return globalExecutor.Exec(fmt.Sprintf("sudo kubectl scale deployment/%s -n %s --replicas=0 2>&1", marketBotContainer, ns))
 		case "restart":
-			return globalExecutor.Exec(fmt.Sprintf("kubectl rollout restart deployment/%s -n %s 2>&1", marketBotContainer, ns))
+			return globalExecutor.Exec(fmt.Sprintf("sudo kubectl rollout restart deployment/%s -n %s 2>&1", marketBotContainer, ns))
 		}
 	case "docker":
 		return globalExecutor.Exec(fmt.Sprintf("docker %s %s 2>&1", cmd, marketBotContainer))

@@ -201,15 +201,16 @@ export type MarketItemsResponse = {
   limit: number
 }
 export type BotStatus = {
-  running: boolean
-  enabled: boolean
+  running: boolean      // injected by dune-admin proxy (true = bot responded)
   uptime: string
   last_list_tick: string | null
   last_buy_tick: string | null
-  next_list_tick: string | null
-  next_buy_tick: string | null
+  next_list_tick?: string | null
+  next_buy_tick?: string | null
   listing_count: number
+  balance?: number
   error_count: number
+  error?: string        // set when running=false
 }
 export type BotConfig = {
   list_tick_interval: string
