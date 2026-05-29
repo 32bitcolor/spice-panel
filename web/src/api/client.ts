@@ -4,9 +4,22 @@ declare global {
   }
 }
 
+function sanitizeBackendBase(raw: string): string | null {
+  try {
+    const u = new URL(raw.trim())
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return null
+    return `${u.origin}${u.pathname}`.replace(/\/$/, '')
+  } catch {
+    return null
+  }
+}
+
 function getApiBase(): string {
   const stored = localStorage.getItem('dune_admin_backend')
-  if (stored) return stored.replace(/\/$/, '') + '/api/v1'
+  if (stored) {
+    const safeBase = sanitizeBackendBase(stored)
+    if (safeBase) return safeBase + '/api/v1'
+  }
 
   // CDN-hosted deploy detection: VITE_CDN_BASE_URL is set at build time by
   // the Cloudflare Pages workflow and unset for single-binary Go builds
@@ -224,7 +237,7 @@ export type CatalogItem = {
 }
 export type BotStatus = {
   running: boolean
-  mode?: 'embedded'
+  mode?: 'embedded' | 'remote' | 'none'
   enabled?: boolean
   uptime: string
   last_list_tick: string | null
