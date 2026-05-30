@@ -89,7 +89,16 @@ kubectl get nodes
 
 if (-not $SkipBuild) {
   Invoke-Step "Building image $Image" {
-    docker buildx build --platform linux/amd64 -f deploy/Dockerfile -t $Image --load .
+    $AppVersion = if (Test-Path "$PSScriptRoot/VERSION") { Get-Content "$PSScriptRoot/VERSION" -Raw } else { "unknown" }
+    $AppVersion = $AppVersion.Trim()
+    $GitCommitRaw = git -C $PSScriptRoot rev-parse --short HEAD 2>$null
+    $GitCommit = if ($GitCommitRaw) { $GitCommitRaw } else { "unknown" }
+    $BuildTime = [System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
+    docker buildx build --platform linux/amd64 -f deploy/Dockerfile `
+      --build-arg APP_VERSION=$AppVersion `
+      --build-arg GIT_COMMIT=$GitCommit `
+      --build-arg BUILD_TIME=$BuildTime `
+      -t $Image --load .
   }
 }
 
@@ -113,9 +122,11 @@ if (-not (Test-Path $Manifest)) {
 }
 
 $manifestText = Get-Content -Path $Manifest -Raw
-$patched = [regex]::Replace($manifestText, '(?m)^(\s*image:\s*).*$', "`$1$Image", 1)
+# Patch all image: fields that reference a dune-admin image (main container
+# and seed-binary init container both need the same locally-built image tag).
+$patched = [regex]::Replace($manifestText, '(?m)^(\s*image:\s*)(?:ghcr\.io/icehunter/dune-admin|dune-admin)\S*$', "`$1$Image")
 if ($patched -eq $manifestText) {
-  throw "No image: field found to patch in manifest"
+  throw "No dune-admin image: field found to patch in manifest"
 }
 
 $dbHostOverride = ""

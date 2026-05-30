@@ -56,6 +56,8 @@ func resolveAppVersion(ldflagsVersion, workDir string) string {
 var (
 	setupMode       bool
 	cleanMarketMode bool
+	updateMode      bool
+	reinstallMode   bool
 	sqlQuery        string
 	renderK8SOut    string
 	sshHost         string
@@ -178,6 +180,12 @@ func marketBotEnabled(cfg appConfig) bool {
 }
 
 func configDir() string {
+	// DUNE_ADMIN_CONFIG_DIR allows operators to redirect config to a writable
+	// path in environments where the home directory is read-only (e.g. K8s with
+	// a ConfigMap-mounted home dir, or containers with a read-only root fs).
+	if dir := os.Getenv("DUNE_ADMIN_CONFIG_DIR"); dir != "" {
+		return dir
+	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return ".dune-admin"
@@ -325,6 +333,8 @@ func init() {
 	flag.BoolVar(&cleanMarketMode, "clean-market", false, "Delete all bot listings (Revy), then exit")
 	flag.StringVar(&sqlQuery, "sql", "", "Run a SQL query and print results to stdout, then exit")
 	flag.StringVar(&renderK8SOut, "render-k8s", "", "Render k8s manifest with values from loaded config (path or '-' for stdout)")
+	flag.BoolVar(&updateMode, "update", false, "Check for and apply the latest release")
+	flag.BoolVar(&reinstallMode, "reinstall", false, "Re-download and reinstall the current latest release (useful for testing updates)")
 }
 
 func resolveKeyPath() string {
@@ -509,6 +519,14 @@ func runImmediateModes() (handled bool, err error) {
 	// Explicit -setup flag: reconfigure and exit (don't start server).
 	if setupMode {
 		runSetup()
+		return true, nil
+	}
+	if reinstallMode {
+		runSelfUpdate(true)
+		return true, nil
+	}
+	if updateMode {
+		runSelfUpdate(false)
 		return true, nil
 	}
 	if sqlQuery != "" {

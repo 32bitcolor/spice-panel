@@ -26,23 +26,43 @@ WORKDIR /build
 
 ARG TARGETOS
 ARG TARGETARCH
+ARG APP_VERSION=dev
+ARG GIT_COMMIT=unknown
+ARG BUILD_TIME=unknown
 
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -ldflags="-s -w" -o dune-admin ./cmd/dune-admin
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
+    go build \
+    -ldflags="-s -w -X main.AppVersion=${APP_VERSION} -X main.GitCommit=${GIT_COMMIT} -X main.BuildTime=${BUILD_TIME}" \
+    -o dune-admin ./cmd/dune-admin
 
 # ── Runtime ───────────────────────────────────────────────────────────────────
 FROM --platform=$TARGETPLATFORM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates kubernetes-client postgresql-client && rm -rf /var/lib/apt/lists/*
 
+# Expose build time so the seed-binary init container can stamp the PVC.
+# BUILD_TIME is set to $(date -u) by deploy.sh on every run, so every deploy
+# triggers a re-seed regardless of whether version or commit changed.
+ARG BUILD_TIME=unknown
+ENV IMAGE_BUILD_TIME=${BUILD_TIME}
+
 WORKDIR /app
 
 COPY --from=go-builder /build/dune-admin .
 COPY --from=go-builder /build/tags-data.json /build/item-data.json ./
 COPY --from=web-builder /build/web/dist ./dist
+
+# Seed directory for the K8s host-mount pattern. Lives outside /app so that a
+# PVC mounted at /app doesn't hide it. The init container re-seeds when the
+# image version differs from the stamp in the PVC, so new image deploys always
+# update the binary while pod restarts after a self-update keep the newer binary.
+RUN mkdir -p /usr/local/share/dune-admin-seed && \
+    cp dune-admin tags-data.json item-data.json /usr/local/share/dune-admin-seed/ && \
+    cp -r dist /usr/local/share/dune-admin-seed/dist
 
 EXPOSE 8080
 
