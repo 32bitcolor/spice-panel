@@ -548,10 +548,11 @@ func runAmpSetup(ask func(string, string) string, ok, fail func(string), cfg *ap
 	globalControl = newControlPlane("amp", *cfg)
 	ok("Database connected as: " + cfg.DBUser)
 	fmt.Println()
-	fmt.Println("Reminder: dune-admin needs sudoers grants to write UserGame.ini as " + cfg.AmpUser + ".")
+	fmt.Println("Reminder: dune-admin needs sudoers grants to read and write UserGame.ini as " + cfg.AmpUser + ".")
 	fmt.Println("Example /etc/sudoers.d/dune-admin entry:")
 	fmt.Printf("  %s ALL=(%s) NOPASSWD: /usr/bin/tee %s/UserGame.ini, /usr/bin/tee %s/UserEngine.ini\n",
 		envOr("USER", "dune-admin"), cfg.AmpUser, cfg.ServerIniDir, cfg.ServerIniDir)
+	fmt.Println("  (If the service user does not own the INI files, also add: /usr/bin/cat)")
 	fmt.Println()
 
 	cfg.ScripCurrency = scripCurrencyID

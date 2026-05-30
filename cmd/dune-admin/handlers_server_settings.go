@@ -587,10 +587,15 @@ func readINIContent(path string) string {
 		}
 		return out
 	}
-	out, err := globalExecutor.Exec(fmt.Sprintf("sudo cat %s 2>/dev/null", shellQuote(path)))
-	if err != nil {
-		return ""
+	// Try plain cat first: when the service runs as the file owner (e.g. AMP
+	// where the service user is amp and owns UserGame.ini), no sudo is needed
+	// and sudo cat may not be in the sudoers at all. Fall back to sudo cat for
+	// setups where the service user is not the file owner (docker, SSH, etc.).
+	out, err := globalExecutor.Exec(fmt.Sprintf("cat %s 2>/dev/null", shellQuote(path)))
+	if err == nil && strings.TrimSpace(out) != "" {
+		return out
 	}
+	out, _ = globalExecutor.Exec(fmt.Sprintf("sudo cat %s 2>/dev/null", shellQuote(path)))
 	return out
 }
 
