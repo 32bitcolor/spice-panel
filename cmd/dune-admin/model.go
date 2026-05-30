@@ -148,8 +148,11 @@ type msgSpecs struct {
 	err  error
 }
 type msgSQL struct {
-	result string
-	err    error
+	result    string
+	headers   []string
+	rows      [][]string
+	truncated bool
+	err       error
 }
 type msgMutate struct {
 	ok  string

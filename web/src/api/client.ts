@@ -660,7 +660,7 @@ export const api = {
     describe: (table: string) => req<{ table: string, columns: { name: string, data_type: string, nullable: string }[] }>('GET', `/database/describe?table=${encodeURIComponent(table)}`),
     sample: (table: string, limit = 20) => req<{ table: string, headers: string[], rows: string[][] }>('GET', `/database/sample?table=${encodeURIComponent(table)}&limit=${limit}`),
     search: (term: string) => req<{ headers: string[], rows: string[][] }>('GET', `/database/search?term=${encodeURIComponent(term)}`),
-    sql: (sql: string) => req<{ result: string }>('POST', '/database/sql', { sql }),
+    sql: (sql: string) => req<{ headers: string[], rows: string[][], truncated: boolean }>('POST', '/database/sql', { sql }),
   },
 
   logs: {

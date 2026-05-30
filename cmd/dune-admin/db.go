@@ -261,6 +261,18 @@ func buildSQLResult(headers []string, rows [][]any, truncated bool) string {
 	return sb.String()
 }
 
+func formatSQLStringRows(rows [][]any) [][]string {
+	out := make([][]string, len(rows))
+	for i, row := range rows {
+		cells := make([]string, len(row))
+		for j, v := range row {
+			cells[j] = fmt.Sprintf("%v", v)
+		}
+		out[i] = cells
+	}
+	return out
+}
+
 func cmdRunSQL(sql string) Cmd {
 	return func() Msg {
 		if globalDB == nil {
@@ -274,7 +286,12 @@ func cmdRunSQL(sql string) Cmd {
 
 		headers := sqlHeaderNames(rows)
 		resultRows, truncated := collectSQLRows(rows, 200)
-		return msgSQL{result: buildSQLResult(headers, resultRows, truncated)}
+		return msgSQL{
+			result:    buildSQLResult(headers, resultRows, truncated),
+			headers:   headers,
+			rows:      formatSQLStringRows(resultRows),
+			truncated: truncated,
+		}
 	}
 }
 

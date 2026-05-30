@@ -14,6 +14,51 @@ func TestFormatSQLRow(t *testing.T) {
 	}
 }
 
+func TestFormatSQLStringRows(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		in   [][]any
+		want [][]string
+	}{
+		{
+			name: "integers and strings convert to string representation",
+			in:   [][]any{{int64(1), "alpha"}, {int64(2), "beta"}},
+			want: [][]string{{"1", "alpha"}, {"2", "beta"}},
+		},
+		{
+			name: "nil becomes <nil>",
+			in:   [][]any{{nil, "x"}},
+			want: [][]string{{"<nil>", "x"}},
+		},
+		{
+			name: "empty input returns empty slice",
+			in:   [][]any{},
+			want: [][]string{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := formatSQLStringRows(tt.in)
+			if len(got) != len(tt.want) {
+				t.Fatalf("len=%d want=%d", len(got), len(tt.want))
+			}
+			for i, row := range got {
+				if len(row) != len(tt.want[i]) {
+					t.Fatalf("row %d: len=%d want=%d", i, len(row), len(tt.want[i]))
+				}
+				for j, cell := range row {
+					if cell != tt.want[i][j] {
+						t.Fatalf("[%d][%d]: got %q want %q", i, j, cell, tt.want[i][j])
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestBuildSQLResult(t *testing.T) {
 	t.Parallel()
 

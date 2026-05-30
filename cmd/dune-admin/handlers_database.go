@@ -143,5 +143,9 @@ func handleDBSQL(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, msg.err, 500)
 		return
 	}
-	jsonOK(w, map[string]string{"result": msg.result})
+	jsonOK(w, map[string]any{
+		"headers":   msg.headers,
+		"rows":      msg.rows,
+		"truncated": msg.truncated,
+	})
 }
