@@ -28,8 +28,9 @@ export default function MarketTab() {
   useEffect(() => {
     api.marketBot
       .status()
-      // configured field from newer backends; fall back to mode check for older ones
-      .then((s) => setBotConfigured(s.configured ?? s.mode !== 'none'))
+      // configured field from newer backends; fall back to mode check for older ones.
+      // Treat absent mode (pre-mode backend) as not-configured rather than configured.
+      .then((s) => setBotConfigured(s.configured ?? (s.mode !== undefined && s.mode !== 'none')))
       .catch(() => setBotConfigured(false))
   }, [])
 

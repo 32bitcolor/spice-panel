@@ -5,7 +5,7 @@ import type { BotStatus } from '../../../api/client'
 import { Icon, ConfirmDialog } from '../../../dune-ui'
 
 type Props = {
-  status: BotStatus | null
+  status: BotStatus
   onRefresh: () => void
 }
 
