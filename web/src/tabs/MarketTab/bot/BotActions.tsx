@@ -57,7 +57,7 @@ export default function BotActions({ status, onRefresh }: Props) {
         {dormant
           ? (
               <span className="text-xs text-muted">
-                Bot disabled — enable in Settings → Market Bot to use lifecycle controls.
+                Bot disabled — enable it in the Server tab to use lifecycle controls.
               </span>
             )
           : (
