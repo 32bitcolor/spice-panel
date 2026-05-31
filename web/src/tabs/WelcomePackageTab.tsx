@@ -1,21 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button, ListBox, SearchField, Select, Spinner, toast } from '@heroui/react'
 import { api } from '../api/client'
 import type { WelcomePackage, WelcomePackageConfig, WelcomePackageItem, WelcomeGrantRecord } from '../api/client'
 import { DataTable, Icon, NumberInput, PageHeader, Panel, SectionLabel, type Column } from '../dune-ui'
 
 type GrantKey = 'character' | 'fls' | 'version' | 'status' | 'attempts' | 'updated' | 'error' | 'actions'
-
-const GRANT_COLUMNS: Column<GrantKey>[] = [
-  { key: 'character', label: 'Character', minWidth: 130 },
-  { key: 'fls', label: 'FLS ID', minWidth: 140 },
-  { key: 'version', label: 'Version', width: 90 },
-  { key: 'status', label: 'Status', width: 90 },
-  { key: 'attempts', label: 'Tries', width: 60 },
-  { key: 'updated', label: 'Updated', minWidth: 150 },
-  { key: 'error', label: 'Error', minWidth: 180 },
-  { key: 'actions', label: '', width: 100, sortable: false },
-]
 
 function fmtTime(s: string): string {
   if (!s) return '—'
@@ -24,6 +14,19 @@ function fmtTime(s: string): string {
 }
 
 export default function WelcomePackageTab() {
+  const { t } = useTranslation()
+
+  const GRANT_COLUMNS: Column<GrantKey>[] = [
+    { key: 'character', label: t('welcome.columns.character'), minWidth: 130 },
+    { key: 'fls', label: t('welcome.columns.flsId'), minWidth: 140 },
+    { key: 'version', label: t('welcome.columns.version'), width: 90 },
+    { key: 'status', label: t('welcome.columns.status'), width: 90 },
+    { key: 'attempts', label: t('welcome.columns.tries'), width: 60 },
+    { key: 'updated', label: t('welcome.columns.updated'), minWidth: 150 },
+    { key: 'error', label: t('welcome.columns.error'), minWidth: 180 },
+    { key: 'actions', label: '', width: 100, sortable: false },
+  ]
+
   const [grants, setGrants] = useState<WelcomeGrantRecord[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -58,10 +61,11 @@ export default function WelcomePackageTab() {
       .then(() => api.welcomePackage.grants(100))
       .then(setGrants)
       .catch((e: unknown) => {
-        toast.danger(`Failed to load welcome package: ${e instanceof Error ? e.message : String(e)}`)
+        const msg = e instanceof Error ? e.message : String(e)
+        toast.danger(t('welcome.failedToLoad', { message: msg }))
       })
       .finally(() => setLoading(false))
-  }, [])
+  }, [t])
 
   useEffect(() => {
     load()
@@ -81,7 +85,7 @@ export default function WelcomePackageTab() {
     if (!addQuery) return []
     const q = addQuery.toLowerCase()
     return templates
-      .filter((t) => t.id.toLowerCase().includes(q) || t.name.toLowerCase().includes(q))
+      .filter((tpl) => tpl.id.toLowerCase().includes(q) || tpl.name.toLowerCase().includes(q))
       .slice(0, 100)
   }, [templates, addQuery])
 
@@ -106,7 +110,7 @@ export default function WelcomePackageTab() {
     const name = newName.trim()
     if (!name) return
     if (packages.some((p) => p.version === name)) {
-      toast.danger(`Version "${name}" already exists`)
+      toast.danger(t('welcome.versionExists', { name }))
       return
     }
     setPackages([...packages, { version: name, items: [] }])
@@ -132,11 +136,11 @@ export default function WelcomePackageTab() {
       }
       applyConfig(await api.welcomePackage.saveConfig(cfg))
       toast.success(enabled
-        ? `Enabled — granting "${activeVersion}" within one scan tick`
-        : 'Welcome package saved (disabled)')
+        ? t('welcome.savedEnabled', { version: activeVersion })
+        : t('welcome.savedDisabled'))
     }
     catch (e) {
-      toast.danger(`Save failed: ${e instanceof Error ? e.message : String(e)}`)
+      toast.danger(t('welcome.saveFailed', { message: e instanceof Error ? e.message : String(e) }))
     }
     finally {
       setSaving(false)
@@ -147,11 +151,11 @@ export default function WelcomePackageTab() {
     setRunning(true)
     try {
       const r = await api.welcomePackage.run()
-      toast.success(`Scan complete — granted ${r.granted}, failed ${r.failed}, skipped ${r.skipped}`)
+      toast.success(t('welcome.scanComplete', { granted: r.granted, failed: r.failed, skipped: r.skipped }))
       setGrants(await api.welcomePackage.grants(100))
     }
     catch (e) {
-      toast.danger(`Run failed: ${e instanceof Error ? e.message : String(e)}`)
+      toast.danger(t('welcome.runFailed', { message: e instanceof Error ? e.message : String(e) }))
     }
     finally {
       setRunning(false)
@@ -161,19 +165,19 @@ export default function WelcomePackageTab() {
   const retry = async (g: WelcomeGrantRecord) => {
     try {
       await api.welcomePackage.retry(g.fls_id, g.package_version, g.account_id)
-      toast.success('Cleared — will re-attempt on the next scan')
+      toast.success(t('welcome.retryCleared'))
       setGrants(await api.welcomePackage.grants(100))
     }
     catch (e) {
-      toast.danger(`Retry failed: ${e instanceof Error ? e.message : String(e)}`)
+      toast.danger(t('welcome.retryFailed', { message: e instanceof Error ? e.message : String(e) }))
     }
   }
 
   return (
     <div className="flex flex-col h-full gap-3 min-h-0 overflow-auto pr-1">
       <PageHeader
-        title="Welcome Kits"
-        subtitle="Auto-grants a configured item package to every player once, on first login."
+        title={t('welcome.title')}
+        subtitle={t('welcome.subtitle')}
       >
         <Button size="sm" variant="ghost" onPress={load} isDisabled={loading}>
           {loading
@@ -184,14 +188,14 @@ export default function WelcomePackageTab() {
                 <>
                   <Icon name="refresh-cw" />
                   {' '}
-                  Refresh
+                  {t('common.refresh')}
                 </>
               )}
         </Button>
       </PageHeader>
 
       <Panel>
-        <SectionLabel>Configuration</SectionLabel>
+        <SectionLabel>{t('welcome.configuration')}</SectionLabel>
 
         <label className="flex items-center gap-2 mt-1 cursor-pointer select-none w-fit">
           <input
@@ -200,17 +204,17 @@ export default function WelcomePackageTab() {
             onChange={(e) => setEnabled(e.target.checked)}
             className="h-4 w-4 accent-accent"
           />
-          <span className="text-sm text-foreground">Enabled</span>
+          <span className="text-sm text-foreground">{t('welcome.enabledLabel')}</span>
         </label>
         <p className="text-xs text-muted mt-1">
-          Grants the active package to online players who haven't received that version.
+          {t('welcome.enabledHint')}
         </p>
 
         <div className="flex flex-wrap items-end gap-4 mt-3">
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted">Active version</label>
+            <label className="text-xs text-muted">{t('welcome.activeVersion')}</label>
             <Select
-              aria-label="Active version"
+              aria-label={t('welcome.activeVersion')}
               selectedKey={activeVersion || null}
               onSelectionChange={(k) => setActiveVersion(k ? String(k) : '')}
               className="w-48"
@@ -236,7 +240,7 @@ export default function WelcomePackageTab() {
             </Select>
           </div>
           <NumberInput
-            label="Scan interval (sec)"
+            label={t('welcome.scanInterval')}
             min={5}
             step={5}
             value={scanSecs}
@@ -247,13 +251,13 @@ export default function WelcomePackageTab() {
       </Panel>
 
       <Panel>
-        <SectionLabel>Packages</SectionLabel>
+        <SectionLabel>{t('welcome.packages')}</SectionLabel>
 
         <div className="flex flex-col gap-3 mt-1">
           <div className="flex items-end gap-3">
-            <Field label="Editing version">
+            <Field label={t('welcome.editingVersion')}>
               <Select
-                aria-label="Editing version"
+                aria-label={t('welcome.editingVersion')}
                 selectedKey={selected || null}
                 onSelectionChange={(k) => setSelected(k ? String(k) : '')}
                 className="w-44"
@@ -289,10 +293,10 @@ export default function WelcomePackageTab() {
           </div>
 
           <div className="flex items-end gap-2">
-            <Field label="New version name">
+            <Field label={t('welcome.newVersionLabel')}>
               <input
                 className="bg-surface border border-border rounded px-2 py-1.5 text-sm text-foreground w-40"
-                placeholder="e.g. v2 or season2"
+                placeholder={t('welcome.newVersionPlaceholder')}
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
               />
@@ -300,14 +304,14 @@ export default function WelcomePackageTab() {
             <Button size="sm" variant="outline" onPress={addVersion}>
               <Icon name="plus" />
               {' '}
-              Add version
+              {t('welcome.addVersion')}
             </Button>
           </div>
         </div>
 
         {!selected
           ? (
-              <p className="text-xs text-muted mt-3">No package selected. Add a version to start.</p>
+              <p className="text-xs text-muted mt-3">{t('welcome.noPackageSelected')}</p>
             )
           : (
               <div className="mt-3">
@@ -322,7 +326,7 @@ export default function WelcomePackageTab() {
                 </div>
 
                 {/* Add row */}
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-end gap-2 mb-3">
                   <div className="relative flex-1">
                     <SearchField
                       value={addQuery}
@@ -377,14 +381,14 @@ export default function WelcomePackageTab() {
                   <Button size="sm" onPress={addItem} isDisabled={!addSelected} className="shrink-0">
                     <Icon name="plus" />
                     {' '}
-                    Add
+                    {t('welcome.addItem')}
                   </Button>
                 </div>
 
                 {/* Item list */}
                 <div className="flex flex-col gap-2">
                   {items.length === 0 && (
-                    <p className="text-xs text-muted">No items in this version yet.</p>
+                    <p className="text-xs text-muted">{t('welcome.noItemsYet')}</p>
                   )}
                   {items.map((it, i) => (
                     <div
@@ -406,7 +410,7 @@ export default function WelcomePackageTab() {
                         onChange={(v) => setItem(i, { quality: v })}
                         className="w-32 shrink-0"
                       />
-                      <Button size="sm" variant="danger-soft" onPress={() => removeItem(i)} aria-label="Remove item">
+                      <Button size="sm" variant="danger-soft" onPress={() => removeItem(i)} aria-label={t('welcome.removeItem')}>
                         <Icon name="x" />
                       </Button>
                     </div>
@@ -425,7 +429,7 @@ export default function WelcomePackageTab() {
                   <>
                     <Icon name="save" />
                     {' '}
-                    Save
+                    {t('welcome.saveConfig')}
                   </>
                 )}
           </Button>
@@ -438,7 +442,7 @@ export default function WelcomePackageTab() {
                   <>
                     <Icon name="play" />
                     {' '}
-                    Run now
+                    {t('welcome.runNow')}
                   </>
                 )}
           </Button>
@@ -447,12 +451,14 @@ export default function WelcomePackageTab() {
 
       <Panel className="min-h-0 flex flex-col">
         <SectionLabel>
-          Grant Ledger (
+          {t('welcome.grantsTitle')}
+          {' '}
+          (
           {grants.length}
           )
         </SectionLabel>
         <DataTable<WelcomeGrantRecord, GrantKey>
-          aria-label="Welcome package grants"
+          aria-label={t('welcome.grantsLabel')}
           className="min-h-0 max-h-full mt-1"
           columns={GRANT_COLUMNS}
           rows={grants}
@@ -470,7 +476,7 @@ export default function WelcomePackageTab() {
               default: return ''
             }
           }}
-          emptyState={<div className="py-8 text-center text-muted">No grants yet.</div>}
+          emptyState={<div className="py-8 text-center text-muted">{t('welcome.noGrants')}</div>}
           renderCell={(g, key) => {
             switch (key) {
               case 'character':
@@ -499,7 +505,7 @@ export default function WelcomePackageTab() {
                       <Button size="sm" variant="outline" className="w-full" onPress={() => retry(g)}>
                         <Icon name="refresh-cw" />
                         {' '}
-                        Retry
+                        {t('welcome.retry')}
                       </Button>
                     )
                   : null

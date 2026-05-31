@@ -371,7 +371,7 @@ function AddItemsModal({ container, open, onClose, onSuccess, onRefresh }: {
                   )
                 : (
                     <>
-                      <div className="flex items-center gap-3 shrink-0">
+                      <div className="flex items-end gap-3 shrink-0">
                         <TextField className="flex-1 min-w-0" aria-label={t('storage.addModal.templateLabel')}>
                           <div className="relative w-full">
                             <SearchField
@@ -413,14 +413,14 @@ function AddItemsModal({ container, open, onClose, onSuccess, onRefresh }: {
                           </div>
                         </TextField>
                         <NumberInput
-                          ariaLabel={t('storage.addModal.qtyLabel')}
+                          label={t('storage.addModal.qtyLabel')}
                           min={1}
                           value={qty}
                           onChange={setQty}
                           className="w-32 shrink-0"
                         />
                         <NumberInput
-                          ariaLabel={t('storage.addModal.qualityLabel')}
+                          label={t('storage.addModal.qualityLabel')}
                           min={0}
                           value={quality}
                           onChange={setQuality}

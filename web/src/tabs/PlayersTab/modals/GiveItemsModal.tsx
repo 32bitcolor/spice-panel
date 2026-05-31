@@ -176,7 +176,7 @@ export function GiveItemsModal({ player, open, onClose }: Props) {
                       </Select>
 
                       {/* Template (flex-1) + Qty / Quality + Add — single row */}
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-end gap-3">
                         <TextField className="flex-1 min-w-0" aria-label={t('players.inventory.columns.template')}>
                           <div className="relative w-full">
                             <SearchField
@@ -218,14 +218,14 @@ export function GiveItemsModal({ player, open, onClose }: Props) {
                           </div>
                         </TextField>
                         <NumberInput
-                          ariaLabel={t('players.give.qty')}
+                          label={t('players.give.qty')}
                           min={1}
                           value={qty}
                           onChange={setQty}
                           className="w-32 shrink-0"
                         />
                         <NumberInput
-                          ariaLabel={t('players.give.quality')}
+                          label={t('players.give.quality')}
                           min={0}
                           value={quality}
                           onChange={setQuality}
