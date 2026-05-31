@@ -319,6 +319,8 @@ export type PlayerStats = {
 export type SolarisPoint = {
   time: string
   balance: number
+  cum_earned: number
+  cum_spent: number
 }
 
 export type SessionRecord = {

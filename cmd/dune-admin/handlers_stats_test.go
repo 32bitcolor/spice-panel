@@ -94,6 +94,80 @@ func TestHandleGetSessionHistory_InvalidID(t *testing.T) {
 	}
 }
 
+func TestAccumulateSolarisPoints(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		raws      []solarisRaw
+		wantLen   int
+		wantEarns []int64
+		wantSpent []int64
+	}{
+		{
+			name:      "empty",
+			raws:      nil,
+			wantLen:   0,
+			wantEarns: nil,
+			wantSpent: nil,
+		},
+		{
+			name:      "single earn",
+			raws:      []solarisRaw{{Time: "t1", Balance: 500, Delta: 500}},
+			wantLen:   1,
+			wantEarns: []int64{500},
+			wantSpent: []int64{0},
+		},
+		{
+			name:      "single spend",
+			raws:      []solarisRaw{{Time: "t1", Balance: 200, Delta: -300}},
+			wantLen:   1,
+			wantEarns: []int64{0},
+			wantSpent: []int64{300},
+		},
+		{
+			name: "zero delta does not change cumulative",
+			raws: []solarisRaw{
+				{Time: "t1", Balance: 100, Delta: 100},
+				{Time: "t2", Balance: 100, Delta: 0},
+			},
+			wantLen:   2,
+			wantEarns: []int64{100, 100},
+			wantSpent: []int64{0, 0},
+		},
+		{
+			name: "mixed sequence accumulates correctly",
+			raws: []solarisRaw{
+				{Time: "t1", Balance: 1000, Delta: 1000},
+				{Time: "t2", Balance: 600, Delta: -400},
+				{Time: "t3", Balance: 1100, Delta: 500},
+				{Time: "t4", Balance: 900, Delta: -200},
+			},
+			wantLen:   4,
+			wantEarns: []int64{1000, 1000, 1500, 1500},
+			wantSpent: []int64{0, 400, 400, 600},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := accumulateSolarisPoints(tt.raws)
+			if len(got) != tt.wantLen {
+				t.Fatalf("len: want %d, got %d", tt.wantLen, len(got))
+			}
+			for i, p := range got {
+				if p.CumEarned != tt.wantEarns[i] {
+					t.Errorf("[%d] CumEarned: want %d, got %d", i, tt.wantEarns[i], p.CumEarned)
+				}
+				if p.CumSpent != tt.wantSpent[i] {
+					t.Errorf("[%d] CumSpent: want %d, got %d", i, tt.wantSpent[i], p.CumSpent)
+				}
+			}
+		})
+	}
+}
+
 func TestBuildPlayerStats(t *testing.T) {
 	t.Parallel()
 

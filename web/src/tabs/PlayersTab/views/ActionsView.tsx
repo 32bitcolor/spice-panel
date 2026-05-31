@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, memo, type ReactNode } from 'react'
 import {
-  Accordion,
   Button,
   Chip,
   Input,
@@ -76,6 +75,42 @@ function DebouncedSearchField({
         <SearchField.ClearButton />
       </SearchField.Group>
     </SearchField>
+  )
+}
+
+function KeystonesToggle({ keystones }: { keystones: KeystoneRow[] }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="mt-0.5">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="text-xs text-muted/70 hover:text-muted flex items-center gap-0.5"
+      >
+        <span>{open ? '▾' : '▸'}</span>
+        {keystones.length}
+        {' '}
+        keystone
+        {keystones.length !== 1 ? 's' : ''}
+      </button>
+      {open && (
+        <div className="flex flex-col gap-0.5 mt-0.5">
+          {keystones.map((k) => (
+            <span key={k.id} className="text-xs font-mono text-muted">
+              ↳
+              {' '}
+              {k.name.replace(/^DA_\w+Keystone_/, '').replace(/_/g, ' ')}
+              {k.cost > 0 && (
+                <span className="ml-1 text-muted/60">
+                  {k.cost}
+                  m
+                </span>
+              )}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -682,33 +717,7 @@ export function ActionsView({ player }: Props) {
                               <span className="inline-flex flex-col font-semibold align-top">
                                 <span>{track}</span>
                                 {trackKeystones.length > 0 && (
-                                  <Accordion className="p-0 mt-0.5" variant="light">
-                                    <Accordion.Item
-                                      key="ks"
-                                      title={`${trackKeystones.length} keystone${trackKeystones.length !== 1 ? 's' : ''}`}
-                                      classNames={{
-                                        heading: 'p-0 min-h-0',
-                                        trigger: 'p-0 py-0.5 text-xs text-muted font-normal',
-                                        content: 'pb-1 pt-0',
-                                      }}
-                                    >
-                                      <div className="flex flex-col gap-0.5">
-                                        {trackKeystones.map((k) => (
-                                          <span key={k.id} className="text-xs font-mono text-muted">
-                                            ↳
-                                            {' '}
-                                            {k.name.replace(/^DA_\w+Keystone_/, '').replace(/_/g, ' ')}
-                                            {k.cost > 0 && (
-                                              <span className="ml-1 text-muted/60">
-                                                {k.cost}
-                                                m
-                                              </span>
-                                            )}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    </Accordion.Item>
-                                  </Accordion>
+                                  <KeystonesToggle keystones={trackKeystones} />
                                 )}
                               </span>
                             )

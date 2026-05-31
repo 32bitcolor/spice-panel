@@ -1,4 +1,7 @@
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { useState } from 'react'
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
+} from 'recharts'
 import type { SolarisPoint } from '../../../api/client'
 import { SectionLabel } from '../../../dune-ui'
 
@@ -6,7 +9,13 @@ interface Props {
   data: SolarisPoint[]
 }
 
-function fmtBalance(n: number): string {
+const LINES: { key: keyof SolarisPoint, label: string, color: string }[] = [
+  { key: 'balance', label: 'Balance', color: 'var(--accent)' },
+  { key: 'cum_earned', label: 'Earned', color: '#52c080' },
+  { key: 'cum_spent', label: 'Spent', color: '#e05252' },
+]
+
+function fmtSolaris(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
   return String(n)
@@ -17,6 +26,17 @@ function fmtTime(iso: string): string {
 }
 
 export function SolarisChart({ data }: Props) {
+  const [hidden, setHidden] = useState<Set<string>>(new Set())
+
+  const toggle = (key: string) => {
+    setHidden((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
   if (data.length === 0) {
     return (
       <div>
@@ -26,10 +46,12 @@ export function SolarisChart({ data }: Props) {
     )
   }
 
+  const visibleLines = LINES.filter((l) => !hidden.has(l.key))
+
   return (
     <div>
       <SectionLabel>Solaris History</SectionLabel>
-      <div className="mt-3 h-48">
+      <div className="mt-3 h-56">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
             <XAxis
@@ -40,14 +62,14 @@ export function SolarisChart({ data }: Props) {
               axisLine={false}
             />
             <YAxis
-              tickFormatter={fmtBalance}
+              tickFormatter={fmtSolaris}
               tick={{ fontSize: 11, fill: 'var(--muted)' }}
               tickLine={false}
               axisLine={false}
               width={48}
             />
             <Tooltip
-              formatter={(val) => [fmtBalance(val as number), 'Balance']}
+              formatter={(val, name) => [fmtSolaris(val as number), String(name)]}
               labelFormatter={(d) => fmtTime(String(d))}
               contentStyle={{
                 background: 'var(--surface)',
@@ -56,14 +78,27 @@ export function SolarisChart({ data }: Props) {
                 fontSize: 12,
               }}
             />
-            <Line
-              type="monotone"
-              dataKey="balance"
-              stroke="var(--accent)"
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4 }}
+            <Legend
+              onClick={(e) => toggle(e.dataKey as string)}
+              formatter={(value, entry) => (
+                <span style={{ color: hidden.has((entry as { dataKey: string }).dataKey) ? 'var(--muted)' : undefined }}>
+                  {value}
+                </span>
+              )}
             />
+            {visibleLines.map((l) => (
+              <Line
+                key={String(l.key)}
+                type="monotone"
+                dataKey={l.key}
+                name={l.label}
+                stroke={l.color}
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4 }}
+                connectNulls
+              />
+            ))}
           </LineChart>
         </ResponsiveContainer>
       </div>

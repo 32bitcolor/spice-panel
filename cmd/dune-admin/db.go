@@ -4712,33 +4712,20 @@ func cmdFetchPlayerPgStats(ctx context.Context, pool *pgxpool.Pool, accountID in
 		return stats, fmt.Errorf("iterate currency: %w", err)
 	}
 
-	// Earned/spent from event_log. The event_log uses a hex PlayFab entity ID
-	// with no direct FK to accounts. We derive the mapping by matching the most
-	// recent solaris_balance recorded in the log against the current balance —
-	// they agree as long as the live DB balance matches the last logged event.
+	// Earned/spent totals from event_log, joined directly via dune.accounts."user"
+	// which stores the hex PlayFab entity ID used as event_log.meta->>'fls_id'.
 	row := pool.QueryRow(ctx, `
-		WITH fls_map AS (
-			SELECT DISTINCT ON (meta->>'fls_id')
-				meta->>'fls_id'                           AS fls_id,
-				ROUND((meta->>'solaris_balance')::float)::bigint AS last_bal
-			FROM dune.event_log
-			WHERE meta->>'solaris_balance' IS NOT NULL
-			ORDER BY meta->>'fls_id', event_time DESC
-		)
 		SELECT
-			COALESCE(SUM(CASE WHEN (el.meta->>'solaris_delta')::float > 0
+			COALESCE(SUM(CASE WHEN COALESCE((el.meta->>'solaris_delta')::float, 0) > 0
 			                  THEN (el.meta->>'solaris_delta')::float ELSE 0 END), 0)::bigint,
-			COALESCE(SUM(CASE WHEN (el.meta->>'solaris_delta')::float < 0
+			COALESCE(SUM(CASE WHEN COALESCE((el.meta->>'solaris_delta')::float, 0) < 0
 			                  THEN ABS((el.meta->>'solaris_delta')::float) ELSE 0 END), 0)::bigint
 		FROM dune.event_log el
-		JOIN fls_map fm ON fm.fls_id = el.meta->>'fls_id'
-		JOIN dune.player_virtual_currency_balances pvc
-		    ON pvc.currency_id = 0 AND pvc.balance = fm.last_bal
-		JOIN dune.player_state ps ON ps.player_controller_id = pvc.player_controller_id
-		WHERE ps.account_id = $1
+		JOIN dune.accounts ac ON ac."user" = el.meta->>'fls_id'
+		WHERE ac.id = $1 AND el.meta->>'solaris_delta' IS NOT NULL
 	`, accountID)
 	if err := row.Scan(&stats.SolarisEarned, &stats.SolarisSpent); err != nil {
-		return stats, fmt.Errorf("fetch solaris history for account %d: %w", accountID, err)
+		return stats, fmt.Errorf("fetch solaris earned/spent for account %d: %w", accountID, err)
 	}
 
 	// Tag-derived stats: POIs discovered, story milestones, max faction tier.
@@ -4786,33 +4773,53 @@ func cmdFetchPlayerPgStats(ctx context.Context, pool *pgxpool.Pool, accountID in
 	return stats, nil
 }
 
+// solarisRaw is an intermediate scan target before cumulative sums are applied.
+type solarisRaw struct {
+	Time    string
+	Balance int64
+	Delta   int64
+}
+
 type solarisPoint struct {
-	Time    string `json:"time"`
-	Balance int64  `json:"balance"`
+	Time      string `json:"time"`
+	Balance   int64  `json:"balance"`
+	CumEarned int64  `json:"cum_earned"`
+	CumSpent  int64  `json:"cum_spent"`
+}
+
+// accumulateSolarisPoints converts raw (time, balance, delta) rows into points
+// with monotonically-increasing cumulative earned and spent totals.
+func accumulateSolarisPoints(raws []solarisRaw) []solarisPoint {
+	out := make([]solarisPoint, 0, len(raws))
+	var cumEarned, cumSpent int64
+	for _, r := range raws {
+		if r.Delta > 0 {
+			cumEarned += r.Delta
+		} else if r.Delta < 0 {
+			cumSpent += -r.Delta
+		}
+		out = append(out, solarisPoint{
+			Time:      r.Time,
+			Balance:   r.Balance,
+			CumEarned: cumEarned,
+			CumSpent:  cumSpent,
+		})
+	}
+	return out
 }
 
 // cmdFetchSolarisHistory returns timestamped solaris balance snapshots for a
-// player. The hex FLS entity ID is derived via balance-match (same approach as
-// cmdFetchPlayerPgStats). Returns at most 500 points in ascending time order.
+// player, joined directly via dune.accounts."user" = event_log.meta->>'fls_id'.
+// Returns at most 500 points with cumulative earned/spent in ascending order.
 func cmdFetchSolarisHistory(ctx context.Context, pool *pgxpool.Pool, accountID int64) ([]solarisPoint, error) {
 	rows, err := pool.Query(ctx, `
-		WITH fls_map AS (
-			SELECT DISTINCT ON (meta->>'fls_id')
-				meta->>'fls_id'                                    AS fls_id,
-				ROUND((meta->>'solaris_balance')::float)::bigint   AS last_bal
-			FROM dune.event_log
-			WHERE meta->>'solaris_balance' IS NOT NULL
-			ORDER BY meta->>'fls_id', event_time DESC
-		)
 		SELECT
 			to_char(el.event_time AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
-			ROUND((el.meta->>'solaris_balance')::float)::bigint
+			ROUND((el.meta->>'solaris_balance')::float)::bigint,
+			COALESCE(ROUND((el.meta->>'solaris_delta')::float)::bigint, 0)
 		FROM dune.event_log el
-		JOIN fls_map fm ON fm.fls_id = el.meta->>'fls_id'
-		JOIN dune.player_virtual_currency_balances pvc
-		    ON pvc.currency_id = 0 AND pvc.balance = fm.last_bal
-		JOIN dune.player_state ps ON ps.player_controller_id = pvc.player_controller_id
-		WHERE ps.account_id = $1 AND el.meta->>'solaris_balance' IS NOT NULL
+		JOIN dune.accounts ac ON ac."user" = el.meta->>'fls_id'
+		WHERE ac.id = $1 AND el.meta->>'solaris_balance' IS NOT NULL
 		ORDER BY el.event_time ASC
 		LIMIT 500
 	`, accountID)
@@ -4821,19 +4828,20 @@ func cmdFetchSolarisHistory(ctx context.Context, pool *pgxpool.Pool, accountID i
 	}
 	defer rows.Close()
 
-	var out []solarisPoint
+	var raws []solarisRaw
 	for rows.Next() {
-		var p solarisPoint
-		if err := rows.Scan(&p.Time, &p.Balance); err != nil {
+		var r solarisRaw
+		if err := rows.Scan(&r.Time, &r.Balance, &r.Delta); err != nil {
 			return nil, fmt.Errorf("scan solaris point: %w", err)
 		}
-		out = append(out, p)
-	}
-	if out == nil {
-		out = []solarisPoint{}
+		raws = append(raws, r)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate solaris history for account %d: %w", accountID, err)
+	}
+	out := accumulateSolarisPoints(raws)
+	if len(out) == 0 {
+		out = []solarisPoint{}
 	}
 	return out, nil
 }
