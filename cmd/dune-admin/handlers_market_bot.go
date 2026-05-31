@@ -89,6 +89,7 @@ func handleMarketBotStatus(w http.ResponseWriter, r *http.Request) {
 		out["running"] = running
 		out["enabled"] = running
 		out["mode"] = "embedded"
+		out["configured"] = true
 		jsonOK(w, out)
 		return
 	}
@@ -120,14 +121,16 @@ func handleMarketBotStatus(w http.ResponseWriter, r *http.Request) {
 		out["mode"] = "remote"
 		out["running"] = true
 		out["enabled"] = true
+		out["configured"] = true
 		jsonOK(w, out)
 		return
 	}
 	jsonOK(w, map[string]any{
-		"running": false,
-		"enabled": false,
-		"mode":    "none",
-		"error":   "market bot not configured; set market_bot_enabled: true or market_bot_remote_url",
+		"running":    false,
+		"enabled":    false,
+		"mode":       "none",
+		"configured": embeddedBotConfigured,
+		"error":      "market bot not configured; set market_bot_enabled: true or market_bot_remote_url",
 	})
 }
 

@@ -623,6 +623,7 @@ func startEmbeddedMarketBotIfEnabled(cfg appConfig) context.CancelFunc {
 	if !marketBotEnabled(cfg) {
 		return nil
 	}
+	embeddedBotConfigured = true
 	botCtx, botCancel := context.WithCancel(context.Background())
 	cacheDB, itemDataForBot, statePath := resolveEmbeddedMarketBotPaths(cfg, itemDataPath)
 	inst, err := marketbot.Run(botCtx, marketbot.BotConfig{
@@ -701,6 +702,10 @@ func main() {
 // embeddedBot holds the live market bot instance when market_bot_enabled=true.
 // Nil when bot is disabled.
 var embeddedBot *marketbot.Instance
+
+// embeddedBotConfigured is true whenever the server config has market_bot_enabled=true,
+// regardless of whether the bot instance is currently running. Never reset to false.
+var embeddedBotConfigured bool
 
 // globalBotCancel cancels the embedded bot's context, stopping it cleanly.
 // Set by startEmbeddedMarketBotIfEnabled; nil when no bot is running.
