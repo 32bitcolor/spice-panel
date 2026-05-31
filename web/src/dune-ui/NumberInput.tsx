@@ -40,7 +40,7 @@ export function NumberInput({
       {label && <Label className="text-xs text-muted">{label}</Label>}
       <NumberField.Group>
         {showButtons && <NumberField.DecrementButton />}
-        <NumberField.Input />
+        <NumberField.Input style={{ textAlign: 'center' }} />
         {showButtons && <NumberField.IncrementButton />}
       </NumberField.Group>
     </NumberField>
