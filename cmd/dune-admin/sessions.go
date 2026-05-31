@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -21,6 +23,9 @@ type sessionStats struct {
 }
 
 func resolveSessionDBPath() string {
+	if p := os.Getenv("DUNE_ADMIN_SESSIONS_DB"); p != "" {
+		return p
+	}
 	return filepath.Join(configDir(), "sessions.db")
 }
 
@@ -37,7 +42,7 @@ func openSessionDB(path string) (*sql.DB, error) {
 }
 
 func initSessionSchema(db *sql.DB) error {
-	_, err := db.Exec(`
+	if _, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS play_sessions (
 			id            INTEGER PRIMARY KEY AUTOINCREMENT,
 			account_id    INTEGER NOT NULL,
@@ -47,21 +52,31 @@ func initSessionSchema(db *sql.DB) error {
 		);
 		CREATE INDEX IF NOT EXISTS idx_ps_account ON play_sessions(account_id);
 		CREATE TABLE IF NOT EXISTS stat_snapshots (
-			id             INTEGER PRIMARY KEY AUTOINCREMENT,
-			account_id     INTEGER NOT NULL,
-			snapped_at     TEXT    NOT NULL,
-			char_xp        INTEGER,
-			skill_points   INTEGER,
-			intel_points   INTEGER,
-			combat_xp      INTEGER,
-			crafting_xp    INTEGER,
-			gathering_xp   INTEGER,
-			exploration_xp INTEGER,
-			sabotage_xp    INTEGER
+			id              INTEGER PRIMARY KEY AUTOINCREMENT,
+			account_id      INTEGER NOT NULL,
+			snapped_at      TEXT    NOT NULL,
+			char_xp         INTEGER,
+			skill_points    INTEGER,
+			intel_points    INTEGER,
+			combat_xp       INTEGER,
+			crafting_xp     INTEGER,
+			gathering_xp    INTEGER,
+			exploration_xp  INTEGER,
+			sabotage_xp     INTEGER,
+			solaris_balance INTEGER
 		);
 		CREATE INDEX IF NOT EXISTS idx_ss_account ON stat_snapshots(account_id, snapped_at);
-	`)
-	return err
+	`); err != nil {
+		return err
+	}
+	// Migration: add solaris_balance to pre-existing databases that lack it.
+	// SQLite returns a "duplicate column name" error if it already exists (e.g.
+	// on a fresh DB where CREATE TABLE above already includes the column).
+	_, err := db.Exec(`ALTER TABLE stat_snapshots ADD COLUMN solaris_balance INTEGER`)
+	if err != nil && !strings.Contains(err.Error(), "duplicate column name") {
+		return fmt.Errorf("migrate stat_snapshots.solaris_balance: %w", err)
+	}
+	return nil
 }
 
 // closeOrphanedSessions marks sessions left open by a previous run. Duration
@@ -224,16 +239,17 @@ func getSessionHistory(ctx context.Context, db *sql.DB, accountID int64, limit i
 }
 
 type statSnapshot struct {
-	AccountID     int64  `json:"account_id"`
-	SnappedAt     string `json:"snapped_at"`
-	CharXP        *int64 `json:"char_xp"`
-	SkillPoints   *int   `json:"skill_points"`
-	IntelPoints   *int   `json:"intel_points"`
-	CombatXP      *int   `json:"combat_xp"`
-	CraftingXP    *int   `json:"crafting_xp"`
-	GatheringXP   *int   `json:"gathering_xp"`
-	ExplorationXP *int   `json:"exploration_xp"`
-	SabotageXP    *int   `json:"sabotage_xp"`
+	AccountID      int64  `json:"account_id"`
+	SnappedAt      string `json:"snapped_at"`
+	CharXP         *int64 `json:"char_xp"`
+	SkillPoints    *int   `json:"skill_points"`
+	IntelPoints    *int   `json:"intel_points"`
+	CombatXP       *int   `json:"combat_xp"`
+	CraftingXP     *int   `json:"crafting_xp"`
+	GatheringXP    *int   `json:"gathering_xp"`
+	ExplorationXP  *int   `json:"exploration_xp"`
+	SabotageXP     *int   `json:"sabotage_xp"`
+	SolarisBalance *int64 `json:"solaris_balance"`
 }
 
 func writeStatSnapshot(ctx context.Context, sdb *sql.DB, snap statSnapshot) error {
@@ -241,11 +257,13 @@ func writeStatSnapshot(ctx context.Context, sdb *sql.DB, snap statSnapshot) erro
 		INSERT INTO stat_snapshots(
 			account_id, snapped_at,
 			char_xp, skill_points, intel_points,
-			combat_xp, crafting_xp, gathering_xp, exploration_xp, sabotage_xp
-		) VALUES(?,?,?,?,?,?,?,?,?,?)`,
+			combat_xp, crafting_xp, gathering_xp, exploration_xp, sabotage_xp,
+			solaris_balance
+		) VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
 		snap.AccountID, snap.SnappedAt,
 		snap.CharXP, snap.SkillPoints, snap.IntelPoints,
 		snap.CombatXP, snap.CraftingXP, snap.GatheringXP, snap.ExplorationXP, snap.SabotageXP,
+		snap.SolarisBalance,
 	)
 	if err != nil {
 		return fmt.Errorf("write stat snapshot for account %d: %w", snap.AccountID, err)
@@ -256,7 +274,8 @@ func writeStatSnapshot(ctx context.Context, sdb *sql.DB, snap statSnapshot) erro
 func getStatSnapshotHistory(ctx context.Context, sdb *sql.DB, accountID int64, limit int) ([]statSnapshot, error) {
 	rows, err := sdb.QueryContext(ctx, `
 		SELECT snapped_at, char_xp, skill_points, intel_points,
-		       combat_xp, crafting_xp, gathering_xp, exploration_xp, sabotage_xp
+		       combat_xp, crafting_xp, gathering_xp, exploration_xp, sabotage_xp,
+		       solaris_balance
 		FROM stat_snapshots
 		WHERE account_id = ?
 		ORDER BY snapped_at ASC
@@ -272,6 +291,7 @@ func getStatSnapshotHistory(ctx context.Context, sdb *sql.DB, accountID int64, l
 		s := statSnapshot{AccountID: accountID}
 		if err := rows.Scan(&s.SnappedAt, &s.CharXP, &s.SkillPoints, &s.IntelPoints,
 			&s.CombatXP, &s.CraftingXP, &s.GatheringXP, &s.ExplorationXP, &s.SabotageXP,
+			&s.SolarisBalance,
 		); err != nil {
 			return nil, fmt.Errorf("scan stat snapshot: %w", err)
 		}

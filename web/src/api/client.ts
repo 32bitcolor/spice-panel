@@ -340,6 +340,7 @@ export type StatSnapshot = {
   gathering_xp: number | null
   exploration_xp: number | null
   sabotage_xp: number | null
+  solaris_balance: number | null
 }
 
 export type TeleportLocation = {

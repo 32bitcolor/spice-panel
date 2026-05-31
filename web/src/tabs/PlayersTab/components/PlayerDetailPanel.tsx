@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Spinner } from '@heroui/react'
 import { api } from '../../../api/client'
-import type { Player, PlayerStats, SolarisPoint, SessionRecord, StatSnapshot } from '../../../api/client'
+import type { Player, PlayerStats, SessionRecord, StatSnapshot } from '../../../api/client'
 import { Panel, SectionLabel } from '../../../dune-ui'
 import { SolarisChart } from './SolarisChart'
 import { SessionChart } from './SessionChart'
@@ -35,7 +35,6 @@ function StatRow({ label, value }: { label: string, value: string | number }) {
 
 export function PlayerDetailPanel({ player }: Props) {
   const [stats, setStats] = useState<PlayerStats | null>(null)
-  const [solaris, setSolaris] = useState<SolarisPoint[]>([])
   const [sessions, setSessions] = useState<SessionRecord[]>([])
   const [snapshots, setSnapshots] = useState<StatSnapshot[]>([])
   const [loading, setLoading] = useState(false)
@@ -45,13 +44,11 @@ export function PlayerDetailPanel({ player }: Props) {
       .then(() => setLoading(true))
       .then(() => Promise.all([
         api.players.stats(player.account_id),
-        api.players.solarisHistory(player.account_id),
         api.players.sessionHistory(player.account_id),
         api.players.statSnapshots(player.account_id),
       ]))
-      .then(([s, sol, sess, snaps]) => {
+      .then(([s, sess, snaps]) => {
         setStats(s)
-        setSolaris(sol)
         setSessions(sess)
         setSnapshots(snaps)
       })
@@ -112,7 +109,7 @@ export function PlayerDetailPanel({ player }: Props) {
       </div>
 
       <Panel>
-        <SolarisChart data={solaris} />
+        <SolarisChart data={snapshots} />
       </Panel>
 
       <Panel>

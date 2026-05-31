@@ -4918,5 +4918,27 @@ func cmdFetchPlayerSnapshot(ctx context.Context, pool *pgxpool.Pool, accountID i
 	if err := rows.Err(); err != nil {
 		return snap, fmt.Errorf("iterate spec tracks for account %d: %w", accountID, err)
 	}
+
+	snap.SolarisBalance, err = fetchSolarisBalance(ctx, pool, accountID)
+	if err != nil {
+		return snap, err
+	}
 	return snap, nil
+}
+
+func fetchSolarisBalance(ctx context.Context, pool *pgxpool.Pool, accountID int64) (*int64, error) {
+	var bal int64
+	err := pool.QueryRow(ctx, `
+		SELECT pvc.balance
+		FROM dune.player_virtual_currency_balances pvc
+		JOIN dune.player_state ps ON ps.player_controller_id = pvc.player_controller_id
+		WHERE ps.account_id = $1 AND pvc.currency_id = 0
+	`, accountID).Scan(&bal)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("fetch solaris snapshot for account %d: %w", accountID, err)
+	}
+	return &bal, nil
 }
