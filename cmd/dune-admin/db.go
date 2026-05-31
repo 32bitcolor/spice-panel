@@ -13,6 +13,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // ── journey-node fetch cache ────────────────────────────────────────────────
@@ -4635,4 +4636,309 @@ func cmdListBases() Msg {
 		return msgBaseList{err: err}
 	}
 	return msgBaseList{rows: out}
+}
+
+// ── player stats ─────────────────────────────────────────────────────────────
+
+// cmdFetchOnlineAccountIDs returns the account IDs of all players currently
+// marked Online in player_state. Used by the session poller.
+func cmdFetchOnlineAccountIDs(ctx context.Context, pool *pgxpool.Pool) ([]int64, error) {
+	rows, err := pool.Query(ctx, `SELECT account_id FROM dune.player_state WHERE online_status = 'Online'`)
+	if err != nil {
+		return nil, fmt.Errorf("fetch online account ids: %w", err)
+	}
+	defer rows.Close()
+
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan account id: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+type playerPgStats struct {
+	SolarisBal      int64      `json:"solaris_balance"`
+	ScripBal        int64      `json:"scrip_balance"`
+	SolarisEarned   int64      `json:"solaris_earned"`
+	SolarisSpent    int64      `json:"solaris_spent"`
+	POIsDiscovered  int        `json:"pois_discovered"`
+	StoryMilestones int        `json:"story_milestones"`
+	MaxFactionTier  int        `json:"max_faction_tier"`
+	CharXP          int64      `json:"char_xp"`
+	SkillPoints     int        `json:"skill_points"`
+	LastSeen        *time.Time `json:"last_seen"`
+}
+
+// cmdFetchPlayerPgStats gathers all Postgres-derived stats for a player.
+//
+// Economy uses two queries:
+//  1. Current balances from player_virtual_currency_balances (always works).
+//  2. Earned/spent totals from event_log, derived via a balance-match CTE:
+//     the most recent solaris_balance in the event_log is matched against the
+//     current balance to identify the player's hex FLS entity ID. This works
+//     as long as the live balance equals the last logged balance.
+func cmdFetchPlayerPgStats(ctx context.Context, pool *pgxpool.Pool, accountID int64) (playerPgStats, error) {
+	var stats playerPgStats
+
+	// Current currency balances via player_controller_id.
+	rows, err := pool.Query(ctx, `
+		SELECT pvc.currency_id, pvc.balance
+		FROM dune.player_virtual_currency_balances pvc
+		JOIN dune.player_state ps ON ps.player_controller_id = pvc.player_controller_id
+		WHERE ps.account_id = $1
+	`, accountID)
+	if err != nil {
+		return stats, fmt.Errorf("fetch currency for account %d: %w", accountID, err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cid int16
+		var bal int64
+		if err := rows.Scan(&cid, &bal); err != nil {
+			return stats, fmt.Errorf("scan currency: %w", err)
+		}
+		switch cid {
+		case 0:
+			stats.SolarisBal = bal
+		case 1:
+			stats.ScripBal = bal
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return stats, fmt.Errorf("iterate currency: %w", err)
+	}
+
+	// Earned/spent totals from event_log, joined directly via dune.accounts."user"
+	// which stores the hex PlayFab entity ID used as event_log.meta->>'fls_id'.
+	row := pool.QueryRow(ctx, `
+		SELECT
+			COALESCE(SUM(CASE WHEN COALESCE((el.meta->>'solaris_delta')::float, 0) > 0
+			                  THEN (el.meta->>'solaris_delta')::float ELSE 0 END), 0)::bigint,
+			COALESCE(SUM(CASE WHEN COALESCE((el.meta->>'solaris_delta')::float, 0) < 0
+			                  THEN ABS((el.meta->>'solaris_delta')::float) ELSE 0 END), 0)::bigint
+		FROM dune.event_log el
+		JOIN dune.accounts ac ON ac."user" = el.meta->>'fls_id'
+		WHERE ac.id = $1 AND el.meta->>'solaris_delta' IS NOT NULL
+	`, accountID)
+	if err := row.Scan(&stats.SolarisEarned, &stats.SolarisSpent); err != nil {
+		return stats, fmt.Errorf("fetch solaris earned/spent for account %d: %w", accountID, err)
+	}
+
+	// Tag-derived stats: POIs discovered, story milestones, max faction tier.
+	row = pool.QueryRow(ctx, `
+		SELECT
+			COUNT(*) FILTER (WHERE tag LIKE 'Exploration.POI.%'),
+			COUNT(*) FILTER (WHERE tag LIKE 'BigMoments.%.Complete'),
+			COALESCE(MAX(
+				CASE WHEN tag ~ '^Faction\.[^.]+\.Tier[0-9]+$'
+				     THEN CAST(SUBSTRING(tag FROM '[0-9]+$') AS INTEGER)
+				     ELSE NULL END
+			), 0)
+		FROM dune.player_tags
+		WHERE account_id = $1
+	`, accountID)
+	if err := row.Scan(&stats.POIsDiscovered, &stats.StoryMilestones, &stats.MaxFactionTier); err != nil {
+		return stats, fmt.Errorf("fetch tag stats for account %d: %w", accountID, err)
+	}
+
+	// Character XP and total skill points from FLevelComponent — joined via pawn_id.
+	row = pool.QueryRow(ctx, `
+		SELECT
+			COALESCE((fe.components->'FLevelComponent'->1->>'TotalXPEarned')::bigint, 0),
+			COALESCE((fe.components->'FLevelComponent'->1->>'TotalSkillPoints')::int, 0)
+		FROM dune.fgl_entities fe
+		JOIN dune.actor_fgl_entities afe ON afe.entity_id = fe.entity_id
+		JOIN dune.player_state ps ON ps.player_pawn_id = afe.actor_id
+		WHERE afe.slot_name = 'DuneCharacter' AND ps.account_id = $1
+	`, accountID)
+	if err := row.Scan(&stats.CharXP, &stats.SkillPoints); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return stats, fmt.Errorf("fetch char xp for account %d: %w", accountID, err)
+	}
+
+	// Last seen: most recent avatar activity timestamp.
+	var lastSeen pgtype.Timestamptz
+	row = pool.QueryRow(ctx, `SELECT last_avatar_activity FROM dune.player_state WHERE account_id = $1`, accountID)
+	if err := row.Scan(&lastSeen); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return stats, fmt.Errorf("fetch last seen for account %d: %w", accountID, err)
+	}
+	if lastSeen.Valid {
+		t := lastSeen.Time
+		stats.LastSeen = &t
+	}
+
+	return stats, nil
+}
+
+// solarisRaw is an intermediate scan target before cumulative sums are applied.
+type solarisRaw struct {
+	Time    string
+	Balance int64
+	Delta   int64
+}
+
+type solarisPoint struct {
+	Time      string `json:"time"`
+	Balance   int64  `json:"balance"`
+	CumEarned int64  `json:"cum_earned"`
+	CumSpent  int64  `json:"cum_spent"`
+}
+
+// accumulateSolarisPoints converts raw (time, balance, delta) rows into points
+// with monotonically-increasing cumulative earned and spent totals.
+func accumulateSolarisPoints(raws []solarisRaw) []solarisPoint {
+	out := make([]solarisPoint, 0, len(raws))
+	var cumEarned, cumSpent int64
+	for _, r := range raws {
+		if r.Delta > 0 {
+			cumEarned += r.Delta
+		} else if r.Delta < 0 {
+			cumSpent += -r.Delta
+		}
+		out = append(out, solarisPoint{
+			Time:      r.Time,
+			Balance:   r.Balance,
+			CumEarned: cumEarned,
+			CumSpent:  cumSpent,
+		})
+	}
+	return out
+}
+
+// cmdFetchSolarisHistory returns timestamped solaris balance snapshots for a
+// player, joined directly via dune.accounts."user" = event_log.meta->>'fls_id'.
+// Returns at most 500 points with cumulative earned/spent in ascending order.
+func cmdFetchSolarisHistory(ctx context.Context, pool *pgxpool.Pool, accountID int64) ([]solarisPoint, error) {
+	rows, err := pool.Query(ctx, `
+		SELECT
+			to_char(el.event_time AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+			ROUND((el.meta->>'solaris_balance')::float)::bigint,
+			COALESCE(ROUND((el.meta->>'solaris_delta')::float)::bigint, 0)
+		FROM dune.event_log el
+		JOIN dune.accounts ac ON ac."user" = el.meta->>'fls_id'
+		WHERE ac.id = $1 AND el.meta->>'solaris_balance' IS NOT NULL
+		ORDER BY el.event_time ASC
+		LIMIT 500
+	`, accountID)
+	if err != nil {
+		return nil, fmt.Errorf("fetch solaris history for account %d: %w", accountID, err)
+	}
+	defer rows.Close()
+
+	var raws []solarisRaw
+	for rows.Next() {
+		var r solarisRaw
+		if err := rows.Scan(&r.Time, &r.Balance, &r.Delta); err != nil {
+			return nil, fmt.Errorf("scan solaris point: %w", err)
+		}
+		raws = append(raws, r)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate solaris history for account %d: %w", accountID, err)
+	}
+	out := accumulateSolarisPoints(raws)
+	if len(out) == 0 {
+		out = []solarisPoint{}
+	}
+	return out, nil
+}
+
+// cmdFetchPlayerSnapshot queries the current stat values for one player from
+// Postgres. Returns a statSnapshot ready to write to SQLite.
+func cmdFetchPlayerSnapshot(ctx context.Context, pool *pgxpool.Pool, accountID int64, snappedAt string) (statSnapshot, error) {
+	snap := statSnapshot{AccountID: accountID, SnappedAt: snappedAt}
+
+	// Character XP and skill points from FLevelComponent.
+	row := pool.QueryRow(ctx, `
+		SELECT
+			(fe.components->'FLevelComponent'->1->>'TotalXPEarned')::bigint,
+			(fe.components->'FLevelComponent'->1->>'TotalSkillPoints')::int
+		FROM dune.fgl_entities fe
+		JOIN dune.actor_fgl_entities afe ON afe.entity_id = fe.entity_id
+		JOIN dune.player_state ps ON ps.player_pawn_id = afe.actor_id
+		WHERE afe.slot_name = 'DuneCharacter' AND ps.account_id = $1
+	`, accountID)
+	var charXP int64
+	var sp int
+	if err := row.Scan(&charXP, &sp); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return snap, fmt.Errorf("fetch char xp snapshot for account %d: %w", accountID, err)
+	} else if err == nil {
+		snap.CharXP = &charXP
+		snap.SkillPoints = &sp
+	}
+
+	// Intel points from TechKnowledgePlayerComponent on the pawn actor.
+	row = pool.QueryRow(ctx, `
+		SELECT (a.properties->'TechKnowledgePlayerComponent'->>'m_TechKnowledgePoints')::int
+		FROM dune.actors a
+		JOIN dune.player_state ps ON ps.player_pawn_id = a.id
+		WHERE ps.account_id = $1 AND a.properties ? 'TechKnowledgePlayerComponent'
+	`, accountID)
+	var intel int
+	if err := row.Scan(&intel); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return snap, fmt.Errorf("fetch intel snapshot for account %d: %w", accountID, err)
+	} else if err == nil {
+		snap.IntelPoints = &intel
+	}
+
+	// Spec track XPs — NULL for players not in specialization_tracks.
+	rows, err := pool.Query(ctx, `
+		SELECT track_type::text, xp_amount
+		FROM dune.specialization_tracks st
+		JOIN dune.player_state ps ON ps.player_controller_id = st.player_id
+		WHERE ps.account_id = $1
+	`, accountID)
+	if err != nil {
+		return snap, fmt.Errorf("fetch spec snapshot for account %d: %w", accountID, err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var track string
+		var xp int
+		if err := rows.Scan(&track, &xp); err != nil {
+			return snap, fmt.Errorf("scan spec track: %w", err)
+		}
+		xpCopy := xp
+		switch track {
+		case "Combat":
+			snap.CombatXP = &xpCopy
+		case "Crafting":
+			snap.CraftingXP = &xpCopy
+		case "Gathering":
+			snap.GatheringXP = &xpCopy
+		case "Exploration":
+			snap.ExplorationXP = &xpCopy
+		case "Sabotage":
+			snap.SabotageXP = &xpCopy
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return snap, fmt.Errorf("iterate spec tracks for account %d: %w", accountID, err)
+	}
+
+	snap.SolarisBalance, err = fetchSolarisBalance(ctx, pool, accountID)
+	if err != nil {
+		return snap, err
+	}
+	return snap, nil
+}
+
+func fetchSolarisBalance(ctx context.Context, pool *pgxpool.Pool, accountID int64) (*int64, error) {
+	var bal int64
+	err := pool.QueryRow(ctx, `
+		SELECT pvc.balance
+		FROM dune.player_virtual_currency_balances pvc
+		JOIN dune.player_state ps ON ps.player_controller_id = pvc.player_controller_id
+		WHERE ps.account_id = $1 AND pvc.currency_id = 0
+	`, accountID).Scan(&bal)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("fetch solaris snapshot for account %d: %w", accountID, err)
+	}
+	return &bal, nil
 }
