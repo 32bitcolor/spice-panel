@@ -10,11 +10,13 @@ type Props = {
   onRefresh?: () => void
   /** Shows a spinner in the refresh button while true. */
   loading?: boolean
+  /** Seconds until next auto-refresh — shown as a dim countdown beside "Refresh". */
+  countdown?: number
   /** Additional action buttons / controls rendered on the right. */
   children?: ReactNode
 }
 
-export function PageHeader({ title, subtitle, onRefresh, loading, children }: Props) {
+export function PageHeader({ title, subtitle, onRefresh, loading, countdown, children }: Props) {
   return (
     <div className="flex items-start justify-between gap-3 shrink-0 border-b border-[#4e3411]/60 pb-3 mb-1">
       <div className="flex-1 min-w-0">
@@ -26,7 +28,19 @@ export function PageHeader({ title, subtitle, onRefresh, loading, children }: Pr
           {children}
           {onRefresh != null && (
             <Button size="sm" variant="ghost" onPress={onRefresh} isDisabled={loading}>
-              {loading ? <Spinner size="sm" color="current" /> : <Icon name="refresh-cw" />}
+              {loading
+                ? <Spinner size="sm" color="current" />
+                : (
+                    <>
+                      {countdown != null && (
+                        <span className="w-7 text-right tabular-nums text-muted/60 text-xs">
+                          {countdown}
+                          s
+                        </span>
+                      )}
+                      <Icon name="refresh-cw" />
+                    </>
+                  )}
             </Button>
           )}
         </div>

@@ -1,27 +1,35 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { SearchField, Spinner, toast } from '@heroui/react'
+import { Button, SearchField, Spinner, toast } from '@heroui/react'
 import { api } from '../../api/client'
 import type { Player } from '../../api/client'
 import { PageHeader } from '../../dune-ui'
+import { useAutoRefresh } from '../../hooks/useAutoRefresh'
 import { PlayerCard } from './components/PlayerCard'
 import { PlayerDetailPanel } from './components/PlayerDetailPanel'
 import { StatusDot } from './components/StatusDot'
-import { InventoryModal } from './modals/InventoryModal'
-import { GiveItemsModal } from './modals/GiveItemsModal'
-import { PlayerActionsModal } from './modals/PlayerActionsModal'
+import { InventoryView } from './views/InventoryView'
+import { VehiclesView } from './views/VehiclesView'
+import { GiveItemsView } from './views/GiveItemsView'
+import { ActionsView } from './views/ActionsView'
 
-const MAX_VISIBLE = 5
+type DetailTab = 'overview' | 'inventory' | 'vehicles' | 'give' | 'actions'
 
-export default function PlayersTab() {
+const DETAIL_TABS: { key: DetailTab, label: string }[] = [
+  { key: 'overview', label: 'Overview' },
+  { key: 'inventory', label: 'Inventory' },
+  { key: 'vehicles', label: 'Vehicles' },
+  { key: 'give', label: 'Give' },
+  { key: 'actions', label: 'Actions' },
+]
+
+const POLL_MS = 30_000
+
+export default function PlayersTab({ isActive = false }: { isActive?: boolean }) {
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Player | null>(null)
-
-  const [showInventory, setShowInventory] = useState(false)
-  const [showGive, setShowGive] = useState(false)
-  const [showActions, setShowActions] = useState(false)
-  const [modalPlayer, setModalPlayer] = useState<Player | null>(null)
+  const [activeTab, setActiveTab] = useState<DetailTab>('overview')
 
   const loadPlayers = useCallback(() => {
     Promise.resolve()
@@ -39,16 +47,17 @@ export default function PlayersTab() {
     loadPlayers()
   }, [loadPlayers])
 
+  const { countdown, refresh } = useAutoRefresh(loadPlayers, POLL_MS, isActive)
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
-    const list = q
+    return q
       ? players.filter((p) =>
           p.name.toLowerCase().includes(q)
           || p.class.toLowerCase().includes(q)
           || p.map.toLowerCase().includes(q),
         )
       : players
-    return list.slice(0, MAX_VISIBLE)
   }, [players, search])
 
   const onlineCount = useMemo(
@@ -56,16 +65,9 @@ export default function PlayersTab() {
     [players],
   )
 
-  const openModal = (player: Player, action: 'inventory' | 'give' | 'actions') => {
-    setModalPlayer(player)
-    if (action === 'inventory') setShowInventory(true)
-    else if (action === 'give') setShowGive(true)
-    else setShowActions(true)
-  }
-
   return (
-    <div className="flex flex-col gap-4 h-full min-h-0 px-1">
-      <PageHeader title="Players" onRefresh={loadPlayers} loading={loading}>
+    <div className="flex flex-col h-full min-h-0">
+      <PageHeader title="Players" onRefresh={refresh} loading={loading} countdown={isActive ? countdown : undefined}>
         <div className="flex items-center gap-2 text-sm text-muted">
           <StatusDot status={onlineCount > 0 ? 'Online' : 'Offline'} />
           {onlineCount}
@@ -73,71 +75,101 @@ export default function PlayersTab() {
         </div>
       </PageHeader>
 
-      <div className="flex flex-col gap-2 shrink-0 min-h-0">
-        <SearchField
-          aria-label="Search players"
-          className="w-full"
-          value={search}
-          onChange={setSearch}
-        >
-          <SearchField.Group>
-            <SearchField.SearchIcon />
-            <SearchField.Input placeholder="Filter players..." />
-            <SearchField.ClearButton />
-          </SearchField.Group>
-        </SearchField>
+      <div className="flex flex-1 min-h-0">
+        {/* Left sidebar */}
+        <div className="w-80 shrink-0 flex flex-col border-r border-border">
+          <div className="p-2 border-b border-border">
+            <SearchField
+              aria-label="Search players"
+              className="w-full"
+              value={search}
+              onChange={setSearch}
+            >
+              <SearchField.Group>
+                <SearchField.SearchIcon />
+                <SearchField.Input placeholder="Filter players..." />
+                <SearchField.ClearButton />
+              </SearchField.Group>
+            </SearchField>
+          </div>
 
-        {loading && players.length === 0
-          ? <div className="flex justify-center py-4"><Spinner size="sm" /></div>
-          : filtered.length === 0
-            ? <p className="text-muted text-sm text-center py-2">No players found</p>
-            : (
-                <div className={filtered.length > 3 ? 'flex flex-col gap-2 overflow-y-auto max-h-48' : 'flex flex-col gap-2'}>
-                  {filtered.map((p) => (
+          <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
+            {loading && players.length === 0
+              ? <div className="flex justify-center py-4"><Spinner size="sm" /></div>
+              : filtered.length === 0
+                ? <p className="text-muted text-sm text-center py-4">No players found</p>
+                : filtered.map((p) => (
                     <PlayerCard
                       key={p.id}
                       player={p}
                       selected={selected?.id === p.id}
                       onSelect={setSelected}
-                      onAction={openModal}
                     />
                   ))}
+          </div>
+        </div>
+
+        {/* Right detail panel */}
+        <div className="flex-1 min-w-0 flex flex-col min-h-0">
+          {selected
+            ? (
+                <>
+                  {/* Fixed header: name + status + tab nav */}
+                  <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-border">
+                    <span className="font-semibold text-accent">{selected.name}</span>
+                    <StatusDot status={selected.online_status} />
+                    <span className="text-muted text-xs">{selected.online_status}</span>
+                    <div className="ml-auto flex gap-1">
+                      {DETAIL_TABS.map((tab) => (
+                        <Button
+                          key={tab.key}
+                          size="sm"
+                          variant={activeTab === tab.key ? 'secondary' : 'ghost'}
+                          onPress={() => setActiveTab(tab.key)}
+                        >
+                          {tab.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Tab content — each tab owns its own scroll/height context */}
+                  <div className="flex-1 min-h-0 overflow-hidden">
+                    {activeTab === 'overview' && (
+                      <div className="h-full overflow-y-auto p-4">
+                        <PlayerDetailPanel player={selected} />
+                      </div>
+                    )}
+                    {activeTab === 'inventory' && (
+                      <div className="h-full flex flex-col p-4">
+                        <InventoryView player={selected} />
+                      </div>
+                    )}
+                    {activeTab === 'vehicles' && (
+                      <div className="h-full flex flex-col p-4">
+                        <VehiclesView player={selected} />
+                      </div>
+                    )}
+                    {activeTab === 'give' && (
+                      <div className="h-full flex flex-col pt-4 pl-4 pb-4">
+                        <GiveItemsView player={selected} />
+                      </div>
+                    )}
+                    {activeTab === 'actions' && (
+                      <div className="h-full flex flex-col p-4">
+                        <ActionsView player={selected} />
+                      </div>
+                    )}
+                  </div>
+                </>
+              )
+            : (
+                <div className="flex flex-1 items-center justify-center">
+                  <p className="text-muted text-sm">Select a player</p>
                 </div>
               )}
-
-        {players.length > MAX_VISIBLE && !search && (
-          <p className="text-muted text-xs text-center">
-            {'Showing '}
-            {MAX_VISIBLE}
-            {' of '}
-            {players.length}
-            {' — use search to filter'}
-          </p>
-        )}
+        </div>
       </div>
-
-      {selected
-        ? (
-            <div className="flex flex-col gap-1 overflow-y-auto flex-1 min-h-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-semibold text-accent">{selected.name}</span>
-                <StatusDot status={selected.online_status} />
-                <span className="text-muted text-xs">{selected.online_status}</span>
-              </div>
-              <PlayerDetailPanel player={selected} />
-            </div>
-          )
-        : (
-            <p className="text-muted text-sm text-center py-8">Select a player above</p>
-          )}
-
-      {modalPlayer && (
-        <>
-          <InventoryModal player={modalPlayer} open={showInventory} onClose={() => setShowInventory(false)} />
-          <GiveItemsModal player={modalPlayer} open={showGive} onClose={() => setShowGive(false)} />
-          <PlayerActionsModal player={modalPlayer} open={showActions} onClose={() => setShowActions(false)} />
-        </>
-      )}
     </div>
   )
 }

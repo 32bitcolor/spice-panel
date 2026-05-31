@@ -1,16 +1,13 @@
-import { Button } from '@heroui/react'
 import type { Player } from '../../../api/client'
-import { Icon } from '../../../dune-ui'
 import { StatusDot } from './StatusDot'
 
 interface Props {
   player: Player
   selected: boolean
   onSelect: (player: Player) => void
-  onAction: (player: Player, action: 'inventory' | 'give' | 'actions') => void
 }
 
-export function PlayerCard({ player, selected, onSelect, onAction }: Props) {
+export function PlayerCard({ player, selected, onSelect }: Props) {
   return (
     <button
       type="button"
@@ -31,17 +28,6 @@ export function PlayerCard({ player, selected, onSelect, onAction }: Props) {
           {' · '}
           {player.map}
         </div>
-      </div>
-      <div className="flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-        <Button size="sm" variant="ghost" isIconOnly onPress={() => onAction(player, 'inventory')}>
-          <Icon name="package" />
-        </Button>
-        <Button size="sm" variant="ghost" isIconOnly onPress={() => onAction(player, 'give')}>
-          <Icon name="gift" />
-        </Button>
-        <Button size="sm" variant="ghost" isIconOnly onPress={() => onAction(player, 'actions')}>
-          <Icon name="settings" />
-        </Button>
       </div>
     </button>
   )
