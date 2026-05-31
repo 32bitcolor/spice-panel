@@ -21,15 +21,16 @@ export default function MarketTab() {
   const [selected, setSelected] = useState<MarketItem | null>(null)
   const [view, setView] = useState<MarketView>('table')
   const [botOpen, setBotOpen] = useState(false)
-  // Show Bot Control only when a bot is actually connected (embedded or remote),
-  // determined at runtime from the backend rather than a build-time flag.
-  const [botConnected, setBotConnected] = useState(false)
+  // Show Bot Control whenever the bot is configured (embedded or remote),
+  // even if currently disabled/not running.
+  const [botConfigured, setBotConfigured] = useState(false)
 
   useEffect(() => {
     api.marketBot
       .status()
-      .then((s) => setBotConnected(s.mode !== 'none'))
-      .catch(() => setBotConnected(false))
+      // configured field from newer backends; fall back to mode check for older ones
+      .then((s) => setBotConfigured(s.configured ?? s.mode !== 'none'))
+      .catch(() => setBotConfigured(false))
   }, [])
 
   const load = useCallback(() => {
@@ -72,7 +73,7 @@ export default function MarketTab() {
   return (
     <div className="flex flex-col h-full gap-3 min-h-0">
       <PageHeader title="Market Board" subtitle="Browse active exchange listings from bot and player sellers.">
-        {botConnected
+        {botConfigured
           ? (
               <Button size="sm" variant="ghost" onPress={() => setBotOpen(true)}>
                 <Icon name="bot" />

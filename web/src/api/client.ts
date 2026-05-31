@@ -165,7 +165,6 @@ export type AppConfig = {
   amp_data_root: string
   director_url: string
   // Market bot (startup config — tuning is managed in the Bot Control panel)
-  market_bot_enabled: boolean
   market_bot_cache_db: string
   market_bot_item_data: string
   market_bot_state: string
@@ -424,6 +423,7 @@ export type CatalogItem = {
 export type BotStatus = {
   running: boolean
   mode?: 'embedded' | 'remote' | 'none'
+  configured?: boolean
   enabled?: boolean
   uptime: string
   last_list_tick: string | null
