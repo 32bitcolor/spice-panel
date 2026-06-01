@@ -391,14 +391,20 @@ func inferType(value string) settingType {
 }
 
 func iniDir() (string, error) {
+	// Always try the control plane first so amp can probe for ue5-saved/UserSettings
+	// even when server_ini_dir is explicitly configured. Control planes that don't
+	// support auto-discovery (docker, local without kubectl) return an error and we
+	// fall through to the configured value.
+	if globalControl != nil && globalExecutor != nil {
+		if dir, err := globalControl.DiscoverIniDir(context.Background(), globalExecutor); err == nil {
+			return dir, nil
+		}
+	}
 	if serverIniDir != "" {
 		return serverIniDir, nil
 	}
 	if loadedConfig.ServerIniDir != "" {
 		return loadedConfig.ServerIniDir, nil
-	}
-	if globalControl != nil && globalExecutor != nil {
-		return globalControl.DiscoverIniDir(context.Background(), globalExecutor)
 	}
 	return "", fmt.Errorf("server_ini_dir not configured")
 }
