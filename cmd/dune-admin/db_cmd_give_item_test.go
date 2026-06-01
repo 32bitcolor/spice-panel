@@ -171,3 +171,47 @@ func TestRequiredStackCount(t *testing.T) {
 		t.Fatalf("expected 1 required stack, got %d", got)
 	}
 }
+
+func TestEffectiveStackMax(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		stackMax int64
+		known    bool
+		qty      int64
+		want     int64
+	}{
+		{
+			// Known stackable (e.g. from item-data): use its real cap.
+			name: "known stackable", stackMax: 100, known: true, qty: 5000, want: 100,
+		},
+		{
+			// Known non-stackable (armour/weapon): one per slot.
+			name: "known non-stackable", stackMax: 1, known: true, qty: 5000, want: 1,
+		},
+		{
+			// The bug: unknown stack max (ammo not in item-data, no existing
+			// stacks) must NOT be treated as one-per-slot, or 5000 rounds
+			// demand 5000 slots. Assume it stacks into the requested quantity.
+			name: "unknown assumes fully stackable", stackMax: 1, known: false, qty: 5000, want: 5000,
+		},
+		{
+			name: "unknown qty=1 stays 1", stackMax: 1, known: false, qty: 1, want: 1,
+		},
+		{
+			// Defensive: a known result below 1 is meaningless → treat as qty.
+			name: "known but zero falls back to qty", stackMax: 0, known: true, qty: 42, want: 42,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := effectiveStackMax(tt.stackMax, tt.known, tt.qty); got != tt.want {
+				t.Errorf("effectiveStackMax(%d, %v, %d) = %d, want %d",
+					tt.stackMax, tt.known, tt.qty, got, tt.want)
+			}
+		})
+	}
+}

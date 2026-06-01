@@ -323,13 +323,11 @@ func runGiveItem(playerID int64, template string, qty, quality int64) Msg {
 	if err != nil {
 		return msgMutate{err: err}
 	}
-	stackMax, err := resolveStackMax(ctx, template, quality)
+	stackMax, known, err := resolveStackMax(ctx, template, quality)
 	if err != nil {
 		return msgMutate{err: err}
 	}
-	if stackMax < 1 {
-		stackMax = 1
-	}
+	stackMax = effectiveStackMax(stackMax, known, qty)
 	if err := ensureGiveItemVolumeCapacity(ctx, inv, state, template, qty); err != nil {
 		return msgMutate{err: err}
 	}
@@ -698,10 +696,11 @@ func checkInventorySlotLimit(ctx context.Context, profile inventoryCapacityProfi
 	if !profile.hasSlotCap {
 		return nil
 	}
-	stackMax, err := resolveStackMax(ctx, template, 0)
-	if err != nil || stackMax < 1 {
-		stackMax = 1
+	stackMax, known, err := resolveStackMax(ctx, template, 0)
+	if err != nil {
+		known = false
 	}
+	stackMax = effectiveStackMax(stackMax, known, qty)
 	freeSlots := profile.maxSlots - usage.usedSlots
 	newStacks := requiredStackCount(qty, stackMax)
 	if freeSlots < newStacks {
@@ -1297,27 +1296,44 @@ func cmdFetchOnlineState() Msg {
 
 // ── private helpers ───────────────────────────────────────────────────────────
 
-func resolveStackMax(ctx context.Context, template string, quality int64) (int64, error) {
+// resolveStackMax returns the per-slot stack cap for a template and whether
+// that value is actually known. known=false means we had to fall back to a
+// guess (no item-data rule, no existing stacks of this template, no configured
+// default). Callers must treat an unknown cap as "stacks freely" rather than
+// "one per slot" — otherwise stackables we lack data for (e.g. Ammo) get
+// counted as one inventory slot per unit. See effectiveStackMax.
+func resolveStackMax(ctx context.Context, template string, quality int64) (stackMax int64, known bool, err error) {
 	if itemData.Items != nil {
 		if rule, ok := itemData.Items[strings.ToLower(template)]; ok && rule.StackMax > 0 {
-			return rule.StackMax, nil
+			return rule.StackMax, true, nil
 		}
 	}
 	var maxStack int64
-	err := globalDB.QueryRow(ctx, `
+	if err := globalDB.QueryRow(ctx, `
 		SELECT COALESCE(MAX(stack_size), 0)
 		FROM dune.items
-		WHERE template_id = $1::text AND quality_level = $2::bigint`, template, quality).Scan(&maxStack)
-	if err != nil {
-		return 0, err
+		WHERE template_id = $1::text AND quality_level = $2::bigint`, template, quality).Scan(&maxStack); err != nil {
+		return 0, false, err
 	}
 	if maxStack > 0 {
-		return maxStack, nil
+		return maxStack, true, nil
 	}
 	if itemData.DefaultStackMax > 0 {
-		return itemData.DefaultStackMax, nil
+		return itemData.DefaultStackMax, true, nil
 	}
-	return 1, nil
+	return 1, false, nil
+}
+
+// effectiveStackMax picks the stack size to assume for slot/stack planning.
+// When the real cap is unknown (or nonsensical), items are assumed to stack
+// into the requested quantity — i.e. one slot — instead of one slot per unit.
+// This keeps qty=1 grants unchanged while preventing unknown stackables like
+// ammo from being rejected as needing thousands of free slots.
+func effectiveStackMax(stackMax int64, known bool, qty int64) int64 {
+	if !known || stackMax < 1 {
+		return qty
+	}
+	return stackMax
 }
 
 func resolveItemVolume(ctx context.Context, template string) (float64, error) {
