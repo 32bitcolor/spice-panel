@@ -224,7 +224,7 @@ func (e *Exchange) learnGameEpoch(ctx context.Context) {
 func applyLearnedEpochTwoTier(e *Exchange, fetchBotRef, fetchPlayerRef func() (int64, error)) {
 	applyLearnedEpoch(e, func() (int64, error) {
 		ref, err := fetchBotRef()
-		if (err != nil || ref == 0) && fetchPlayerRef != nil {
+		if (err != nil || ref == 0) && fetchPlayerRef != nil && e.gameEpochUnix == 0 {
 			return fetchPlayerRef()
 		}
 		return ref, err
@@ -575,7 +575,7 @@ func (e *Exchange) buyPlayerListings(ctx context.Context, orderExpiry int64, sna
 			  (exchange_id, access_point_id, owner_id, template_id, expiration_time,
 			   durability_cur, durability_max, item_price, category_mask, category_depth, is_npc_order)
 			VALUES ($1,$2,$3,$4,$5,1.0,1.0,$6,0,0,FALSE) RETURNING id`,
-			e.exchangeID, e.accessPointID, sellerActorID, tmpl, orderExpiry, price,
+			e.exchangeID, e.accessPointID, sellerActorID, tmpl, orderExpiry, totalCost,
 		).Scan(&logOrderID); err != nil {
 			log.Printf("buy: log order for %s: %v", tmpl, err)
 			_ = tx.Rollback(ctx)

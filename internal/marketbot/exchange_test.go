@@ -193,6 +193,64 @@ func TestLearnGameEpoch_UsesBotListingsWhenAvailable(t *testing.T) {
 	}
 }
 
+// TestLearnGameEpoch_SkipsTier2WhenEpochAlreadyKnown verifies that once an
+// epoch is established, a subsequent Tier 1 miss (e.g. after cleanup deletes
+// all bot listings) does NOT invoke the Tier 2 player-listing fallback.
+//
+// The Tier 2 fallback assumes player listings last orderExpirySecs (24 h).
+// Real player listings last ~30 days, so Tier 2 would compute gameNow ≈ 29
+// days too high, making expireAndPurgeOrders delete every valid bot listing.
+func TestLearnGameEpoch_SkipsTier2WhenEpochAlreadyKnown(t *testing.T) {
+	t.Parallel()
+
+	const knownEpoch = int64(999_000)
+	ex := newTestExchange(t)
+	ex.gameEpochUnix = knownEpoch
+
+	tier2Called := false
+	applyLearnedEpochTwoTier(ex,
+		func() (int64, error) { return 0, pgx.ErrNoRows }, // Tier 1: no bot listings (post-cleanup)
+		func() (int64, error) {
+			tier2Called = true
+			return 3_000_000, nil // player listing with ~30-day duration: would corrupt epoch
+		},
+	)
+
+	if tier2Called {
+		t.Error("Tier 2 must not fire when a valid epoch is already known (prevents post-cleanup corruption)")
+	}
+	if ex.gameEpochUnix != knownEpoch {
+		t.Errorf("epoch changed from %d to %d; Tier 2 must not overwrite a known epoch",
+			knownEpoch, ex.gameEpochUnix)
+	}
+}
+
+// TestLearnGameEpoch_AllowsTier2OnBootstrapWithZeroEpoch verifies that Tier 2
+// is still consulted on a genuine fresh install where no epoch has been
+// established yet (gameEpochUnix == 0).
+func TestLearnGameEpoch_AllowsTier2OnBootstrapWithZeroEpoch(t *testing.T) {
+	t.Parallel()
+
+	ex := newTestExchange(t)
+	ex.gameEpochUnix = 0 // no epoch yet (fresh install)
+
+	tier2Called := false
+	applyLearnedEpochTwoTier(ex,
+		func() (int64, error) { return 0, pgx.ErrNoRows }, // Tier 1: no bot listings
+		func() (int64, error) {
+			tier2Called = true
+			return 100_000, nil // player listing
+		},
+	)
+
+	if !tier2Called {
+		t.Error("Tier 2 should be consulted when epoch is 0 (bootstrap scenario)")
+	}
+	if ex.gameEpochUnix == 0 {
+		t.Error("epoch should have been updated from player listing on bootstrap")
+	}
+}
+
 // TestLearnGameEpoch_BothTiersMissDoesNotUpdate verifies that when both tiers
 // return no rows, the epoch is left unchanged (no spurious zero write).
 func TestLearnGameEpoch_BothTiersMissDoesNotUpdate(t *testing.T) {
