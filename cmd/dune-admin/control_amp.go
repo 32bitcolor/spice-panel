@@ -5,10 +5,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // ampControl implements ControlPlane for CubeCoders AMP installations. AMP can
@@ -47,20 +50,36 @@ var (
 	ampPartRe = regexp.MustCompile(`-PartitionIndex=(\d+)`)
 )
 
-func (c *ampControl) GetStatus(_ context.Context, exec Executor) (*BattlegroupStatus, error) {
+func (c *ampControl) GetStatus(ctx context.Context, exec Executor) (*BattlegroupStatus, error) {
 	procs, err := c.listGameProcesses(exec)
 	if err != nil {
 		return nil, err
 	}
+	// The host process args only carry -PartitionIndex, never a dimension. The
+	// Battlegroup Director knows each partition's dimensionIndex and label, so
+	// enrich rows from there. Best-effort: a missing/unreachable director just
+	// leaves Dimension at zero.
+	dirMeta, err := c.fetchDirectorPartitions(ctx)
+	if err != nil {
+		log.Printf("ampControl.GetStatus: director enrichment unavailable: %v", err)
+	}
 	servers := make([]ServerRow, 0, len(procs))
 	for _, p := range procs {
-		servers = append(servers, ServerRow{
+		row := ServerRow{
 			Map:       p.mapName,
 			Partition: p.partition,
 			Phase:     "Running",
 			Ready:     true,
 			Players:   0,
-		})
+		}
+		if meta, ok := dirMeta[p.partition]; ok {
+			row.Dimension = meta.dimension
+			row.Players = meta.players
+			if meta.label != "" {
+				row.Sietch = meta.label
+			}
+		}
+		servers = append(servers, row)
 	}
 	dbPhase := "Disconnected"
 	if globalDB != nil {
@@ -73,6 +92,97 @@ func (c *ampControl) GetStatus(_ context.Context, exec Executor) (*BattlegroupSt
 		Database: dbPhase,
 		Servers:  servers,
 	}, nil
+}
+
+// directorHTTPClient is the short-timeout client used to poll the Battlegroup
+// Director. Status polling must stay snappy, so failures fall back fast.
+var directorHTTPClient = &http.Client{Timeout: 3 * time.Second}
+
+// partitionMeta is director-sourced metadata for one game-server partition.
+type partitionMeta struct {
+	dimension int
+	label     string
+	players   int
+}
+
+// fetchDirectorPartitions queries the Battlegroup Director's /v0/battlegroup
+// endpoint and returns a map of partitionId → metadata. It returns nil (no
+// error) when no director URL is configured; transport, status, and decode
+// failures are returned as errors so the caller can log them and continue.
+func (c *ampControl) fetchDirectorPartitions(ctx context.Context) (map[int]partitionMeta, error) {
+	if c.directorURL == "" {
+		return nil, nil
+	}
+	endpoint := strings.TrimRight(c.directorURL, "/") + "/v0/battlegroup"
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("build director request: %w", err)
+	}
+	resp, err := directorHTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("query director: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("director returned status %d", resp.StatusCode)
+	}
+	var raw map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+		return nil, fmt.Errorf("decode director response: %w", err)
+	}
+	meta := map[int]partitionMeta{}
+	collectPartitions(raw, meta)
+	return meta, nil
+}
+
+// collectPartitions recursively walks a decoded director response, recording
+// the dimensionIndex and label of every "partition" object it finds keyed by
+// partitionId. This is structure-agnostic: it picks up single-server,
+// dimension (serversByDimension), and instanced (instances) maps alike.
+func collectPartitions(v any, out map[int]partitionMeta) {
+	switch t := v.(type) {
+	case map[string]any:
+		if p, ok := t["partition"].(map[string]any); ok {
+			if id, ok := jsonPartitionID(p["partitionId"]); ok {
+				// Player count is a sibling of "partition" on the server node.
+				out[id] = partitionMeta{
+					dimension: jsonInt(p["dimensionIndex"]),
+					label:     jsonString(p["label"]),
+					players:   jsonInt(t["numPlayersInGame"]),
+				}
+			}
+		}
+		for _, child := range t {
+			collectPartitions(child, out)
+		}
+	case []any:
+		for _, child := range t {
+			collectPartitions(child, out)
+		}
+	}
+}
+
+// jsonPartitionID extracts a partition ID from a decoded JSON number, reporting
+// whether the value was present and numeric (a partition ID may legitimately
+// be 0, so absence must be distinguished from zero).
+func jsonPartitionID(v any) (int, bool) {
+	f, ok := v.(float64)
+	if !ok {
+		return 0, false
+	}
+	return int(f), true
+}
+
+// jsonInt coerces a decoded JSON number to int, returning 0 for non-numbers.
+func jsonInt(v any) int {
+	f, _ := v.(float64)
+	return int(f)
+}
+
+// jsonString coerces a decoded JSON value to string, returning "" otherwise.
+func jsonString(v any) string {
+	s, _ := v.(string)
+	return s
 }
 
 func (c *ampControl) ExecCommand(_ context.Context, exec Executor, cmd string) (string, error) {

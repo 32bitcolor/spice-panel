@@ -2,9 +2,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
@@ -322,5 +326,177 @@ func TestAmpListLogSources_UsesConfiguredRuntime(t *testing.T) {
 	}
 	if !strings.Contains(exec.cmd, "docker exec AMP_X") {
 		t.Errorf("ListLogSources cmd = %q, want 'docker exec AMP_X'", exec.cmd)
+	}
+}
+
+// directorBattlegroupJSON mirrors the structurally-relevant subset of the
+// Battlegroup Director's /v0/battlegroup response: a single-server map, a
+// dimension map (sharded under serversByDimension), and an instanced map.
+// Each leaf server carries a "partition" object with partitionId,
+// dimensionIndex and label — the fields GetStatus enriches rows with.
+const directorBattlegroupJSON = `{
+  "bgTitle": "Test BG",
+  "singleServerMaps": {
+    "Overmap": {
+      "cfg": null,
+      "gamePort": 7794,
+      "numPlayersInGame": 5,
+      "partition": {"partitionId": 2, "dimensionIndex": 0, "label": "Overland"}
+    }
+  },
+  "dimensionMaps": {
+    "DeepDesert_1": {
+      "cfg": null,
+      "webOverrideCfg": null,
+      "serversByDimension": {
+        "0": {"gamePort": 7799, "numPlayersInGame": 2, "partition": {"partitionId": 8, "dimensionIndex": 0, "label": "DeepDesert_0"}},
+        "1": {"gamePort": 7800, "numPlayersInGame": 0, "partition": {"partitionId": 143, "dimensionIndex": 1, "label": "DeepDesert_1"}}
+      }
+    }
+  },
+  "instancedMaps": {
+    "SH_Arrakeen": {
+      "instances": {
+        "inst-a": {"gamePort": 7792, "numPlayersInGame": 7, "partition": {"partitionId": 3, "dimensionIndex": 0, "label": "Arrakeen_0"}}
+      }
+    }
+  }
+}`
+
+// psLineFor builds a synthetic `ps`-style game-server line for a map/port/partition.
+func psLineFor(pid int, mapName string, port, partition int) string {
+	return fmt.Sprintf(
+		"%d /x/DuneSandboxServer-Linux-Shipping DuneSandbox %s -Port=%d -PartitionIndex=%d",
+		pid, mapName, port, partition)
+}
+
+// TestAmpGetStatus_EnrichesDimensionFromDirector verifies that GetStatus joins
+// each ps-derived partition to the director's dimensionIndex and label, walking
+// single-server, dimension, and instanced map categories alike.
+func TestAmpGetStatus_EnrichesDimensionFromDirector(t *testing.T) {
+	// Not parallel: GetStatus reads the globalDB package global, which other
+	// parallel tests mutate.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v0/battlegroup" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = io.WriteString(w, directorBattlegroupJSON)
+	}))
+	defer srv.Close()
+
+	psOut := strings.Join([]string{
+		psLineFor(1001, "Overmap", 7794, 2),
+		psLineFor(1002, "DeepDesert_1", 7799, 8),
+		psLineFor(1003, "DeepDesert_1", 7800, 143),
+		psLineFor(1004, "SH_Arrakeen", 7792, 3),
+	}, "\n")
+
+	c := &ampControl{container: "AMP_X", useContainer: false, directorURL: srv.URL}
+	status, err := c.GetStatus(context.Background(), &fakeAMPExecutor{out: psOut})
+	if err != nil {
+		t.Fatalf("GetStatus: %v", err)
+	}
+
+	want := map[int]struct {
+		dim     int
+		sietch  string
+		players int
+	}{
+		2:   {0, "Overland", 5},
+		8:   {0, "DeepDesert_0", 2},
+		143: {1, "DeepDesert_1", 0},
+		3:   {0, "Arrakeen_0", 7},
+	}
+	if len(status.Servers) != len(want) {
+		t.Fatalf("got %d servers, want %d", len(status.Servers), len(want))
+	}
+	for _, row := range status.Servers {
+		exp, ok := want[row.Partition]
+		if !ok {
+			t.Fatalf("unexpected partition %d", row.Partition)
+		}
+		if row.Dimension != exp.dim {
+			t.Errorf("partition %d: dimension = %d, want %d", row.Partition, row.Dimension, exp.dim)
+		}
+		if row.Sietch != exp.sietch {
+			t.Errorf("partition %d: sietch = %q, want %q", row.Partition, row.Sietch, exp.sietch)
+		}
+		if row.Players != exp.players {
+			t.Errorf("partition %d: players = %d, want %d", row.Partition, row.Players, exp.players)
+		}
+	}
+}
+
+// TestAmpGetStatus_NoDirectorURL verifies that with no director configured,
+// GetStatus still returns rows from ps with dimension left at zero (current
+// behaviour) and makes no HTTP call.
+func TestAmpGetStatus_NoDirectorURL(t *testing.T) {
+	// Not parallel: GetStatus reads the globalDB package global.
+	psOut := psLineFor(2001, "Overmap", 7794, 2)
+	c := &ampControl{container: "AMP_X", useContainer: false} // directorURL empty
+	status, err := c.GetStatus(context.Background(), &fakeAMPExecutor{out: psOut})
+	if err != nil {
+		t.Fatalf("GetStatus: %v", err)
+	}
+	if len(status.Servers) != 1 {
+		t.Fatalf("got %d servers, want 1", len(status.Servers))
+	}
+	if status.Servers[0].Partition != 2 || status.Servers[0].Dimension != 0 {
+		t.Errorf("row = %+v, want partition 2 dimension 0", status.Servers[0])
+	}
+}
+
+// TestAmpGetStatus_DirectorUnreachable_FallsBack verifies that a transport
+// failure to the director is non-fatal: rows are still returned from ps with
+// dimension left at zero.
+func TestAmpGetStatus_DirectorUnreachable_FallsBack(t *testing.T) {
+	// Not parallel: GetStatus reads the globalDB package global.
+	// Closed server: take a listener address then immediately close it.
+	srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	deadURL := srv.URL
+	srv.Close()
+
+	psOut := psLineFor(3001, "Overmap", 7794, 2)
+	c := &ampControl{container: "AMP_X", useContainer: false, directorURL: deadURL}
+	status, err := c.GetStatus(context.Background(), &fakeAMPExecutor{out: psOut})
+	if err != nil {
+		t.Fatalf("GetStatus should not fail on director error: %v", err)
+	}
+	if len(status.Servers) != 1 || status.Servers[0].Dimension != 0 {
+		t.Fatalf("expected 1 row with dimension 0, got %+v", status.Servers)
+	}
+}
+
+// TestCollectPartitions_WalksNestedAndIgnoresNull verifies the recursive walker
+// records partitions from arbitrary nesting and ignores null/non-object
+// "partition" values.
+func TestCollectPartitions_WalksNestedAndIgnoresNull(t *testing.T) {
+	t.Parallel()
+
+	var raw map[string]any
+	if err := json.Unmarshal([]byte(directorBattlegroupJSON), &raw); err != nil {
+		t.Fatalf("unmarshal sample: %v", err)
+	}
+	out := map[int]partitionMeta{}
+	collectPartitions(raw, out)
+
+	for id, want := range map[int]partitionMeta{
+		2:   {dimension: 0, label: "Overland", players: 5},
+		8:   {dimension: 0, label: "DeepDesert_0", players: 2},
+		143: {dimension: 1, label: "DeepDesert_1", players: 0},
+		3:   {dimension: 0, label: "Arrakeen_0", players: 7},
+	} {
+		got, ok := out[id]
+		if !ok {
+			t.Errorf("partition %d missing", id)
+			continue
+		}
+		if got != want {
+			t.Errorf("partition %d = %+v, want %+v", id, got, want)
+		}
+	}
+	if len(out) != 4 {
+		t.Errorf("collected %d partitions, want 4: %+v", len(out), out)
 	}
 }
