@@ -38,7 +38,9 @@
     "updated": "Обновлено до {{version}}. Сервер перезапускается…",
     "reinstalled": "{{version}} переустановлен. Сервер перезапускается…",
     "updateFailed": "Ошибка обновления: {{message}}",
-    "selectLanguage": "Выбрать язык"
+    "selectLanguage": "Выбрать язык",
+    "goHome": "На главную",
+    "switchLayout": "Переключить раскладку"
   },
   "nav": {
     "groups": {

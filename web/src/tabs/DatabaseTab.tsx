@@ -9,7 +9,7 @@ import { acceptCompletion } from '@codemirror/autocomplete'
 import { tags as hlTags } from '@lezer/highlight'
 import { Button, SearchField, Spinner, toast } from '@heroui/react'
 import { api } from '../api/client'
-import { DataTable, Icon, NumberInput, PageHeader, type Column } from '../dune-ui'
+import { DataTable, Icon, NumberInput, PageHeader, SideNav, type Column } from '../dune-ui'
 
 // ── CodeMirror theme ────────────────────────────────────────────────────────
 
@@ -171,16 +171,24 @@ function TableSearchInput({ value, onChange, onRun, tableNames, ariaLabel, place
 
 // ── Main component ───────────────────────────────────────────────────────────
 
-export default function DatabaseTab({ section = 'tables' }: { section?: Section }) {
+type DatabaseTabProps
+  = { showSubnav?: false, section?: Section, onSectionChange?: never }
+    | { showSubnav: true, section?: Section, onSectionChange: (s: Section) => void }
+
+export default function DatabaseTab({
+  section = 'tables',
+  onSectionChange,
+  showSubnav,
+}: DatabaseTabProps) {
   const { t } = useTranslation()
 
-  const SECTIONS: { key: Section, label: string }[] = [
+  const SECTIONS = useMemo<{ key: Section, label: string }[]>(() => [
     { key: 'tables', label: t('database.sections.tables') },
     { key: 'describe', label: t('database.sections.describe') },
     { key: 'sample', label: t('database.sections.sample') },
     { key: 'search', label: t('database.sections.search') },
     { key: 'sql', label: t('database.sections.sql') },
-  ]
+  ], [t])
 
   const [tableInput, setTableInput] = useState('')
   const [limitInput, setLimitInput] = useState(20)
@@ -306,8 +314,8 @@ export default function DatabaseTab({ section = 'tables' }: { section?: Section 
 
   const activeLabel = SECTIONS.find((s) => s.key === section)?.label ?? ''
 
-  return (
-    <div className="h-full min-h-0 flex flex-col gap-3">
+  const innerContent = (
+    <>
       <PageHeader title={activeLabel}>
         <Button
           size="sm"
@@ -430,6 +438,28 @@ export default function DatabaseTab({ section = 'tables' }: { section?: Section 
           )}
         </div>
       )}
+    </>
+  )
+
+  if (showSubnav) {
+    return (
+      <div className="h-full min-h-0 flex gap-3">
+        <SideNav
+          title={t('database.sideNavTitle')}
+          items={SECTIONS}
+          active={section ?? 'tables'}
+          onSelect={(key) => onSectionChange?.(key)}
+        />
+        <div className="flex-1 min-h-0 flex flex-col gap-3">
+          {innerContent}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="h-full min-h-0 flex flex-col gap-3">
+      {innerContent}
     </div>
   )
 }

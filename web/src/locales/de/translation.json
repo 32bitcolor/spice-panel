@@ -38,7 +38,9 @@
     "updated": "Aktualisiert auf {{version}}. Server wird neu gestartet…",
     "reinstalled": "{{version}} neu installiert. Server wird neu gestartet…",
     "updateFailed": "Update fehlgeschlagen: {{message}}",
-    "selectLanguage": "Sprache auswählen"
+    "selectLanguage": "Sprache auswählen",
+    "goHome": "Zur Startseite",
+    "switchLayout": "Layout wechseln"
   },
   "nav": {
     "groups": {

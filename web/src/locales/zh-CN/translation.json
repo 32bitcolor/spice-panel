@@ -38,7 +38,9 @@
     "updated": "已更新至 {{version}}。服务器正在重启…",
     "reinstalled": "已重新安装 {{version}}。服务器正在重启…",
     "updateFailed": "更新失败：{{message}}",
-    "selectLanguage": "选择语言"
+    "selectLanguage": "选择语言",
+    "goHome": "返回首页",
+    "switchLayout": "切换布局"
   },
   "nav": {
     "groups": {

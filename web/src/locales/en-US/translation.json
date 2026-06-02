@@ -38,7 +38,9 @@
     "updated": "Updated to {{version}}. Server is restarting…",
     "reinstalled": "Reinstalled {{version}}. Server is restarting…",
     "updateFailed": "Update failed: {{message}}",
-    "selectLanguage": "Select language"
+    "selectLanguage": "Select language",
+    "goHome": "Go to home",
+    "switchLayout": "Switch layout"
   },
   "nav": {
     "groups": {

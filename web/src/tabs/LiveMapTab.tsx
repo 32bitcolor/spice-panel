@@ -7,6 +7,7 @@ import 'leaflet/dist/leaflet.css'
 import { api, ApiError } from '../api/client'
 import type { MapMarker } from '../api/client'
 import { Icon, PageHeader } from '../dune-ui'
+import { useAutoRefresh } from '../hooks/useAutoRefresh'
 
 // The map image is a square; CRS.Simple uses image-pixel space as the coordinate
 // system. lat = up-fraction * H, lng = left-fraction * W.
@@ -100,7 +101,10 @@ function InvalidateOnActive({ active }: { active: boolean }) {
   const map = useMap()
   useEffect(() => {
     if (active) {
-      const id = setTimeout(() => map.invalidateSize(), 50)
+      const id = setTimeout(() => {
+        map.invalidateSize()
+        map.fitBounds(IMAGE_BOUNDS)
+      }, 50)
       return () => clearTimeout(id)
     }
   }, [active, map])
@@ -152,12 +156,11 @@ export default function LiveMapTab({ isActive = true }: { isActive?: boolean }) 
       .finally(() => setLoading(false))
   }, [t])
 
+  const loadCurrent = useCallback(() => load(mapKey), [load, mapKey])
   useEffect(() => {
-    if (!isActive) return
-    load(mapKey)
-    const id = setInterval(() => load(mapKey), POLL_MS)
-    return () => clearInterval(id)
-  }, [mapKey, isActive, load])
+    if (isActive) loadCurrent()
+  }, [isActive, loadCurrent])
+  const { countdown, refresh } = useAutoRefresh(loadCurrent, POLL_MS, isActive)
 
   const playerCount = markers.filter((m) => m.type === 'player').length
   const vehicleCount = markers.filter((m) => m.type === 'vehicle').length
@@ -213,14 +216,18 @@ export default function LiveMapTab({ isActive = true }: { isActive?: boolean }) 
   return (
     <div className="flex flex-col h-full gap-3 min-h-0">
       <PageHeader title={t('liveMap.title')} subtitle={t('liveMap.subtitle')}>
-        <Button size="sm" variant="ghost" onPress={() => load(mapKey)} isDisabled={loading}>
+        <Button size="sm" variant="ghost" onPress={refresh} isDisabled={loading}>
           {loading
             ? <Spinner size="sm" color="current" />
             : (
                 <>
+                  {isActive && (
+                    <span className="w-7 text-right tabular-nums text-muted/60 text-xs">
+                      {countdown}
+                      s
+                    </span>
+                  )}
                   <Icon name="refresh-cw" />
-                  {' '}
-                  {t('common.refresh')}
                 </>
               )}
         </Button>

@@ -38,7 +38,9 @@
     "updated": "Mis à jour vers {{version}}. Le serveur redémarre…",
     "reinstalled": "{{version}} réinstallé. Le serveur redémarre…",
     "updateFailed": "Échec de la mise à jour : {{message}}",
-    "selectLanguage": "Sélectionner la langue"
+    "selectLanguage": "Sélectionner la langue",
+    "goHome": "Accueil",
+    "switchLayout": "Changer la disposition"
   },
   "nav": {
     "groups": {

@@ -221,6 +221,7 @@ export function PlayerActionsModal({ player, open, onClose }: Props) {
   const [allPlayers, setAllPlayers] = useState<Player[]>([])
   const [selectedTeleportTarget, setSelectedTeleportTarget] = useState<number | null>(null)
   const [targetSearch, setTargetSearch] = useState('')
+  const [targetDropdownOpen, setTargetDropdownOpen] = useState(false)
 
   // Whisper
   const [whisperText, setWhisperText] = useState('')
@@ -1661,66 +1662,78 @@ export function PlayerActionsModal({ player, open, onClose }: Props) {
                           {' '}
                           is online; written to DB at the target's partition if offline.
                         </div>
-                        <div className="flex flex-col gap-2">
-                          <SearchField value={targetSearch} onChange={setTargetSearch} className="w-full">
-                            <SearchField.Group>
-                              <SearchField.SearchIcon />
-                              <SearchField.Input placeholder="Search by name…" aria-label={t('players.searchLabel')} />
-                              <SearchField.ClearButton />
-                            </SearchField.Group>
-                          </SearchField>
-                          <div className="flex items-end gap-3">
-                            <Select
-                              aria-label={t('players.actions.admin.selectTargetLabel')}
-                              placeholder={allPlayers.length === 0 ? t('players.actions.admin.loadingPlayers') : t('players.actions.admin.pickTarget')}
-                              selectedKey={selectedTeleportTarget != null ? String(selectedTeleportTarget) : null}
-                              onSelectionChange={(k) => setSelectedTeleportTarget(k ? Number(k) : null)}
-                              className="flex-1"
-                            >
-                              <Select.Trigger>
-                                <Select.Value />
-                                <Select.Indicator />
-                              </Select.Trigger>
-                              <Select.Popover>
-                                <ListBox>
-                                  {allPlayers
-                                    .filter(
-                                      (p) => !targetSearch || p.name.toLowerCase().includes(targetSearch.toLowerCase()),
-                                    )
-                                    .slice(0, 100)
-                                    .map((p) => (
-                                      <ListBox.Item key={p.id} id={String(p.id)} textValue={p.name}>
-                                        <div className="flex items-center justify-between gap-2 w-full">
-                                          <span>{p.name}</span>
-                                          <span className="text-xs text-muted">
-                                            {p.map || '—'}
-                                            {' '}
-                                            ·
-                                            {p.online_status}
-                                          </span>
-                                        </div>
-                                        <ListBox.ItemIndicator />
-                                      </ListBox.Item>
-                                    ))}
-                                </ListBox>
-                              </Select.Popover>
-                            </Select>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              isDisabled={busy || selectedTeleportTarget == null}
-                              onPress={() => {
-                                const target = allPlayers.find((p) => p.id === selectedTeleportTarget)
-                                if (!target) return
-                                run(
-                                  () => api.players.teleportToPlayer(player.fls_id, target.id),
-                                  `Teleported ${player.name} to ${target.name}`,
-                                )
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="relative flex-1"
+                            onBlur={(e) => {
+                              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                                setTargetDropdownOpen(false)
+                              }
+                            }}
+                          >
+                            <SearchField
+                              value={targetSearch}
+                              onChange={(v) => {
+                                setTargetSearch(v)
+                                setSelectedTeleportTarget(null)
+                                setTargetDropdownOpen(true)
                               }}
+                              onFocus={() => setTargetDropdownOpen(true)}
+                              className="w-full"
                             >
-                              {t('players.actions.admin.move')}
-                            </Button>
+                              <SearchField.Group>
+                                <SearchField.SearchIcon />
+                                <SearchField.Input
+                                  placeholder={allPlayers.length === 0 ? t('players.actions.admin.loadingPlayers') : t('players.actions.admin.pickTarget')}
+                                  aria-label={t('players.actions.admin.selectTargetLabel')}
+                                  onKeyDown={(e) => { if (e.key === 'Escape') setTargetDropdownOpen(false) }}
+                                />
+                                <SearchField.ClearButton />
+                              </SearchField.Group>
+                            </SearchField>
+                            {targetDropdownOpen && (
+                              <div className="absolute z-50 w-full mt-1 rounded-[var(--radius)] border border-border bg-surface overflow-y-auto max-h-52 shadow-lg">
+                                {allPlayers
+                                  .filter((p) => !targetSearch
+                                    || p.name.toLowerCase().includes(targetSearch.toLowerCase()))
+                                  .slice(0, 50)
+                                  .map((p) => (
+                                    <button
+                                      key={p.id}
+                                      type="button"
+                                      className="w-full text-left px-3 py-1.5 text-xs cursor-pointer hover:bg-surface-hover flex items-center justify-between gap-2"
+                                      onMouseDown={(e) => {
+                                        e.preventDefault()
+                                        setTargetSearch(p.name)
+                                        setSelectedTeleportTarget(p.id)
+                                        setTargetDropdownOpen(false)
+                                      }}
+                                    >
+                                      <span className="font-medium">{p.name}</span>
+                                      <span className="text-muted">
+                                        {p.map || '—'}
+                                        {' · '}
+                                        {p.online_status}
+                                      </span>
+                                    </button>
+                                  ))}
+                              </div>
+                            )}
                           </div>
+                          <Button
+                            size="sm"
+                            isDisabled={busy || selectedTeleportTarget == null}
+                            onPress={() => {
+                              const target = allPlayers.find((p) => p.id === selectedTeleportTarget)
+                              if (!target) return
+                              run(
+                                () => api.players.teleportToPlayer(player.fls_id, target.id),
+                                `Teleported ${player.name} to ${target.name}`,
+                              )
+                            }}
+                          >
+                            {t('players.actions.admin.move')}
+                          </Button>
                         </div>
                       </Panel>
 

@@ -38,7 +38,9 @@
     "updated": "{{version}} に更新しました。サーバーを再起動しています…",
     "reinstalled": "{{version}} を再インストールしました。サーバーを再起動しています…",
     "updateFailed": "更新に失敗しました：{{message}}",
-    "selectLanguage": "言語を選択"
+    "selectLanguage": "言語を選択",
+    "goHome": "ホームへ",
+    "switchLayout": "レイアウト切替"
   },
   "nav": {
     "groups": {

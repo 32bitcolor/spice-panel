@@ -38,7 +38,9 @@
     "updated": "Actualizado a {{version}}. El servidor se está reiniciando…",
     "reinstalled": "{{version}} reinstalado. El servidor se está reiniciando…",
     "updateFailed": "Error de actualización: {{message}}",
-    "selectLanguage": "Seleccionar idioma"
+    "selectLanguage": "Seleccionar idioma",
+    "goHome": "Ir al inicio",
+    "switchLayout": "Cambiar diseño"
   },
   "nav": {
     "groups": {

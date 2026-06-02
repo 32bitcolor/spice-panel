@@ -38,7 +38,9 @@
     "updated": "{{version}} sürümüne güncellendi. Sunucu yeniden başlatılıyor…",
     "reinstalled": "{{version}} yeniden yüklendi. Sunucu yeniden başlatılıyor…",
     "updateFailed": "Güncelleme başarısız: {{message}}",
-    "selectLanguage": "Dil seçin"
+    "selectLanguage": "Dil seçin",
+    "goHome": "Ana sayfaya git",
+    "switchLayout": "Düzeni değiştir"
   },
   "nav": {
     "groups": {

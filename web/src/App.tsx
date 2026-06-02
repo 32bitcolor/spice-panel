@@ -1,4 +1,4 @@
-import { memo, useState, useEffect, useRef, type ReactNode } from 'react'
+import { memo, useState, useCallback, useEffect, useRef, type ReactNode } from 'react'
 import { Show, SignInButton, UserButton, useAuth } from '@clerk/react'
 import { Button, Chip, Modal, Spinner, Toast, toast } from '@heroui/react'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -43,6 +43,7 @@ function currentTabFromPath(pathname: string): TabId {
 }
 
 type DbSection = 'tables' | 'describe' | 'sample' | 'search' | 'sql'
+type LayoutMode = 'sidenav' | 'topnav'
 
 // Sub-items shown in the Operations nav when the Database tab is active.
 const DB_SECTIONS: { key: string, label: string, depth: number }[] = [
@@ -148,6 +149,13 @@ function AppCore({ isSignedIn }: { isSignedIn: boolean }) {
     },
   ]
 
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>(
+    () => (localStorage.getItem('dune_admin_layout') === 'topnav' ? 'topnav' : 'sidenav'),
+  )
+  const setLayout = useCallback((m: LayoutMode) => {
+    localStorage.setItem('dune_admin_layout', m)
+    setLayoutMode(m)
+  }, [])
   const [dbSection, setDbSection] = useState<DbSection>('tables')
   const [showBackendConfig, setShowBackendConfig] = useState(false)
   const [latestVersion, setLatestVersion] = useState<string | null>(null)
@@ -165,6 +173,19 @@ function AppCore({ isSignedIn }: { isSignedIn: boolean }) {
   }, [location.pathname, navigate])
 
   const currentTab = currentTabFromPath(location.pathname)
+
+  // Tracks which tabs have been visited at least once — they get mounted and stay
+  // mounted (TabPane keeps them hidden), preserving in-tab state and the isActive
+  // auto-refresh contract. Unvisited tabs never mount, avoiding the startup query storm.
+  const [mounted, setMounted] = useState<Set<TabId>>(() => new Set<TabId>([currentTab]))
+  useEffect(() => {
+    setMounted((prev) => { // eslint-disable-line react-hooks/set-state-in-effect
+      if (prev.has(currentTab)) return prev
+      const next = new Set(prev)
+      next.add(currentTab)
+      return next
+    })
+  }, [currentTab])
 
   useEffect(() => {
     fetch('https://api.github.com/repos/Icehunter/dune-admin/releases/latest')
@@ -206,6 +227,12 @@ function AppCore({ isSignedIn }: { isSignedIn: boolean }) {
     }
   }
 
+  const renderTab = (id: TabId, node: ReactNode) => (
+    <TabPane active={currentTab === id}>
+      {mounted.has(id) ? node : null}
+    </TabPane>
+  )
+
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-background">
       <Toast.Provider />
@@ -216,7 +243,13 @@ function AppCore({ isSignedIn }: { isSignedIn: boolean }) {
         style={{ background: 'linear-gradient(180deg, #241a0e 0%, #1a1610 100%)' }}
       >
         <div className="flex items-center gap-3">
-          <span className="text-xl font-bold uppercase tracking-[0.2em] text-accent">{t('app.title')}</span>
+          <button
+            className="text-xl font-bold uppercase tracking-[0.2em] text-accent cursor-pointer bg-transparent border-0 p-0 hover:opacity-80 transition-opacity"
+            onClick={() => navigate(`/${DEFAULT_TAB}`)}
+            aria-label={t('app.goHome')}
+          >
+            {t('app.title')}
+          </button>
           {status?.control && status.control !== 'none' && <span className="text-xs text-muted">{status.control}</span>}
           {status?.ssh_host && <span className="text-xs text-muted">{status.ssh_host}</span>}
           {status?.db_host && status.control !== 'kubectl' && (
@@ -269,6 +302,16 @@ function AppCore({ isSignedIn }: { isSignedIn: boolean }) {
           )}
 
           <LanguageSelector />
+          <Button
+            size="sm"
+            variant="ghost"
+            isIconOnly
+            aria-label={t('app.switchLayout')}
+            onPress={() => setLayout(layoutMode === 'sidenav' ? 'topnav' : 'sidenav')}
+            className={layoutMode === 'topnav' ? 'text-accent' : ''}
+          >
+            <Icon name={layoutMode === 'sidenav' ? 'layout-panel-top' : 'layout-panel-left'} />
+          </Button>
           <Button
             size="sm"
             variant="ghost"
@@ -413,78 +456,107 @@ function AppCore({ isSignedIn }: { isSignedIn: boolean }) {
         </Modal.Backdrop>
       </Modal>
 
-      {/* Body: grouped left sidebar + content. All tabs stay mounted (inactive
-          hidden) so per-tab state and isActive auto-refresh behavior persist. */}
-      <div className="flex-1 flex gap-3 p-3 overflow-hidden min-h-0">
-        <nav className="w-60 shrink-0 flex flex-col gap-2 overflow-y-auto">
-          {/* Operations: rendered separately so Database can expand DB sub-items inline */}
-          <SideNav
-            width="w-full"
-            title={NAV_GROUPS[0].title}
-            items={[
-              ...NAV_GROUPS[0].items.slice(0, 3),
-              ...(currentTab === 'database' ? DB_SECTIONS : []),
-              ...NAV_GROUPS[0].items.slice(3),
-            ] as { key: string, label: string, depth?: number }[]}
-            active={currentTab === 'database' ? `db:${dbSection}` : currentTab}
-            onSelect={(k: string) => {
-              if (k.startsWith('db:')) {
-                setDbSection(k.slice(3) as DbSection)
-                if (currentTab !== 'database') navigate('/database')
-              }
-              else {
-                navigate(`/${k}`)
-              }
-            }}
-          />
-          {/* Player World + Economy */}
-          {NAV_GROUPS.slice(1).map((group) => (
-            <SideNav
-              key={group.title}
-              width="w-full"
-              title={group.title}
-              items={group.items}
-              active={currentTab}
-              onSelect={(k) => navigate(`/${k}`)}
-            />
-          ))}
-        </nav>
-        <main className="flex-1 overflow-hidden min-h-0">
-          <TabPane active={currentTab === 'battlegroup'}>
-            <MBattlegroupTab isActive={currentTab === 'battlegroup'} />
-          </TabPane>
-          <TabPane active={currentTab === 'players'}>
-            <MPlayersTab isActive={currentTab === 'players'} />
-          </TabPane>
-          <TabPane active={currentTab === 'database'}>
-            <MDatabaseTab section={dbSection} />
-          </TabPane>
-          <TabPane active={currentTab === 'logs'}>
-            <MLogsTab control={status?.control} />
-          </TabPane>
-          <TabPane active={currentTab === 'blueprints'}>
-            <MBlueprintsTab isSignedIn={isSignedIn} />
-          </TabPane>
-          <TabPane active={currentTab === 'bases'}>
-            <MBasesTab isSignedIn={isSignedIn} />
-          </TabPane>
-          <TabPane active={currentTab === 'storage'}>
-            <MStorageTab />
-          </TabPane>
-          <TabPane active={currentTab === 'livemap'}>
-            <MLiveMapTab isActive={currentTab === 'livemap'} />
-          </TabPane>
-          <TabPane active={currentTab === 'server'}>
-            <MServerSettingsTab />
-          </TabPane>
-          <TabPane active={currentTab === 'market'}>
-            <MMarketTab />
-          </TabPane>
-          <TabPane active={currentTab === 'welcome'}>
-            <MWelcomePackageTab />
-          </TabPane>
-        </main>
-      </div>
+      {/* Body: layout-conditional rendering.
+          In sidenav mode: grouped left sidebar + content.
+          In topnav mode: horizontal nav bar + full-width content.
+          All tabs stay mounted (inactive hidden) so per-tab state and isActive
+          auto-refresh behavior persist. */}
+      {(() => {
+        const databaseNode = layoutMode === 'topnav'
+          ? <MDatabaseTab section={dbSection} showSubnav onSectionChange={setDbSection} />
+          : <MDatabaseTab section={dbSection} />
+
+        if (layoutMode === 'sidenav') {
+          return (
+            <div className="flex-1 flex gap-3 p-3 overflow-hidden min-h-0">
+              <nav className="w-60 shrink-0 flex flex-col gap-2 overflow-y-auto">
+                {/* Operations: rendered separately so Database can expand DB sub-items inline */}
+                <SideNav
+                  width="w-full"
+                  title={NAV_GROUPS[0].title}
+                  items={[
+                    ...NAV_GROUPS[0].items.slice(0, 3),
+                    ...(currentTab === 'database' ? DB_SECTIONS : []),
+                    ...NAV_GROUPS[0].items.slice(3),
+                  ] as { key: string, label: string, depth?: number }[]}
+                  active={currentTab === 'database' ? `db:${dbSection}` : currentTab}
+                  onSelect={(k: string) => {
+                    if (k.startsWith('db:')) {
+                      setDbSection(k.slice(3) as DbSection)
+                      if (currentTab !== 'database') navigate('/database')
+                    }
+                    else {
+                      navigate(`/${k}`)
+                    }
+                  }}
+                />
+                {/* Player World + Economy */}
+                {NAV_GROUPS.slice(1).map((group) => (
+                  <SideNav
+                    key={group.title}
+                    width="w-full"
+                    title={group.title}
+                    items={group.items}
+                    active={currentTab}
+                    onSelect={(k) => navigate(`/${k}`)}
+                  />
+                ))}
+              </nav>
+              <main className="flex-1 overflow-hidden min-h-0">
+                {renderTab('battlegroup', <MBattlegroupTab isActive={currentTab === 'battlegroup'} />)}
+                {renderTab('players', <MPlayersTab isActive={currentTab === 'players'} />)}
+                {renderTab('database', databaseNode)}
+                {renderTab('logs', <MLogsTab control={status?.control} />)}
+                {renderTab('blueprints', <MBlueprintsTab isSignedIn={isSignedIn} />)}
+                {renderTab('bases', <MBasesTab isSignedIn={isSignedIn} />)}
+                {renderTab('storage', <MStorageTab />)}
+                {renderTab('livemap', <MLiveMapTab isActive={currentTab === 'livemap'} />)}
+                {renderTab('server', <MServerSettingsTab />)}
+                {renderTab('market', <MMarketTab />)}
+                {renderTab('welcome', <MWelcomePackageTab />)}
+              </main>
+            </div>
+          )
+        }
+
+        // topnav mode: horizontal nav bar + full-width content area
+        return (
+          <>
+            <nav className="shrink-0 flex items-center gap-1 px-3 py-2 border-b border-border bg-surface overflow-x-auto">
+              {NAV_GROUPS.flatMap((g) => g.items).map((item) => (
+                <button
+                  type="button"
+                  key={item.key}
+                  onClick={() => navigate(`/${item.key}`)}
+                  className={
+                    'px-3 py-1.5 text-sm rounded-[var(--radius)] transition-colors shrink-0 '
+                    + (currentTab === item.key
+                      ? 'bg-accent text-accent-foreground font-semibold'
+                      : 'text-foreground hover:bg-surface-hover')
+                  }
+                >
+                  {item.label}
+                </button>
+              ))}
+            </nav>
+            <div className="flex-1 p-3 overflow-hidden min-h-0">
+              <main className="h-full overflow-hidden min-h-0">
+                {renderTab('battlegroup', <MBattlegroupTab isActive={currentTab === 'battlegroup'} />)}
+                {renderTab('players', <MPlayersTab isActive={currentTab === 'players'} />)}
+                {renderTab('database', databaseNode)}
+                {renderTab('logs', <MLogsTab control={status?.control} />)}
+                {renderTab('blueprints', <MBlueprintsTab isSignedIn={isSignedIn} />)}
+                {renderTab('bases', <MBasesTab isSignedIn={isSignedIn} />)}
+                {renderTab('storage', <MStorageTab />)}
+                {renderTab('livemap', <MLiveMapTab isActive={currentTab === 'livemap'} />)}
+                {renderTab('server', <MServerSettingsTab />)}
+                {renderTab('market', <MMarketTab />)}
+                {renderTab('welcome', <MWelcomePackageTab />)}
+              </main>
+            </div>
+          </>
+        )
+      })()}
     </div>
   )
 }
