@@ -176,6 +176,7 @@ func startServer(addr string) {
 	mux.HandleFunc("POST /api/v1/players/refuel-vehicle", handleRefuelVehicle)
 	mux.HandleFunc("GET /api/v1/players/partitions", handleGetPartitions)
 	mux.HandleFunc("POST /api/v1/players/teleport", handleTeleportPlayer)
+	mux.HandleFunc("POST /api/v1/players/teleport-coords", handleTeleportCoords)
 	mux.HandleFunc("GET /api/v1/players/{id}/position", handleGetPlayerPosition)
 	mux.HandleFunc("POST /api/v1/players/teleport-to-player", handleTeleportToPlayer)
 	mux.HandleFunc("GET /api/v1/players/{id}/events", handleGetPlayerEvents)
@@ -191,6 +192,12 @@ func startServer(addr string) {
 	mux.HandleFunc("GET /api/v1/database/sample", handleDBSample)
 	mux.HandleFunc("GET /api/v1/database/search", handleDBSearch)
 	mux.HandleFunc("POST /api/v1/database/sql", handleDBSQL)
+
+	// ── locations (editable teleport/spawn points) ───────────────────────────
+	mux.HandleFunc("GET /api/v1/locations", handleListLocations)
+	mux.HandleFunc("POST /api/v1/locations", handleUpsertLocation)
+	mux.HandleFunc("PUT /api/v1/locations", handleRenameLocation)
+	mux.HandleFunc("DELETE /api/v1/locations", handleDeleteLocation)
 
 	// ── live map ────────────────────────────────────────────────────────────────
 	mux.HandleFunc("GET /api/v1/map/markers", handleGetMapMarkers)

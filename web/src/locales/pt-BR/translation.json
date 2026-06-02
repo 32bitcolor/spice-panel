@@ -40,7 +40,9 @@
     "updateFailed": "Falha na atualização: {{message}}",
     "selectLanguage": "Selecionar idioma",
     "goHome": "Ir para início",
-    "switchLayout": "Alternar layout"
+    "switchLayout": "Alternar layout",
+    "switchToTopnav": "Alternar para navegação superior",
+    "switchToSidenav": "Alternar para navegação lateral"
   },
   "nav": {
     "groups": {
@@ -175,7 +177,7 @@
         "skillPointsNote": "Define pontos não gastos",
         "set": "Definir",
         "fillWater": "Encher água",
-        "fillWaterNote": "Enche todos os recipientes de água ao máximo",
+        "fillWaterNote": "Enche todos os recipientes de água ao máximo (o jogador deve estar online)",
         "fill": "Encher",
         "setSkillModule": "Definir módulo de habilidade",
         "selectModule": "Selecionar módulo…",
@@ -208,6 +210,17 @@
         "quickPresetsDesc": "Pacotes curados que completam um ou mais nós de jornada raiz e cascateiam para todos os filhos e tags.",
         "loadingPresets": "Carregando…",
         "noPresets": "Nenhum preset disponível",
+        "presets": {
+          "skip_npe": { "name": "Pular NPE (Experiência do Novo Jogador)", "desc": "Marca o tutorial/NPE como concluído. Útil para jogadores experientes que não precisam da introdução." },
+          "a_new_beginning": { "name": "Completar: A New Beginning", "desc": "Introdução da história principal — fabricar Stillsuit, coletar recursos, pesquisa do fabricador. Desbloqueia o início do jogo." },
+          "find_the_fremen": { "name": "Completar: Find the Fremen (Trials of Aql)", "desc": "Todos os 7 julgamentos, o Sietch e o Epílogo. Desbloqueia o Fremkit (Stillsuit, Thumper, Cryss Knife, etc.) e completa o Ato 1." },
+          "act1_complete": { "name": "Completar: Todo o Ato 1", "desc": "A New Beginning + Find the Fremen combinados. O jogador começa pronto para o Ato 2." },
+          "vermillius_intro": { "name": "Pular: Tutoriais de Vermillius Gap", "desc": "Completa todas as missões tutoriais de Vermillius Gap (pesquisa, fabricação, exploração). Sem efeitos colaterais de tags — pulo puro de tutorial." },
+          "deep_desert_intro": { "name": "Pular: Introdução ao Deserto Profundo", "desc": "Completa a cadeia de missões secundárias do Deserto Profundo." },
+          "taxation_intro": { "name": "Pular: Tutorial de Tributação / Troca", "desc": "Completa a cadeia tutorial de troca/viagem." },
+          "overland_intro": { "name": "Pular: Introdução ao Mapa de Superfície", "desc": "Completa a cadeia de missões secundárias do mapa de superfície (missões Hark Landsraad, pedras-chave)." },
+          "unlock_all_lore": { "name": "Desbloquear Todo o Lore (Dunipedia)", "desc": "Revela todas as entradas da Dunipedia: Universo Conhecido, Marcos, Manual do Deserto Amigável, Guerra por Arrakis." }
+        },
         "nodes": "{{count}} nós",
         "apply": "Aplicar",
         "progressionUnlock": "Desbloqueio de progressão",
@@ -271,7 +284,21 @@
         "run": "Executar",
         "try": "Tentar",
         "runTitle": "Executar {{label}}?",
-        "confirmRun": "Confirmar execução"
+        "confirmRun": "Confirmar execução",
+        "scripts": {
+          "LeaveMeAlone": "Leave Me Alone",
+          "LeaveMeAloneDesc": "Destrói todos os NPCs, limpa encontros + tempestades de areia, desativa o verme de areia (em todo o servidor)",
+          "AwardPlayerXP": "Award Player XP",
+          "AwardPlayerXPDesc": "Concede 10.000 XP de Combate + 10.000 XP de Exploração + 10.000 XP de Ciência",
+          "UnlockAllSkills": "Unlock All Skills",
+          "UnlockAllSkillsDesc": "Define todos os módulos da árvore de habilidades para o nível 1",
+          "UnlockAllAbilities": "Unlock All Abilities",
+          "UnlockAllAbilitiesDesc": "Define todos os módulos de habilidades para o nível 1",
+          "PlaytestSetup": "Playtest Setup",
+          "PlaytestSetupDesc": "⚠ DESTRUCTIVE — ResetProgression + CleanInventory, depois kit completo de equipamento",
+          "PlaytestSetupAdmin": "Playtest Setup (Admin)",
+          "PlaytestSetupAdminDesc": "⚠ DESTRUCTIVE — igual ao Playtest Setup mas usa nomes de template brutos"
+        }
       },
       "admin": {
         "liveActions": "Ações ao vivo",
@@ -313,6 +340,11 @@
         "teleportPlaceholder": "Selecionar localização...",
         "move": "Mover",
         "teleportNote": "Ao vivo se online · escrito no BD se offline",
+        "manageLocations": "Gerenciar localizações",
+        "useCurrent": "Usar atual",
+        "pickOnMap": "Selecionar no mapa",
+        "moveToXyz": "Mover para XYZ",
+        "positionReadFailed": "Não foi possível ler a posição do jogador",
         "teleportToPlayer": "Teleportar para o jogador",
         "selectTargetLabel": "Jogador alvo",
         "loadingPlayers": "Carregando jogadores…",
@@ -328,7 +360,25 @@
         "spawnLocationLabel": "Local de spawn",
         "selectSpawnLocation": "Selecionar local de spawn…",
         "persistent": "Persistente",
-        "spawn": "Invocar"
+        "spawn": "Invocar",
+        "manageLocationsModal": {
+          "title": "Gerenciar localizações",
+          "addSection": "Adicionar / Atualizar localização",
+          "addHint": "Insira um nome e coordenadas, depois Salvar. Salvar um nome existente atualiza suas coordenadas. Deixe Z em branco para nível do solo (0).",
+          "nameLabel": "Nome",
+          "namePlaceholder": "ex.: Windsack",
+          "save": "Salvar",
+          "done": "Concluído",
+          "noLocations": "Nenhuma localização ainda — adicione uma acima.",
+          "delete": "Excluir"
+        },
+        "mapPickerModal": {
+          "title": "Selecionar localização no mapa",
+          "hint": "Clique em qualquer lugar na Bacia Hagga para capturar X/Y. Z padrão é {{z}} — ajuste manualmente se necessário.",
+          "selected": "Selecionado:",
+          "cancel": "Cancelar",
+          "confirm": "Usar estas coordenadas"
+        }
       },
       "tags": {
         "addTags": "Adicionar tags",
@@ -438,7 +488,20 @@
       "playtime": "Tempo de jogo",
       "sessionCount": "Contagem",
       "avgSession": "Média",
-      "lastSeen": "Visto por último"
+      "lastSeen": "Visto por último",
+      "solarisHistory": "Histórico de Solaris",
+      "solarisHistoryEmpty": "Instantâneos de Solaris são gravados a cada 5 minutos enquanto os jogadores estão online.",
+      "solarisBalance": "Saldo",
+      "sessionHistory": "Histórico de sessões",
+      "sessionHistoryEmpty": "Os dados de sessão se acumulam conforme os jogadores fazem login. O rastreador consulta a cada 5 minutos.",
+      "xpHistory": "Histórico de XP",
+      "xpHistoryEmpty": "Instantâneos de XP são gravados a cada 5 minutos enquanto os jogadores estão online.",
+      "xpCharXP": "XP do personagem",
+      "xpCombat": "Combate",
+      "xpCrafting": "Criação",
+      "xpGathering": "Coleta",
+      "xpExploration": "Exploração",
+      "xpSabotage": "Sabotagem"
     }
   },
   "market": {
@@ -858,7 +921,16 @@
     "scanComplete": "Varredura concluída — {{granted}} concedidos, {{failed}} falhos, {{skipped}} ignorados",
     "runFailed": "Falha na execução: {{message}}",
     "retryCleared": "Limpo — será tentado novamente na próxima varredura",
-    "retryFailed": "Falha ao tentar novamente: {{message}}"
+    "retryFailed": "Falha ao tentar novamente: {{message}}",
+    "message": {
+      "title": "Mensagem de boas-vindas",
+      "enabledLabel": "Enviar sussurro para novos jogadores no primeiro login",
+      "enabledHint": "Enviado uma vez por jogador por versão ativa através da persona GM. Registrado no livro de concessões.",
+      "messageLabel": "Mensagem",
+      "messagePlaceholder": "Bem-vindo ao servidor! Aproveite seu pacote inicial.",
+      "senderLabel": "ID FLS do remetente (opcional)",
+      "senderPlaceholder": "Deixe em branco para usar a persona GM configurada"
+    }
   },
   "settings": {
     "backendUrl": "URL do backend",

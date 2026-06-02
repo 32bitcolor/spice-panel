@@ -40,7 +40,9 @@
     "updateFailed": "Ошибка обновления: {{message}}",
     "selectLanguage": "Выбрать язык",
     "goHome": "На главную",
-    "switchLayout": "Переключить раскладку"
+    "switchLayout": "Переключить раскладку",
+    "switchToTopnav": "Переключить на верхнюю навигацию",
+    "switchToSidenav": "Переключить на боковую навигацию"
   },
   "nav": {
     "groups": {
@@ -175,7 +177,7 @@
         "skillPointsNote": "Устанавливает незатраченные очки",
         "set": "Установить",
         "fillWater": "Заполнить воду",
-        "fillWaterNote": "Заполняет все ёмкости для воды до максимума",
+        "fillWaterNote": "Заполняет все ёмкости для воды до максимума (игрок должен быть онлайн)",
         "fill": "Заполнить",
         "setSkillModule": "Установить модуль навыка",
         "selectModule": "Выбрать модуль…",
@@ -208,6 +210,17 @@
         "quickPresetsDesc": "Подобранные наборы, завершающие один или несколько корневых узлов пути и каскадом распространяющиеся на всех потомков и теги.",
         "loadingPresets": "Загрузка…",
         "noPresets": "Пресеты недоступны",
+        "presets": {
+          "skip_npe": { "name": "Пропустить NPE (опыт нового игрока)", "desc": "Отмечает туториал/NPE как завершённый. Полезно для опытных игроков, которым не нужно введение." },
+          "a_new_beginning": { "name": "Завершить: A New Beginning", "desc": "Введение в основную историю — создание Stillsuit, добыча ресурсов, исследование фабрикатора. Разблокирует начало игры." },
+          "find_the_fremen": { "name": "Завершить: Find the Fremen (Trials of Aql)", "desc": "Все 7 испытаний, Сич и Эпилог. Разблокирует Fremkit (Stillsuit, Thumper, Cryss Knife и др.) и завершает Акт 1." },
+          "act1_complete": { "name": "Завершить: Весь Акт 1", "desc": "A New Beginning + Find the Fremen вместе. Игрок начинает готовым к Акту 2." },
+          "vermillius_intro": { "name": "Пропустить: Туториалы Vermillius Gap", "desc": "Завершает все туториальные квесты Vermillius Gap (исследования, крафт, исследование мира). Без побочных эффектов тегов — чистый пропуск туториала." },
+          "deep_desert_intro": { "name": "Пропустить: Введение в Глубокую пустыню", "desc": "Завершает цепочку побочных квестов Глубокой пустыни." },
+          "taxation_intro": { "name": "Пропустить: Туториал налогообложения / обмена", "desc": "Завершает туториальную цепочку обмена/путешествий." },
+          "overland_intro": { "name": "Пропустить: Введение в карту Оверленда", "desc": "Завершает цепочку побочных квестов карты Оверленда (миссии Hark Landsraad, ключевые камни)." },
+          "unlock_all_lore": { "name": "Разблокировать весь лор (Dunipedia)", "desc": "Открывает все записи Dunipedia: Известная вселенная, Достопримечательности, Руководство дружелюбной пустыни, Война за Арракис." }
+        },
         "nodes": "{{count}} узлов",
         "apply": "Применить",
         "progressionUnlock": "Разблокировка прогресса",
@@ -271,7 +284,21 @@
         "run": "Запустить",
         "try": "Попробовать",
         "runTitle": "Запустить {{label}}?",
-        "confirmRun": "Подтвердить запуск"
+        "confirmRun": "Подтвердить запуск",
+        "scripts": {
+          "LeaveMeAlone": "Leave Me Alone",
+          "LeaveMeAloneDesc": "Уничтожает всех NPC, очищает встречи + песчаные бури, отключает песчаного червя (для всего сервера)",
+          "AwardPlayerXP": "Award Player XP",
+          "AwardPlayerXPDesc": "Выдаёт 10 000 XP боя + 10 000 XP исследования + 10 000 XP науки",
+          "UnlockAllSkills": "Unlock All Skills",
+          "UnlockAllSkillsDesc": "Устанавливает все модули дерева навыков на уровень 1",
+          "UnlockAllAbilities": "Unlock All Abilities",
+          "UnlockAllAbilitiesDesc": "Устанавливает все модули способностей на уровень 1",
+          "PlaytestSetup": "Playtest Setup",
+          "PlaytestSetupDesc": "⚠ DESTRUCTIVE — ResetProgression + CleanInventory, затем полный набор снаряжения",
+          "PlaytestSetupAdmin": "Playtest Setup (Admin)",
+          "PlaytestSetupAdminDesc": "⚠ DESTRUCTIVE — то же, что Playtest Setup, но использует сырые имена шаблонов"
+        }
       },
       "admin": {
         "liveActions": "Действия в реальном времени",
@@ -313,6 +340,11 @@
         "teleportPlaceholder": "Выбрать местоположение...",
         "move": "Переместить",
         "teleportNote": "Онлайн = сразу · оффлайн = записывается в БД",
+        "manageLocations": "Управление местоположениями",
+        "useCurrent": "Использовать текущее",
+        "pickOnMap": "Выбрать на карте",
+        "moveToXyz": "Переместить в XYZ",
+        "positionReadFailed": "Не удалось прочитать позицию игрока",
         "teleportToPlayer": "Телепортировать к игроку",
         "selectTargetLabel": "Целевой игрок",
         "loadingPlayers": "Загрузка игроков…",
@@ -328,7 +360,25 @@
         "spawnLocationLabel": "Место появления",
         "selectSpawnLocation": "Выбрать место появления…",
         "persistent": "Постоянный",
-        "spawn": "Вызвать"
+        "spawn": "Вызвать",
+        "manageLocationsModal": {
+          "title": "Управление местоположениями",
+          "addSection": "Добавить / Обновить местоположение",
+          "addHint": "Введите имя и координаты, затем нажмите Сохранить. Сохранение существующего имени обновит его координаты. Оставьте Z пустым для уровня земли (0).",
+          "nameLabel": "Имя",
+          "namePlaceholder": "напр. Windsack",
+          "save": "Сохранить",
+          "done": "Готово",
+          "noLocations": "Местоположений пока нет — добавьте выше.",
+          "delete": "Удалить"
+        },
+        "mapPickerModal": {
+          "title": "Выбрать местоположение на карте",
+          "hint": "Нажмите в любом месте Бассейна Хагга, чтобы захватить X/Y. Z по умолчанию {{z}} — при необходимости скорректируйте вручную.",
+          "selected": "Выбрано:",
+          "cancel": "Отмена",
+          "confirm": "Использовать эти координаты"
+        }
       },
       "tags": {
         "addTags": "Добавить теги",
@@ -438,7 +488,20 @@
       "playtime": "Время в игре",
       "sessionCount": "Количество",
       "avgSession": "Среднее",
-      "lastSeen": "Последний визит"
+      "lastSeen": "Последний визит",
+      "solarisHistory": "История Solaris",
+      "solarisHistoryEmpty": "Снимки Solaris записываются каждые 5 минут, пока игроки онлайн.",
+      "solarisBalance": "Баланс",
+      "sessionHistory": "История сессий",
+      "sessionHistoryEmpty": "Данные сессий накапливаются при входе игроков. Трекер опрашивает каждые 5 минут.",
+      "xpHistory": "История XP",
+      "xpHistoryEmpty": "Снимки XP записываются каждые 5 минут, пока игроки онлайн.",
+      "xpCharXP": "XP перс.",
+      "xpCombat": "Бой",
+      "xpCrafting": "Крафт",
+      "xpGathering": "Сбор",
+      "xpExploration": "Исследование",
+      "xpSabotage": "Саботаж"
     }
   },
   "market": {
@@ -858,7 +921,16 @@
     "scanComplete": "Сканирование завершено — {{granted}} выдано, {{failed}} ошибок, {{skipped}} пропущено",
     "runFailed": "Ошибка выполнения: {{message}}",
     "retryCleared": "Сброшено — повторная попытка при следующем сканировании",
-    "retryFailed": "Ошибка повторной попытки: {{message}}"
+    "retryFailed": "Ошибка повторной попытки: {{message}}",
+    "message": {
+      "title": "Приветственное сообщение",
+      "enabledLabel": "Отправлять шёпот новым игрокам при первом входе",
+      "enabledHint": "Отправляется один раз на игрока на активную версию через персонажа GM. Регистрируется в журнале выдач.",
+      "messageLabel": "Сообщение",
+      "messagePlaceholder": "Добро пожаловать на сервер! Наслаждайтесь стартовым набором.",
+      "senderLabel": "FLS ID отправителя (необязательно)",
+      "senderPlaceholder": "Оставьте пустым, чтобы использовать настроенную персону GM"
+    }
   },
   "settings": {
     "backendUrl": "URL бэкенда",

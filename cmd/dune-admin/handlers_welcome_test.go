@@ -28,7 +28,7 @@ func TestBuildWelcomeRuntime(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			rt := buildWelcomeRuntime(tt.enabled, tt.active, tt.scanSecs, tt.packages)
+			rt := buildWelcomeRuntime(tt.enabled, tt.active, tt.scanSecs, tt.packages, welcomeMessageOptions{})
 			if rt.enabled != tt.enabled {
 				t.Fatalf("enabled: want %v, got %v", tt.enabled, rt.enabled)
 			}
@@ -47,7 +47,7 @@ func TestWelcomeRuntimeActive(t *testing.T) {
 	rt := buildWelcomeRuntime(true, "v2", 30, []welcomePackage{
 		{Version: "v1", Items: []welcomePackageItem{{Template: "A", Qty: 1}}},
 		{Version: "v2", Items: []welcomePackageItem{{Template: "B", Qty: 2}}},
-	})
+	}, welcomeMessageOptions{})
 	p, ok := rt.active()
 	if !ok {
 		t.Fatal("expected an active package")
@@ -56,7 +56,7 @@ func TestWelcomeRuntimeActive(t *testing.T) {
 		t.Fatalf("active package wrong: %+v", p)
 	}
 
-	empty := buildWelcomeRuntime(true, "", 30, nil)
+	empty := buildWelcomeRuntime(true, "", 30, nil, welcomeMessageOptions{})
 	if _, ok := empty.active(); ok {
 		t.Fatal("expected no active package when library is empty")
 	}

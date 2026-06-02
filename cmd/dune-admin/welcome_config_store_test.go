@@ -1,0 +1,81 @@
+package main
+
+import (
+	"testing"
+)
+
+// openMemWelcomeStore opens an in-memory welcome store for testing.
+func openMemWelcomeStore(t *testing.T) *welcomeStore {
+	t.Helper()
+	s, err := openWelcomeStore(":memory:")
+	if err != nil {
+		t.Fatalf("openWelcomeStore: %v", err)
+	}
+	t.Cleanup(func() { _ = s.close() })
+	return s
+}
+
+func TestWelcomeConfigStore_SaveAndLoad(t *testing.T) {
+	t.Parallel()
+	s := openMemWelcomeStore(t)
+
+	cfg := welcomeConfigRow{
+		Enabled:       true,
+		ScanSecs:      60,
+		ActiveVersion: "v2",
+		PackagesJSON:  `[{"version":"v2","items":[]}]`,
+	}
+	if err := s.saveConfig(cfg); err != nil {
+		t.Fatalf("saveConfig: %v", err)
+	}
+
+	got, ok, err := s.loadConfig()
+	if err != nil {
+		t.Fatalf("loadConfig: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected config to be present after save")
+	}
+	if got.Enabled != true || got.ScanSecs != 60 || got.ActiveVersion != "v2" || got.PackagesJSON != `[{"version":"v2","items":[]}]` {
+		t.Fatalf("loaded config mismatch: %+v", got)
+	}
+}
+
+func TestWelcomeConfigStore_LoadMissingReturnsNotOK(t *testing.T) {
+	t.Parallel()
+	s := openMemWelcomeStore(t)
+
+	_, ok, err := s.loadConfig()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ok {
+		t.Fatal("expected ok=false for empty store, got true")
+	}
+}
+
+func TestWelcomeConfigStore_OverwriteWithSave(t *testing.T) {
+	t.Parallel()
+	s := openMemWelcomeStore(t)
+
+	first := welcomeConfigRow{Enabled: false, ScanSecs: 30, ActiveVersion: "v1", PackagesJSON: `[]`}
+	second := welcomeConfigRow{Enabled: true, ScanSecs: 120, ActiveVersion: "v2", PackagesJSON: `[{"version":"v2","items":[]}]`}
+
+	if err := s.saveConfig(first); err != nil {
+		t.Fatalf("first save: %v", err)
+	}
+	if err := s.saveConfig(second); err != nil {
+		t.Fatalf("second save: %v", err)
+	}
+
+	got, ok, err := s.loadConfig()
+	if err != nil {
+		t.Fatalf("loadConfig: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected config after second save")
+	}
+	if got.ActiveVersion != "v2" || got.ScanSecs != 120 {
+		t.Fatalf("second save did not overwrite: %+v", got)
+	}
+}

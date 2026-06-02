@@ -13,6 +13,8 @@ import {
   toast,
 } from '@heroui/react'
 import { ConfirmDialog, DataTable, Icon, NumberInput, Panel, SectionLabel } from '../../../dune-ui'
+import { ManageLocationsModal } from '../modals/ManageLocationsModal'
+import { MapCoordPickerModal } from '../modals/MapCoordPickerModal'
 import allGameplayTags from '../../../data/gameplayTags.json'
 import allSkillModules from '../../../data/skillModules.json'
 import allVehicles from '../../../data/vehicles.json'
@@ -236,6 +238,11 @@ export function ActionsView({ player }: Props) {
 
   const [partitions, setPartitions] = useState<TeleportLocation[]>([])
   const [selectedPartition, setSelectedPartition] = useState('')
+  const [teleportX, setTeleportX] = useState('')
+  const [teleportY, setTeleportY] = useState('')
+  const [teleportZ, setTeleportZ] = useState('')
+  const [showManageLocations, setShowManageLocations] = useState(false)
+  const [showTeleportMapPicker, setShowTeleportMapPicker] = useState(false)
   const [allPlayers, setAllPlayers] = useState<Player[]>([])
   const [selectedTeleportTarget, setSelectedTeleportTarget] = useState<number | null>(null)
   const [targetSearch, setTargetSearch] = useState('')
@@ -248,6 +255,10 @@ export function ActionsView({ player }: Props) {
   const [spawnVehicleTemplate, setSpawnVehicleTemplate] = useState('')
   const [spawnVehiclePartition, setSpawnVehiclePartition] = useState('')
   const [spawnVehiclePersistent, setSpawnVehiclePersistent] = useState(true)
+  const [spawnX, setSpawnX] = useState('')
+  const [spawnY, setSpawnY] = useState('')
+  const [spawnZ, setSpawnZ] = useState('')
+  const [showSpawnMapPicker, setShowSpawnMapPicker] = useState(false)
 
   const [events, setEvents] = useState<GameEvent[]>([])
   const [dungeons, setDungeons] = useState<DungeonRecord[]>([])
@@ -284,7 +295,7 @@ export function ActionsView({ player }: Props) {
   useEffect(() => {
     Promise.resolve()
       .then(() => setFactionId(player.faction_id > 0 ? player.faction_id : 1))
-      .then(() => Promise.all([api.players.partitions(), api.players.charXPCurrent(player.id), api.players.list()]))
+      .then(() => Promise.all([api.locations.list(), api.players.charXPCurrent(player.id), api.players.list()]))
       .then(([parts, xp, ps]) => {
         setPartitions(parts)
         setCharXPCurrent(xp)
@@ -800,8 +811,12 @@ export function ActionsView({ player }: Props) {
                                   className="flex items-center gap-3 py-2 border-b border-border/40 last:border-0"
                                 >
                                   <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-semibold">{p.name}</div>
-                                    <div className="text-xs text-muted">{p.description}</div>
+                                    <div className="text-sm font-semibold">
+                                      {t(`players.actions.progression.presets.${p.id}.name`, { defaultValue: p.name })}
+                                    </div>
+                                    <div className="text-xs text-muted">
+                                      {t(`players.actions.progression.presets.${p.id}.desc`, { defaultValue: p.description })}
+                                    </div>
                                   </div>
                                   <Chip size="sm" variant="soft">
                                     {t('players.actions.progression.nodes', { count: p.node_count })}
@@ -1206,11 +1221,11 @@ export function ActionsView({ player }: Props) {
                       virtualized
                       rowHeight={36}
                       columns={[
-                        { key: 'node', label: t('players.actions.journey.columns.nodeId'), isRowHeader: true, minWidth: 240 },
-                        { key: 'done', label: t('players.actions.journey.columns.done'), width: 80 },
-                        { key: 'revealed', label: t('players.actions.journey.columns.revealed'), width: 100 },
-                        { key: 'reward', label: t('players.actions.journey.columns.reward'), width: 90 },
-                        { key: 'actions', label: '', sortable: false, width: 220 },
+                        { key: 'node', label: t('players.actions.journey.columns.nodeId'), isRowHeader: true, minWidth: 200 },
+                        { key: 'done', label: t('players.actions.journey.columns.done'), width: 70 },
+                        { key: 'revealed', label: t('players.actions.journey.columns.revealed'), width: 120 },
+                        { key: 'reward', label: t('players.actions.journey.columns.reward'), width: 105 },
+                        { key: 'actions', label: '', sortable: false, width: 200 },
                       ]}
                       rows={filteredNodes}
                       rowId={(n) => n.node_id}
@@ -1297,42 +1312,12 @@ export function ActionsView({ player }: Props) {
                 <div className="text-xs text-muted mb-2">{t('players.actions.experimental.knownScriptsDesc')}</div>
                 {(
                   [
-                    {
-                      name: 'LeaveMeAlone',
-                      label: 'Leave Me Alone',
-                      desc: 'Destroys all NPCs, clears encounters + sandstorms, disables sandworm (server-wide)',
-                      danger: false,
-                    },
-                    {
-                      name: 'AwardPlayerXP',
-                      label: 'Award Player XP',
-                      desc: 'Awards 10,000 Combat + 10,000 Exploration + 10,000 Science XP',
-                      danger: false,
-                    },
-                    {
-                      name: 'UnlockAllSkills',
-                      label: 'Unlock All Skills',
-                      desc: 'Sets all skill tree modules to level 1',
-                      danger: false,
-                    },
-                    {
-                      name: 'UnlockAllAbilities',
-                      label: 'Unlock All Abilities',
-                      desc: 'Sets all ability modules to level 1',
-                      danger: false,
-                    },
-                    {
-                      name: 'PlaytestSetup',
-                      label: 'Playtest Setup',
-                      desc: '⚠ DESTRUCTIVE — ResetProgression + CleanInventory, then full gear kit',
-                      danger: true,
-                    },
-                    {
-                      name: 'PlaytestSetupAdmin',
-                      label: 'Playtest Setup (Admin)',
-                      desc: '⚠ DESTRUCTIVE — same as Playtest Setup but uses raw template names',
-                      danger: true,
-                    },
+                    { name: 'LeaveMeAlone', label: t('players.actions.experimental.scripts.LeaveMeAlone'), desc: t('players.actions.experimental.scripts.LeaveMeAloneDesc'), danger: false },
+                    { name: 'AwardPlayerXP', label: t('players.actions.experimental.scripts.AwardPlayerXP'), desc: t('players.actions.experimental.scripts.AwardPlayerXPDesc'), danger: false },
+                    { name: 'UnlockAllSkills', label: t('players.actions.experimental.scripts.UnlockAllSkills'), desc: t('players.actions.experimental.scripts.UnlockAllSkillsDesc'), danger: false },
+                    { name: 'UnlockAllAbilities', label: t('players.actions.experimental.scripts.UnlockAllAbilities'), desc: t('players.actions.experimental.scripts.UnlockAllAbilitiesDesc'), danger: false },
+                    { name: 'PlaytestSetup', label: t('players.actions.experimental.scripts.PlaytestSetup'), desc: t('players.actions.experimental.scripts.PlaytestSetupDesc'), danger: true },
+                    { name: 'PlaytestSetupAdmin', label: t('players.actions.experimental.scripts.PlaytestSetupAdmin'), desc: t('players.actions.experimental.scripts.PlaytestSetupAdminDesc'), danger: true },
                   ] as { name: string, label: string, desc: string, danger: boolean }[]
                 ).map(({ name, label, desc, danger }) => (
                   <div key={name} className="flex items-center gap-3 py-3 border-b border-border/40 last:border-b-0">
@@ -1505,7 +1490,17 @@ export function ActionsView({ player }: Props) {
               </Panel>
 
               <Panel>
-                <SectionLabel>{t('players.actions.admin.teleport')}</SectionLabel>
+                <div className="flex items-center justify-between mb-1">
+                  <SectionLabel>{t('players.actions.admin.teleport')}</SectionLabel>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onPress={() => setShowManageLocations(true)}
+                  >
+                    {t('players.actions.admin.manageLocations')}
+                  </Button>
+                </div>
+                {/* Named location */}
                 <div className="flex items-end gap-3 py-1">
                   <Select
                     aria-label={t('players.actions.admin.teleport')}
@@ -1542,7 +1537,74 @@ export function ActionsView({ player }: Props) {
                     {t('players.actions.admin.move')}
                   </Button>
                 </div>
-                <span className="text-xs text-muted">{t('players.actions.admin.teleportNote')}</span>
+                {/* Custom XYZ */}
+                <div className="flex items-end gap-2 mt-2">
+                  <Input
+                    aria-label="X coordinate"
+                    className="w-24"
+                    value={teleportX}
+                    onChange={(e) => setTeleportX(e.target.value)}
+                    placeholder="X"
+                  />
+                  <Input
+                    aria-label="Y coordinate"
+                    className="w-24"
+                    value={teleportY}
+                    onChange={(e) => setTeleportY(e.target.value)}
+                    placeholder="Y"
+                  />
+                  <Input
+                    aria-label="Z coordinate"
+                    className="w-24"
+                    value={teleportZ}
+                    onChange={(e) => setTeleportZ(e.target.value)}
+                    placeholder="Z"
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    isDisabled={busy}
+                    onPress={async () => {
+                      try {
+                        const pos = await api.players.position(player.id)
+                        setTeleportX(String(Math.round(pos.x)))
+                        setTeleportY(String(Math.round(pos.y)))
+                        setTeleportZ(String(Math.round(pos.z)))
+                      }
+                      catch {
+                        toast.danger(t('players.actions.admin.positionReadFailed'))
+                      }
+                    }}
+                  >
+                    {t('players.actions.admin.useCurrent')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    isDisabled={busy}
+                    onPress={() => setShowTeleportMapPicker(true)}
+                  >
+                    {t('players.actions.admin.pickOnMap')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    isDisabled={busy || (!teleportX && !teleportY)}
+                    onPress={() =>
+                      run(
+                        () => api.players.teleportCoords(
+                          player.fls_id,
+                          Number(teleportX) || 0,
+                          Number(teleportY) || 0,
+                          Number(teleportZ) || 0,
+                        ),
+                        `Teleported ${player.name} to (${teleportX}, ${teleportY}, ${teleportZ})`,
+                      )}
+                  >
+                    {t('players.actions.admin.moveToXyz')}
+                  </Button>
+                </div>
+                <span className="text-xs text-muted mt-1">{t('players.actions.admin.teleportNote')}</span>
               </Panel>
 
               <Panel>
@@ -1746,12 +1808,21 @@ export function ActionsView({ player }: Props) {
                           : null
                       })()}
                   </div>
+                  {/* Named spawn location */}
                   <div className="flex items-center gap-2">
                     <Select
                       aria-label={t('players.actions.admin.spawnLocationLabel')}
                       placeholder={t('players.actions.admin.selectSpawnLocation')}
                       selectedKey={spawnVehiclePartition || null}
-                      onSelectionChange={(k) => setSpawnVehiclePartition(k ? String(k) : '')}
+                      onSelectionChange={(k) => {
+                        setSpawnVehiclePartition(k ? String(k) : '')
+                        const p = partitions.find((x) => x.name === String(k))
+                        if (p) {
+                          setSpawnX(String(Math.round(p.x)))
+                          setSpawnY(String(Math.round(p.y)))
+                          setSpawnZ(String(Math.round(p.z)))
+                        }
+                      }}
                       className="flex-1"
                     >
                       <Select.Trigger>
@@ -1769,6 +1840,56 @@ export function ActionsView({ player }: Props) {
                         </ListBox>
                       </Select.Popover>
                     </Select>
+                  </div>
+                  {/* Custom XYZ + spawn button */}
+                  <div className="flex items-end gap-2 mt-2">
+                    <Input
+                      aria-label="X coordinate"
+                      className="w-24"
+                      value={spawnX}
+                      onChange={(e) => setSpawnX(e.target.value)}
+                      placeholder="X"
+                    />
+                    <Input
+                      aria-label="Y coordinate"
+                      className="w-24"
+                      value={spawnY}
+                      onChange={(e) => setSpawnY(e.target.value)}
+                      placeholder="Y"
+                    />
+                    <Input
+                      aria-label="Z coordinate"
+                      className="w-24"
+                      value={spawnZ}
+                      onChange={(e) => setSpawnZ(e.target.value)}
+                      placeholder="Z"
+                    />
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      isDisabled={busy}
+                      onPress={async () => {
+                        try {
+                          const pos = await api.players.position(player.id)
+                          setSpawnX(String(Math.round(pos.x)))
+                          setSpawnY(String(Math.round(pos.y)))
+                          setSpawnZ(String(Math.round(pos.z)))
+                        }
+                        catch {
+                          toast.danger(t('players.actions.admin.positionReadFailed'))
+                        }
+                      }}
+                    >
+                      {t('players.actions.admin.useCurrent')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      isDisabled={busy}
+                      onPress={() => setShowSpawnMapPicker(true)}
+                    >
+                      {t('players.actions.admin.pickOnMap')}
+                    </Button>
                     <label className="flex items-center gap-1.5 cursor-pointer select-none">
                       <input
                         type="checkbox"
@@ -1780,19 +1901,25 @@ export function ActionsView({ player }: Props) {
                     <Button
                       size="sm"
                       variant="ghost"
-                      isDisabled={busy || !spawnVehicleId || !spawnVehiclePartition}
+                      isDisabled={busy || !spawnVehicleId || (!spawnX && !spawnY)}
                       onPress={() => {
                         const v = (allVehicles as { id: string, actor_class: string }[]).find(
                           (x) => x.id === spawnVehicleId,
                         )
-                        const p = partitions.find((x) => x.name === spawnVehiclePartition)
-                        if (!v || !p) return
+                        if (!v) return
                         run(
                           () =>
-                            api.players.spawnVehicle(player.fls_id, v.actor_class, p.x, p.y, p.z, {
-                              template_name: spawnVehicleTemplate || undefined,
-                              persistent: spawnVehiclePersistent,
-                            }),
+                            api.players.spawnVehicle(
+                              player.fls_id,
+                              v.actor_class,
+                              Number(spawnX) || 0,
+                              Number(spawnY) || 0,
+                              Number(spawnZ) || 0,
+                              {
+                                template_name: spawnVehicleTemplate || undefined,
+                                persistent: spawnVehiclePersistent,
+                              },
+                            ),
                           `Spawn ${spawnVehicleId} command sent for ${player.name}`,
                         )
                       }}
@@ -2001,6 +2128,36 @@ export function ActionsView({ player }: Props) {
         }}
         onCancel={() => setConfirmPending(null)}
       />
+      {showManageLocations && (
+        <ManageLocationsModal
+          onClose={(updated) => {
+            if (updated) setPartitions(updated)
+            setShowManageLocations(false)
+          }}
+        />
+      )}
+      {showTeleportMapPicker && (
+        <MapCoordPickerModal
+          onPick={(x, y, z) => {
+            setTeleportX(String(Math.round(x)))
+            setTeleportY(String(Math.round(y)))
+            setTeleportZ(String(Math.round(z)))
+            setShowTeleportMapPicker(false)
+          }}
+          onClose={() => setShowTeleportMapPicker(false)}
+        />
+      )}
+      {showSpawnMapPicker && (
+        <MapCoordPickerModal
+          onPick={(x, y, z) => {
+            setSpawnX(String(Math.round(x)))
+            setSpawnY(String(Math.round(y)))
+            setSpawnZ(String(Math.round(z)))
+            setShowSpawnMapPicker(false)
+          }}
+          onClose={() => setShowSpawnMapPicker(false)}
+        />
+      )}
     </>
   )
 }

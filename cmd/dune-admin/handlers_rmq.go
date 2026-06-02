@@ -45,13 +45,43 @@ func handleRMQKickPlayer(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, map[string]string{"ok": fmt.Sprintf("kick command sent for %s", req.FlsID)})
 }
 
-// @Summary Send fill-water command via RabbitMQ
+// fillWaterParams bundles the injectable dependencies for processFillWater so
+// the online/offline branching can be unit-tested without a live DB or broker.
+type fillWaterParams struct {
+	flsID        string
+	waterAmount  int
+	isOnline     func(flsID string) bool
+	sendRMQ      func(flsID string, waterAmount int) error
+	resolveActor func(flsID string) (int64, error)
+	refillDB     func(actorID int64) (int64, error)
+}
+
+// processFillWater fills water containers for the given player. Online players
+// receive an immediate RMQ command; offline players get a DB write that takes
+// effect on their next relog. The zero water-amount defaults to 1 000 000.
+func processFillWater(p fillWaterParams) error {
+	if p.waterAmount <= 0 {
+		p.waterAmount = 1000000
+	}
+	if p.isOnline(p.flsID) {
+		return p.sendRMQ(p.flsID, p.waterAmount)
+	}
+	actorID, err := p.resolveActor(p.flsID)
+	if err != nil {
+		return fmt.Errorf("resolve player: %w", err)
+	}
+	_, err = p.refillDB(actorID)
+	return err
+}
+
+// @Summary Send fill-water command via RabbitMQ (player must be online)
 // @Tags players
 // @Accept json
 // @Produce json
 // @Param body body object true "Player FLS ID and optional water amount"
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
+// @Failure 422 {object} map[string]string "Player must be online"
 // @Failure 500 {object} map[string]string
 // @Router /api/v1/players/fill-water [post]
 // POST /api/v1/players/fill-water
@@ -61,18 +91,30 @@ func handleRMQFillWater(w http.ResponseWriter, r *http.Request) {
 		WaterAmount int    `json:"water_amount"`
 	}
 	if err := decode(r, &req); err != nil {
-		jsonErr(w, err, 400)
+		jsonErr(w, err, http.StatusBadRequest)
 		return
 	}
 	if req.FlsID == "" {
-		jsonErr(w, fmt.Errorf("fls_id required"), 400)
+		jsonErr(w, fmt.Errorf("fls_id required"), http.StatusBadRequest)
 		return
 	}
-	if req.WaterAmount <= 0 {
-		req.WaterAmount = 1000000
-	}
-	if err := rmqUpdateAllWaterFillables(req.FlsID, req.WaterAmount); err != nil {
-		jsonErr(w, err, 500)
+
+	ctx := context.Background()
+	err := processFillWater(fillWaterParams{
+		flsID:       req.FlsID,
+		waterAmount: req.WaterAmount,
+		isOnline:    func(id string) bool { return isHexIDOnline(ctx, id) },
+		sendRMQ:     func(id string, amt int) error { return rmqUpdateAllWaterFillables(id, amt) },
+		resolveActor: func(id string) (int64, error) {
+			return cmdActorIDFromFlsID(ctx, id)
+		},
+		refillDB: func(actorID int64) (int64, error) {
+			return cmdRefillWaterOffline(ctx, actorID)
+		},
+	})
+	if err != nil {
+		log.Printf("handleRMQFillWater: %v", err)
+		jsonErr(w, fmt.Errorf("fill water failed: %w", err), http.StatusInternalServerError)
 		return
 	}
 	jsonOK(w, map[string]string{"ok": fmt.Sprintf("fill water command sent for %s", req.FlsID)})

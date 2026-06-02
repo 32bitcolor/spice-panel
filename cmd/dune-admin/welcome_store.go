@@ -4,10 +4,17 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite" // pure-Go sqlite driver (registers "sqlite")
 )
+
+// isDuplicateColumnErr returns true for the SQLite "duplicate column name" error
+// that ALTER TABLE ADD COLUMN returns when the column already exists.
+func isDuplicateColumnErr(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "duplicate column name")
+}
 
 // welcomeStore is the SQLite ledger that makes welcome-package grants idempotent.
 // Keyed by (fls_id, package_version, account_id): a granted OR failed row means
@@ -44,7 +51,30 @@ CREATE TABLE IF NOT EXISTS welcome_grants (
 	detected_at     TEXT    NOT NULL,
 	updated_at      TEXT    NOT NULL,
 	PRIMARY KEY (fls_id, package_version, account_id)
+);
+CREATE TABLE IF NOT EXISTS welcome_config (
+	id                             INTEGER PRIMARY KEY CHECK (id = 1),
+	enabled                        INTEGER NOT NULL DEFAULT 0,
+	scan_secs                      INTEGER NOT NULL DEFAULT 30,
+	active_version                 TEXT    NOT NULL DEFAULT '',
+	packages_json                  TEXT    NOT NULL DEFAULT '[]',
+	welcome_message_enabled        INTEGER NOT NULL DEFAULT 0,
+	welcome_message                TEXT    NOT NULL DEFAULT '',
+	welcome_whisper_source_player  TEXT    NOT NULL DEFAULT '',
+	updated_at                     TEXT    NOT NULL
 );`
+
+// welcomeConfigRow holds the single config row stored in welcome_config.
+// PackagesJSON is the JSON-encoded []welcomePackage slice.
+type welcomeConfigRow struct {
+	Enabled                    bool
+	ScanSecs                   int
+	ActiveVersion              string
+	PackagesJSON               string
+	WelcomeMessageEnabled      bool
+	WelcomeMessage             string
+	WelcomeWhisperSourcePlayer string
+}
 
 func openWelcomeStore(path string) (*welcomeStore, error) {
 	db, err := sql.Open("sqlite", path)
@@ -54,6 +84,22 @@ func openWelcomeStore(path string) (*welcomeStore, error) {
 	if _, err := db.Exec(welcomeStoreSchema); err != nil {
 		_ = db.Close()
 		return nil, fmt.Errorf("init welcome schema: %w", err)
+	}
+	// Add welcome_message columns to existing DBs that predate this feature.
+	// SQLite does not support IF NOT EXISTS in ALTER TABLE, so we attempt each
+	// column and ignore "duplicate column" errors (1 = SQLITE_ERROR when column
+	// already exists — the message contains "duplicate column name").
+	for _, col := range []string{
+		"ALTER TABLE welcome_config ADD COLUMN welcome_message_enabled INTEGER NOT NULL DEFAULT 0",
+		"ALTER TABLE welcome_config ADD COLUMN welcome_message TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE welcome_config ADD COLUMN welcome_whisper_source_player TEXT NOT NULL DEFAULT ''",
+	} {
+		if _, alterErr := db.Exec(col); alterErr != nil {
+			if !isDuplicateColumnErr(alterErr) {
+				_ = db.Close()
+				return nil, fmt.Errorf("migrate welcome_config: %w", alterErr)
+			}
+		}
 	}
 	return &welcomeStore{db: db}, nil
 }
@@ -161,4 +207,60 @@ func (s *welcomeStore) listGrants(limit int) ([]welcomeGrantRecord, error) {
 		out = append(out, r)
 	}
 	return out, rows.Err()
+}
+
+// saveConfig upserts the single welcome_config row (id=1).
+func (s *welcomeStore) saveConfig(cfg welcomeConfigRow) error {
+	enabled := 0
+	if cfg.Enabled {
+		enabled = 1
+	}
+	msgEnabled := 0
+	if cfg.WelcomeMessageEnabled {
+		msgEnabled = 1
+	}
+	now := time.Now().UTC().Format(time.RFC3339)
+	_, err := s.db.Exec(`
+		INSERT INTO welcome_config
+			(id, enabled, scan_secs, active_version, packages_json,
+			 welcome_message_enabled, welcome_message, welcome_whisper_source_player,
+			 updated_at)
+		VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(id) DO UPDATE SET
+			enabled                       = excluded.enabled,
+			scan_secs                     = excluded.scan_secs,
+			active_version                = excluded.active_version,
+			packages_json                 = excluded.packages_json,
+			welcome_message_enabled       = excluded.welcome_message_enabled,
+			welcome_message               = excluded.welcome_message,
+			welcome_whisper_source_player = excluded.welcome_whisper_source_player,
+			updated_at                    = excluded.updated_at`,
+		enabled, cfg.ScanSecs, cfg.ActiveVersion, cfg.PackagesJSON,
+		msgEnabled, cfg.WelcomeMessage, cfg.WelcomeWhisperSourcePlayer, now)
+	if err != nil {
+		return fmt.Errorf("save welcome config: %w", err)
+	}
+	return nil
+}
+
+// loadConfig reads the single welcome_config row. Returns (row, true, nil) if
+// it exists, or (zero, false, nil) if the table is empty (first boot).
+func (s *welcomeStore) loadConfig() (welcomeConfigRow, bool, error) {
+	var row welcomeConfigRow
+	var enabledInt, msgEnabledInt int
+	err := s.db.QueryRow(`
+		SELECT enabled, scan_secs, active_version, packages_json,
+		       welcome_message_enabled, welcome_message, welcome_whisper_source_player
+		FROM welcome_config WHERE id = 1`).
+		Scan(&enabledInt, &row.ScanSecs, &row.ActiveVersion, &row.PackagesJSON,
+			&msgEnabledInt, &row.WelcomeMessage, &row.WelcomeWhisperSourcePlayer)
+	if errors.Is(err, sql.ErrNoRows) {
+		return welcomeConfigRow{}, false, nil
+	}
+	if err != nil {
+		return welcomeConfigRow{}, false, fmt.Errorf("load welcome config: %w", err)
+	}
+	row.Enabled = enabledInt != 0
+	row.WelcomeMessageEnabled = msgEnabledInt != 0
+	return row, true, nil
 }

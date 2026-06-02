@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
@@ -8,15 +9,6 @@ import { SectionLabel } from '../../../dune-ui'
 interface Props {
   data: StatSnapshot[]
 }
-
-const LINES: { key: keyof StatSnapshot, label: string, color: string }[] = [
-  { key: 'char_xp', label: 'Char XP', color: '#c9820a' },
-  { key: 'combat_xp', label: 'Combat', color: '#e05252' },
-  { key: 'crafting_xp', label: 'Crafting', color: '#5296e0' },
-  { key: 'gathering_xp', label: 'Gathering', color: '#52c080' },
-  { key: 'exploration_xp', label: 'Exploration', color: '#9b59b6' },
-  { key: 'sabotage_xp', label: 'Sabotage', color: '#e07d52' },
-]
 
 function fmtXP(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
@@ -28,7 +20,17 @@ function fmtTime(iso: string): string {
 }
 
 export function XPChart({ data }: Props) {
+  const { t } = useTranslation()
   const [hidden, setHidden] = useState<Set<string>>(new Set())
+
+  const LINES: { key: keyof StatSnapshot, label: string, color: string }[] = [
+    { key: 'char_xp', label: t('players.detail.xpCharXP'), color: '#c9820a' },
+    { key: 'combat_xp', label: t('players.detail.xpCombat'), color: '#e05252' },
+    { key: 'crafting_xp', label: t('players.detail.xpCrafting'), color: '#5296e0' },
+    { key: 'gathering_xp', label: t('players.detail.xpGathering'), color: '#52c080' },
+    { key: 'exploration_xp', label: t('players.detail.xpExploration'), color: '#9b59b6' },
+    { key: 'sabotage_xp', label: t('players.detail.xpSabotage'), color: '#e07d52' },
+  ]
 
   const toggle = (key: string) => {
     setHidden((prev) => {
@@ -42,9 +44,9 @@ export function XPChart({ data }: Props) {
   if (data.length === 0) {
     return (
       <div>
-        <SectionLabel>XP History</SectionLabel>
+        <SectionLabel>{t('players.detail.xpHistory')}</SectionLabel>
         <p className="text-muted text-sm mt-2">
-          XP snapshots are written every 5 minutes while players are online.
+          {t('players.detail.xpHistoryEmpty')}
         </p>
       </div>
     )
@@ -54,7 +56,7 @@ export function XPChart({ data }: Props) {
 
   return (
     <div>
-      <SectionLabel>XP History</SectionLabel>
+      <SectionLabel>{t('players.detail.xpHistory')}</SectionLabel>
       <div className="mt-3 h-56">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>

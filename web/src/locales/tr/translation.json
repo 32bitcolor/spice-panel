@@ -40,7 +40,9 @@
     "updateFailed": "Güncelleme başarısız: {{message}}",
     "selectLanguage": "Dil seçin",
     "goHome": "Ana sayfaya git",
-    "switchLayout": "Düzeni değiştir"
+    "switchLayout": "Düzeni değiştir",
+    "switchToTopnav": "Üst gezintiye geç",
+    "switchToSidenav": "Yan gezintiye geç"
   },
   "nav": {
     "groups": {
@@ -175,7 +177,7 @@
         "skillPointsNote": "Harcanmamış puanları ayarlar",
         "set": "Ayarla",
         "fillWater": "Su Doldur",
-        "fillWaterNote": "Tüm su kaplarını maksimuma doldurur",
+        "fillWaterNote": "Tüm su kaplarını maksimuma doldurur (oyuncu çevrimiçi olmalıdır)",
         "fill": "Doldur",
         "setSkillModule": "Beceri Modülü Ayarla",
         "selectModule": "Modül seçin…",
@@ -208,6 +210,17 @@
         "quickPresetsDesc": "Bir veya daha fazla kök yolculuk düğümünü tamamlayan ve tüm alt dallara + etiketlere yayılan düzenlenmiş paketler.",
         "loadingPresets": "Yükleniyor…",
         "noPresets": "Mevcut önayar yok",
+        "presets": {
+          "skip_npe": { "name": "NPE'yi Atla (Yeni Oyuncu Deneyimi)", "desc": "Öğretici/NPE'yi tamamlandı olarak işaretler. Girişe ihtiyaç duymayan deneyimli oyuncular için kullanışlıdır." },
+          "a_new_beginning": { "name": "Tamamla: A New Beginning", "desc": "Ana hikaye girişi — Stillsuit yapımı, kaynak toplama, fabrikatör araştırması. Oyunun erken aşamasını açar." },
+          "find_the_fremen": { "name": "Tamamla: Find the Fremen (Trials of Aql)", "desc": "Tüm 7 deneme, Sietch ve Epilog. Fremkit'i (Stillsuit, Thumper, Cryss Knife vb.) açar ve 1. Bölüm'ü tamamlar." },
+          "act1_complete": { "name": "Tamamla: 1. Bölümün Tamamı", "desc": "A New Beginning + Find the Fremen birleşik. Oyuncu 2. Bölüm için hazır başlar." },
+          "vermillius_intro": { "name": "Atla: Vermillius Gap Öğreticileri", "desc": "Tüm Vermillius Gap öğretici görevlerini tamamlar (araştırma, üretim, keşif). Etiket yan etkisi yok — saf öğretici atlama." },
+          "deep_desert_intro": { "name": "Atla: Derin Çöl Girişi", "desc": "Derin Çöl yan görev zincirini tamamlar." },
+          "taxation_intro": { "name": "Atla: Vergilendirme / Borsa Öğreticisi", "desc": "Borsa/seyahat öğretici zincirini tamamlar." },
+          "overland_intro": { "name": "Atla: Kara Haritası Girişi", "desc": "Kara haritası yan görev zincirini tamamlar (Hark Landsraad görevleri, kilit taşları)." },
+          "unlock_all_lore": { "name": "Tüm Lore'u Aç (Dunipedia)", "desc": "Tüm Dunipedia girişlerini açar: Bilinen Evren, Simgeler, Dostane Çöl El Kitabı, Arrakis İçin Savaş." }
+        },
         "nodes": "{{count}} düğüm",
         "apply": "Uygula",
         "progressionUnlock": "İlerleme Kilidi Açma",
@@ -271,7 +284,21 @@
         "run": "Çalıştır",
         "try": "Dene",
         "runTitle": "{{label}} çalıştırılsın mı?",
-        "confirmRun": "Çalıştırmayı Onayla"
+        "confirmRun": "Çalıştırmayı Onayla",
+        "scripts": {
+          "LeaveMeAlone": "Leave Me Alone",
+          "LeaveMeAloneDesc": "Tüm NPC'leri yok eder, karşılaşmaları + kum fırtınalarını temizler, kum solucanını devre dışı bırakır (sunucu genelinde)",
+          "AwardPlayerXP": "Award Player XP",
+          "AwardPlayerXPDesc": "10.000 Savaş XP + 10.000 Keşif XP + 10.000 Bilim XP verir",
+          "UnlockAllSkills": "Unlock All Skills",
+          "UnlockAllSkillsDesc": "Tüm beceri ağacı modüllerini seviye 1'e ayarlar",
+          "UnlockAllAbilities": "Unlock All Abilities",
+          "UnlockAllAbilitiesDesc": "Tüm yetenek modüllerini seviye 1'e ayarlar",
+          "PlaytestSetup": "Playtest Setup",
+          "PlaytestSetupDesc": "⚠ DESTRUCTIVE — ResetProgression + CleanInventory, ardından tam ekipman kiti",
+          "PlaytestSetupAdmin": "Playtest Setup (Admin)",
+          "PlaytestSetupAdminDesc": "⚠ DESTRUCTIVE — Playtest Setup ile aynı ancak ham şablon adları kullanır"
+        }
       },
       "admin": {
         "liveActions": "Canlı Eylemler",
@@ -313,6 +340,11 @@
         "teleportPlaceholder": "Konum seçin...",
         "move": "Taşı",
         "teleportNote": "Çevrimiçiyse canlı · çevrimdışıysa DB'ye yazılır",
+        "manageLocations": "Konumları Yönet",
+        "useCurrent": "Mevcut Konumu Kullan",
+        "pickOnMap": "Haritadan Seç",
+        "moveToXyz": "XYZ'ye Taşı",
+        "positionReadFailed": "Oyuncu konumu okunamadı",
         "teleportToPlayer": "Oyuncuya Işınlan",
         "selectTargetLabel": "Hedef oyuncu",
         "loadingPlayers": "Oyuncular yükleniyor…",
@@ -328,7 +360,25 @@
         "spawnLocationLabel": "Oluşturma konumu",
         "selectSpawnLocation": "Oluşturma konumu seçin…",
         "persistent": "Kalıcı",
-        "spawn": "Oluştur"
+        "spawn": "Oluştur",
+        "manageLocationsModal": {
+          "title": "Konumları Yönet",
+          "addSection": "Konum Ekle / Güncelle",
+          "addHint": "Bir ad ve koordinatlar girin, ardından Kaydet'e tıklayın. Mevcut bir adı kaydetmek koordinatlarını günceller. Z'yi boş bırakın (zemin seviyesi için 0).",
+          "nameLabel": "Ad",
+          "namePlaceholder": "örn. Windsack",
+          "save": "Kaydet",
+          "done": "Bitti",
+          "noLocations": "Henüz konum yok — yukarıdan bir tane ekleyin.",
+          "delete": "Sil"
+        },
+        "mapPickerModal": {
+          "title": "Haritadan Konum Seç",
+          "hint": "X/Y'yi yakalamak için Hagga Havzası'nda herhangi bir yere tıklayın. Z varsayılan olarak {{z}} — gerekirse manuel olarak ayarlayın.",
+          "selected": "Seçildi:",
+          "cancel": "İptal",
+          "confirm": "Bu Koordinatları Kullan"
+        }
       },
       "tags": {
         "addTags": "Etiket Ekle",
@@ -438,7 +488,20 @@
       "playtime": "Oyun Süresi",
       "sessionCount": "Sayı",
       "avgSession": "Ortalama",
-      "lastSeen": "Son görülme"
+      "lastSeen": "Son görülme",
+      "solarisHistory": "Solaris Geçmişi",
+      "solarisHistoryEmpty": "Solaris anlık görüntüleri, oyuncular çevrimiçiyken her 5 dakikada bir yazılır.",
+      "solarisBalance": "Bakiye",
+      "sessionHistory": "Oturum Geçmişi",
+      "sessionHistoryEmpty": "Oturum verileri oyuncular giriş yaptıkça birikir. Takipçi her 5 dakikada bir sorgular.",
+      "xpHistory": "XP Geçmişi",
+      "xpHistoryEmpty": "XP anlık görüntüleri, oyuncular çevrimiçiyken her 5 dakikada bir yazılır.",
+      "xpCharXP": "Karakter XP",
+      "xpCombat": "Savaş",
+      "xpCrafting": "Üretim",
+      "xpGathering": "Toplama",
+      "xpExploration": "Keşif",
+      "xpSabotage": "Sabotaj"
     }
   },
   "market": {
@@ -858,7 +921,16 @@
     "scanComplete": "Tarama tamamlandı — {{granted}} verildi, {{failed}} başarısız, {{skipped}} atlandı",
     "runFailed": "Çalıştırma başarısız: {{message}}",
     "retryCleared": "Temizlendi — bir sonraki taramada yeniden denenecek",
-    "retryFailed": "Yeniden deneme başarısız: {{message}}"
+    "retryFailed": "Yeniden deneme başarısız: {{message}}",
+    "message": {
+      "title": "Karşılama Mesajı",
+      "enabledLabel": "Yeni oyunculara ilk girişlerinde fısıltı gönder",
+      "enabledHint": "GM kişiliği aracılığıyla her oyuncuya aktif sürüm başına bir kez gönderilir. Hak listesinde izlenir.",
+      "messageLabel": "Mesaj",
+      "messagePlaceholder": "Sunucuya hoş geldiniz! Başlangıç paketinizin keyfini çıkarın.",
+      "senderLabel": "Gönderici FLS Kimliği (isteğe bağlı)",
+      "senderPlaceholder": "Yapılandırılmış GM kişiliğini kullanmak için boş bırakın"
+    }
   },
   "settings": {
     "backendUrl": "Arka Uç URL'si",

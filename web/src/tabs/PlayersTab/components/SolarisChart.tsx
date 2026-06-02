@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
@@ -16,12 +17,6 @@ interface SolarisPoint {
   cum_spent: number
 }
 
-const LINES: { key: keyof SolarisPoint, label: string, color: string }[] = [
-  { key: 'balance', label: 'Balance', color: 'var(--accent)' },
-  { key: 'cum_earned', label: 'Earned', color: '#52c080' },
-  { key: 'cum_spent', label: 'Spent', color: '#e05252' },
-]
-
 function fmtSolaris(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
@@ -33,7 +28,14 @@ function fmtTime(iso: string): string {
 }
 
 export function SolarisChart({ data }: Props) {
+  const { t } = useTranslation()
   const [hidden, setHidden] = useState<Set<string>>(new Set())
+
+  const LINES: { key: keyof SolarisPoint, label: string, color: string }[] = [
+    { key: 'balance', label: t('players.detail.solarisBalance'), color: 'var(--accent)' },
+    { key: 'cum_earned', label: t('players.detail.earned'), color: '#52c080' },
+    { key: 'cum_spent', label: t('players.detail.spent'), color: '#e05252' },
+  ]
 
   const toggle = (key: string) => {
     setHidden((prev) => {
@@ -44,7 +46,6 @@ export function SolarisChart({ data }: Props) {
     })
   }
 
-  // Derive cumulative earned/spent from consecutive balance deltas.
   const points = useMemo<SolarisPoint[]>(() => {
     const snaps = data.filter((s) => s.solaris_balance != null)
     if (snaps.length === 0) return []
@@ -65,9 +66,9 @@ export function SolarisChart({ data }: Props) {
   if (points.length === 0) {
     return (
       <div>
-        <SectionLabel>Solaris History</SectionLabel>
+        <SectionLabel>{t('players.detail.solarisHistory')}</SectionLabel>
         <p className="text-muted text-sm mt-2">
-          Solaris snapshots are written every 5 minutes while players are online.
+          {t('players.detail.solarisHistoryEmpty')}
         </p>
       </div>
     )
@@ -77,7 +78,7 @@ export function SolarisChart({ data }: Props) {
 
   return (
     <div>
-      <SectionLabel>Solaris History</SectionLabel>
+      <SectionLabel>{t('players.detail.solarisHistory')}</SectionLabel>
       <div className="mt-3 h-56">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={points} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>

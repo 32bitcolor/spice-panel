@@ -202,20 +202,11 @@ func marketBotEnabled(cfg appConfig) bool {
 	return *cfg.MarketBotEnabled
 }
 
-// welcomePackageEnabled returns the effective flag. Unlike the market bot,
-// this defaults OFF — it grants items to every player, so it must be opt-in.
-func welcomePackageEnabled(cfg appConfig) bool {
-	if cfg.WelcomePackageEnabled == nil {
-		return false
-	}
-	return *cfg.WelcomePackageEnabled
-}
-
 // startWelcomePackageScanner opens the ledger store, seeds the live runtime
 // config, and starts the scanner goroutine. The goroutine always runs so the
 // feature can be toggled on at runtime via the API; each tick is a cheap no-op
 // while disabled. Returns a cancel func, or nil if the store could not open.
-func startWelcomePackageScanner(cfg appConfig) context.CancelFunc {
+func startWelcomePackageScanner(_ appConfig) context.CancelFunc {
 	store, err := openWelcomeStore(filepath.Join(configDir(), "welcome-package.db"))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "welcome-package: store open failed: %v\n", err)
@@ -223,25 +214,10 @@ func startWelcomePackageScanner(cfg appConfig) context.CancelFunc {
 	}
 	welcomeStoreDB = store
 
-	packages := cfg.WelcomePackages
-	active := cfg.WelcomePackageActiveVersion
-	// Migrate a legacy single-package config into the library on first load.
-	if len(packages) == 0 && len(cfg.WelcomePackageItems) > 0 {
-		v := cfg.WelcomePackageVersion
-		if v == "" {
-			v = "v1"
-		}
-		packages = []welcomePackage{{Version: v, Items: cfg.WelcomePackageItems}}
-		if active == "" {
-			active = v
-		}
+	// Load runtime from the DB store; seeds from YAML on first boot (migration).
+	if err := applyWelcomeConfigFromStore(); err != nil {
+		fmt.Fprintf(os.Stderr, "welcome-package: config load failed: %v\n", err)
 	}
-	setWelcomeRuntime(buildWelcomeRuntime(
-		welcomePackageEnabled(cfg),
-		active,
-		cfg.WelcomePackageScanSecs,
-		packages,
-	))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go runWelcomePackageScanner(ctx)
@@ -761,7 +737,21 @@ func main() {
 	globalWelcomeCancel = startWelcomePackageScanner(loadedConfig)
 	defer stopWelcomeScanner()
 
+	initLocationStore()
+
 	startServer(listenAddr)
+}
+
+// initLocationStore opens (or creates) the persistent location store and sets
+// globalLocationStore. A failure is non-fatal — the store guard in each handler
+// surfaces a 503 for the affected endpoints.
+func initLocationStore() {
+	s, err := openLocationStore(filepath.Join(configDir(), "locations.db"))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "location store: %v (using empty list)\n", err)
+		return
+	}
+	globalLocationStore = s
 }
 
 // globalWelcomeCancel stops the welcome-package scanner goroutine on shutdown.

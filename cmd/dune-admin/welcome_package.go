@@ -48,7 +48,10 @@ type welcomeAccount struct {
 type welcomeScanDeps struct {
 	listAccounts func(context.Context) ([]welcomeAccount, error)
 	grant        func(ctx context.Context, pawnID int64, flsID string, items []welcomePackageItem) ([]string, error)
-	store        *welcomeStore
+	// whisper is called at most once per (flsID, version) to send a welcome
+	// message. nil disables the whisper feature.
+	whisper func(ctx context.Context, accountID int64, flsID string, message string) error
+	store   *welcomeStore
 }
 
 // welcomePackageScanOnce grants the package to each eligible account exactly
@@ -62,34 +65,67 @@ func welcomePackageScanOnce(ctx context.Context, version string, items []welcome
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("list welcome accounts: %w", err)
 	}
+	msgVersion := version + ":msg"
 	for _, acc := range accounts {
 		if strings.TrimSpace(acc.FlsID) == "" {
 			continue
 		}
-		exists, existsErr := deps.store.grantExists(acc.FlsID, version, acc.AccountID)
-		if existsErr != nil {
-			return granted, failed, skipped, existsErr
+		g, f, s, gErr := grantItemsToAccount(ctx, acc, version, items, deps)
+		if gErr != nil {
+			return granted, failed, skipped, gErr
 		}
-		if exists {
-			skipped++
-			continue
+		granted += g
+		failed += f
+		skipped += s
+		if wErr := whisperAccount(ctx, acc, msgVersion, deps); wErr != nil {
+			return granted, failed, skipped, wErr
 		}
-		skippedItems, grantErr := deps.grant(ctx, acc.PawnID, acc.FlsID, items)
-		if grantErr != nil {
-			_ = deps.store.insertFailed(acc.FlsID, version, acc.AccountID, acc.CharacterName, grantErr.Error())
-			failed++
-			continue
-		}
-		if len(skippedItems) > 0 {
-			_ = deps.store.insertFailed(acc.FlsID, version, acc.AccountID, acc.CharacterName,
-				"items skipped: "+strings.Join(skippedItems, "; "))
-			failed++
-			continue
-		}
-		_ = deps.store.insertGranted(acc.FlsID, version, acc.AccountID, acc.CharacterName)
-		granted++
 	}
 	return granted, failed, skipped, nil
+}
+
+func grantItemsToAccount(ctx context.Context, acc welcomeAccount, version string, items []welcomePackageItem, deps welcomeScanDeps) (granted, failed, skipped int, err error) {
+	if len(items) == 0 {
+		return 0, 0, 0, nil
+	}
+	exists, existsErr := deps.store.grantExists(acc.FlsID, version, acc.AccountID)
+	if existsErr != nil {
+		return 0, 0, 0, existsErr
+	}
+	if exists {
+		return 0, 0, 1, nil
+	}
+	skippedItems, grantErr := deps.grant(ctx, acc.PawnID, acc.FlsID, items)
+	if grantErr != nil {
+		_ = deps.store.insertFailed(acc.FlsID, version, acc.AccountID, acc.CharacterName, grantErr.Error())
+		return 0, 1, 0, nil
+	}
+	if len(skippedItems) > 0 {
+		_ = deps.store.insertFailed(acc.FlsID, version, acc.AccountID, acc.CharacterName,
+			"items skipped: "+strings.Join(skippedItems, "; "))
+		return 0, 1, 0, nil
+	}
+	_ = deps.store.insertGranted(acc.FlsID, version, acc.AccountID, acc.CharacterName)
+	return 1, 0, 0, nil
+}
+
+func whisperAccount(ctx context.Context, acc welcomeAccount, msgVersion string, deps welcomeScanDeps) error {
+	if deps.whisper == nil {
+		return nil
+	}
+	msgExists, msgErr := deps.store.grantExists(acc.FlsID, msgVersion, acc.AccountID)
+	if msgErr != nil {
+		return msgErr
+	}
+	if msgExists {
+		return nil
+	}
+	if wErr := deps.whisper(ctx, acc.AccountID, acc.FlsID, msgVersion); wErr != nil {
+		_ = deps.store.insertFailed(acc.FlsID, msgVersion, acc.AccountID, acc.CharacterName, wErr.Error())
+	} else {
+		_ = deps.store.insertGranted(acc.FlsID, msgVersion, acc.AccountID, acc.CharacterName)
+	}
+	return nil
 }
 
 // welcomeGrantViaGiveItems is the production grant function: it reuses the exact
@@ -130,10 +166,21 @@ type welcomePackage struct {
 }
 
 type welcomePackageRuntime struct {
-	enabled       bool
-	interval      time.Duration
-	activeVersion string
-	packages      []welcomePackage
+	enabled                    bool
+	interval                   time.Duration
+	activeVersion              string
+	packages                   []welcomePackage
+	welcomeMessageEnabled      bool
+	welcomeMessage             string
+	welcomeWhisperSourcePlayer string
+}
+
+// welcomeMessageOptions carries the optional whisper config passed to
+// buildWelcomeRuntime. Keeping it in a struct avoids a long parameter list.
+type welcomeMessageOptions struct {
+	enabled      bool
+	message      string
+	sourcePlayer string
 }
 
 // active returns the package matching activeVersion, if present.
@@ -175,7 +222,7 @@ func getWelcomeRuntime() welcomePackageRuntime {
 // buildWelcomeRuntime normalizes raw config (version default, interval clamp)
 // into a runtime value. Shared by startup and the config API so both apply the
 // same defaults.
-func buildWelcomeRuntime(enabled bool, activeVersion string, scanSecs int, packages []welcomePackage) welcomePackageRuntime {
+func buildWelcomeRuntime(enabled bool, activeVersion string, scanSecs int, packages []welcomePackage, msg welcomeMessageOptions) welcomePackageRuntime {
 	if packages == nil {
 		packages = []welcomePackage{}
 	}
@@ -190,7 +237,15 @@ func buildWelcomeRuntime(enabled bool, activeVersion string, scanSecs int, packa
 	if interval < welcomeMinScanInterval {
 		interval = welcomeDefaultScanInterval
 	}
-	return welcomePackageRuntime{enabled: enabled, interval: interval, activeVersion: activeVersion, packages: packages}
+	return welcomePackageRuntime{
+		enabled:                    enabled,
+		interval:                   interval,
+		activeVersion:              activeVersion,
+		packages:                   packages,
+		welcomeMessageEnabled:      msg.enabled,
+		welcomeMessage:             msg.message,
+		welcomeWhisperSourcePlayer: msg.sourcePlayer,
+	}
 }
 
 const welcomeMinScanInterval = 5 * time.Second
@@ -229,9 +284,18 @@ func welcomePackageScanTick(ctx context.Context) {
 	if err := validateWelcomeItems(pkg.Items); err != nil {
 		return // active package has nothing valid to grant yet; stay quiet
 	}
+	var whisperFn func(context.Context, int64, string, string) error
+	if rt.welcomeMessageEnabled && strings.TrimSpace(rt.welcomeMessage) != "" {
+		msg := rt.welcomeMessage
+		srcPlayer := rt.welcomeWhisperSourcePlayer
+		whisperFn = func(wctx context.Context, accountID int64, _ string, _ string) error {
+			return sendWelcomeWhisper(wctx, accountID, srcPlayer, msg)
+		}
+	}
 	g, f, _, err := welcomePackageScanOnce(ctx, pkg.Version, pkg.Items, welcomeScanDeps{
 		listAccounts: listWelcomeOnlineAccounts,
 		grant:        welcomeGrantViaGiveItems,
+		whisper:      whisperFn,
 		store:        welcomeStoreDB,
 	})
 	if err != nil {
@@ -241,4 +305,25 @@ func welcomePackageScanTick(ctx context.Context) {
 	if g > 0 || f > 0 {
 		log.Printf("welcome-package: granted=%d failed=%d version=%q", g, f, pkg.Version)
 	}
+}
+
+// sendWelcomeWhisper sends a welcome whisper to a player via the existing GM
+// persona whisper path. sourcePlayerFlsID is the sender identity; leave blank
+// to use the seeded GM persona. Called from the scanner on each new account.
+func sendWelcomeWhisper(ctx context.Context, accountID int64, sourcePlayerFlsID, message string) error {
+	return processWhisper(ctx, accountID, message, whisperDeps{
+		getGM: func(c context.Context) (gmIdentity, error) {
+			if sourcePlayerFlsID != "" {
+				// Resolve a specific source player's identity for the sender.
+				funcomID, charName, err := cmdResolveRecipientChatIdentity(c, 0)
+				_ = charName
+				if err == nil {
+					return gmIdentity{FuncomID: funcomID, HexID: sourcePlayerFlsID}, nil
+				}
+			}
+			return cmdGetGMIdentity(c)
+		},
+		resolveRecip: cmdResolveRecipientChatIdentity,
+		send:         rmqSendWhisper,
+	})
 }

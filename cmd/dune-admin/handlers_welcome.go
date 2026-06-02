@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,10 +14,13 @@ import (
 // consumed by the WelcomePackage tab. It carries the whole package library plus
 // the active-version pointer.
 type welcomeConfigResponse struct {
-	Enabled          bool             `json:"enabled"`
-	ScanIntervalSecs int              `json:"scan_interval_secs"`
-	ActiveVersion    string           `json:"active_version"`
-	Packages         []welcomePackage `json:"packages"`
+	Enabled                    bool             `json:"enabled"`
+	ScanIntervalSecs           int              `json:"scan_interval_secs"`
+	ActiveVersion              string           `json:"active_version"`
+	Packages                   []welcomePackage `json:"packages"`
+	WelcomeMessageEnabled      bool             `json:"welcome_message_enabled"`
+	WelcomeMessage             string           `json:"welcome_message"`
+	WelcomeWhisperSourcePlayer string           `json:"welcome_whisper_source_player"`
 }
 
 func currentWelcomeConfig() welcomeConfigResponse {
@@ -26,10 +30,13 @@ func currentWelcomeConfig() welcomeConfigResponse {
 		pkgs = []welcomePackage{}
 	}
 	return welcomeConfigResponse{
-		Enabled:          rt.enabled,
-		ScanIntervalSecs: int(rt.interval / time.Second),
-		ActiveVersion:    rt.activeVersion,
-		Packages:         pkgs,
+		Enabled:                    rt.enabled,
+		ScanIntervalSecs:           int(rt.interval / time.Second),
+		ActiveVersion:              rt.activeVersion,
+		Packages:                   pkgs,
+		WelcomeMessageEnabled:      rt.welcomeMessageEnabled,
+		WelcomeMessage:             rt.welcomeMessage,
+		WelcomeWhisperSourcePlayer: rt.welcomeWhisperSourcePlayer,
 	}
 }
 
@@ -39,7 +46,72 @@ func currentWelcomeConfig() welcomeConfigResponse {
 // @Success 200 {object} welcomeConfigResponse
 // @Router /api/v1/welcome-package/config [get]
 func handleGetWelcomeConfig(w http.ResponseWriter, _ *http.Request) {
+	// Ensure the runtime reflects the latest DB-persisted config (or the
+	// YAML seed if this is the first boot after migration).
+	if welcomeStoreDB != nil {
+		if err := applyWelcomeConfigFromStore(); err != nil {
+			log.Printf("handleGetWelcomeConfig: %v", err)
+		}
+	}
 	jsonOK(w, currentWelcomeConfig())
+}
+
+// applyWelcomeConfigFromStore reads the welcome_config table and updates the
+// in-memory runtime. On first boot (table empty) it seeds from loadedConfig
+// (the YAML values) so existing deployments migrate automatically.
+func applyWelcomeConfigFromStore() error {
+	row, ok, err := welcomeStoreDB.loadConfig()
+	if err != nil {
+		return fmt.Errorf("load welcome config: %w", err)
+	}
+	if !ok {
+		// First boot: seed from YAML fields.
+		return seedWelcomeConfigFromYAML()
+	}
+	var pkgs []welcomePackage
+	if err := json.Unmarshal([]byte(row.PackagesJSON), &pkgs); err != nil {
+		return fmt.Errorf("parse welcome packages JSON: %w", err)
+	}
+	setWelcomeRuntime(buildWelcomeRuntime(row.Enabled, row.ActiveVersion, row.ScanSecs, pkgs, welcomeMessageOptions{
+		enabled:      row.WelcomeMessageEnabled,
+		message:      row.WelcomeMessage,
+		sourcePlayer: row.WelcomeWhisperSourcePlayer,
+	}))
+	return nil
+}
+
+// seedWelcomeConfigFromYAML reads the legacy YAML fields from loadedConfig,
+// saves them into the DB store (one-time migration), and applies them live.
+func seedWelcomeConfigFromYAML() error {
+	pkgs := loadedConfig.WelcomePackages
+	active := loadedConfig.WelcomePackageActiveVersion
+	if len(pkgs) == 0 && len(loadedConfig.WelcomePackageItems) > 0 {
+		v := loadedConfig.WelcomePackageVersion
+		if v == "" {
+			v = "v1"
+		}
+		pkgs = []welcomePackage{{Version: v, Items: loadedConfig.WelcomePackageItems}}
+		if active == "" {
+			active = v
+		}
+	}
+	pkgsJSON, err := json.Marshal(pkgs)
+	if err != nil {
+		return fmt.Errorf("marshal welcome packages: %w", err)
+	}
+	scanSecs := loadedConfig.WelcomePackageScanSecs
+	enabled := loadedConfig.WelcomePackageEnabled != nil && *loadedConfig.WelcomePackageEnabled
+	row := welcomeConfigRow{
+		Enabled:       enabled,
+		ScanSecs:      scanSecs,
+		ActiveVersion: active,
+		PackagesJSON:  string(pkgsJSON),
+	}
+	if err := welcomeStoreDB.saveConfig(row); err != nil {
+		return fmt.Errorf("seed welcome config: %w", err)
+	}
+	setWelcomeRuntime(buildWelcomeRuntime(enabled, active, scanSecs, pkgs, welcomeMessageOptions{}))
+	return nil
 }
 
 // @Summary Update welcome-package config (applies live + persists)
@@ -58,7 +130,11 @@ func handlePutWelcomeConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rt := buildWelcomeRuntime(req.Enabled, req.ActiveVersion, req.ScanIntervalSecs, req.Packages)
+	rt := buildWelcomeRuntime(req.Enabled, req.ActiveVersion, req.ScanIntervalSecs, req.Packages, welcomeMessageOptions{
+		enabled:      req.WelcomeMessageEnabled,
+		message:      req.WelcomeMessage,
+		sourcePlayer: req.WelcomeWhisperSourcePlayer,
+	})
 
 	// Only require a valid active package when enabling — an operator can save a
 	// disabled draft (e.g. no packages yet, or a half-built one).
@@ -74,23 +150,25 @@ func handlePutWelcomeConfig(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Persist the welcome fields onto the in-memory config and write it back.
-	// loadedConfig holds real (unmasked) secrets, so writing it preserves every
-	// other field untouched.
-	cfg := loadedConfig
-	enabled := rt.enabled
-	cfg.WelcomePackageEnabled = &enabled
-	cfg.WelcomePackageScanSecs = int(rt.interval / time.Second)
-	cfg.WelcomePackageActiveVersion = rt.activeVersion
-	cfg.WelcomePackages = req.Packages
-	// Clear the legacy single-package fields so they can't shadow the library.
-	cfg.WelcomePackageVersion = ""
-	cfg.WelcomePackageItems = nil
-	if err := writeConfigFile(cfg); err != nil {
-		jsonErr(w, err, http.StatusInternalServerError)
-		return
+	// Persist to the SQLite store (replaces the old config.yaml write path).
+	if welcomeStoreDB != nil {
+		pkgsJSON, err := json.Marshal(req.Packages)
+		if err != nil {
+			jsonErr(w, fmt.Errorf("marshal packages: %w", err), http.StatusInternalServerError)
+			return
+		}
+		row := welcomeConfigRow{
+			Enabled:       rt.enabled,
+			ScanSecs:      int(rt.interval / time.Second),
+			ActiveVersion: rt.activeVersion,
+			PackagesJSON:  string(pkgsJSON),
+		}
+		if err := welcomeStoreDB.saveConfig(row); err != nil {
+			log.Printf("handlePutWelcomeConfig: save to store: %v", err)
+			jsonErr(w, fmt.Errorf("failed to save config"), http.StatusInternalServerError)
+			return
+		}
 	}
-	loadedConfig = cfg
 
 	// Apply live — the scanner reads this on its next tick, no restart needed.
 	setWelcomeRuntime(rt)

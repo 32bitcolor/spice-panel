@@ -40,7 +40,9 @@
     "updateFailed": "Échec de la mise à jour : {{message}}",
     "selectLanguage": "Sélectionner la langue",
     "goHome": "Accueil",
-    "switchLayout": "Changer la disposition"
+    "switchLayout": "Changer la disposition",
+    "switchToTopnav": "Passer à la navigation supérieure",
+    "switchToSidenav": "Passer à la navigation latérale"
   },
   "nav": {
     "groups": {
@@ -175,7 +177,7 @@
         "skillPointsNote": "Définit les points non dépensés",
         "set": "Définir",
         "fillWater": "Remplir l'eau",
-        "fillWaterNote": "Remplit tous les conteneurs d'eau au maximum",
+        "fillWaterNote": "Remplit tous les conteneurs d'eau au maximum (le joueur doit être en ligne)",
         "fill": "Remplir",
         "setSkillModule": "Définir le module de compétence",
         "selectModule": "Sélectionner un module…",
@@ -208,6 +210,17 @@
         "quickPresetsDesc": "Ensembles organisés qui complètent un ou plusieurs nœuds de parcours racine et se propagent à tous les enfants et étiquettes.",
         "loadingPresets": "Chargement…",
         "noPresets": "Aucun préréglage disponible",
+        "presets": {
+          "skip_npe": { "name": "Ignorer NPE (Expérience Nouveau Joueur)", "desc": "Marque le tutoriel/NPE comme terminé. Utile pour les joueurs expérimentés qui n'ont pas besoin de l'introduction." },
+          "a_new_beginning": { "name": "Compléter : A New Beginning", "desc": "Introduction de l'histoire — fabriquer le Stillsuit, récolter des ressources, recherche du fabricateur. Débloque le début du jeu." },
+          "find_the_fremen": { "name": "Compléter : Find the Fremen (Trials of Aql)", "desc": "Les 7 épreuves, le Sietch et l'Épilogue. Débloque le Fremkit (Stillsuit, Thumper, Cryss Knife, etc.) et complète l'Acte 1." },
+          "act1_complete": { "name": "Compléter : Tout l'Acte 1", "desc": "A New Beginning + Find the Fremen combinés. Le joueur commence prêt pour l'Acte 2." },
+          "vermillius_intro": { "name": "Ignorer : Tutoriels de Vermillius Gap", "desc": "Complète toutes les quêtes tutorielles de Vermillius Gap (recherche, artisanat, exploration). Aucun effet secondaire sur les étiquettes — simple saut de tutoriel." },
+          "deep_desert_intro": { "name": "Ignorer : Introduction du Désert Profond", "desc": "Complète la chaîne de quêtes secondaires du Désert Profond." },
+          "taxation_intro": { "name": "Ignorer : Tutoriel Taxation / Échange", "desc": "Complète la chaîne tutorielle d'échange/voyage." },
+          "overland_intro": { "name": "Ignorer : Introduction de la Carte de Surface", "desc": "Complète la chaîne de quêtes secondaires de la carte de surface (missions Hark Landsraad, pierres de clé)." },
+          "unlock_all_lore": { "name": "Débloquer tout le Lore (Dunipedia)", "desc": "Révèle toutes les entrées de la Dunipedia : Univers Connu, Sites remarquables, Manuel du Désert Amical, Guerre pour Arrakis." }
+        },
         "nodes": "{{count}} nœuds",
         "apply": "Appliquer",
         "progressionUnlock": "Déverrouillage de progression",
@@ -271,7 +284,21 @@
         "run": "Exécuter",
         "try": "Essayer",
         "runTitle": "Exécuter {{label}} ?",
-        "confirmRun": "Confirmer l'exécution"
+        "confirmRun": "Confirmer l'exécution",
+        "scripts": {
+          "LeaveMeAlone": "Leave Me Alone",
+          "LeaveMeAloneDesc": "Détruit tous les PNJ, efface les rencontres + tempêtes de sable, désactive le ver des sables (sur tout le serveur)",
+          "AwardPlayerXP": "Award Player XP",
+          "AwardPlayerXPDesc": "Attribue 10 000 XP Combat + 10 000 XP Exploration + 10 000 XP Science",
+          "UnlockAllSkills": "Unlock All Skills",
+          "UnlockAllSkillsDesc": "Définit tous les modules d'arbre de compétences au niveau 1",
+          "UnlockAllAbilities": "Unlock All Abilities",
+          "UnlockAllAbilitiesDesc": "Définit tous les modules de capacités au niveau 1",
+          "PlaytestSetup": "Playtest Setup",
+          "PlaytestSetupDesc": "⚠ DESTRUCTIVE — ResetProgression + CleanInventory, puis kit d'équipement complet",
+          "PlaytestSetupAdmin": "Playtest Setup (Admin)",
+          "PlaytestSetupAdminDesc": "⚠ DESTRUCTIVE — identique à Playtest Setup mais utilise les noms de modèles bruts"
+        }
       },
       "admin": {
         "liveActions": "Actions en direct",
@@ -313,6 +340,11 @@
         "teleportPlaceholder": "Sélectionner un emplacement...",
         "move": "Déplacer",
         "teleportNote": "En direct si en ligne · écrit en BD si hors ligne",
+        "manageLocations": "Gérer les emplacements",
+        "useCurrent": "Utiliser l'actuel",
+        "pickOnMap": "Choisir sur la carte",
+        "moveToXyz": "Déplacer vers XYZ",
+        "positionReadFailed": "Impossible de lire la position du joueur",
         "teleportToPlayer": "Téléporter vers le joueur",
         "selectTargetLabel": "Joueur cible",
         "loadingPlayers": "Chargement des joueurs…",
@@ -328,7 +360,25 @@
         "spawnLocationLabel": "Emplacement d'apparition",
         "selectSpawnLocation": "Sélectionner un emplacement d'apparition…",
         "persistent": "Persistant",
-        "spawn": "Faire apparaître"
+        "spawn": "Faire apparaître",
+        "manageLocationsModal": {
+          "title": "Gérer les emplacements",
+          "addSection": "Ajouter / Mettre à jour un emplacement",
+          "addHint": "Entrez un nom et des coordonnées, puis Enregistrer. Enregistrer un nom existant met à jour ses coordonnées. Laissez Z vide pour le niveau du sol (0).",
+          "nameLabel": "Nom",
+          "namePlaceholder": "ex. Windsack",
+          "save": "Enregistrer",
+          "done": "Terminé",
+          "noLocations": "Aucun emplacement pour l'instant — ajoutez-en un ci-dessus.",
+          "delete": "Supprimer"
+        },
+        "mapPickerModal": {
+          "title": "Choisir un emplacement sur la carte",
+          "hint": "Cliquez n'importe où sur le Bassin Hagga pour capturer X/Y. Z est par défaut {{z}} — ajustez manuellement si nécessaire.",
+          "selected": "Sélectionné :",
+          "cancel": "Annuler",
+          "confirm": "Utiliser ces coordonnées"
+        }
       },
       "tags": {
         "addTags": "Ajouter des étiquettes",
@@ -438,7 +488,20 @@
       "playtime": "Temps de jeu",
       "sessionCount": "Nombre",
       "avgSession": "Moy.",
-      "lastSeen": "Dernière connexion"
+      "lastSeen": "Dernière connexion",
+      "solarisHistory": "Historique Solaris",
+      "solarisHistoryEmpty": "Les instantanés Solaris sont enregistrés toutes les 5 minutes quand les joueurs sont en ligne.",
+      "solarisBalance": "Solde",
+      "sessionHistory": "Historique des sessions",
+      "sessionHistoryEmpty": "Les données de session s'accumulent à chaque connexion des joueurs. Le suivi interroge toutes les 5 minutes.",
+      "xpHistory": "Historique XP",
+      "xpHistoryEmpty": "Les instantanés XP sont enregistrés toutes les 5 minutes quand les joueurs sont en ligne.",
+      "xpCharXP": "XP perso",
+      "xpCombat": "Combat",
+      "xpCrafting": "Artisanat",
+      "xpGathering": "Collecte",
+      "xpExploration": "Exploration",
+      "xpSabotage": "Sabotage"
     }
   },
   "market": {
@@ -858,7 +921,16 @@
     "scanComplete": "Scan terminé — {{granted}} accordé(s), {{failed}} échoué(s), {{skipped}} ignoré(s)",
     "runFailed": "Échec de l'exécution : {{message}}",
     "retryCleared": "Effacé — nouvelle tentative au prochain scan",
-    "retryFailed": "Échec de la nouvelle tentative : {{message}}"
+    "retryFailed": "Échec de la nouvelle tentative : {{message}}",
+    "message": {
+      "title": "Message de bienvenue",
+      "enabledLabel": "Envoyer un message chuchoté aux nouveaux joueurs lors de leur première connexion",
+      "enabledHint": "Envoyé une fois par joueur par version active via le personnage GM. Suivi dans le registre des attributions.",
+      "messageLabel": "Message",
+      "messagePlaceholder": "Bienvenue sur le serveur ! Profitez de votre pack de départ.",
+      "senderLabel": "ID FLS de l'expéditeur (optionnel)",
+      "senderPlaceholder": "Laisser vide pour utiliser le personnage GM configuré"
+    }
   },
   "settings": {
     "backendUrl": "URL du backend",

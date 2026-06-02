@@ -40,7 +40,9 @@
     "updateFailed": "更新失败：{{message}}",
     "selectLanguage": "选择语言",
     "goHome": "返回首页",
-    "switchLayout": "切换布局"
+    "switchLayout": "切换布局",
+    "switchToTopnav": "切换到顶部导航",
+    "switchToSidenav": "切换到侧边导航"
   },
   "nav": {
     "groups": {
@@ -175,7 +177,7 @@
         "skillPointsNote": "设置未使用的技能点",
         "set": "设置",
         "fillWater": "补充水分",
-        "fillWaterNote": "将所有水容器填充至最大值",
+        "fillWaterNote": "将所有水容器填充至最大值（玩家必须在线）",
         "fill": "填充",
         "setSkillModule": "设置技能模块",
         "selectModule": "选择模块…",
@@ -208,6 +210,17 @@
         "quickPresetsDesc": "精心策划的捆绑包，可完成一个或多个根旅程节点并级联至所有子节点和标签。",
         "loadingPresets": "加载中…",
         "noPresets": "无可用预设",
+        "presets": {
+          "skip_npe": { "name": "跳过 NPE（新玩家体验）", "desc": "将教程/NPE 标记为已完成。适合不需要入门介绍的有经验玩家。" },
+          "a_new_beginning": { "name": "完成：A New Beginning", "desc": "主线故事开篇 — 制作 Stillsuit、采集资源、工厂台研究。解锁游戏早期进度。" },
+          "find_the_fremen": { "name": "完成：Find the Fremen（Trials of Aql）", "desc": "全部 7 项试炼、Sietch 和尾声。解锁 Fremkit（Stillsuit、Thumper、Cryss Knife 等）并完成第一幕。" },
+          "act1_complete": { "name": "完成：第一幕全部内容", "desc": "A New Beginning + Find the Fremen 合并。玩家以准备好进入第二幕的状态开始。" },
+          "vermillius_intro": { "name": "跳过：Vermillius Gap 教程", "desc": "完成 Vermillius Gap 的所有教程任务（研究、制作、探索）。无标签副作用 — 纯粹的教程跳过。" },
+          "deep_desert_intro": { "name": "跳过：深沙漠入门", "desc": "完成深沙漠的支线任务链。" },
+          "taxation_intro": { "name": "跳过：征税 / 交易所教程", "desc": "完成交易/旅行教程链。" },
+          "overland_intro": { "name": "跳过：地面地图入门", "desc": "完成地面地图的支线任务链（Hark Landsraad 任务、基石）。" },
+          "unlock_all_lore": { "name": "解锁所有传说（Dunipedia）", "desc": "揭示所有 Dunipedia 条目：已知宇宙、地标、友善沙漠手册、阿拉基斯之战。" }
+        },
         "nodes": "{{count}} 个节点",
         "apply": "应用",
         "progressionUnlock": "进度解锁",
@@ -271,7 +284,21 @@
         "run": "运行",
         "try": "尝试",
         "runTitle": "运行 {{label}}？",
-        "confirmRun": "确认运行"
+        "confirmRun": "确认运行",
+        "scripts": {
+          "LeaveMeAlone": "Leave Me Alone",
+          "LeaveMeAloneDesc": "消灭所有NPC，清除遭遇战 + 沙尘暴，禁用沙虫（服务器全局）",
+          "AwardPlayerXP": "Award Player XP",
+          "AwardPlayerXPDesc": "奖励 10,000 战斗经验 + 10,000 探索经验 + 10,000 科技经验",
+          "UnlockAllSkills": "Unlock All Skills",
+          "UnlockAllSkillsDesc": "将所有技能树模块设置为1级",
+          "UnlockAllAbilities": "Unlock All Abilities",
+          "UnlockAllAbilitiesDesc": "将所有能力模块设置为1级",
+          "PlaytestSetup": "Playtest Setup",
+          "PlaytestSetupDesc": "⚠ DESTRUCTIVE — ResetProgression + CleanInventory，然后发放完整装备套装",
+          "PlaytestSetupAdmin": "Playtest Setup (Admin)",
+          "PlaytestSetupAdminDesc": "⚠ DESTRUCTIVE — 与 Playtest Setup 相同，但使用原始模板名称"
+        }
       },
       "admin": {
         "liveActions": "实时操作",
@@ -313,6 +340,11 @@
         "teleportPlaceholder": "选择位置...",
         "move": "移动",
         "teleportNote": "在线时实时生效 · 离线时写入数据库",
+        "manageLocations": "管理位置",
+        "useCurrent": "使用当前位置",
+        "pickOnMap": "在地图上选取",
+        "moveToXyz": "移动到 XYZ",
+        "positionReadFailed": "无法读取玩家位置",
         "teleportToPlayer": "传送至玩家",
         "selectTargetLabel": "目标玩家",
         "loadingPlayers": "加载玩家中…",
@@ -328,7 +360,25 @@
         "spawnLocationLabel": "生成位置",
         "selectSpawnLocation": "选择生成位置…",
         "persistent": "永久",
-        "spawn": "生成"
+        "spawn": "生成",
+        "manageLocationsModal": {
+          "title": "管理位置",
+          "addSection": "添加 / 更新位置",
+          "addHint": "输入名称和坐标，然后保存。保存已有名称将更新其坐标。将 Z 留空以使用地面高度（0）。",
+          "nameLabel": "名称",
+          "namePlaceholder": "例如 Windsack",
+          "save": "保存",
+          "done": "完成",
+          "noLocations": "暂无位置 — 请在上方添加。",
+          "delete": "删除"
+        },
+        "mapPickerModal": {
+          "title": "在地图上选取位置",
+          "hint": "在哈格盆地任意位置点击以获取 X/Y。Z 默认为 {{z}} — 如需调整请手动修改。",
+          "selected": "已选择：",
+          "cancel": "取消",
+          "confirm": "使用这些坐标"
+        }
       },
       "tags": {
         "addTags": "添加标签",
@@ -438,7 +488,20 @@
       "playtime": "游戏时长",
       "sessionCount": "场次",
       "avgSession": "平均",
-      "lastSeen": "最后在线"
+      "lastSeen": "最后在线",
+      "solarisHistory": "Solaris历史",
+      "solarisHistoryEmpty": "玩家在线时每5分钟记录一次Solaris快照。",
+      "solarisBalance": "余额",
+      "sessionHistory": "游戏场次历史",
+      "sessionHistoryEmpty": "玩家登录时积累游戏场次数据。追踪器每5分钟轮询一次。",
+      "xpHistory": "经验历史",
+      "xpHistoryEmpty": "玩家在线时每5分钟记录一次经验快照。",
+      "xpCharXP": "角色经验",
+      "xpCombat": "战斗",
+      "xpCrafting": "制造",
+      "xpGathering": "采集",
+      "xpExploration": "探索",
+      "xpSabotage": "破坏"
     }
   },
   "market": {
@@ -858,7 +921,16 @@
     "scanComplete": "扫描完成 — 授予 {{granted}} 个，失败 {{failed}} 个，跳过 {{skipped}} 个",
     "runFailed": "运行失败：{{message}}",
     "retryCleared": "已清除 — 将在下次扫描时重试",
-    "retryFailed": "重试失败：{{message}}"
+    "retryFailed": "重试失败：{{message}}",
+    "message": {
+      "title": "欢迎消息",
+      "enabledLabel": "在新玩家首次登录时发送悄悄话",
+      "enabledHint": "通过 GM 角色，每位玩家每个活跃版本仅发送一次。记录于授予账本中。",
+      "messageLabel": "消息",
+      "messagePlaceholder": "欢迎来到服务器！享受您的新手礼包。",
+      "senderLabel": "发送者 FLS ID（可选）",
+      "senderPlaceholder": "留空则使用已配置的 GM 角色"
+    }
   },
   "settings": {
     "backendUrl": "后端 URL",

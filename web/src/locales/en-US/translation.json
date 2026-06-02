@@ -40,7 +40,9 @@
     "updateFailed": "Update failed: {{message}}",
     "selectLanguage": "Select language",
     "goHome": "Go to home",
-    "switchLayout": "Switch layout"
+    "switchLayout": "Switch layout",
+    "switchToTopnav": "Switch to top navigation",
+    "switchToSidenav": "Switch to side navigation"
   },
   "nav": {
     "groups": {
@@ -195,7 +197,7 @@
         "skillPointsNote": "Sets unspent points",
         "set": "Set",
         "fillWater": "Fill Water",
-        "fillWaterNote": "Fills all water containers to max",
+        "fillWaterNote": "Fills all water containers to max (player must be online)",
         "fill": "Fill",
         "setSkillModule": "Set Skill Module",
         "selectModule": "Select module…",
@@ -228,6 +230,17 @@
         "quickPresetsDesc": "Curated bundles that complete one or more root journey nodes and cascade to all children + tags.",
         "loadingPresets": "Loading…",
         "noPresets": "No presets available",
+        "presets": {
+          "skip_npe": { "name": "Skip NPE (New Player Experience)", "desc": "Marks the tutorial/NPE as complete. Useful for experienced players who don't need the intro." },
+          "a_new_beginning": { "name": "Complete: A New Beginning", "desc": "Main story intro — crafting Stillsuit, harvesting resources, fabricator research. Unlocks early game." },
+          "find_the_fremen": { "name": "Complete: Find the Fremen (Trials of Aql)", "desc": "All 7 trials, the Sietch, and Epilogue. Unlocks the Fremkit (Stillsuit, Thumper, Cryss Knife, etc.) and completes Act 1." },
+          "act1_complete": { "name": "Complete: All of Act 1", "desc": "A New Beginning + Find the Fremen combined. Player starts ready for Act 2." },
+          "vermillius_intro": { "name": "Skip: Vermillius Gap Tutorials", "desc": "Completes all Vermillius Gap tutorial quests (research, crafting, exploration). No tag side effects — pure tutorial skip." },
+          "deep_desert_intro": { "name": "Skip: Deep Desert Intro", "desc": "Completes the Deep Desert side quest chain." },
+          "taxation_intro": { "name": "Skip: Taxation / Exchange Tutorial", "desc": "Completes the exchange/travel tutorial chain." },
+          "overland_intro": { "name": "Skip: Overland Map Intro", "desc": "Completes the Overland map side quest chain (Hark Landsraad missions, keystones)." },
+          "unlock_all_lore": { "name": "Unlock All Lore (Dunipedia)", "desc": "Reveals all Dunipedia entries: Known Universe, Landmarks, Manual of the Friendly Desert, War for Arrakis." }
+        },
         "nodes": "{{count}} nodes",
         "apply": "Apply",
         "progressionUnlock": "Progression Unlock",
@@ -291,7 +304,21 @@
         "run": "Run",
         "try": "Try",
         "runTitle": "Run {{label}}?",
-        "confirmRun": "Confirm Run"
+        "confirmRun": "Confirm Run",
+        "scripts": {
+          "LeaveMeAlone": "Leave Me Alone",
+          "LeaveMeAloneDesc": "Destroys all NPCs, clears encounters + sandstorms, disables sandworm (server-wide)",
+          "AwardPlayerXP": "Award Player XP",
+          "AwardPlayerXPDesc": "Awards 10,000 Combat + 10,000 Exploration + 10,000 Science XP",
+          "UnlockAllSkills": "Unlock All Skills",
+          "UnlockAllSkillsDesc": "Sets all skill tree modules to level 1",
+          "UnlockAllAbilities": "Unlock All Abilities",
+          "UnlockAllAbilitiesDesc": "Sets all ability modules to level 1",
+          "PlaytestSetup": "Playtest Setup",
+          "PlaytestSetupDesc": "⚠ DESTRUCTIVE — ResetProgression + CleanInventory, then full gear kit",
+          "PlaytestSetupAdmin": "Playtest Setup (Admin)",
+          "PlaytestSetupAdminDesc": "⚠ DESTRUCTIVE — same as Playtest Setup but uses raw template names"
+        }
       },
       "admin": {
         "liveActions": "Live Actions",
@@ -333,6 +360,11 @@
         "teleportPlaceholder": "Select location...",
         "move": "Move",
         "teleportNote": "Live if online · written to DB if offline",
+        "manageLocations": "Manage Locations",
+        "useCurrent": "Use Current",
+        "pickOnMap": "Pick on Map",
+        "moveToXyz": "Move to XYZ",
+        "positionReadFailed": "Could not read player position",
         "teleportToPlayer": "Teleport to Player",
         "selectTargetLabel": "Target player",
         "loadingPlayers": "Loading players…",
@@ -348,7 +380,25 @@
         "spawnLocationLabel": "Spawn location",
         "selectSpawnLocation": "Select spawn location…",
         "persistent": "Persistent",
-        "spawn": "Spawn"
+        "spawn": "Spawn",
+        "manageLocationsModal": {
+          "title": "Manage Locations",
+          "addSection": "Add / Update Location",
+          "addHint": "Enter a name and coordinates, then Save. Saving an existing name updates its coordinates. Leave Z blank for ground level (0).",
+          "nameLabel": "Name",
+          "namePlaceholder": "e.g. Windsack",
+          "save": "Save",
+          "done": "Done",
+          "noLocations": "No locations yet — add one above.",
+          "delete": "Delete"
+        },
+        "mapPickerModal": {
+          "title": "Pick Location on Map",
+          "hint": "Click anywhere on Hagga Basin to capture X/Y. Z defaults to {{z}} — adjust manually if needed.",
+          "selected": "Selected:",
+          "cancel": "Cancel",
+          "confirm": "Use These Coordinates"
+        }
       },
       "tags": {
         "addTags": "Add Tags",
@@ -458,7 +508,20 @@
       "playtime": "Playtime",
       "sessionCount": "Count",
       "avgSession": "Avg",
-      "lastSeen": "Last seen"
+      "lastSeen": "Last seen",
+      "solarisHistory": "Solaris History",
+      "solarisHistoryEmpty": "Solaris snapshots are written every 5 minutes while players are online.",
+      "solarisBalance": "Balance",
+      "sessionHistory": "Session History",
+      "sessionHistoryEmpty": "Session data accumulates as players log in. The tracker polls every 5 minutes.",
+      "xpHistory": "XP History",
+      "xpHistoryEmpty": "XP snapshots are written every 5 minutes while players are online.",
+      "xpCharXP": "Char XP",
+      "xpCombat": "Combat",
+      "xpCrafting": "Crafting",
+      "xpGathering": "Gathering",
+      "xpExploration": "Exploration",
+      "xpSabotage": "Sabotage"
     }
   },
   "market": {
@@ -878,7 +941,16 @@
     "scanComplete": "Scan complete — granted {{granted}}, failed {{failed}}, skipped {{skipped}}",
     "runFailed": "Run failed: {{message}}",
     "retryCleared": "Cleared — will re-attempt on the next scan",
-    "retryFailed": "Retry failed: {{message}}"
+    "retryFailed": "Retry failed: {{message}}",
+    "message": {
+      "title": "Welcome Message",
+      "enabledLabel": "Send whisper to new players on first login",
+      "enabledHint": "Sent once per player per active version via the GM persona. Tracked in the grants ledger.",
+      "messageLabel": "Message",
+      "messagePlaceholder": "Welcome to the server! Enjoy your starter pack.",
+      "senderLabel": "Sender FLS ID (optional)",
+      "senderPlaceholder": "Leave blank to use the seeded GM persona"
+    }
   },
   "settings": {
     "backendUrl": "Backend URL",

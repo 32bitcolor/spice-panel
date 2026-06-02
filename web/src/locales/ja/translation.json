@@ -40,7 +40,9 @@
     "updateFailed": "更新に失敗しました：{{message}}",
     "selectLanguage": "言語を選択",
     "goHome": "ホームへ",
-    "switchLayout": "レイアウト切替"
+    "switchLayout": "レイアウト切替",
+    "switchToTopnav": "上部ナビゲーションに切替",
+    "switchToSidenav": "サイドナビゲーションに切替"
   },
   "nav": {
     "groups": {
@@ -175,7 +177,7 @@
         "skillPointsNote": "未使用ポイントを設定します",
         "set": "設定",
         "fillWater": "水を補充",
-        "fillWaterNote": "すべての水容器を最大まで補充します",
+        "fillWaterNote": "すべての水容器を最大まで補充します（プレイヤーがオンラインである必要があります）",
         "fill": "補充",
         "setSkillModule": "スキルモジュールを設定",
         "selectModule": "モジュールを選択…",
@@ -208,6 +210,17 @@
         "quickPresetsDesc": "1つ以上のルートジャーニーノードを完了し、すべての子ノードとタグにカスケードする厳選されたバンドル。",
         "loadingPresets": "読み込み中…",
         "noPresets": "利用可能なプリセットはありません",
+        "presets": {
+          "skip_npe": { "name": "NPE（新規プレイヤー体験）をスキップ", "desc": "チュートリアル/NPEを完了済みとしてマークします。入門を必要としない経験豊富なプレイヤーに便利です。" },
+          "a_new_beginning": { "name": "完了: A New Beginning", "desc": "メインストーリーの導入 — Stillsuitの製作、リソースの収集、ファブリケーター研究。序盤のゲームをアンロックします。" },
+          "find_the_fremen": { "name": "完了: Find the Fremen (Trials of Aql)", "desc": "7つの試練、Sietch、エピローグをすべて含みます。Fremkit（Stillsuit、Thumper、Cryss Knifeなど）をアンロックし、第1幕を完了します。" },
+          "act1_complete": { "name": "完了: 第1幕すべて", "desc": "A New Beginning + Find the Fremenを合わせたもの。プレイヤーは第2幕の準備ができた状態で始まります。" },
+          "vermillius_intro": { "name": "スキップ: Vermillius Gap チュートリアル", "desc": "Vermillius Gapのすべてのチュートリアルクエスト（研究、製作、探索）を完了します。タグの副作用なし — 純粋なチュートリアルスキップ。" },
+          "deep_desert_intro": { "name": "スキップ: 深砂漠の導入", "desc": "深砂漠のサイドクエストチェーンを完了します。" },
+          "taxation_intro": { "name": "スキップ: 課税 / 交換チュートリアル", "desc": "交換/旅行チュートリアルチェーンを完了します。" },
+          "overland_intro": { "name": "スキップ: オーバーランドマップ導入", "desc": "オーバーランドマップのサイドクエストチェーンを完了します（Hark Landsraadミッション、キーストーン）。" },
+          "unlock_all_lore": { "name": "全ロアをアンロック（Dunipedia）", "desc": "すべてのDunipediaエントリを公開します：既知の宇宙、ランドマーク、友好的な砂漠のマニュアル、アラキスをめぐる戦争。" }
+        },
         "nodes": "{{count}} 個のノード",
         "apply": "適用",
         "progressionUnlock": "進行状況ロック解除",
@@ -271,7 +284,21 @@
         "run": "実行",
         "try": "試す",
         "runTitle": "{{label}} を実行しますか？",
-        "confirmRun": "実行を確認"
+        "confirmRun": "実行を確認",
+        "scripts": {
+          "LeaveMeAlone": "Leave Me Alone",
+          "LeaveMeAloneDesc": "全NPCを削除し、エンカウンター＋砂嵐をクリア、サンドワームを無効化（サーバー全体）",
+          "AwardPlayerXP": "Award Player XP",
+          "AwardPlayerXPDesc": "戦闘XP 10,000 ＋ 探索XP 10,000 ＋ サイエンスXP 10,000 を付与",
+          "UnlockAllSkills": "Unlock All Skills",
+          "UnlockAllSkillsDesc": "すべてのスキルツリーモジュールをレベル1に設定",
+          "UnlockAllAbilities": "Unlock All Abilities",
+          "UnlockAllAbilitiesDesc": "すべてのアビリティモジュールをレベル1に設定",
+          "PlaytestSetup": "Playtest Setup",
+          "PlaytestSetupDesc": "⚠ DESTRUCTIVE — ResetProgression + CleanInventory、その後フル装備キット",
+          "PlaytestSetupAdmin": "Playtest Setup (Admin)",
+          "PlaytestSetupAdminDesc": "⚠ DESTRUCTIVE — Playtest Setupと同じだが生のテンプレート名を使用"
+        }
       },
       "admin": {
         "liveActions": "ライブアクション",
@@ -313,6 +340,11 @@
         "teleportPlaceholder": "場所を選択...",
         "move": "移動",
         "teleportNote": "オンライン時はリアルタイム · オフライン時はDBに書き込み",
+        "manageLocations": "場所を管理",
+        "useCurrent": "現在地を使用",
+        "pickOnMap": "マップで選択",
+        "moveToXyz": "XYZに移動",
+        "positionReadFailed": "プレイヤーの位置を読み取れませんでした",
         "teleportToPlayer": "プレイヤーにテレポート",
         "selectTargetLabel": "対象プレイヤー",
         "loadingPlayers": "プレイヤーを読み込み中…",
@@ -328,7 +360,25 @@
         "spawnLocationLabel": "スポーン場所",
         "selectSpawnLocation": "スポーン場所を選択…",
         "persistent": "永続的",
-        "spawn": "スポーン"
+        "spawn": "スポーン",
+        "manageLocationsModal": {
+          "title": "場所を管理",
+          "addSection": "場所の追加 / 更新",
+          "addHint": "名前と座標を入力して保存してください。既存の名前を保存すると座標が更新されます。Zを空白にすると地面レベル（0）になります。",
+          "nameLabel": "名前",
+          "namePlaceholder": "例：ウィンドサック",
+          "save": "保存",
+          "done": "完了",
+          "noLocations": "場所がありません — 上で追加してください。",
+          "delete": "削除"
+        },
+        "mapPickerModal": {
+          "title": "マップで場所を選択",
+          "hint": "ハッガ盆地のどこかをクリックしてX/Yを取得します。Zはデフォルト{{z}} — 必要に応じて手動で調整してください。",
+          "selected": "選択済み：",
+          "cancel": "キャンセル",
+          "confirm": "この座標を使用"
+        }
       },
       "tags": {
         "addTags": "タグを追加",
@@ -438,7 +488,20 @@
       "playtime": "プレイ時間",
       "sessionCount": "回数",
       "avgSession": "平均",
-      "lastSeen": "最終ログイン"
+      "lastSeen": "最終ログイン",
+      "solarisHistory": "Solaris履歴",
+      "solarisHistoryEmpty": "Solarisのスナップショットはプレイヤーがオンライン中、5分ごとに記録されます。",
+      "solarisBalance": "残高",
+      "sessionHistory": "セッション履歴",
+      "sessionHistoryEmpty": "セッションデータはプレイヤーのログイン時に蓄積されます。トラッカーは5分ごとに取得します。",
+      "xpHistory": "XP履歴",
+      "xpHistoryEmpty": "XPのスナップショットはプレイヤーがオンライン中、5分ごとに記録されます。",
+      "xpCharXP": "キャラXP",
+      "xpCombat": "戦闘",
+      "xpCrafting": "クラフト",
+      "xpGathering": "採集",
+      "xpExploration": "探索",
+      "xpSabotage": "サボタージュ"
     }
   },
   "market": {
@@ -858,7 +921,16 @@
     "scanComplete": "スキャン完了 — {{granted}} 件付与、{{failed}} 件失敗、{{skipped}} 件スキップ",
     "runFailed": "実行に失敗しました：{{message}}",
     "retryCleared": "クリアしました — 次のスキャンで再試行されます",
-    "retryFailed": "再試行に失敗しました：{{message}}"
+    "retryFailed": "再試行に失敗しました：{{message}}",
+    "message": {
+      "title": "ウェルカムメッセージ",
+      "enabledLabel": "新規プレイヤーの初回ログイン時にウィスパーを送信する",
+      "enabledHint": "GMペルソナを通じてアクティブバージョンごとにプレイヤー1人につき1回送信されます。付与台帳に記録されます。",
+      "messageLabel": "メッセージ",
+      "messagePlaceholder": "サーバーへようこそ！スターターパックをお楽しみください。",
+      "senderLabel": "送信者のFLS ID（任意）",
+      "senderPlaceholder": "空白のままにすると設定済みGMペルソナが使用されます"
+    }
   },
   "settings": {
     "backendUrl": "バックエンドURL",

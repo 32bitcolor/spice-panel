@@ -306,11 +306,11 @@ function AppCore({ isSignedIn }: { isSignedIn: boolean }) {
             size="sm"
             variant="ghost"
             isIconOnly
-            aria-label={t('app.switchLayout')}
+            aria-label={layoutMode === 'topnav' ? t('app.switchToSidenav') : t('app.switchToTopnav')}
             onPress={() => setLayout(layoutMode === 'sidenav' ? 'topnav' : 'sidenav')}
             className={layoutMode === 'topnav' ? 'text-accent' : ''}
           >
-            <Icon name={layoutMode === 'sidenav' ? 'layout-panel-top' : 'layout-panel-left'} />
+            <Icon name={layoutMode === 'topnav' ? 'layout-panel-top' : 'layout-panel-left'} />
           </Button>
           <Button
             size="sm"

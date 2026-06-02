@@ -523,6 +523,9 @@ export interface WelcomePackageConfig {
   scan_interval_secs: number
   active_version: string
   packages: WelcomePackage[]
+  welcome_message_enabled: boolean
+  welcome_message: string
+  welcome_whisper_source_player: string
 }
 
 export interface WelcomeGrantRecord {
@@ -683,6 +686,8 @@ export const api = {
     partitions: () => req<TeleportLocation[]>('GET', '/players/partitions'),
     teleport: (fls_id: string, partition_label: string) =>
       req<MutateResult>('POST', '/players/teleport', { fls_id, partition_label }),
+    teleportCoords: (fls_id: string, x: number, y: number, z: number, partition_id?: number) =>
+      req<MutateResult>('POST', '/players/teleport-coords', { fls_id, x, y, z, partition_id }),
     position: (id: number) =>
       req<{ partition_id: number, map: string, x: number, y: number, z: number }>('GET', `/players/${id}/position`),
     teleportToPlayer: (source_fls_id: string, target_id: number) =>
@@ -717,6 +722,16 @@ export const api = {
       options?: { rotation?: number, template_name?: string, persistent?: boolean, faction?: string },
     ) =>
       req<MutateResult>('POST', '/vehicles/spawn', { fls_id, class_name, x, y, z, ...options }),
+  },
+
+  locations: {
+    list: () => req<TeleportLocation[]>('GET', '/locations'),
+    upsert: (name: string, x: number, y: number, z: number) =>
+      req<TeleportLocation[]>('POST', '/locations', { name, x, y, z }),
+    rename: (old_name: string, new_name: string) =>
+      req<TeleportLocation[]>('PUT', '/locations', { old_name, new_name }),
+    remove: (name: string) =>
+      req<TeleportLocation[]>('DELETE', '/locations', { name }),
   },
 
   broadcast: {

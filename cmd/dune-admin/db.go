@@ -4625,6 +4625,13 @@ var cheatLocations = []teleportLocation{
 
 func cmdListPartitions() Cmd {
 	return func() Msg {
+		if globalLocationStore != nil {
+			locs, err := globalLocationStore.list()
+			if err == nil {
+				return msgPartitions{rows: locs}
+			}
+		}
+		// Fallback to compile-time seeds when the store is unavailable.
 		return msgPartitions{rows: cheatLocations}
 	}
 }
@@ -4634,34 +4641,26 @@ func cmdTeleportPlayer(flsID string, locationName string) Cmd {
 		if globalDB == nil {
 			return msgMutate{err: fmt.Errorf("not connected")}
 		}
-		var loc teleportLocation
-		for _, l := range cheatLocations {
-			if l.Name == locationName {
-				loc = l
-				break
-			}
-		}
-		if loc.Name == "" {
-			return msgMutate{err: fmt.Errorf("unknown location: %s", locationName)}
+		loc, err := resolveLocation(locationName)
+		if err != nil {
+			return msgMutate{err: err}
 		}
 		ctx := context.Background()
 		// Use the player's current partition so the zone server is correct.
 		var partitionID int64
-		err := globalDB.QueryRow(ctx, `
+		if scanErr := globalDB.QueryRow(ctx, `
 			SELECT COALESCE(a.partition_id, 0)
 			FROM dune.encrypted_accounts e
 			JOIN dune.player_state ps ON ps.account_id = e.id
 			JOIN dune.actors a ON a.id = ps.player_pawn_id
-			WHERE convert_from(e.encrypted_funcom_id, 'UTF8') = $1`, flsID).Scan(&partitionID)
-		if err != nil || partitionID == 0 {
+			WHERE convert_from(e.encrypted_funcom_id, 'UTF8') = $1`, flsID).Scan(&partitionID); scanErr != nil || partitionID == 0 {
 			_ = globalDB.QueryRow(ctx,
 				`SELECT id FROM dune.world_partition WHERE blocked = false LIMIT 1`).Scan(&partitionID)
 		}
-		_, err = globalDB.Exec(ctx, `
+		if _, execErr := globalDB.Exec(ctx, `
 			SELECT dune.admin_move_offline_player_to_partition($1::text, $2::bigint, ROW($3::float8,$4::float8,$5::float8)::dune.Vector)`,
-			flsID, partitionID, loc.X, loc.Y, loc.Z)
-		if err != nil {
-			return msgMutate{err: fmt.Errorf("teleport: %w", err)}
+			flsID, partitionID, loc.X, loc.Y, loc.Z); execErr != nil {
+			return msgMutate{err: fmt.Errorf("teleport: %w", execErr)}
 		}
 		return msgMutate{ok: fmt.Sprintf("Moved %s to %s", flsID, locationName)}
 	}
@@ -5336,4 +5335,54 @@ func fetchSolarisBalance(ctx context.Context, pool *pgxpool.Pool, accountID int6
 		return nil, fmt.Errorf("fetch solaris snapshot for account %d: %w", accountID, err)
 	}
 	return &bal, nil
+}
+
+// cmdActorIDFromFlsID resolves the player pawn actor ID from their hex FLS ID
+// (accounts."user"). Used by cmdRefillWaterOffline and similar offline writes
+// that require an actor_id to locate inventories.
+func cmdActorIDFromFlsID(ctx context.Context, flsID string) (int64, error) {
+	if globalDB == nil {
+		return 0, fmt.Errorf("not connected")
+	}
+	var actorID int64
+	err := globalDB.QueryRow(ctx, `
+		SELECT ps.player_pawn_id
+		FROM dune.accounts ac
+		JOIN dune.player_state ps ON ps.account_id = ac.id
+		WHERE ac."user" = $1
+		LIMIT 1`, flsID).Scan(&actorID)
+	if err != nil {
+		return 0, fmt.Errorf("resolve actor id for fls_id %s: %w", flsID, err)
+	}
+	return actorID, nil
+}
+
+// cmdRefillWaterOffline sets CurrentAmount = MaxAmount for every water-fillable
+// item in the player's carried inventories (backpack, equipment, weapon slots,
+// action wheel, bank). Uses the waterFillableTemplates list generated from
+// DT_ItemTableFillables.json. For online players use rmqUpdateAllWaterFillables
+// instead — this path takes effect on the player's next relog.
+func cmdRefillWaterOffline(ctx context.Context, actorID int64) (int64, error) {
+	if globalDB == nil {
+		return 0, fmt.Errorf("not connected")
+	}
+	tag, err := globalDB.Exec(ctx, `
+		UPDATE dune.items i
+		SET stats = jsonb_set(
+			i.stats,
+			'{FFillableItemStats,1,CurrentAmount}',
+			(i.stats->'FFillableItemStats'->1->'MaxAmount')
+		)
+		FROM dune.inventories inv
+		WHERE inv.actor_id = $1
+		  AND inv.inventory_type = ANY($2::int[])
+		  AND i.inventory_id = inv.id
+		  AND lower(i.template_id) = ANY($3::text[])
+		  AND i.stats ? 'FFillableItemStats'
+		  AND (i.stats->'FFillableItemStats'->1->'MaxAmount') IS NOT NULL`,
+		actorID, repairGearInventoryTypes, waterFillableTemplates)
+	if err != nil {
+		return 0, fmt.Errorf("refill water offline actor %d: %w", actorID, err)
+	}
+	return tag.RowsAffected(), nil
 }

@@ -38,6 +38,9 @@ export default function WelcomePackageTab() {
   const [activeVersion, setActiveVersion] = useState('')
   const [selected, setSelected] = useState('') // version currently being edited
   const [newName, setNewName] = useState('')
+  const [welcomeMessageEnabled, setWelcomeMessageEnabled] = useState(false)
+  const [welcomeMessage, setWelcomeMessage] = useState('')
+  const [welcomeWhisperSourcePlayer, setWelcomeWhisperSourcePlayer] = useState('')
 
   const [templates, setTemplates] = useState<{ id: string, name: string }[]>([])
   const [addQuery, setAddQuery] = useState('')
@@ -51,6 +54,9 @@ export default function WelcomePackageTab() {
     setPackages(c.packages ?? [])
     setActiveVersion(c.active_version)
     setSelected(c.active_version || (c.packages?.[0]?.version ?? ''))
+    setWelcomeMessageEnabled(c.welcome_message_enabled ?? false)
+    setWelcomeMessage(c.welcome_message ?? '')
+    setWelcomeWhisperSourcePlayer(c.welcome_whisper_source_player ?? '')
   }
 
   const load = useCallback(() => {
@@ -123,6 +129,7 @@ export default function WelcomePackageTab() {
     setPackages(next)
     if (activeVersion === v) setActiveVersion('')
     if (selected === v) setSelected(next[0]?.version ?? '')
+    if (next.length === 0) setEnabled(false)
   }
 
   const save = async () => {
@@ -133,6 +140,9 @@ export default function WelcomePackageTab() {
         scan_interval_secs: scanSecs,
         active_version: activeVersion,
         packages,
+        welcome_message_enabled: welcomeMessageEnabled,
+        welcome_message: welcomeMessage,
+        welcome_whisper_source_player: welcomeWhisperSourcePlayer,
       }
       applyConfig(await api.welcomePackage.saveConfig(cfg))
       toast.success(enabled
@@ -247,6 +257,45 @@ export default function WelcomePackageTab() {
             onChange={setScanSecs}
             className="w-56"
           />
+        </div>
+      </Panel>
+
+      <Panel>
+        <SectionLabel>{t('welcome.message.title')}</SectionLabel>
+        <label className="flex items-center gap-2 mt-1 cursor-pointer select-none w-fit">
+          <input
+            type="checkbox"
+            checked={welcomeMessageEnabled}
+            onChange={(e) => setWelcomeMessageEnabled(e.target.checked)}
+            className="h-4 w-4 accent-accent"
+          />
+          <span className="text-sm text-foreground">{t('welcome.message.enabledLabel')}</span>
+        </label>
+        <p className="text-xs text-muted mt-1 mb-3">
+          {t('welcome.message.enabledHint')}
+        </p>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <span className="text-xs text-muted">{t('welcome.message.messageLabel')}</span>
+            <textarea
+              className="w-full rounded-[var(--radius)] border border-border bg-surface text-foreground text-sm px-3 py-2 resize-none focus:outline-none focus:border-accent disabled:opacity-50"
+              rows={3}
+              placeholder={t('welcome.message.messagePlaceholder')}
+              value={welcomeMessage}
+              disabled={!welcomeMessageEnabled}
+              onChange={(e) => setWelcomeMessage(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1 max-w-md">
+            <span className="text-xs text-muted">{t('welcome.message.senderLabel')}</span>
+            <input
+              className="w-full rounded-[var(--radius)] border border-border bg-surface text-foreground text-sm px-3 py-2 focus:outline-none focus:border-accent disabled:opacity-50"
+              placeholder={t('welcome.message.senderPlaceholder')}
+              value={welcomeWhisperSourcePlayer}
+              disabled={!welcomeMessageEnabled}
+              onChange={(e) => setWelcomeWhisperSourcePlayer(e.target.value)}
+            />
+          </div>
         </div>
       </Panel>
 

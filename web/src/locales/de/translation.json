@@ -40,7 +40,9 @@
     "updateFailed": "Update fehlgeschlagen: {{message}}",
     "selectLanguage": "Sprache auswählen",
     "goHome": "Zur Startseite",
-    "switchLayout": "Layout wechseln"
+    "switchLayout": "Layout wechseln",
+    "switchToTopnav": "Zur oberen Navigation wechseln",
+    "switchToSidenav": "Zur Seitennavigation wechseln"
   },
   "nav": {
     "groups": {
@@ -175,7 +177,7 @@
         "skillPointsNote": "Legt ungenutzte Punkte fest",
         "set": "Setzen",
         "fillWater": "Wasser auffüllen",
-        "fillWaterNote": "Füllt alle Wasserbehälter auf Maximum",
+        "fillWaterNote": "Füllt alle Wasserbehälter auf Maximum (Spieler muss online sein)",
         "fill": "Auffüllen",
         "setSkillModule": "Fertigkeitsmodul festlegen",
         "selectModule": "Modul auswählen…",
@@ -208,6 +210,17 @@
         "quickPresetsDesc": "Kuratierte Pakete, die einen oder mehrere Root-Reise-Knoten abschließen und auf alle Kinder + Tags kaskadieren.",
         "loadingPresets": "Laden…",
         "noPresets": "Keine Voreinstellungen verfügbar",
+        "presets": {
+          "skip_npe": { "name": "NPE überspringen (Neuspielererlebnis)", "desc": "Markiert das Tutorial/NPE als abgeschlossen. Nützlich für erfahrene Spieler, die die Einführung nicht benötigen." },
+          "a_new_beginning": { "name": "Abschließen: A New Beginning", "desc": "Story-Einführung — Stillsuit herstellen, Ressourcen sammeln, Fabrikator-Forschung. Schaltet den frühen Spielfortschritt frei." },
+          "find_the_fremen": { "name": "Abschließen: Find the Fremen (Trials of Aql)", "desc": "Alle 7 Prüfungen, das Sietch und den Epilog. Schaltet das Fremkit (Stillsuit, Thumper, Cryss Knife usw.) frei und schließt Akt 1 ab." },
+          "act1_complete": { "name": "Abschließen: Gesamter Akt 1", "desc": "A New Beginning + Find the Fremen kombiniert. Der Spieler startet bereit für Akt 2." },
+          "vermillius_intro": { "name": "Überspringen: Vermillius Gap Tutorials", "desc": "Schließt alle Vermillius Gap Tutorial-Quests ab (Forschung, Herstellung, Erkundung). Keine Tag-Nebeneffekte — reines Tutorial-Überspringen." },
+          "deep_desert_intro": { "name": "Überspringen: Tiefwüsten-Einführung", "desc": "Schließt die Nebenquestkette der Tiefen Wüste ab." },
+          "taxation_intro": { "name": "Überspringen: Besteuerungs-/Handels-Tutorial", "desc": "Schließt die Handels-/Reise-Tutorial-Kette ab." },
+          "overland_intro": { "name": "Überspringen: Überlandkarten-Einführung", "desc": "Schließt die Nebenquestkette der Überlandkarte ab (Hark Landsraad-Missionen, Schlüsselsteine)." },
+          "unlock_all_lore": { "name": "Gesamtes Lore freischalten (Dunipedia)", "desc": "Enthüllt alle Dunipedia-Einträge: Bekanntes Universum, Wahrzeichen, Handbuch der freundlichen Wüste, Krieg um Arrakis." }
+        },
         "nodes": "{{count}} Knoten",
         "apply": "Anwenden",
         "progressionUnlock": "Fortschrittsfreischaltung",
@@ -271,7 +284,21 @@
         "run": "Ausführen",
         "try": "Versuchen",
         "runTitle": "{{label}} ausführen?",
-        "confirmRun": "Ausführung bestätigen"
+        "confirmRun": "Ausführung bestätigen",
+        "scripts": {
+          "LeaveMeAlone": "Leave Me Alone",
+          "LeaveMeAloneDesc": "Vernichtet alle NPCs, löscht Begegnungen + Sandstürme, deaktiviert Sandwurm (serverweit)",
+          "AwardPlayerXP": "Award Player XP",
+          "AwardPlayerXPDesc": "Vergibt 10.000 Kampf-XP + 10.000 Erkundungs-XP + 10.000 Wissenschafts-XP",
+          "UnlockAllSkills": "Unlock All Skills",
+          "UnlockAllSkillsDesc": "Setzt alle Fertigkeitsbaummodule auf Stufe 1",
+          "UnlockAllAbilities": "Unlock All Abilities",
+          "UnlockAllAbilitiesDesc": "Setzt alle Fähigkeitsmodule auf Stufe 1",
+          "PlaytestSetup": "Playtest Setup",
+          "PlaytestSetupDesc": "⚠ DESTRUCTIVE — ResetProgression + CleanInventory, dann vollständiges Ausrüstungspaket",
+          "PlaytestSetupAdmin": "Playtest Setup (Admin)",
+          "PlaytestSetupAdminDesc": "⚠ DESTRUCTIVE — wie Playtest Setup, aber mit rohen Vorlagennamen"
+        }
       },
       "admin": {
         "liveActions": "Live-Aktionen",
@@ -313,6 +340,11 @@
         "teleportPlaceholder": "Ort auswählen...",
         "move": "Bewegen",
         "teleportNote": "Live wenn online · in DB geschrieben wenn offline",
+        "manageLocations": "Orte verwalten",
+        "useCurrent": "Aktuelle verwenden",
+        "pickOnMap": "Auf Karte auswählen",
+        "moveToXyz": "Zu XYZ bewegen",
+        "positionReadFailed": "Spielerposition konnte nicht gelesen werden",
         "teleportToPlayer": "Zu Spieler teleportieren",
         "selectTargetLabel": "Zielspieler",
         "loadingPlayers": "Spieler werden geladen…",
@@ -328,7 +360,25 @@
         "spawnLocationLabel": "Spawn-Ort",
         "selectSpawnLocation": "Spawn-Ort auswählen…",
         "persistent": "Dauerhaft",
-        "spawn": "Spawnen"
+        "spawn": "Spawnen",
+        "manageLocationsModal": {
+          "title": "Orte verwalten",
+          "addSection": "Ort hinzufügen / aktualisieren",
+          "addHint": "Name und Koordinaten eingeben, dann Speichern. Beim Speichern eines bestehenden Namens werden die Koordinaten aktualisiert. Z leer lassen für Bodenniveau (0).",
+          "nameLabel": "Name",
+          "namePlaceholder": "z. B. Windsack",
+          "save": "Speichern",
+          "done": "Fertig",
+          "noLocations": "Noch keine Orte — einen oben hinzufügen.",
+          "delete": "Löschen"
+        },
+        "mapPickerModal": {
+          "title": "Ort auf Karte auswählen",
+          "hint": "Irgendwo auf Hagga-Becken klicken, um X/Y zu erfassen. Z ist standardmäßig {{z}} — bei Bedarf manuell anpassen.",
+          "selected": "Ausgewählt:",
+          "cancel": "Abbrechen",
+          "confirm": "Diese Koordinaten verwenden"
+        }
       },
       "tags": {
         "addTags": "Tags hinzufügen",
@@ -438,7 +488,20 @@
       "playtime": "Spielzeit",
       "sessionCount": "Anzahl",
       "avgSession": "Durchschn.",
-      "lastSeen": "Zuletzt gesehen"
+      "lastSeen": "Zuletzt gesehen",
+      "solarisHistory": "Solaris-Verlauf",
+      "solarisHistoryEmpty": "Solaris-Snapshots werden alle 5 Minuten erstellt, während Spieler online sind.",
+      "solarisBalance": "Kontostand",
+      "sessionHistory": "Sitzungsverlauf",
+      "sessionHistoryEmpty": "Sitzungsdaten sammeln sich an, wenn Spieler einloggen. Der Tracker fragt alle 5 Minuten ab.",
+      "xpHistory": "XP-Verlauf",
+      "xpHistoryEmpty": "XP-Snapshots werden alle 5 Minuten erstellt, während Spieler online sind.",
+      "xpCharXP": "Char-XP",
+      "xpCombat": "Kampf",
+      "xpCrafting": "Handwerk",
+      "xpGathering": "Sammeln",
+      "xpExploration": "Erkundung",
+      "xpSabotage": "Sabotage"
     }
   },
   "market": {
@@ -858,7 +921,16 @@
     "scanComplete": "Scan abgeschlossen — {{granted}} gewährt, {{failed}} fehlgeschlagen, {{skipped}} übersprungen",
     "runFailed": "Ausführung fehlgeschlagen: {{message}}",
     "retryCleared": "Zurückgesetzt — wird beim nächsten Scan erneut versucht",
-    "retryFailed": "Erneuter Versuch fehlgeschlagen: {{message}}"
+    "retryFailed": "Erneuter Versuch fehlgeschlagen: {{message}}",
+    "message": {
+      "title": "Willkommensnachricht",
+      "enabledLabel": "Neue Spieler beim ersten Login per Flüsternachricht begrüßen",
+      "enabledHint": "Einmalig pro Spieler pro aktiver Version über die GM-Persona gesendet. Wird im Vergabe-Ledger erfasst.",
+      "messageLabel": "Nachricht",
+      "messagePlaceholder": "Willkommen auf dem Server! Genieße dein Starterpaket.",
+      "senderLabel": "Absender-FLS-ID (optional)",
+      "senderPlaceholder": "Leer lassen, um die hinterlegte GM-Persona zu verwenden"
+    }
   },
   "settings": {
     "backendUrl": "Backend-URL",

@@ -40,7 +40,9 @@
     "updateFailed": "Błąd aktualizacji: {{message}}",
     "selectLanguage": "Wybierz język",
     "goHome": "Przejdź do strony głównej",
-    "switchLayout": "Zmień układ"
+    "switchLayout": "Zmień układ",
+    "switchToTopnav": "Przełącz na górną nawigację",
+    "switchToSidenav": "Przełącz na boczną nawigację"
   },
   "nav": {
     "groups": {
@@ -175,7 +177,7 @@
         "skillPointsNote": "Ustawia niewydane punkty",
         "set": "Ustaw",
         "fillWater": "Napełnij wodę",
-        "fillWaterNote": "Napełnia wszystkie pojemniki na wodę do maksimum",
+        "fillWaterNote": "Napełnia wszystkie pojemniki na wodę do maksimum (gracz musi być online)",
         "fill": "Napełnij",
         "setSkillModule": "Ustaw moduł umiejętności",
         "selectModule": "Wybierz moduł…",
@@ -208,6 +210,17 @@
         "quickPresetsDesc": "Wyselekcjonowane pakiety, które kończą jeden lub więcej węzłów podróży głównych i kaskadują do wszystkich dzieci i tagów.",
         "loadingPresets": "Ładowanie…",
         "noPresets": "Brak dostępnych ustawień wstępnych",
+        "presets": {
+          "skip_npe": { "name": "Pomiń NPE (Doświadczenie Nowego Gracza)", "desc": "Oznacza samouczek/NPE jako ukończony. Przydatne dla doświadczonych graczy, którzy nie potrzebują wprowadzenia." },
+          "a_new_beginning": { "name": "Ukończ: A New Beginning", "desc": "Wprowadzenie do fabuły — wytwarzanie Stillsuit, zbieranie zasobów, badania fabrykatora. Odblokowuje wczesną grę." },
+          "find_the_fremen": { "name": "Ukończ: Find the Fremen (Trials of Aql)", "desc": "Wszystkie 7 prób, Sietch i Epilog. Odblokowuje Fremkit (Stillsuit, Thumper, Cryss Knife itp.) i kończy Akt 1." },
+          "act1_complete": { "name": "Ukończ: Cały Akt 1", "desc": "A New Beginning + Find the Fremen łącznie. Gracz zaczyna gotowy na Akt 2." },
+          "vermillius_intro": { "name": "Pomiń: Samouczki Vermillius Gap", "desc": "Kończy wszystkie misje samouczkowe w Vermillius Gap (badania, wytwarzanie, eksploracja). Brak efektów ubocznych tagów — czyste pominięcie samouczka." },
+          "deep_desert_intro": { "name": "Pomiń: Wprowadzenie do Głębokiej Pustyni", "desc": "Kończy łańcuch misji pobocznych Głębokiej Pustyni." },
+          "taxation_intro": { "name": "Pomiń: Samouczek Podatkowy / Wymiany", "desc": "Kończy łańcuch samouczkowy wymiany/podróży." },
+          "overland_intro": { "name": "Pomiń: Wprowadzenie do Mapy Powierzchni", "desc": "Kończy łańcuch misji pobocznych mapy powierzchni (misje Hark Landsraad, kamienie kluczowe)." },
+          "unlock_all_lore": { "name": "Odblokuj Całe Lore (Dunipedia)", "desc": "Ujawnia wszystkie wpisy Dunipedii: Znane Wszechświat, Punkty Orientacyjne, Podręcznik Przyjaznej Pustyni, Wojna o Arrakis." }
+        },
         "nodes": "{{count}} węzłów",
         "apply": "Zastosuj",
         "progressionUnlock": "Odblokowanie postępu",
@@ -271,7 +284,21 @@
         "run": "Uruchom",
         "try": "Spróbuj",
         "runTitle": "Uruchomić {{label}}?",
-        "confirmRun": "Potwierdź uruchomienie"
+        "confirmRun": "Potwierdź uruchomienie",
+        "scripts": {
+          "LeaveMeAlone": "Leave Me Alone",
+          "LeaveMeAloneDesc": "Niszczy wszystkich NPC, usuwa spotkania + burze piaskowe, wyłącza sandworma (serwer-wide)",
+          "AwardPlayerXP": "Award Player XP",
+          "AwardPlayerXPDesc": "Przyznaje 10 000 XP Walki + 10 000 XP Eksploracji + 10 000 XP Nauki",
+          "UnlockAllSkills": "Unlock All Skills",
+          "UnlockAllSkillsDesc": "Ustawia wszystkie moduły drzewa umiejętności na poziom 1",
+          "UnlockAllAbilities": "Unlock All Abilities",
+          "UnlockAllAbilitiesDesc": "Ustawia wszystkie moduły zdolności na poziom 1",
+          "PlaytestSetup": "Playtest Setup",
+          "PlaytestSetupDesc": "⚠ DESTRUCTIVE — ResetProgression + CleanInventory, następnie pełny zestaw wyposażenia",
+          "PlaytestSetupAdmin": "Playtest Setup (Admin)",
+          "PlaytestSetupAdminDesc": "⚠ DESTRUCTIVE — jak Playtest Setup, ale używa surowych nazw szablonów"
+        }
       },
       "admin": {
         "liveActions": "Akcje na żywo",
@@ -313,6 +340,11 @@
         "teleportPlaceholder": "Wybierz lokalizację...",
         "move": "Przenieś",
         "teleportNote": "Na żywo jeśli online · zapisane do BD jeśli offline",
+        "manageLocations": "Zarządzaj lokalizacjami",
+        "useCurrent": "Użyj bieżącej",
+        "pickOnMap": "Wybierz na mapie",
+        "moveToXyz": "Przenieś do XYZ",
+        "positionReadFailed": "Nie można odczytać pozycji gracza",
         "teleportToPlayer": "Teleportuj do gracza",
         "selectTargetLabel": "Gracz docelowy",
         "loadingPlayers": "Ładowanie graczy…",
@@ -328,7 +360,25 @@
         "spawnLocationLabel": "Lokalizacja spawnu",
         "selectSpawnLocation": "Wybierz lokalizację spawnu…",
         "persistent": "Trwały",
-        "spawn": "Przywołaj"
+        "spawn": "Przywołaj",
+        "manageLocationsModal": {
+          "title": "Zarządzaj lokalizacjami",
+          "addSection": "Dodaj / Zaktualizuj lokalizację",
+          "addHint": "Wprowadź nazwę i współrzędne, a następnie Zapisz. Zapisanie istniejącej nazwy aktualizuje jej współrzędne. Zostaw Z puste dla poziomu gruntu (0).",
+          "nameLabel": "Nazwa",
+          "namePlaceholder": "np. Windsack",
+          "save": "Zapisz",
+          "done": "Gotowe",
+          "noLocations": "Brak lokalizacji — dodaj jedną powyżej.",
+          "delete": "Usuń"
+        },
+        "mapPickerModal": {
+          "title": "Wybierz lokalizację na mapie",
+          "hint": "Kliknij gdziekolwiek na Zagłębiu Hagga, aby uchwycić X/Y. Z domyślnie wynosi {{z}} — dostosuj ręcznie jeśli potrzeba.",
+          "selected": "Wybrano:",
+          "cancel": "Anuluj",
+          "confirm": "Użyj tych współrzędnych"
+        }
       },
       "tags": {
         "addTags": "Dodaj tagi",
@@ -438,7 +488,20 @@
       "playtime": "Czas gry",
       "sessionCount": "Liczba",
       "avgSession": "Śr.",
-      "lastSeen": "Ostatnio widziany"
+      "lastSeen": "Ostatnio widziany",
+      "solarisHistory": "Historia Solaris",
+      "solarisHistoryEmpty": "Migawki Solaris są zapisywane co 5 minut, gdy gracze są online.",
+      "solarisBalance": "Saldo",
+      "sessionHistory": "Historia sesji",
+      "sessionHistoryEmpty": "Dane sesji gromadzą się podczas logowania graczy. Tracker odpytuje co 5 minut.",
+      "xpHistory": "Historia XP",
+      "xpHistoryEmpty": "Migawki XP są zapisywane co 5 minut, gdy gracze są online.",
+      "xpCharXP": "XP postaci",
+      "xpCombat": "Walka",
+      "xpCrafting": "Rzemiosło",
+      "xpGathering": "Zbieranie",
+      "xpExploration": "Eksploracja",
+      "xpSabotage": "Sabotaż"
     }
   },
   "market": {
@@ -858,7 +921,16 @@
     "scanComplete": "Skanowanie zakończone — {{granted}} przyznano, {{failed}} nieudanych, {{skipped}} pominięto",
     "runFailed": "Błąd uruchomienia: {{message}}",
     "retryCleared": "Wyczyszczono — ponowna próba przy następnym skanowaniu",
-    "retryFailed": "Błąd ponownej próby: {{message}}"
+    "retryFailed": "Błąd ponownej próby: {{message}}",
+    "message": {
+      "title": "Wiadomość powitalna",
+      "enabledLabel": "Wysyłaj szept do nowych graczy przy pierwszym logowaniu",
+      "enabledHint": "Wysyłane raz na gracza na aktywną wersję przez personę GM. Śledzone w rejestrze nadań.",
+      "messageLabel": "Wiadomość",
+      "messagePlaceholder": "Witaj na serwerze! Ciesz się swoim pakietem startowym.",
+      "senderLabel": "ID FLS nadawcy (opcjonalne)",
+      "senderPlaceholder": "Zostaw puste, aby użyć skonfigurowanej persony GM"
+    }
   },
   "settings": {
     "backendUrl": "URL backendu",

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"sort"
 	"strconv"
@@ -1781,15 +1782,9 @@ func handleTeleportPlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var loc teleportLocation
-	for _, l := range cheatLocations {
-		if l.Name == req.Location {
-			loc = l
-			break
-		}
-	}
-	if loc.Name == "" {
-		jsonErr(w, fmt.Errorf("unknown location: %s", req.Location), 400)
+	loc, locErr := resolveLocation(req.Location)
+	if locErr != nil {
+		jsonErr(w, locErr, 400)
 		return
 	}
 
@@ -1982,4 +1977,77 @@ func handleGetPlayerDungeons(w http.ResponseWriter, r *http.Request) {
 		rows = []dungeonRecord{}
 	}
 	jsonOK(w, rows)
+}
+
+// teleportCoordsParams bundles the injectable dependencies for processTeleportCoords
+// so the online/offline branching can be unit-tested without a live DB or broker.
+type teleportCoordsParams struct {
+	flsID       string
+	x, y, z     float64
+	partitionID int64
+	isOnline    func(flsID string) bool
+	sendRMQ     func(flsID string, x, y, z float64) error
+	writeDB     func(flsID string, partitionID int64, x, y, z float64) error
+}
+
+// processTeleportCoords routes a teleport-to-coords request: online players
+// receive an immediate RMQ command; offline players get a DB write that takes
+// effect on their next login.
+func processTeleportCoords(p teleportCoordsParams) error {
+	if p.isOnline(p.flsID) {
+		return p.sendRMQ(p.flsID, p.x, p.y, p.z)
+	}
+	return p.writeDB(p.flsID, p.partitionID, p.x, p.y, p.z)
+}
+
+// @Summary Teleport a player to arbitrary XYZ coordinates
+// @Tags players
+// @Accept json
+// @Produce json
+// @Param body body object true "fls_id, x, y, z, partition_id (optional)"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/v1/players/teleport-coords [post]
+// POST /api/v1/players/teleport-coords
+func handleTeleportCoords(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		FlsID       string  `json:"fls_id"`
+		X           float64 `json:"x"`
+		Y           float64 `json:"y"`
+		Z           float64 `json:"z"`
+		PartitionID int64   `json:"partition_id"`
+	}
+	if err := decode(r, &req); err != nil {
+		jsonErr(w, err, http.StatusBadRequest)
+		return
+	}
+	if req.FlsID == "" {
+		jsonErr(w, fmt.Errorf("fls_id required"), http.StatusBadRequest)
+		return
+	}
+
+	ctx := context.Background()
+	err := processTeleportCoords(teleportCoordsParams{
+		flsID:       req.FlsID,
+		x:           req.X,
+		y:           req.Y,
+		z:           req.Z,
+		partitionID: req.PartitionID,
+		isOnline:    func(id string) bool { return isHexIDOnline(ctx, id) },
+		sendRMQ:     func(id string, x, y, z float64) error { return rmqTeleportTo(id, x, y, z) },
+		writeDB: func(id string, pid int64, x, y, z float64) error {
+			msg, ok := cmdTeleportPlayerToCoords(id, pid, x, y, z)().(msgMutate)
+			if !ok {
+				return fmt.Errorf("internal error")
+			}
+			return msg.err
+		},
+	})
+	if err != nil {
+		log.Printf("handleTeleportCoords: %v", err)
+		jsonErr(w, fmt.Errorf("teleport failed: %w", err), http.StatusInternalServerError)
+		return
+	}
+	jsonOK(w, map[string]any{"ok": fmt.Sprintf("teleported %s to (%.0f, %.0f, %.0f)", req.FlsID, req.X, req.Y, req.Z)})
 }
