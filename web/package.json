@@ -5,8 +5,9 @@
   "type": "module",
   "packageManager": "pnpm@10.28.1",
   "scripts": {
+    "typecheck": "tsc --noEmit",
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc --noEmit && vite build",
     "lint": "eslint . --max-warnings 0",
     "preview": "vite preview",
     "i18n:extract": "i18next-parser --config i18next-parser.config.ts"

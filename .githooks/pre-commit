@@ -85,6 +85,17 @@ if [ -n "$HAS_GO_FILES" ]; then
         cat /tmp/hook-output.txt
         FAILED=1
     fi
+
+    # 4. Run gosec (high-severity security scan) — sprung here so findings
+    #    surface at commit time, not only at pre-push.
+    echo -e "${YELLOW}▶${NC} Running gosec (security scan)..."
+    if make gosec > /tmp/hook-output.txt 2>&1; then
+        echo -e "${GREEN}✓${NC} gosec passed"
+    else
+        echo -e "${RED}✗${NC} gosec failed"
+        cat /tmp/hook-output.txt
+        FAILED=1
+    fi
 fi
 
 # Markdown checks (only if .md files are staged)

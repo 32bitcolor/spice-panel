@@ -200,7 +200,7 @@ pnpm-audit:
 	cd web && pnpm audit --audit-level=high
 
 tsc:
-	cd web && pnpm exec tsc --noEmit
+	cd web && pnpm typecheck
 
 lint:
 	@$(MAKE) lint-go
