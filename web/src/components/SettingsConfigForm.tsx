@@ -1,6 +1,6 @@
 import { useState, useEffect, type MutableRefObject } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Select, ListBox, Spinner, Tabs, toast } from '@heroui/react'
+import { Button, Checkbox, Input, Select, ListBox, Spinner, Tabs, toast } from '@heroui/react'
 import { api, MASKED } from '../api/client'
 import type { AppConfig } from '../api/client'
 import { NumberInput, Panel, SectionLabel } from '../dune-ui'
@@ -56,8 +56,6 @@ function mergeConfig(fetched: Record<string, unknown>): AppConfig {
 
 // ── field primitives matching BotConfigEditor ─────────────────────────────────
 
-const inputCls = 'bg-surface border border-border rounded px-2 py-1.5 text-sm text-foreground w-full font-mono placeholder:text-muted/50 focus:outline-none focus:border-accent/60'
-
 function F({ label, hint, children }: { label: string, hint?: string, children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
@@ -86,12 +84,13 @@ interface TIProps {
 
 function TI({ value, onChange, placeholder, type = 'text' }: TIProps) {
   return (
-    <input
+    <Input
+      className="font-mono"
       type={type}
-      value={value}
+      value={String(value)}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className={inputCls}
+      aria-label={placeholder ?? 'value'}
     />
   )
 }
@@ -106,15 +105,9 @@ interface CBProps {
 function CB({ label, checked, onChange, hint }: CBProps) {
   return (
     <div className="flex flex-col gap-0.5">
-      <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-foreground">
-        <input
-          type="checkbox"
-          checked={!!checked}
-          onChange={(e) => onChange(e.target.checked)}
-          className="accent-[var(--color-accent)] w-4 h-4 cursor-pointer"
-        />
+      <Checkbox isSelected={!!checked} onChange={onChange}>
         {label}
-      </label>
+      </Checkbox>
       {hint && <p className="text-xs text-muted ml-6">{hint}</p>}
     </div>
   )

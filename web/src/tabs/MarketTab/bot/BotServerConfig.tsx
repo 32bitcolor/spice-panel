@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Button, Spinner, toast } from '@heroui/react'
+import { Button, Checkbox, Input, Spinner, toast } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
 import { api, MASKED } from '../../../api/client'
 import type { AppConfig } from '../../../api/client'
 import { Panel, SectionLabel } from '../../../dune-ui'
-
-const inputCls = 'bg-surface border border-border rounded px-2 py-1.5 text-sm text-foreground w-full font-mono placeholder:text-muted/50 focus:outline-none focus:border-accent/60'
 
 // Restrict the set() helper to string-typed fields so it can't accidentally coerce
 // numeric/boolean AppConfig keys to strings (which the backend would reject or misparse).
@@ -29,8 +27,8 @@ export default function BotServerConfig() {
   const set = (key: StringAppConfigKey) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setCfg((prev) => prev ? { ...prev, [key]: e.target.value } : prev)
 
-  const setBool = (key: keyof AppConfig) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setCfg((prev) => prev ? { ...prev, [key]: e.target.checked } : prev)
+  const setBool = (key: keyof AppConfig) => (checked: boolean) =>
+    setCfg((prev) => prev ? { ...prev, [key]: checked } : prev)
 
   const save = async () => {
     if (!cfg) return
@@ -60,28 +58,27 @@ export default function BotServerConfig() {
     <div className="flex flex-col gap-4">
       <Panel>
         <SectionLabel>{t('market.bot.serverConfig.embeddedBot')}</SectionLabel>
-        <label className="mt-2 flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={cfg.market_bot_enabled}
+        <div className="mt-2 flex items-center gap-2">
+          <Checkbox
+            isSelected={cfg.market_bot_enabled}
             onChange={setBool('market_bot_enabled')}
-            className="accent-accent w-4 h-4"
-          />
-          <span className="text-sm text-foreground">{t('market.bot.serverConfig.enableEmbedded')}</span>
+          >
+            {t('market.bot.serverConfig.enableEmbedded')}
+          </Checkbox>
           <span className="text-xs text-muted">{t('market.bot.serverConfig.restartRequired')}</span>
-        </label>
+        </div>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1">
             <span className="text-xs font-medium text-muted">{t('market.bot.serverConfig.cacheDb')}</span>
-            <input className={inputCls} value={cfg.market_bot_cache_db} onChange={set('market_bot_cache_db')} placeholder="~/.dune-admin/market-bot-cache.db" />
+            <Input className="font-mono" value={cfg.market_bot_cache_db} onChange={set('market_bot_cache_db')} placeholder="~/.dune-admin/market-bot-cache.db" aria-label={t('market.bot.serverConfig.cacheDb')} />
           </label>
           <label className="flex flex-col gap-1">
             <span className="text-xs font-medium text-muted">{t('market.bot.serverConfig.itemData')}</span>
-            <input className={inputCls} value={cfg.market_bot_item_data} onChange={set('market_bot_item_data')} placeholder="item-data.json" />
+            <Input className="font-mono" value={cfg.market_bot_item_data} onChange={set('market_bot_item_data')} placeholder="item-data.json" aria-label={t('market.bot.serverConfig.itemData')} />
           </label>
           <label className="flex flex-col gap-1 sm:col-span-2">
             <span className="text-xs font-medium text-muted">{t('market.bot.serverConfig.statePath')}</span>
-            <input className={inputCls} value={cfg.market_bot_state} onChange={set('market_bot_state')} placeholder="~/.dune-admin/market-bot-state.json" />
+            <Input className="font-mono" value={cfg.market_bot_state} onChange={set('market_bot_state')} placeholder="~/.dune-admin/market-bot-state.json" aria-label={t('market.bot.serverConfig.statePath')} />
           </label>
         </div>
       </Panel>
@@ -91,11 +88,11 @@ export default function BotServerConfig() {
         <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1">
             <span className="text-xs font-medium text-muted">{t('market.bot.serverConfig.remoteUrl')}</span>
-            <input className={inputCls} value={cfg.market_bot_remote_url} onChange={set('market_bot_remote_url')} placeholder="http://host:9191" />
+            <Input className="font-mono" value={cfg.market_bot_remote_url} onChange={set('market_bot_remote_url')} placeholder="http://host:9191" aria-label={t('market.bot.serverConfig.remoteUrl')} />
           </label>
           <label className="flex flex-col gap-1">
             <span className="text-xs font-medium text-muted">{t('market.bot.serverConfig.remoteToken')}</span>
-            <input className={inputCls} type="password" value={cfg.market_bot_remote_token} onChange={set('market_bot_remote_token')} placeholder={MASKED} />
+            <Input className="font-mono" type="password" value={cfg.market_bot_remote_token} onChange={set('market_bot_remote_token')} placeholder={MASKED} aria-label={t('market.bot.serverConfig.remoteToken')} />
           </label>
         </div>
       </Panel>

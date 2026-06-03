@@ -1,6 +1,6 @@
 import { memo, useState, useCallback, useEffect, useRef, type ReactNode } from 'react'
 import { Show, SignInButton, UserButton, useAuth } from '@clerk/react'
-import { Button, Chip, Modal, Spinner, Toast, toast } from '@heroui/react'
+import { Button, Chip, Modal, Spinner, Tabs, Toast, ToggleButton, ToggleButtonGroup, toast } from '@heroui/react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useStatus } from './hooks/useStatus'
@@ -243,27 +243,29 @@ function AppCore({ isSignedIn }: { isSignedIn: boolean }) {
         style={{ background: 'linear-gradient(180deg, #241a0e 0%, #1a1610 100%)' }}
       >
         <div className="flex items-center gap-3">
-          <button
-            className="text-xl font-bold uppercase tracking-[0.2em] text-accent cursor-pointer bg-transparent border-0 p-0 hover:opacity-80 transition-opacity"
-            onClick={() => navigate(`/${DEFAULT_TAB}`)}
+          <Button
+            variant="ghost"
+            className="text-xl font-bold uppercase tracking-[0.2em] text-accent px-0 h-auto min-w-0 hover:opacity-80"
+            onPress={() => navigate(`/${DEFAULT_TAB}`)}
             aria-label={t('app.goHome')}
           >
             {t('app.title')}
-          </button>
+          </Button>
           {status?.control && status.control !== 'none' && <span className="text-xs text-muted">{status.control}</span>}
           {status?.ssh_host && <span className="text-xs text-muted">{status.ssh_host}</span>}
           {status?.db_host && status.control !== 'kubectl' && (
             <span className="text-xs text-muted">{status.db_host}</span>
           )}
           {status?.version && (
-            <button
-              className="text-xs text-muted hover:text-foreground cursor-pointer bg-transparent border-0 p-0"
-              onClick={() => setShowBackendConfig(true)}
-              title={t('app.openSettings')}
+            <Button
+              variant="ghost"
+              className="text-xs text-muted hover:text-foreground px-0 h-auto min-w-0"
+              onPress={() => setShowBackendConfig(true)}
+              aria-label={t('app.openSettings')}
             >
               v
               {status.version}
-            </button>
+            </Button>
           )}
           {latestVersion && status?.version && isNewer(latestVersion, status.version) && (
             <a
@@ -302,16 +304,22 @@ function AppCore({ isSignedIn }: { isSignedIn: boolean }) {
           )}
 
           <LanguageSelector />
-          <Button
-            size="sm"
-            variant="ghost"
-            isIconOnly
-            aria-label={layoutMode === 'topnav' ? t('app.switchToSidenav') : t('app.switchToTopnav')}
-            onPress={() => setLayout(layoutMode === 'sidenav' ? 'topnav' : 'sidenav')}
-            className={layoutMode === 'topnav' ? 'text-accent' : ''}
+          <ToggleButtonGroup
+            selectionMode="single"
+            disallowEmptySelection
+            selectedKeys={[layoutMode]}
+            onSelectionChange={(keys) => {
+              const next = [...keys][0]
+              if (next === 'sidenav' || next === 'topnav') setLayout(next)
+            }}
           >
-            <Icon name={layoutMode === 'topnav' ? 'layout-panel-top' : 'layout-panel-left'} />
-          </Button>
+            <ToggleButton id="sidenav" isIconOnly aria-label={t('app.switchToSidenav')}>
+              <Icon name="layout-panel-left" />
+            </ToggleButton>
+            <ToggleButton id="topnav" isIconOnly aria-label={t('app.switchToTopnav')}>
+              <Icon name="layout-panel-top" />
+            </ToggleButton>
+          </ToggleButtonGroup>
           <Button
             size="sm"
             variant="ghost"
@@ -522,23 +530,22 @@ function AppCore({ isSignedIn }: { isSignedIn: boolean }) {
         // topnav mode: horizontal nav bar + full-width content area
         return (
           <>
-            <nav className="shrink-0 flex items-center gap-1 px-3 py-2 border-b border-border bg-surface overflow-x-auto">
-              {NAV_GROUPS.flatMap((g) => g.items).map((item) => (
-                <button
-                  type="button"
-                  key={item.key}
-                  onClick={() => navigate(`/${item.key}`)}
-                  className={
-                    'px-3 py-1.5 text-sm rounded-[var(--radius)] transition-colors shrink-0 '
-                    + (currentTab === item.key
-                      ? 'bg-accent text-accent-foreground font-semibold'
-                      : 'text-foreground hover:bg-surface-hover')
-                  }
-                >
-                  {item.label}
-                </button>
-              ))}
-            </nav>
+            <Tabs
+              selectedKey={currentTab}
+              onSelectionChange={(k) => navigate(`/${String(k)}`)}
+              className="shrink-0 border-b border-border bg-surface"
+            >
+              <Tabs.ListContainer className="px-3 py-2 overflow-x-auto">
+                <Tabs.List aria-label={t('app.title')}>
+                  {NAV_GROUPS.flatMap((g) => g.items).map((item) => (
+                    <Tabs.Tab key={item.key} id={item.key}>
+                      {item.label}
+                      <Tabs.Indicator />
+                    </Tabs.Tab>
+                  ))}
+                </Tabs.List>
+              </Tabs.ListContainer>
+            </Tabs>
             <div className="flex-1 p-3 overflow-hidden min-h-0">
               <main className="h-full overflow-hidden min-h-0">
                 {renderTab('battlegroup', <MBattlegroupTab isActive={currentTab === 'battlegroup'} />)}

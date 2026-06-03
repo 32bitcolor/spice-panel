@@ -201,9 +201,13 @@ html, body, #root {
   color: var(--foreground);
   font-weight: 600;
   background: transparent !important;
+  width: fit-content;
 }
 .tabs__indicator {
   background-color: var(--accent) !important;
+}
+.tabs__list {
+  justify-content: space-between;
 }
 [role="tab"][data-selected="true"],
 [role="tab"][aria-selected="true"],

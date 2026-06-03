@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, memo, type ReactNode } from 
 import {
   Button,
   Chip,
+  CloseButton,
   Input,
   ListBox,
   ListLayout,
@@ -1106,23 +1107,21 @@ export function PlayerActionsModal({ player, open, onClose }: Props) {
                             {selectedContracts.map((id) => (
                               <Chip key={id} size="sm" variant="soft">
                                 <span className="font-mono">{id}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => setSelectedContracts((prev) => prev.filter((x) => x !== id))}
-                                  className="ml-1 text-muted hover:text-foreground"
+                                <CloseButton
                                   aria-label={`Remove ${id}`}
-                                >
-                                  ×
-                                </button>
+                                  onPress={() => setSelectedContracts((prev) => prev.filter((x) => x !== id))}
+                                  className="ml-1"
+                                />
                               </Chip>
                             ))}
-                            <button
-                              type="button"
-                              onClick={() => setSelectedContracts([])}
-                              className="text-xs underline text-muted"
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs text-muted px-0 h-auto min-w-0"
+                              onPress={() => setSelectedContracts([])}
                             >
                               {t('players.actions.contracts.clearAll')}
-                            </button>
+                            </Button>
                           </div>
                         )}
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, ListBox, SearchField, Select, Spinner, toast } from '@heroui/react'
+import { Button, ListBox, SearchField, Select, Spinner, Tooltip, toast } from '@heroui/react'
 import { api } from '../api/client'
 import type { ServerSetting, ServerSettingUpdate, RawSection } from '../api/client'
 import { NumberInput, PageHeader, Panel, SectionLabel, Icon } from '../dune-ui'
@@ -216,13 +216,21 @@ function SettingRow({
                 />
               )}
         {USER_SOURCES.has(item.source) && (
-          <button
-            onClick={onDelete}
-            title={`Remove from ${SOURCE_FILE[item.source]}`}
-            className="text-muted/50 hover:text-danger transition-colors"
-          >
-            <Icon name="trash-2" className="w-3.5 h-3.5" />
-          </button>
+          <Tooltip>
+            <Tooltip.Trigger>
+              <Button
+                isIconOnly
+                variant="ghost"
+                size="sm"
+                className="text-muted/50 hover:text-danger"
+                onPress={onDelete}
+                aria-label={`Remove from ${SOURCE_FILE[item.source]}`}
+              >
+                <Icon name="trash-2" className="w-3.5 h-3.5" />
+              </Button>
+            </Tooltip.Trigger>
+            <Tooltip.Content>{`Remove from ${SOURCE_FILE[item.source]}`}</Tooltip.Content>
+          </Tooltip>
         )}
       </div>
     </div>
@@ -361,14 +369,22 @@ function RawSectionPanel({ sections, onSaved }: { sections: RawSection[], onSave
             : !collapsed && (
                 <>
                   {userSec && (
-                    <button
-                      onClick={deleteUserEntry}
-                      title={`Remove from ${SOURCE_FILE[userSec.source]}`}
-                      className="text-muted/50 hover:text-danger transition-colors"
-                      disabled={saving}
-                    >
-                      <Icon name="trash-2" className="w-3.5 h-3.5" />
-                    </button>
+                    <Tooltip>
+                      <Tooltip.Trigger>
+                        <Button
+                          isIconOnly
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted/50 hover:text-danger"
+                          onPress={deleteUserEntry}
+                          isDisabled={saving}
+                          aria-label={`Remove from ${SOURCE_FILE[userSec.source]}`}
+                        >
+                          <Icon name="trash-2" className="w-3.5 h-3.5" />
+                        </Button>
+                      </Tooltip.Trigger>
+                      <Tooltip.Content>{`Remove from ${SOURCE_FILE[userSec.source]}`}</Tooltip.Content>
+                    </Tooltip>
                   )}
                   <Button size="sm" variant="ghost" onPress={startEdit} isDisabled={saving}>
                     <Icon name="pencil" className="w-3.5 h-3.5" />

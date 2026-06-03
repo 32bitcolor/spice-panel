@@ -920,13 +920,14 @@ function FilterPanel({
         </SearchField>
       </div>
       <div className="px-2 pb-1 shrink-0 flex justify-end">
-        <button
-          type="button"
-          onClick={onClear}
-          className="text-xs text-muted hover:text-accent transition-colors"
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-xs text-muted hover:text-accent px-1 h-auto min-w-0"
+          onPress={onClear}
         >
           {t('liveMap.clearFilters')}
-        </button>
+        </Button>
       </div>
 
       {/* Scrollable content */}

@@ -158,14 +158,14 @@ export function ManageLocationsModal({ onClose }: Props) {
                       switch (key) {
                         case 'name':
                           return (
-                            <button
-                              type="button"
-                              className="text-left text-foreground hover:text-accent font-medium w-full truncate"
-                              onClick={() => editIntoForm(loc)}
-                              title="Click to load into editor"
+                            <Button
+                              variant="ghost"
+                              className="text-left text-foreground hover:text-accent font-medium w-full truncate px-0 h-auto min-w-0 justify-start"
+                              onPress={() => editIntoForm(loc)}
+                              aria-label="Click to load into editor"
                             >
                               {loc.name}
-                            </button>
+                            </Button>
                           )
                         case 'x':
                           return <span className="font-mono text-xs text-muted">{Math.round(loc.x).toLocaleString()}</span>
