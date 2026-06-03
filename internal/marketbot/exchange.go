@@ -926,8 +926,13 @@ func (e *Exchange) ListTick(ctx context.Context, catalog []CatalogItem) {
 	}
 
 	// Bulk delete stale orders and their items.
+	// MUST NOT touch player orders — guard on owner_id + is_npc_order=TRUE even
+	// though staleOrderIDs is already bot-only; belt-and-suspenders at the SQL layer.
 	if len(staleOrderIDs) > 0 {
-		_, _ = e.db.Exec(ctx, `DELETE FROM dune.dune_exchange_orders WHERE id = ANY($1)`, staleOrderIDs)
+		_, _ = e.db.Exec(ctx, `
+			DELETE FROM dune.dune_exchange_orders
+			WHERE id = ANY($1) AND owner_id = $2 AND is_npc_order = TRUE`,
+			staleOrderIDs, e.ownerID)
 		_, _ = e.db.Exec(ctx, `DELETE FROM dune.items WHERE id = ANY($1)`, staleItemIDs)
 	}
 
