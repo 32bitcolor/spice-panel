@@ -469,6 +469,7 @@
       "repaired": "Repaired {{name}}",
       "repairGearNone": "No gear needed repair ({{scanned}} items scanned)",
       "repairGearDone": "Repaired {{repaired}} of {{scanned}} gear pieces — relog to see in-game",
+      "repairNotice": "Durability changes are written to the DB. Player must relog to see updated values in-game.",
       "itemsLabel": "Items",
       "deleteOnlineWarning": "Player is online — deleting items may cause inventory desyncs. Continue?",
       "columns": {
@@ -484,6 +485,7 @@
       "noVehicles": "No vehicles",
       "noVehiclesFound": "No vehicles found",
       "vehiclesLabel": "Vehicles",
+      "repairNotice": "Vehicle repairs require a server restart to take effect in-game.",
       "repair": "Repair",
       "refuel": "Refuel",
       "repairNone": "No modules found on {{label}}",

@@ -3,7 +3,7 @@ import { Button, Chip, Spinner, toast } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'
 import type { Player, VehicleRow } from '../../../api/client'
-import { DataTable, SectionLabel, type Column } from '../../../dune-ui'
+import { DataTable, Icon, SectionLabel, type Column } from '../../../dune-ui'
 
 type VehicleKey = 'class' | 'location' | 'chassis' | 'name' | 'type' | 'actions'
 
@@ -74,6 +74,10 @@ export function VehiclesView({ player }: Props) {
   return (
     <div className="flex flex-col h-full gap-3 min-h-0">
       <div className="shrink-0 min-h-8 flex items-center"><SectionLabel>{t('players.vehicles.vehiclesLabel')}</SectionLabel></div>
+      <div className="shrink-0 rounded-[var(--radius)] px-4 py-2 text-xs font-medium bg-danger/10 border border-danger/40 text-danger flex items-center gap-2 -mt-1">
+        <Icon name="triangle-alert" />
+        <span>{t('players.vehicles.repairNotice')}</span>
+      </div>
       <DataTable<VehicleRow, VehicleKey>
         aria-label={t('players.vehicles.vehiclesLabel')}
         className="min-h-0 max-h-full"

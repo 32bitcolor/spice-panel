@@ -504,7 +504,8 @@
         "stack": "Stos",
         "quality": "Jakość",
         "durability": "Wytrzymałość"
-      }
+      },
+      "repairNotice": "Zmiany wytrzymałości są zapisywane w DB. Gracz musi się ponownie zalogować, aby zobaczyć je w grze."
     },
     "vehicles": {
       "title": "Pojazdy",
@@ -526,7 +527,8 @@
         "chassis": "Podwozie",
         "name": "Nazwa",
         "type": "Typ"
-      }
+      },
+      "repairNotice": "Naprawy pojazdów wymagają restartu serwera, aby działały w grze."
     },
     "give": {
       "title": "Daj przedmioty",

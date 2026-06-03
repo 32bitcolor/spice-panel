@@ -504,7 +504,8 @@
         "stack": "Pila",
         "quality": "Calidad",
         "durability": "Durabilidad"
-      }
+      },
+      "repairNotice": "Los cambios de durabilidad se guardan en la BD. El jugador debe relogearse para verlos en el juego."
     },
     "vehicles": {
       "title": "Vehículos",
@@ -526,7 +527,8 @@
         "chassis": "Chasis",
         "name": "Nombre",
         "type": "Tipo"
-      }
+      },
+      "repairNotice": "Las reparaciones de vehículos requieren reiniciar el servidor para tener efecto en el juego."
     },
     "give": {
       "title": "Dar objetos",

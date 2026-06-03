@@ -3,7 +3,7 @@ import { Button, Spinner, toast } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'
 import type { Player, InventoryItem } from '../../../api/client'
-import { DataTable, SectionLabel, type Column } from '../../../dune-ui'
+import { DataTable, Icon, SectionLabel, type Column } from '../../../dune-ui'
 
 type ItemKey = 'template' | 'stack' | 'quality' | 'durability' | 'actions'
 
@@ -87,6 +87,10 @@ export function InventoryView({ player }: Props) {
       <div className="shrink-0 min-h-8 flex items-center justify-between">
         <SectionLabel>{t('players.inventory.itemsLabel')}</SectionLabel>
         <Button size="sm" variant="ghost" onPress={handleRepairAllGear}>{t('players.inventory.repairGear')}</Button>
+      </div>
+      <div className="shrink-0 rounded-[var(--radius)] px-4 py-2 text-xs font-medium bg-danger/10 border border-danger/40 text-danger flex items-center gap-2 -mt-1">
+        <Icon name="triangle-alert" />
+        <span>{t('players.inventory.repairNotice')}</span>
       </div>
       <DataTable<InventoryItem, ItemKey>
         aria-label={t('players.inventory.title')}

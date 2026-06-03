@@ -504,7 +504,8 @@
         "stack": "Pilha",
         "quality": "Qualidade",
         "durability": "Durabilidade"
-      }
+      },
+      "repairNotice": "Alterações de durabilidade são gravadas no DB. O jogador deve relogar para vê-las no jogo."
     },
     "vehicles": {
       "title": "Veículos",
@@ -526,7 +527,8 @@
         "chassis": "Chassi",
         "name": "Nome",
         "type": "Tipo"
-      }
+      },
+      "repairNotice": "Reparos de veículos requerem reinicialização do servidor para ter efeito no jogo."
     },
     "give": {
       "title": "Dar itens",

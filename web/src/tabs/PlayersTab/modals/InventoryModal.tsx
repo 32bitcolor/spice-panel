@@ -3,7 +3,7 @@ import { Button, Chip, Modal, Spinner, toast } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'
 import type { Player, InventoryItem, VehicleRow } from '../../../api/client'
-import { DataTable, Panel, SectionLabel, type Column } from '../../../dune-ui'
+import { DataTable, Icon, Panel, SectionLabel, type Column } from '../../../dune-ui'
 
 type ItemKey = 'template' | 'stack' | 'quality' | 'durability' | 'actions'
 type VehicleKey = 'class' | 'location' | 'chassis' | 'name' | 'type' | 'actions'
@@ -163,6 +163,10 @@ export function InventoryModal({ player, open, onClose }: Props) {
                           <SectionLabel>{t('players.inventory.itemsLabel')}</SectionLabel>
                           <Button size="sm" variant="ghost" onPress={handleRepairAllGear}>{t('players.inventory.repairGear')}</Button>
                         </div>
+                        <div className="shrink-0 rounded-[var(--radius)] px-4 py-2 text-xs font-medium bg-danger/10 border border-danger/40 text-danger flex items-center gap-2">
+                          <Icon name="triangle-alert" className="shrink-0" />
+                          <span>{t('players.inventory.repairNotice')}</span>
+                        </div>
                         <DataTable<InventoryItem, ItemKey>
                           aria-label={t('players.inventory.title')}
                           className="flex-1 min-h-0"
@@ -217,6 +221,10 @@ export function InventoryModal({ player, open, onClose }: Props) {
                         <div className="flex items-center gap-2">
                           <SectionLabel>{t('players.vehicles.vehiclesLabel')}</SectionLabel>
                           {vehiclesLoading && <Spinner size="sm" color="current" />}
+                        </div>
+                        <div className="shrink-0 rounded-[var(--radius)] px-4 py-2 text-xs font-medium bg-danger/10 border border-danger/40 text-danger flex items-center gap-2">
+                          <Icon name="triangle-alert" className="shrink-0" />
+                          <span>{t('players.vehicles.repairNotice')}</span>
                         </div>
                         <DataTable<VehicleRow, VehicleKey>
                           aria-label={t('players.vehicles.vehiclesLabel')}

@@ -504,7 +504,8 @@
         "stack": "堆叠",
         "quality": "品质",
         "durability": "耐久度"
-      }
+      },
+      "repairNotice": "耐久度变更已写入数据库，玩家需重新登录才能在游戏中看到更新。"
     },
     "vehicles": {
       "title": "载具",
@@ -526,7 +527,8 @@
         "chassis": "底盘",
         "name": "名称",
         "type": "类型"
-      }
+      },
+      "repairNotice": "载具维修需要重启服务器才能在游戏中生效。"
     },
     "give": {
       "title": "给予物品",

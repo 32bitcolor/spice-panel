@@ -504,7 +504,8 @@
         "stack": "Yığın",
         "quality": "Kalite",
         "durability": "Dayanıklılık"
-      }
+      },
+      "repairNotice": "Dayanıklılık değişiklikleri DB'ye yazılır. Oyuncunun değişiklikleri görmek için yeniden giriş yapması gerekir."
     },
     "vehicles": {
       "title": "Araçlar",
@@ -526,7 +527,8 @@
         "chassis": "Şasi",
         "name": "Ad",
         "type": "Tür"
-      }
+      },
+      "repairNotice": "Araç onarımlarının oyunda etkili olması için sunucu yeniden başlatılmalıdır."
     },
     "give": {
       "title": "Eşya Ver",

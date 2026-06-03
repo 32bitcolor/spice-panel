@@ -504,7 +504,8 @@
         "stack": "Stapel",
         "quality": "Qualität",
         "durability": "Haltbarkeit"
-      }
+      },
+      "repairNotice": "Haltbarkeitsänderungen werden in der DB gespeichert. Der Spieler muss sich neu einloggen, um die Änderungen im Spiel zu sehen."
     },
     "vehicles": {
       "title": "Fahrzeuge",
@@ -526,7 +527,8 @@
         "chassis": "Chassis",
         "name": "Name",
         "type": "Typ"
-      }
+      },
+      "repairNotice": "Fahrzeugreparaturen erfordern einen Serverneustart, um im Spiel wirksam zu werden."
     },
     "give": {
       "title": "Gegenstände geben",
