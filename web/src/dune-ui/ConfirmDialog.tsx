@@ -1,7 +1,8 @@
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlertDialog, Button } from '@heroui/react'
 
-type Props = {
+type ConfirmDialogProps = {
   open: boolean
   title: string
   description: string
@@ -10,7 +11,14 @@ type Props = {
   onCancel: () => void
 }
 
-export function ConfirmDialog({ open, title, description, confirmLabel, onConfirm, onCancel }: Props) {
+export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
+  open,
+  title,
+  description,
+  confirmLabel,
+  onConfirm,
+  onCancel,
+}) => {
   const { t } = useTranslation()
   return (
     <AlertDialog.Backdrop isOpen={open} onOpenChange={(v) => !v && onCancel()}>

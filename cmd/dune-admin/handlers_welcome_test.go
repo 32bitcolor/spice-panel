@@ -67,24 +67,108 @@ func TestHandlePutWelcomeConfig_MessageFieldsPersisted(t *testing.T) {
 	}
 }
 
+// TestHandlePutWelcomeConfig_MultipleActiveVersions verifies that multiple active
+// versions survive a PUT → GET round-trip and that active_version (compat field)
+// is set to the first element.
+func TestHandlePutWelcomeConfig_MultipleActiveVersions(t *testing.T) {
+	setupWelcomeStore(t)
+
+	payload := welcomeConfigResponse{
+		Enabled:          false,
+		ScanIntervalSecs: 30,
+		ActiveVersions:   []string{"v1", "v2"},
+		ActiveVersion:    "v1",
+		Packages: []welcomePackage{
+			{Version: "v1", Items: []welcomePackageItem{}},
+			{Version: "v2", Items: []welcomePackageItem{}},
+		},
+	}
+	body, _ := json.Marshal(payload)
+
+	putReq := httptest.NewRequest(http.MethodPut, "/api/v1/welcome-package/config", bytes.NewReader(body))
+	putRec := httptest.NewRecorder()
+	handlePutWelcomeConfig(putRec, putReq)
+	if putRec.Code != http.StatusOK {
+		t.Fatalf("PUT: want 200, got %d: %s", putRec.Code, putRec.Body.String())
+	}
+
+	getReq := httptest.NewRequest(http.MethodGet, "/api/v1/welcome-package/config", nil)
+	getRec := httptest.NewRecorder()
+	handleGetWelcomeConfig(getRec, getReq)
+	if getRec.Code != http.StatusOK {
+		t.Fatalf("GET: want 200, got %d: %s", getRec.Code, getRec.Body.String())
+	}
+
+	var got welcomeConfigResponse
+	if err := json.NewDecoder(getRec.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(got.ActiveVersions) != 2 || got.ActiveVersions[0] != "v1" || got.ActiveVersions[1] != "v2" {
+		t.Fatalf("ActiveVersions: want [v1 v2], got %v", got.ActiveVersions)
+	}
+	if got.ActiveVersion != "v1" {
+		t.Fatalf("ActiveVersion compat: want v1, got %q", got.ActiveVersion)
+	}
+}
+
+// TestHandlePutWelcomeConfig_CompatSingleActiveVersion verifies that a PUT with
+// only the legacy active_version field (no active_versions) is promoted to a
+// single-element slice on GET.
+func TestHandlePutWelcomeConfig_CompatSingleActiveVersion(t *testing.T) {
+	setupWelcomeStore(t)
+
+	payload := welcomeConfigResponse{
+		Enabled:          false,
+		ScanIntervalSecs: 30,
+		ActiveVersion:    "v1",
+		// ActiveVersions intentionally omitted (zero value = nil)
+		Packages: []welcomePackage{
+			{Version: "v1", Items: []welcomePackageItem{}},
+		},
+	}
+	body, _ := json.Marshal(payload)
+
+	putReq := httptest.NewRequest(http.MethodPut, "/api/v1/welcome-package/config", bytes.NewReader(body))
+	putRec := httptest.NewRecorder()
+	handlePutWelcomeConfig(putRec, putReq)
+	if putRec.Code != http.StatusOK {
+		t.Fatalf("PUT: want 200, got %d: %s", putRec.Code, putRec.Body.String())
+	}
+
+	getReq := httptest.NewRequest(http.MethodGet, "/api/v1/welcome-package/config", nil)
+	getRec := httptest.NewRecorder()
+	handleGetWelcomeConfig(getRec, getReq)
+	if getRec.Code != http.StatusOK {
+		t.Fatalf("GET: want 200, got %d: %s", getRec.Code, getRec.Body.String())
+	}
+
+	var got welcomeConfigResponse
+	if err := json.NewDecoder(getRec.Body).Decode(&got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(got.ActiveVersions) != 1 || got.ActiveVersions[0] != "v1" {
+		t.Fatalf("compat: want [v1], got %v", got.ActiveVersions)
+	}
+}
+
 func TestBuildWelcomeRuntime(t *testing.T) {
 	t.Parallel()
 	pkgs := []welcomePackage{{Version: "v1"}, {Version: "v2"}}
 	tests := []struct {
 		name         string
 		enabled      bool
-		active       string
+		active       []string
 		scanSecs     int
 		packages     []welcomePackage
 		wantActive   string
 		wantInterval time.Duration
 	}{
-		{"defaults active to first package", true, "", 0, pkgs, "v1", welcomeDefaultScanInterval},
-		{"unknown active falls back to first", true, "vX", 0, pkgs, "v1", welcomeDefaultScanInterval},
-		{"explicit active respected", true, "v2", 120, pkgs, "v2", 120 * time.Second},
-		{"interval below floor is clamped", false, "v1", 1, pkgs, "v1", welcomeDefaultScanInterval},
-		{"min interval honored", true, "v2", 5, pkgs, "v2", 5 * time.Second},
-		{"no packages → empty active", true, "", 60, nil, "", 60 * time.Second},
+		{"defaults active to first package", true, nil, 0, pkgs, "v1", welcomeDefaultScanInterval},
+		{"unknown active falls back to first", true, []string{"vX"}, 0, pkgs, "v1", welcomeDefaultScanInterval},
+		{"explicit active respected", true, []string{"v2"}, 120, pkgs, "v2", 120 * time.Second},
+		{"interval below floor is clamped", false, []string{"v1"}, 1, pkgs, "v1", welcomeDefaultScanInterval},
+		{"min interval honored", true, []string{"v2"}, 5, pkgs, "v2", 5 * time.Second},
+		{"no packages → empty active", true, nil, 60, nil, "", 60 * time.Second},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -94,8 +178,12 @@ func TestBuildWelcomeRuntime(t *testing.T) {
 			if rt.enabled != tt.enabled {
 				t.Fatalf("enabled: want %v, got %v", tt.enabled, rt.enabled)
 			}
-			if rt.activeVersion != tt.wantActive {
-				t.Fatalf("activeVersion: want %q, got %q", tt.wantActive, rt.activeVersion)
+			firstActive := ""
+			if len(rt.activeVersions) > 0 {
+				firstActive = rt.activeVersions[0]
+			}
+			if firstActive != tt.wantActive {
+				t.Fatalf("activeVersion: want %q, got %q", tt.wantActive, firstActive)
 			}
 			if rt.interval != tt.wantInterval {
 				t.Fatalf("interval: want %v, got %v", tt.wantInterval, rt.interval)
@@ -106,7 +194,7 @@ func TestBuildWelcomeRuntime(t *testing.T) {
 
 func TestWelcomeRuntimeActive(t *testing.T) {
 	t.Parallel()
-	rt := buildWelcomeRuntime(true, "v2", 30, []welcomePackage{
+	rt := buildWelcomeRuntime(true, []string{"v2"}, 30, []welcomePackage{
 		{Version: "v1", Items: []welcomePackageItem{{Template: "A", Qty: 1}}},
 		{Version: "v2", Items: []welcomePackageItem{{Template: "B", Qty: 2}}},
 	}, welcomeMessageOptions{})
@@ -118,7 +206,7 @@ func TestWelcomeRuntimeActive(t *testing.T) {
 		t.Fatalf("active package wrong: %+v", p)
 	}
 
-	empty := buildWelcomeRuntime(true, "", 30, nil, welcomeMessageOptions{})
+	empty := buildWelcomeRuntime(true, nil, 30, nil, welcomeMessageOptions{})
 	if _, ok := empty.active(); ok {
 		t.Fatal("expected no active package when library is empty")
 	}

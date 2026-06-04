@@ -1,0 +1,168 @@
+import type React from 'react'
+import { Button, ListBox, Spinner } from '@heroui/react'
+import { useTranslation } from 'react-i18next'
+import { Icon, NumberInput, PageHeader, Panel, SectionLabel } from '../../../dune-ui'
+import type { WelcomeSharedProps } from '../types'
+
+type ConfigViewProps = Pick<
+  WelcomeSharedProps,
+  | 'enabled' | 'setEnabled'
+  | 'scanSecs' | 'setScanSecs'
+  | 'packages'
+  | 'activeVersions' | 'setActiveVersions'
+  | 'welcomeMessageEnabled' | 'setWelcomeMessageEnabled'
+  | 'welcomeMessage' | 'setWelcomeMessage'
+  | 'welcomeWhisperSourcePlayer' | 'setWelcomeWhisperSourcePlayer'
+  | 'save' | 'saving'
+  | 'runNow' | 'running'
+  | 'load' | 'loading'
+>
+
+export const ConfigView: React.FC<ConfigViewProps> = ({
+  enabled, setEnabled,
+  scanSecs, setScanSecs,
+  packages,
+  activeVersions, setActiveVersions,
+  welcomeMessageEnabled, setWelcomeMessageEnabled,
+  welcomeMessage, setWelcomeMessage,
+  welcomeWhisperSourcePlayer, setWelcomeWhisperSourcePlayer,
+  save, saving,
+  runNow, running,
+  load, loading,
+}) => {
+  const { t } = useTranslation()
+
+  return (
+    <div className="flex flex-col h-full min-h-0 gap-3">
+      {/* Header */}
+      <PageHeader title={t('welcome.sections.config')} subtitle={t('welcome.configSubtitle')}>
+        <Button size="sm" variant="ghost" onPress={load} isDisabled={loading}>
+          {loading
+            ? <Spinner size="sm" color="current" />
+            : (
+                <>
+                  <Icon name="refresh-cw" />
+                  {' '}
+                  {t('common.refresh')}
+                </>
+              )}
+        </Button>
+      </PageHeader>
+
+      {/* Compact one-liner: enabled toggle + scan interval */}
+      <div className="flex items-center gap-6 shrink-0">
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(e) => setEnabled(e.target.checked)}
+            className="h-4 w-4 accent-accent"
+          />
+          <span className="text-sm text-foreground">{t('welcome.enabledLabel')}</span>
+        </label>
+        <span className="text-xs text-muted">{t('welcome.enabledHint')}</span>
+        <NumberInput
+          label={t('welcome.scanInterval')}
+          min={5}
+          step={5}
+          value={scanSecs}
+          onChange={setScanSecs}
+          className="w-56 ml-auto"
+        />
+      </div>
+
+      {/* Active versions — flex-1 fills remaining space */}
+      <div className="flex flex-col flex-1 min-h-0 gap-1">
+        <SectionLabel>{t('welcome.activeVersionGranted')}</SectionLabel>
+        {packages.length === 0
+          ? <p className="text-xs text-muted mt-1">{t('welcome.noPackageSelected')}</p>
+          : (
+              <ListBox
+                aria-label={t('welcome.activeVersionGranted')}
+                selectionMode="multiple"
+                selectedKeys={new Set(activeVersions)}
+                onSelectionChange={(keys) => {
+                  setActiveVersions(Array.from(keys).map(String))
+                }}
+                className="flex-1 min-h-0 overflow-y-auto rounded-[var(--radius)] border border-border"
+              >
+                {packages.map((p) => (
+                  <ListBox.Item key={p.version} id={p.version} textValue={p.version}>
+                    {p.version}
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                ))}
+              </ListBox>
+            )}
+      </div>
+
+      {/* Welcome message panel — fixed height */}
+      <Panel className="shrink-0">
+        <SectionLabel>{t('welcome.message.title')}</SectionLabel>
+
+        <label className="flex items-center gap-2 mt-1 cursor-pointer select-none w-fit">
+          <input
+            type="checkbox"
+            checked={welcomeMessageEnabled}
+            onChange={(e) => setWelcomeMessageEnabled(e.target.checked)}
+            className="h-4 w-4 accent-accent"
+          />
+          <span className="text-sm text-foreground">{t('welcome.message.enabledLabel')}</span>
+        </label>
+        <p className="text-xs text-muted mt-1 mb-3">
+          {t('welcome.message.enabledHint')}
+        </p>
+
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <span className="text-xs text-muted">{t('welcome.message.messageLabel')}</span>
+            <textarea
+              className="w-full rounded-[var(--radius)] border border-border bg-surface text-foreground text-sm px-3 py-2 resize-none focus:outline-none focus:border-accent disabled:opacity-50"
+              rows={3}
+              placeholder={t('welcome.message.messagePlaceholder')}
+              value={welcomeMessage}
+              disabled={!welcomeMessageEnabled}
+              onChange={(e) => setWelcomeMessage(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1 max-w-md">
+            <span className="text-xs text-muted">{t('welcome.message.senderLabel')}</span>
+            <input
+              className="w-full rounded-[var(--radius)] border border-border bg-surface text-foreground text-sm px-3 py-2 focus:outline-none focus:border-accent disabled:opacity-50"
+              placeholder={t('welcome.message.senderPlaceholder')}
+              value={welcomeWhisperSourcePlayer}
+              disabled={!welcomeMessageEnabled}
+              onChange={(e) => setWelcomeWhisperSourcePlayer(e.target.value)}
+            />
+          </div>
+        </div>
+      </Panel>
+
+      {/* Action bar — fixed at bottom */}
+      <div className="flex items-center gap-2 shrink-0">
+        <Button size="sm" variant="secondary" onPress={save} isDisabled={saving}>
+          {saving
+            ? <Spinner size="sm" color="current" />
+            : (
+                <>
+                  <Icon name="save" />
+                  {' '}
+                  {t('welcome.saveConfig')}
+                </>
+              )}
+        </Button>
+        <Button size="sm" variant="outline" onPress={runNow} isDisabled={running}>
+          {running
+            ? <Spinner size="sm" color="current" />
+            : (
+                <>
+                  <Icon name="play" />
+                  {' '}
+                  {t('welcome.runNow')}
+                </>
+              )}
+        </Button>
+      </div>
+    </div>
+  )
+}

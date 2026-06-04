@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState, useEffect, useMemo } from 'react'
 import {
   Button, Header, ListBox, Modal,
@@ -10,7 +11,7 @@ import { Icon, LoadingState, NumberInput } from '../../../dune-ui'
 import type { PacksData } from '../types'
 import { cdnBase } from '../../../data/itemData'
 
-interface Props {
+interface GiveItemsModalProps {
   player: Player
   open: boolean
   onClose: () => void
@@ -20,7 +21,7 @@ type SkippedItem = { template: string, reason: string }
 type GiveResult = { given: string[], skipped: SkippedItem[] } | null
 type StagedItem = { template: string, qty: number, quality: number }
 
-export function GiveItemsModal({ player, open, onClose }: Props) {
+export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, onClose }) => {
   const { t } = useTranslation()
   const [templates, setTemplates] = useState<{ id: string, name: string }[]>([])
   const [packsData, setPacksData] = useState<PacksData>({ packs: {} })

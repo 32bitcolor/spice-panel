@@ -977,7 +977,7 @@
     "removeItem": "Gegenstand entfernen",
     "saveConfig": "Konfiguration speichern",
     "runNow": "Jetzt ausführen",
-    "grantsTitle": "Gewährungshistorie (letzte 100)",
+    "grantsTitle": "Vergabehistorie ({{count}})",
     "grantsLabel": "Willkommenspaket-Gewährungen",
     "noGrants": "Noch keine Gewährungen.",
     "retry": "Erneut versuchen",
@@ -1007,7 +1007,15 @@
       "messagePlaceholder": "Willkommen auf dem Server! Genieße dein Starterpaket.",
       "senderLabel": "Absender-FLS-ID (optional)",
       "senderPlaceholder": "Leer lassen, um die hinterlegte GM-Persona zu verwenden"
-    }
+    },
+    "sections": {
+      "config": "Konfiguration",
+      "packages": "Pakete",
+      "grants": "Zuweisungen"
+    },
+    "configSubtitle": "Vergabe aktivieren, aktive Pakete festlegen und Willkommensnachricht konfigurieren.",
+    "packagesSubtitle": "Gegenstands-Pakete erstellen und verwalten. Jede Version kann unabhängig vergeben werden.",
+    "activeVersionGranted": "AKTIVE VERSION(EN) (VERGEBEN)"
   },
   "settings": {
     "backendUrl": "Backend-URL",

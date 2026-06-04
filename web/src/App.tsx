@@ -1,22 +1,23 @@
+import type React from 'react'
 import { memo, useState, useCallback, useEffect, useRef, type ReactNode } from 'react'
 import { Show, SignInButton, UserButton, useAuth } from '@clerk/react'
 import { Button, Chip, Modal, Spinner, Tabs, Toast, ToggleButton, ToggleButtonGroup, toast } from '@heroui/react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useStatus } from './hooks/useStatus'
-import SettingsConfigForm from './components/SettingsConfigForm'
+import { SettingsConfigForm } from './components/SettingsConfigForm'
 import { LanguageSelector } from './components/LanguageSelector'
-import BattlegroupTab from './tabs/BattlegroupTab'
-import LiveMapTab from './tabs/LiveMapTab'
-import PlayersTab from './tabs/PlayersTab'
-import DatabaseTab from './tabs/DatabaseTab'
-import LogsTab from './tabs/LogsTab'
-import BlueprintsTab from './tabs/BlueprintsTab'
-import BasesTab from './tabs/BasesTab'
-import StorageTab from './tabs/StorageTab'
-import ServerSettingsTab from './tabs/ServerSettingsTab'
-import MarketTab from './tabs/MarketTab'
-import WelcomePackageTab from './tabs/WelcomePackageTab'
+import { BattlegroupTab } from './tabs/BattlegroupTab'
+import { LiveMapTab } from './tabs/LiveMapTab'
+import { PlayersTab } from './tabs/PlayersTab'
+import { DatabaseTab } from './tabs/DatabaseTab'
+import { LogsTab } from './tabs/LogsTab'
+import { BlueprintsTab } from './tabs/BlueprintsTab'
+import { BasesTab } from './tabs/BasesTab'
+import { StorageTab } from './tabs/StorageTab'
+import { ServerSettingsTab } from './tabs/ServerSettingsTab'
+import { MarketTab } from './tabs/MarketTab'
+import { WelcomePackageTab } from './tabs/WelcomePackageTab'
 import { Icon, SideNav } from './dune-ui'
 import { api } from './api/client'
 import type { UpdateCheckResult } from './api/client'
@@ -43,16 +44,8 @@ function currentTabFromPath(pathname: string): TabId {
 }
 
 type DbSection = 'tables' | 'describe' | 'sample' | 'search' | 'sql'
+type WelcomeSection = 'config' | 'packages' | 'grants'
 type LayoutMode = 'sidenav' | 'topnav'
-
-// Sub-items shown in the Operations nav when the Database tab is active.
-const DB_SECTIONS: { key: string, label: string, depth: number }[] = [
-  { key: 'db:tables', label: 'Tables', depth: 1 },
-  { key: 'db:describe', label: 'Describe', depth: 1 },
-  { key: 'db:sample', label: 'Sample', depth: 1 },
-  { key: 'db:search', label: 'Search Columns', depth: 1 },
-  { key: 'db:sql', label: 'Run SQL', depth: 1 },
-]
 
 // Memoized at module level so identity is stable — prevents all inactive tabs from
 // re-rendering whenever AppCore re-renders (e.g. router location change, useStatus poll).
@@ -70,12 +63,26 @@ const MWelcomePackageTab = memo(WelcomePackageTab)
 
 const hasClerk = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
+interface AppCoreProps {
+  isSignedIn: boolean
+}
+
+interface TabPaneProps {
+  active: boolean
+  children: ReactNode
+}
+
+interface ConnectionBadgeProps {
+  label: string
+  connected: boolean
+}
+
 function AppWithAuth() {
   const { isSignedIn } = useAuth()
   return <AppCore isSignedIn={!!isSignedIn} />
 }
 
-export default function App() {
+export const App: React.FC = () => {
   return hasClerk ? <AppWithAuth /> : <AppCore isSignedIn={true} />
 }
 
@@ -93,12 +100,26 @@ function isNewer(latest: string, current: string): boolean {
   return lc > cc
 }
 
-function AppCore({ isSignedIn }: { isSignedIn: boolean }) {
+const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
   const status = useStatus()
   const location = useLocation()
   const navigate = useNavigate()
   const { t } = useTranslation()
   const [reconnecting, setReconnecting] = useState(false)
+
+  const DB_SECTIONS: { key: string, label: string, depth: number }[] = [
+    { key: 'db:tables', label: `╰─ ${t('database.sections.tables')}`, depth: 1 },
+    { key: 'db:describe', label: `╰─ ${t('database.sections.describe')}`, depth: 1 },
+    { key: 'db:sample', label: `╰─ ${t('database.sections.sample')}`, depth: 1 },
+    { key: 'db:search', label: `╰─ ${t('database.sections.search')}`, depth: 1 },
+    { key: 'db:sql', label: `╰─ ${t('database.sections.sql')}`, depth: 1 },
+  ]
+
+  const WELCOME_SECTIONS: { key: string, label: string, depth: number }[] = [
+    { key: 'welcome:config', label: `╰─ ${t('welcome.sections.config')}`, depth: 1 },
+    { key: 'welcome:packages', label: `╰─ ${t('welcome.sections.packages')}`, depth: 1 },
+    { key: 'welcome:grants', label: `╰─ ${t('welcome.sections.grants')}`, depth: 1 },
+  ]
 
   // Re-establish backend connections (DB + control plane) without a service
   // restart — used by the header Reconnect button when the DB shows disconnected
@@ -157,6 +178,7 @@ function AppCore({ isSignedIn }: { isSignedIn: boolean }) {
     setLayoutMode(m)
   }, [])
   const [dbSection, setDbSection] = useState<DbSection>('tables')
+  const [welcomeSection, setWelcomeSection] = useState<WelcomeSection>('config')
   const [showBackendConfig, setShowBackendConfig] = useState(false)
   const [latestVersion, setLatestVersion] = useState<string | null>(null)
   const [updateInfo, setUpdateInfo] = useState<UpdateCheckResult | null>(null)
@@ -474,6 +496,10 @@ function AppCore({ isSignedIn }: { isSignedIn: boolean }) {
           ? <MDatabaseTab section={dbSection} showSubnav onSectionChange={setDbSection} />
           : <MDatabaseTab section={dbSection} />
 
+        const welcomeNode = layoutMode === 'topnav'
+          ? <MWelcomePackageTab section={welcomeSection} showSubnav onSectionChange={setWelcomeSection} />
+          : <MWelcomePackageTab section={welcomeSection} />
+
         if (layoutMode === 'sidenav') {
           return (
             <div className="flex-1 flex gap-3 p-3 overflow-hidden min-h-0">
@@ -498,17 +524,34 @@ function AppCore({ isSignedIn }: { isSignedIn: boolean }) {
                     }
                   }}
                 />
-                {/* Player World + Economy */}
-                {NAV_GROUPS.slice(1).map((group) => (
-                  <SideNav
-                    key={group.title}
-                    width="w-full"
-                    title={group.title}
-                    items={group.items}
-                    active={currentTab}
-                    onSelect={(k) => navigate(`/${k}`)}
-                  />
-                ))}
+                {/* Player World: unchanged */}
+                <SideNav
+                  key={NAV_GROUPS[1].title}
+                  width="w-full"
+                  title={NAV_GROUPS[1].title}
+                  items={NAV_GROUPS[1].items}
+                  active={currentTab}
+                  onSelect={(k) => navigate(`/${k}`)}
+                />
+                {/* Economy: expand Welcome sub-items inline */}
+                <SideNav
+                  width="w-full"
+                  title={NAV_GROUPS[2].title}
+                  items={[
+                    ...NAV_GROUPS[2].items,
+                    ...(currentTab === 'welcome' ? WELCOME_SECTIONS : []),
+                  ] as { key: string, label: string, depth?: number }[]}
+                  active={currentTab === 'welcome' ? `welcome:${welcomeSection}` : currentTab}
+                  onSelect={(k: string) => {
+                    if (k.startsWith('welcome:')) {
+                      setWelcomeSection(k.slice(8) as WelcomeSection)
+                      if (currentTab !== 'welcome') navigate('/welcome')
+                    }
+                    else {
+                      navigate(`/${k}`)
+                    }
+                  }}
+                />
               </nav>
               <main className="flex-1 overflow-hidden min-h-0">
                 {renderTab('battlegroup', <MBattlegroupTab isActive={currentTab === 'battlegroup'} />)}
@@ -521,7 +564,7 @@ function AppCore({ isSignedIn }: { isSignedIn: boolean }) {
                 {renderTab('livemap', <MLiveMapTab isActive={currentTab === 'livemap'} />)}
                 {renderTab('server', <MServerSettingsTab />)}
                 {renderTab('market', <MMarketTab />)}
-                {renderTab('welcome', <MWelcomePackageTab />)}
+                {renderTab('welcome', welcomeNode)}
               </main>
             </div>
           )
@@ -558,7 +601,7 @@ function AppCore({ isSignedIn }: { isSignedIn: boolean }) {
                 {renderTab('livemap', <MLiveMapTab isActive={currentTab === 'livemap'} />)}
                 {renderTab('server', <MServerSettingsTab />)}
                 {renderTab('market', <MMarketTab />)}
-                {renderTab('welcome', <MWelcomePackageTab />)}
+                {renderTab('welcome', welcomeNode)}
               </main>
             </div>
           </>
@@ -568,9 +611,7 @@ function AppCore({ isSignedIn }: { isSignedIn: boolean }) {
   )
 }
 
-// TabPane keeps every tab mounted and toggles visibility, preserving in-tab
-// state and the isActive auto-refresh contract when switching via the sidebar.
-function TabPane({ active, children }: { active: boolean, children: ReactNode }) {
+function TabPane({ active, children }: TabPaneProps) {
   return (
     <div className={`h-full min-h-0 ${active ? 'flex flex-col dune-tab-active' : 'hidden'}`}>
       {children}
@@ -578,7 +619,7 @@ function TabPane({ active, children }: { active: boolean, children: ReactNode })
   )
 }
 
-function ConnectionBadge({ label, connected }: { label: string, connected: boolean }) {
+function ConnectionBadge({ label, connected }: ConnectionBadgeProps) {
   return (
     <div className="flex items-center gap-1.5 text-xs">
       <div className={`w-2 h-2 rounded-full ${connected ? 'bg-success' : 'bg-muted/40'}`} />

@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState, useEffect } from 'react'
 import { Button, Chip, toast } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
@@ -7,11 +8,11 @@ import { DataTable, Icon, LoadingState, SectionLabel, type Column } from '../../
 
 type VehicleKey = 'class' | 'location' | 'chassis' | 'name' | 'type' | 'actions'
 
-interface Props {
+interface VehiclesViewProps {
   player: Player
 }
 
-export function VehiclesView({ player }: Props) {
+export const VehiclesView: React.FC<VehiclesViewProps> = ({ player }) => {
   const { t } = useTranslation()
   const [vehicles, setVehicles] = useState<VehicleRow[]>([])
   const [loading, setLoading] = useState(false)

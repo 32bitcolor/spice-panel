@@ -1,9 +1,10 @@
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import type { SessionRecord } from '../../../api/client'
 import { SectionLabel } from '../../../dune-ui'
 
-interface Props {
+interface SessionChartProps {
   data: SessionRecord[]
 }
 
@@ -24,7 +25,7 @@ function fmtDate(d: string): string {
   return new Date(d + 'T12:00:00Z').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-export function SessionChart({ data }: Props) {
+export const SessionChart: React.FC<SessionChartProps> = ({ data }) => {
   const { t } = useTranslation()
   const buckets = aggregate(data)
 

@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Modal, Spinner } from '@heroui/react'
@@ -48,12 +49,12 @@ function ClickCapturer({ onPick }: ClickCapturerProps) {
   return null
 }
 
-interface Props {
+interface MapCoordPickerModalProps {
   onPick: (x: number, y: number, z: number) => void
   onClose: () => void
 }
 
-export function MapCoordPickerModal({ onPick, onClose }: Props) {
+export const MapCoordPickerModal: React.FC<MapCoordPickerModalProps> = ({ onPick, onClose }) => {
   const [picked, setPicked] = useState<{ x: number, y: number, z: number } | null>(null)
   const [mapReady, setMapReady] = useState(false)
 

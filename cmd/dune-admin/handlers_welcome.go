@@ -12,11 +12,14 @@ import (
 
 // welcomeConfigResponse is the shape returned by the config endpoints and
 // consumed by the WelcomePackage tab. It carries the whole package library plus
-// the active-version pointer.
+// the active-version pointer(s).
+// ActiveVersion is kept for backwards compatibility (first element of ActiveVersions).
+// New clients should use ActiveVersions.
 type welcomeConfigResponse struct {
 	Enabled                    bool             `json:"enabled"`
 	ScanIntervalSecs           int              `json:"scan_interval_secs"`
 	ActiveVersion              string           `json:"active_version"`
+	ActiveVersions             []string         `json:"active_versions"`
 	Packages                   []welcomePackage `json:"packages"`
 	WelcomeMessageEnabled      bool             `json:"welcome_message_enabled"`
 	WelcomeMessage             string           `json:"welcome_message"`
@@ -29,10 +32,19 @@ func currentWelcomeConfig() welcomeConfigResponse {
 	if pkgs == nil {
 		pkgs = []welcomePackage{}
 	}
+	avs := rt.activeVersions
+	if avs == nil {
+		avs = []string{}
+	}
+	firstActive := ""
+	if len(avs) > 0 {
+		firstActive = avs[0]
+	}
 	return welcomeConfigResponse{
 		Enabled:                    rt.enabled,
 		ScanIntervalSecs:           int(rt.interval / time.Second),
-		ActiveVersion:              rt.activeVersion,
+		ActiveVersion:              firstActive,
+		ActiveVersions:             avs,
 		Packages:                   pkgs,
 		WelcomeMessageEnabled:      rt.welcomeMessageEnabled,
 		WelcomeMessage:             rt.welcomeMessage,
@@ -72,7 +84,7 @@ func applyWelcomeConfigFromStore() error {
 	if err := json.Unmarshal([]byte(row.PackagesJSON), &pkgs); err != nil {
 		return fmt.Errorf("parse welcome packages JSON: %w", err)
 	}
-	setWelcomeRuntime(buildWelcomeRuntime(row.Enabled, row.ActiveVersion, row.ScanSecs, pkgs, welcomeMessageOptions{
+	setWelcomeRuntime(buildWelcomeRuntime(row.Enabled, row.ActiveVersions, row.ScanSecs, pkgs, welcomeMessageOptions{
 		enabled:      row.WelcomeMessageEnabled,
 		message:      row.WelcomeMessage,
 		sourcePlayer: row.WelcomeWhisperSourcePlayer,
@@ -102,15 +114,35 @@ func seedWelcomeConfigFromYAML() error {
 	scanSecs := loadedConfig.WelcomePackageScanSecs
 	enabled := loadedConfig.WelcomePackageEnabled != nil && *loadedConfig.WelcomePackageEnabled
 	row := welcomeConfigRow{
-		Enabled:       enabled,
-		ScanSecs:      scanSecs,
-		ActiveVersion: active,
-		PackagesJSON:  string(pkgsJSON),
+		Enabled:  enabled,
+		ScanSecs: scanSecs,
+		ActiveVersions: func() []string {
+			if active != "" {
+				return []string{active}
+			}
+			return nil
+		}(),
+		PackagesJSON: string(pkgsJSON),
 	}
 	if err := welcomeStoreDB.saveConfig(row); err != nil {
 		return fmt.Errorf("seed welcome config: %w", err)
 	}
-	setWelcomeRuntime(buildWelcomeRuntime(enabled, active, scanSecs, pkgs, welcomeMessageOptions{}))
+	setWelcomeRuntime(buildWelcomeRuntime(enabled, row.ActiveVersions, scanSecs, pkgs, welcomeMessageOptions{}))
+	return nil
+}
+
+// validateActivePackages returns an error if any active package has invalid items,
+// or if no active packages are selected. Only called when enabled=true.
+func validateActivePackages(rt welcomePackageRuntime) error {
+	activePkgs := rt.activePackages()
+	if len(activePkgs) == 0 {
+		return fmt.Errorf("select an active package version before enabling")
+	}
+	for _, pkg := range activePkgs {
+		if err := validateWelcomeItems(pkg.Items); err != nil {
+			return fmt.Errorf("package %q: %w", pkg.Version, err)
+		}
+	}
 	return nil
 }
 
@@ -130,21 +162,20 @@ func handlePutWelcomeConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rt := buildWelcomeRuntime(req.Enabled, req.ActiveVersion, req.ScanIntervalSecs, req.Packages, welcomeMessageOptions{
+	// Resolve active versions: prefer ActiveVersions; fall back to legacy ActiveVersion.
+	activeVersions := req.ActiveVersions
+	if len(activeVersions) == 0 && req.ActiveVersion != "" {
+		activeVersions = []string{req.ActiveVersion}
+	}
+
+	rt := buildWelcomeRuntime(req.Enabled, activeVersions, req.ScanIntervalSecs, req.Packages, welcomeMessageOptions{
 		enabled:      req.WelcomeMessageEnabled,
 		message:      req.WelcomeMessage,
 		sourcePlayer: req.WelcomeWhisperSourcePlayer,
 	})
 
-	// Only require a valid active package when enabling — an operator can save a
-	// disabled draft (e.g. no packages yet, or a half-built one).
 	if req.Enabled {
-		pkg, ok := rt.active()
-		if !ok {
-			jsonErr(w, fmt.Errorf("select an active package version before enabling"), http.StatusBadRequest)
-			return
-		}
-		if err := validateWelcomeItems(pkg.Items); err != nil {
+		if err := validateActivePackages(rt); err != nil {
 			jsonErr(w, err, http.StatusBadRequest)
 			return
 		}
@@ -160,7 +191,7 @@ func handlePutWelcomeConfig(w http.ResponseWriter, r *http.Request) {
 		row := welcomeConfigRow{
 			Enabled:                    rt.enabled,
 			ScanSecs:                   int(rt.interval / time.Second),
-			ActiveVersion:              rt.activeVersion,
+			ActiveVersions:             rt.activeVersions,
 			PackagesJSON:               string(pkgsJSON),
 			WelcomeMessageEnabled:      rt.welcomeMessageEnabled,
 			WelcomeMessage:             rt.welcomeMessage,
@@ -254,23 +285,29 @@ func handleRunWelcomePackage(w http.ResponseWriter, _ *http.Request) {
 		return
 	}
 	rt := getWelcomeRuntime()
-	pkg, ok := rt.active()
-	if !ok {
+	activePkgs := rt.activePackages()
+	if len(activePkgs) == 0 {
 		jsonErr(w, fmt.Errorf("no active package selected"), http.StatusBadRequest)
 		return
 	}
-	if err := validateWelcomeItems(pkg.Items); err != nil {
-		jsonErr(w, err, http.StatusBadRequest)
-		return
+	var totalGranted, totalFailed, totalSkipped int
+	for _, pkg := range activePkgs {
+		if err := validateWelcomeItems(pkg.Items); err != nil {
+			jsonErr(w, fmt.Errorf("package %q: %w", pkg.Version, err), http.StatusBadRequest)
+			return
+		}
+		g, f, s, err := welcomePackageScanOnce(context.Background(), pkg.Version, pkg.Items, welcomeScanDeps{
+			listAccounts: listWelcomeOnlineAccounts,
+			grant:        welcomeGrantViaGiveItems,
+			store:        welcomeStoreDB,
+		})
+		if err != nil {
+			jsonErr(w, err, http.StatusInternalServerError)
+			return
+		}
+		totalGranted += g
+		totalFailed += f
+		totalSkipped += s
 	}
-	g, f, s, err := welcomePackageScanOnce(context.Background(), pkg.Version, pkg.Items, welcomeScanDeps{
-		listAccounts: listWelcomeOnlineAccounts,
-		grant:        welcomeGrantViaGiveItems,
-		store:        welcomeStoreDB,
-	})
-	if err != nil {
-		jsonErr(w, err, http.StatusInternalServerError)
-		return
-	}
-	jsonOK(w, map[string]any{"granted": g, "failed": f, "skipped": s})
+	jsonOK(w, map[string]any{"granted": totalGranted, "failed": totalFailed, "skipped": totalSkipped})
 }

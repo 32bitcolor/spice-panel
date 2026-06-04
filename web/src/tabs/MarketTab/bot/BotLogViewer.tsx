@@ -1,16 +1,17 @@
+import type React from 'react'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button, Checkbox } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
 import { getWsBase, api } from '../../../api/client'
 import { Icon } from '../../../dune-ui'
 
-type Props = {
+type BotLogViewerProps = {
   active?: boolean
 }
 
 type ConnState = 'idle' | 'connecting' | 'connected' | 'error'
 
-export default function BotLogViewer({ active = false }: Props) {
+export const BotLogViewer: React.FC<BotLogViewerProps> = ({ active = false }: BotLogViewerProps) => {
   const { t } = useTranslation()
   const [connState, setConnState] = useState<ConnState>('idle')
   const [error, setError] = useState<string | null>(null)

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Card, Spinner, toast } from '@heroui/react'
 import { api, ApiError } from '../api/client'
@@ -7,7 +8,11 @@ import { DataTable, Icon, PageHeader, type Column } from '../dune-ui'
 
 type Key = 'id' | 'name' | 'pieces' | 'placeables' | 'actions'
 
-export default function BasesTab({ isSignedIn = true }: { isSignedIn?: boolean }) {
+interface BasesTabProps {
+  isSignedIn?: boolean
+}
+
+export const BasesTab: React.FC<BasesTabProps> = ({ isSignedIn = true }) => {
   const { t } = useTranslation()
   const [bases, setBases] = useState<BaseRow[]>([])
   const [loading, setLoading] = useState(false)

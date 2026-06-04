@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState, useEffect, useMemo, useCallback, memo, type ReactNode } from 'react'
 import {
   Button,
@@ -31,7 +32,7 @@ import type {
 } from '../../../api/client'
 import { ACTION_SECTIONS, XP_TRACKS, FACTIONS, type ActionSection } from '../types'
 
-interface Props {
+interface PlayerActionsModalProps {
   player: Player
   open: boolean
   onClose: () => void
@@ -42,7 +43,7 @@ type TrainerKey = (typeof TRAINERS)[number]
 
 const MAIN_QUESTS = [
   { id: 'DA_MQ_ANewBeginning', label: '1. A New Beginning', nodes: 132 },
-  { id: 'DA_MQ_AssassinsHandbook', label: '2. Assassin’s Handbook', nodes: 91 },
+  { id: 'DA_MQ_AssassinsHandbook', label: '2. Assassin\'s Handbook', nodes: 91 },
   { id: 'DA_MQ_FindTheFremen', label: '3. Find the Fremen', nodes: 46 },
   { id: 'DA_MQ_TheGreatConvention', label: '4. The Great Convention', nodes: 90 },
   { id: 'DA_MQ_TheGreatConventionPt2', label: '5. Great Convention Pt 2', nodes: 109 },
@@ -58,15 +59,17 @@ function useDebounce<T>(value: T, delay = 300): T {
   return debounced
 }
 
+interface DebouncedSearchFieldProps {
+  onSearch: (q: string) => void
+  placeholder?: string
+  className?: string
+}
+
 function DebouncedSearchField({
   onSearch,
   placeholder,
   className,
-}: {
-  onSearch: (q: string) => void
-  placeholder?: string
-  className?: string
-}) {
+}: DebouncedSearchFieldProps) {
   const [value, setValue] = useState('')
   const debounced = useDebounce(value)
   useEffect(() => {
@@ -83,15 +86,17 @@ function DebouncedSearchField({
   )
 }
 
+interface AddTagsPanelProps {
+  tags: string[]
+  pendingTags: string[]
+  onAdd: (tag: string) => void
+}
+
 const AddTagsPanel = memo(function AddTagsPanel({
   tags,
   pendingTags,
   onAdd,
-}: {
-  tags: string[]
-  pendingTags: string[]
-  onAdd: (tag: string) => void
-}) {
+}: AddTagsPanelProps) {
   const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const debouncedQuery = useDebounce(query)
@@ -136,7 +141,7 @@ const AddTagsPanel = memo(function AddTagsPanel({
   )
 })
 
-export function PlayerActionsModal({ player, open, onClose }: Props) {
+export const PlayerActionsModal: React.FC<PlayerActionsModalProps> = ({ player, open, onClose }) => {
   const { t } = useTranslation()
   const [section, setSection] = useState<ActionSection>('resources')
   const [busy, setBusy] = useState(false)

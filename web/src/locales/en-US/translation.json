@@ -259,15 +259,42 @@
         "loadingPresets": "Loading…",
         "noPresets": "No presets available",
         "presets": {
-          "skip_npe": { "name": "Skip NPE (New Player Experience)", "desc": "Marks the tutorial/NPE as complete. Useful for experienced players who don't need the intro." },
-          "a_new_beginning": { "name": "Complete: A New Beginning", "desc": "Main story intro — crafting Stillsuit, harvesting resources, fabricator research. Unlocks early game." },
-          "find_the_fremen": { "name": "Complete: Find the Fremen (Trials of Aql)", "desc": "All 7 trials, the Sietch, and Epilogue. Unlocks the Fremkit (Stillsuit, Thumper, Cryss Knife, etc.) and completes Act 1." },
-          "act1_complete": { "name": "Complete: All of Act 1", "desc": "A New Beginning + Find the Fremen combined. Player starts ready for Act 2." },
-          "vermillius_intro": { "name": "Skip: Vermillius Gap Tutorials", "desc": "Completes all Vermillius Gap tutorial quests (research, crafting, exploration). No tag side effects — pure tutorial skip." },
-          "deep_desert_intro": { "name": "Skip: Deep Desert Intro", "desc": "Completes the Deep Desert side quest chain." },
-          "taxation_intro": { "name": "Skip: Taxation / Exchange Tutorial", "desc": "Completes the exchange/travel tutorial chain." },
-          "overland_intro": { "name": "Skip: Overland Map Intro", "desc": "Completes the Overland map side quest chain (Hark Landsraad missions, keystones)." },
-          "unlock_all_lore": { "name": "Unlock All Lore (Dunipedia)", "desc": "Reveals all Dunipedia entries: Known Universe, Landmarks, Manual of the Friendly Desert, War for Arrakis." }
+          "skip_npe": {
+            "name": "Skip NPE (New Player Experience)",
+            "desc": "Marks the tutorial/NPE as complete. Useful for experienced players who don't need the intro."
+          },
+          "a_new_beginning": {
+            "name": "Complete: A New Beginning",
+            "desc": "Main story intro — crafting Stillsuit, harvesting resources, fabricator research. Unlocks early game."
+          },
+          "find_the_fremen": {
+            "name": "Complete: Find the Fremen (Trials of Aql)",
+            "desc": "All 7 trials, the Sietch, and Epilogue. Unlocks the Fremkit (Stillsuit, Thumper, Cryss Knife, etc.) and completes Act 1."
+          },
+          "act1_complete": {
+            "name": "Complete: All of Act 1",
+            "desc": "A New Beginning + Find the Fremen combined. Player starts ready for Act 2."
+          },
+          "vermillius_intro": {
+            "name": "Skip: Vermillius Gap Tutorials",
+            "desc": "Completes all Vermillius Gap tutorial quests (research, crafting, exploration). No tag side effects — pure tutorial skip."
+          },
+          "deep_desert_intro": {
+            "name": "Skip: Deep Desert Intro",
+            "desc": "Completes the Deep Desert side quest chain."
+          },
+          "taxation_intro": {
+            "name": "Skip: Taxation / Exchange Tutorial",
+            "desc": "Completes the exchange/travel tutorial chain."
+          },
+          "overland_intro": {
+            "name": "Skip: Overland Map Intro",
+            "desc": "Completes the Overland map side quest chain (Hark Landsraad missions, keystones)."
+          },
+          "unlock_all_lore": {
+            "name": "Unlock All Lore (Dunipedia)",
+            "desc": "Reveals all Dunipedia entries: Known Universe, Landmarks, Manual of the Friendly Desert, War for Arrakis."
+          }
         },
         "nodes": "{{count}} nodes",
         "apply": "Apply",
@@ -950,7 +977,7 @@
     "removeItem": "Remove item",
     "saveConfig": "Save Config",
     "runNow": "Run Now",
-    "grantsTitle": "Grant History (last 100)",
+    "grantsTitle": "Grant History ({{count}})",
     "grantsLabel": "Welcome package grants",
     "noGrants": "No grants yet.",
     "retry": "Retry",
@@ -980,7 +1007,15 @@
       "messagePlaceholder": "Welcome to the server! Enjoy your starter pack.",
       "senderLabel": "Sender FLS ID (optional)",
       "senderPlaceholder": "Leave blank to use the seeded GM persona"
-    }
+    },
+    "sections": {
+      "config": "Configuration",
+      "packages": "Packages",
+      "grants": "Grants"
+    },
+    "configSubtitle": "Enable grants, set active packages and configure the welcome message.",
+    "packagesSubtitle": "Build and manage item packages. Each version can be granted independently.",
+    "activeVersionGranted": "ACTIVE VERSION(S) (GRANTED)"
   },
   "settings": {
     "backendUrl": "Backend URL",

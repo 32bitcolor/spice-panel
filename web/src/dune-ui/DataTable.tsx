@@ -16,7 +16,9 @@ export type Column<K extends string> = {
   minWidth?: number
 }
 
-type Props<T, K extends string> = {
+type ColumnRenderProps = { sortDirection?: 'ascending' | 'descending' }
+
+type DataTableProps<T, K extends string> = {
   /** Accessibility label, required by React Aria. */
   'aria-label': string
   'columns': Column<K>[]
@@ -58,7 +60,7 @@ type Props<T, K extends string> = {
  * styling (from global CSS), optional virtualization, and a column-driven
  * API so callers don't have to type out the Table.* compound tree by hand.
  */
-export function DataTable<T, K extends string>({
+export const DataTable = <T, K extends string>({
   'aria-label': ariaLabel,
   columns,
   rows,
@@ -73,7 +75,7 @@ export function DataTable<T, K extends string>({
   className,
   virtualized = false,
   rowHeight = 32,
-}: Props<T, K>) {
+}: DataTableProps<T, K>) => {
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>(
     initialSort ?? { column: columns[0].key, direction: 'ascending' },
   )
@@ -124,7 +126,7 @@ export function DataTable<T, K extends string>({
                   {...(col.width !== undefined ? { width: col.width } : {})}
                   {...(col.minWidth !== undefined ? { minWidth: col.minWidth } : {})}
                 >
-                  {({ sortDirection }: { sortDirection?: 'ascending' | 'descending' }) => (
+                  {({ sortDirection }: ColumnRenderProps) => (
                     <span className="flex items-center gap-1">
                       <span className="flex-1 truncate">{col.label}</span>
                       {sortable && (

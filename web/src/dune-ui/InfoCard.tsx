@@ -1,3 +1,4 @@
+import type React from 'react'
 import type { ReactNode } from 'react'
 
 type CardProps = { children: ReactNode, className?: string }
@@ -13,7 +14,7 @@ type ItemProps = {
  * Bordered, slightly-elevated label/value row card — the "Phase Reconciling
  * | Database Ready" health row pattern from BattlegroupTab.
  */
-export function InfoCard({ children, className = '' }: CardProps) {
+export const InfoCard: React.FC<CardProps> & { Item: React.FC<ItemProps> } = ({ children, className = '' }) => {
   return (
     <div
       className={
@@ -27,7 +28,7 @@ export function InfoCard({ children, className = '' }: CardProps) {
   )
 }
 
-export function InfoCardItem({ label, value, valueColor }: ItemProps) {
+export const InfoCardItem: React.FC<ItemProps> = ({ label, value, valueColor }) => {
   return (
     <div className="flex items-center gap-2">
       <span className="text-muted">{label}</span>

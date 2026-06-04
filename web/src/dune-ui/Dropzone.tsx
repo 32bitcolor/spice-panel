@@ -1,8 +1,9 @@
+import type React from 'react'
 import { useState, type ReactNode } from 'react'
 import { Spinner, toast } from '@heroui/react'
 import { Icon } from './Icon'
 
-type Props = {
+type DropzoneProps = {
   /** Comma-separated list of accepted file extensions, e.g. ".json" or ".backup,.zip". */
   accept: string
   /** Called with the chosen file (drag-drop or click-to-pick). */
@@ -23,9 +24,9 @@ type Props = {
  * to select it. Validates the extension against `accept` and toasts on
  * mismatch. Used by BlueprintsTab Import and BattlegroupTab Restore.
  */
-export function Dropzone({
+export const Dropzone: React.FC<DropzoneProps> = ({
   accept, onSelect, file, prompt, uploading, compact, className = '',
-}: Props) {
+}) => {
   const [dragging, setDragging] = useState(false)
 
   const validateAndSelect = (f: File | undefined | null) => {

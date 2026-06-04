@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Modal, Spinner, toast } from '@heroui/react'
@@ -5,7 +6,7 @@ import { api } from '../../../api/client'
 import type { BackupFile } from '../../../api/client'
 import { Dropzone, Icon } from '../../../dune-ui'
 
-type Props = {
+type RestoreModalProps = {
   open: boolean
   backupFiles: BackupFile[]
   backupFilesLoading: boolean
@@ -14,9 +15,9 @@ type Props = {
   onRestoreComplete: (output: string) => void
 }
 
-export function RestoreModal({
+export const RestoreModal: React.FC<RestoreModalProps> = ({
   open, backupFiles, backupFilesLoading, setBackupFiles, onClose, onRestoreComplete,
-}: Props) {
+}) => {
   const { t } = useTranslation()
   const [selectedFile, setSelectedFile] = useState('')
   const [restoreRunning, setRestoreRunning] = useState(false)

@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState, useEffect } from 'react'
 import { Button, Checkbox, Input, Spinner, toast } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
@@ -9,7 +10,7 @@ import { Panel, SectionLabel } from '../../../dune-ui'
 // numeric/boolean AppConfig keys to strings (which the backend would reject or misparse).
 type StringAppConfigKey = { [K in keyof AppConfig]: AppConfig[K] extends string ? K : never }[keyof AppConfig]
 
-export default function BotServerConfig() {
+export const BotServerConfig: React.FC = () => {
   const { t } = useTranslation()
   const [cfg, setCfg] = useState<AppConfig | null>(null)
   const [loading, setLoading] = useState(false)

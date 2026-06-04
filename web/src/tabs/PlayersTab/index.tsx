@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Button, SearchField, Spinner, toast } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
@@ -16,7 +17,11 @@ type DetailTab = 'overview' | 'inventory' | 'vehicles' | 'give' | 'actions'
 
 const POLL_MS = 30_000
 
-export default function PlayersTab({ isActive = false }: { isActive?: boolean }) {
+interface PlayersTabProps {
+  isActive?: boolean
+}
+
+export const PlayersTab: React.FC<PlayersTabProps> = ({ isActive = false }) => {
   const { t } = useTranslation()
 
   const DETAIL_TABS: { key: DetailTab, label: string }[] = [

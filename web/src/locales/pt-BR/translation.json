@@ -977,7 +977,7 @@
     "removeItem": "Remover item",
     "saveConfig": "Salvar configuração",
     "runNow": "Executar agora",
-    "grantsTitle": "Histórico de concessões (últimas 100)",
+    "grantsTitle": "Histórico de concessões ({{count}})",
     "grantsLabel": "Concessões de kit de boas-vindas",
     "noGrants": "Ainda não há concessões.",
     "retry": "Tentar novamente",
@@ -1007,7 +1007,15 @@
       "messagePlaceholder": "Bem-vindo ao servidor! Aproveite seu pacote inicial.",
       "senderLabel": "ID FLS do remetente (opcional)",
       "senderPlaceholder": "Deixe em branco para usar a persona GM configurada"
-    }
+    },
+    "sections": {
+      "config": "Configuração",
+      "packages": "Pacotes",
+      "grants": "Concessões"
+    },
+    "configSubtitle": "Ative concessões, defina pacotes ativos e configure a mensagem de boas-vindas.",
+    "packagesSubtitle": "Crie e gerencie pacotes de itens. Cada versão pode ser concedida de forma independente.",
+    "activeVersionGranted": "VERSÃO(ÕES) ATIVA(S) (CONCEDIDA)"
   },
   "settings": {
     "backendUrl": "URL do backend",

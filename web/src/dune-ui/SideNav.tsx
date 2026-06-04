@@ -11,7 +11,7 @@ type Item<K extends string> = {
   depth?: number
 }
 
-type Props<K extends string> = {
+type SideNavProps<K extends string> = {
   items: Item<K>[]
   active: K | null
   onSelect: (key: K) => void
@@ -32,9 +32,9 @@ type Props<K extends string> = {
  * Pass arbitrary `children` to render extra content (search inputs, info
  * banners) between the title and the list.
  */
-export function SideNav<K extends string>({
+export const SideNav = <K extends string>({
   items, active, onSelect, title, titleAction, width, children,
-}: Props<K>) {
+}: SideNavProps<K>) => {
   const w = width ?? 'w-60'
   return (
     <div className={`${w} shrink-0 flex flex-col rounded-[var(--radius)] bg-surface border border-border/60 dune-lift overflow-hidden`}>

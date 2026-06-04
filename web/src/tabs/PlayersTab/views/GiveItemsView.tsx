@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState, useEffect, useMemo } from 'react'
 import {
   Button, Header, ListBox, SearchField, Select, Separator, Spinner, TextField, toast,
@@ -9,7 +10,7 @@ import { Icon, LoadingState, NumberInput } from '../../../dune-ui'
 import type { PacksData } from '../types'
 import { cdnBase } from '../../../data/itemData'
 
-interface Props {
+interface GiveItemsViewProps {
   player: Player
 }
 
@@ -17,7 +18,7 @@ type SkippedItem = { template: string, reason: string }
 type GiveResult = { given: string[], skipped: SkippedItem[] } | null
 type StagedItem = { template: string, qty: number, quality: number }
 
-export function GiveItemsView({ player }: Props) {
+export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
   const { t } = useTranslation()
   const [templates, setTemplates] = useState<{ id: string, name: string }[]>([])
   const [packsData, setPacksData] = useState<PacksData>({ packs: {} })

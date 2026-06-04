@@ -977,7 +977,7 @@
     "removeItem": "Usuń przedmiot",
     "saveConfig": "Zapisz konfigurację",
     "runNow": "Uruchom teraz",
-    "grantsTitle": "Historia przyznań (ostatnie 100)",
+    "grantsTitle": "Historia przyznań ({{count}})",
     "grantsLabel": "Przyznania zestawu powitalnego",
     "noGrants": "Brak przyznań.",
     "retry": "Spróbuj ponownie",
@@ -1007,7 +1007,15 @@
       "messagePlaceholder": "Witaj na serwerze! Ciesz się swoim pakietem startowym.",
       "senderLabel": "ID FLS nadawcy (opcjonalne)",
       "senderPlaceholder": "Zostaw puste, aby użyć skonfigurowanej persony GM"
-    }
+    },
+    "sections": {
+      "config": "Konfiguracja",
+      "packages": "Pakiety",
+      "grants": "Przyznania"
+    },
+    "configSubtitle": "Włącz przyznawanie, ustaw aktywne pakiety i skonfiguruj wiadomość powitalną.",
+    "packagesSubtitle": "Twórz i zarządzaj pakietami przedmiotów. Każda wersja może być przyznawana niezależnie.",
+    "activeVersionGranted": "AKTYWNA WERSJA (PRZYZNANA)"
   },
   "settings": {
     "backendUrl": "URL backendu",

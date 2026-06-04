@@ -1,8 +1,9 @@
+import type React from 'react'
 import type { ReactNode } from 'react'
 import { Button, Spinner } from '@heroui/react'
 import { Icon } from './Icon'
 
-type Props = {
+type PageHeaderProps = {
   title: ReactNode
   /** Optional descriptive subtitle below the title. */
   subtitle?: ReactNode
@@ -16,7 +17,7 @@ type Props = {
   children?: ReactNode
 }
 
-export function PageHeader({ title, subtitle, onRefresh, loading, countdown, children }: Props) {
+export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, onRefresh, loading, countdown, children }) => {
   return (
     <div className="flex items-start justify-between gap-3 shrink-0 border-b border-[#4e3411]/60 pb-3 mb-1">
       <div className="flex-1 min-w-0">

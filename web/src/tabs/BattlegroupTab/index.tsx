@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh'
@@ -15,7 +16,11 @@ import { RestoreModal } from './modals/RestoreModal'
 
 const POLL_MS = 30_000
 
-export default function BattlegroupTab({ isActive = false }: { isActive?: boolean }) {
+interface BattlegroupTabProps {
+  isActive?: boolean
+}
+
+export const BattlegroupTab: React.FC<BattlegroupTabProps> = ({ isActive = false }) => {
   const { t } = useTranslation()
   const [status, setStatus] = useState<DetailedStatus | null>(null)
   const [statusLoading, setStatusLoading] = useState(false)

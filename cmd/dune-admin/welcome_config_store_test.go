@@ -89,6 +89,65 @@ func TestWelcomeConfigStore_WelcomeMessageFieldsRoundTrip(t *testing.T) {
 	}
 }
 
+func TestWelcomeConfigStore_ActiveVersionsRoundTrip(t *testing.T) {
+	t.Parallel()
+	s := openMemWelcomeStore(t)
+
+	cfg := welcomeConfigRow{
+		Enabled:        true,
+		ScanSecs:       30,
+		ActiveVersion:  "v1",
+		ActiveVersions: []string{"v1", "v2"},
+		PackagesJSON:   `[{"version":"v1","items":[]},{"version":"v2","items":[]}]`,
+	}
+	if err := s.saveConfig(cfg); err != nil {
+		t.Fatalf("saveConfig: %v", err)
+	}
+
+	got, ok, err := s.loadConfig()
+	if err != nil {
+		t.Fatalf("loadConfig: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected config after save")
+	}
+	if len(got.ActiveVersions) != 2 || got.ActiveVersions[0] != "v1" || got.ActiveVersions[1] != "v2" {
+		t.Fatalf("ActiveVersions: want [v1 v2], got %v", got.ActiveVersions)
+	}
+	if got.ActiveVersion != "v1" {
+		t.Fatalf("ActiveVersion compat: want v1, got %q", got.ActiveVersion)
+	}
+}
+
+func TestWelcomeConfigStore_ActiveVersionsCompatFallback(t *testing.T) {
+	t.Parallel()
+	s := openMemWelcomeStore(t)
+
+	// Simulate a legacy row: active_versions_json is empty, active_version is set.
+	cfg := welcomeConfigRow{
+		Enabled:        true,
+		ScanSecs:       30,
+		ActiveVersion:  "v1",
+		ActiveVersions: nil, // not set — old-style
+		PackagesJSON:   `[{"version":"v1","items":[]}]`,
+	}
+	if err := s.saveConfig(cfg); err != nil {
+		t.Fatalf("saveConfig: %v", err)
+	}
+
+	got, ok, err := s.loadConfig()
+	if err != nil {
+		t.Fatalf("loadConfig: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected config after save")
+	}
+	// loadConfig should promote active_version into ActiveVersions when json is empty.
+	if len(got.ActiveVersions) != 1 || got.ActiveVersions[0] != "v1" {
+		t.Fatalf("compat fallback: want [v1], got %v", got.ActiveVersions)
+	}
+}
+
 func TestWelcomeConfigStore_OverwriteWithSave(t *testing.T) {
 	t.Parallel()
 	s := openMemWelcomeStore(t)

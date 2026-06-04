@@ -1,4 +1,10 @@
-export function StatusDot({ status }: { status: string }) {
+import type React from 'react'
+
+interface StatusDotProps {
+  status: string
+}
+
+export const StatusDot: React.FC<StatusDotProps> = ({ status }) => {
   const cls
     = status === 'Online'
       ? 'bg-success'

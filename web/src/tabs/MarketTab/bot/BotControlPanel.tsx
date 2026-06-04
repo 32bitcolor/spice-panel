@@ -1,22 +1,23 @@
+import type React from 'react'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Button, Modal, Spinner, Tabs } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'
 import type { BotStatus, BotConfig } from '../../../api/client'
 import { Icon } from '../../../dune-ui'
-import BotStatusCard from './BotStatusCard'
-import BotActions from './BotActions'
-import BotLogViewer from './BotLogViewer'
-import BotConfigEditor, { type ConfigEditorHandle } from './BotConfigEditor'
-import DisabledItemsManager from './DisabledItemsManager'
-import BotServerConfig from './BotServerConfig'
+import { BotStatusCard } from './BotStatusCard'
+import { BotActions } from './BotActions'
+import { BotLogViewer } from './BotLogViewer'
+import { BotConfigEditor, type ConfigEditorHandle } from './BotConfigEditor'
+import { DisabledItemsManager } from './DisabledItemsManager'
+import { BotServerConfig } from './BotServerConfig'
 
-type Props = {
+type BotControlPanelProps = {
   open: boolean
   onClose: () => void
 }
 
-export default function BotControlPanel({ open, onClose }: Props) {
+export const BotControlPanel: React.FC<BotControlPanelProps> = ({ open, onClose }: BotControlPanelProps) => {
   const { t } = useTranslation()
   const [status, setStatus] = useState<BotStatus | null>(null)
   const [config, setConfig] = useState<BotConfig | null>(null)

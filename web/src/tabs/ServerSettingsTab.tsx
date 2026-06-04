@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, Fragment } from 'react'
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, ListBox, SearchField, Select, Spinner, Tooltip, toast } from '@heroui/react'
 import { api } from '../api/client'
@@ -126,14 +127,16 @@ function matchesRawSection(sections: RawSection[], q: string): boolean {
   )
 }
 
-function SettingRow({
-  item, pending, onChange, onDelete,
-}: {
+interface SettingRowProps {
   item: ServerSetting
   pending: string | undefined
   onChange: (value: string) => void
   onDelete: () => Promise<void>
-}) {
+}
+
+function SettingRow({
+  item, pending, onChange, onDelete,
+}: SettingRowProps) {
   const { t } = useTranslation()
   const rawDisplay = pending !== undefined ? pending : item.current
   const display = item.type === 'bool'
@@ -265,8 +268,13 @@ function groupLinesByKey(lines: RawSection['lines']) {
   return grouped
 }
 
+interface RawSectionPanelProps {
+  sections: RawSection[]
+  onSaved: () => void
+}
+
 // One panel per INI section name, merging all source files that contain it.
-function RawSectionPanel({ sections, onSaved }: { sections: RawSection[], onSaved: () => void }) {
+function RawSectionPanel({ sections, onSaved }: RawSectionPanelProps) {
   const { t } = useTranslation()
   const sectionName = sections[0].section
   // Find the active user-writable source for this section. Prefer the AMP
@@ -457,7 +465,7 @@ function RawSectionPanel({ sections, onSaved }: { sections: RawSection[], onSave
   )
 }
 
-export default function ServerSettingsTab() {
+export const ServerSettingsTab: React.FC = () => {
   const { t } = useTranslation()
   const [items, setItems] = useState<ServerSetting[]>([])
   const [raw, setRaw] = useState<RawSection[]>([])

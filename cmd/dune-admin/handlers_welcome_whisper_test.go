@@ -10,7 +10,7 @@ import (
 func TestBuildWelcomeRuntimeWithMessage(t *testing.T) {
 	t.Parallel()
 	rt := buildWelcomeRuntime(
-		true, "v1", 30,
+		true, []string{"v1"}, 30,
 		[]welcomePackage{{Version: "v1"}},
 		welcomeMessageOptions{
 			enabled:      true,
@@ -31,9 +31,48 @@ func TestBuildWelcomeRuntimeWithMessage(t *testing.T) {
 
 func TestBuildWelcomeRuntimeWithMessage_DisabledByDefault(t *testing.T) {
 	t.Parallel()
-	rt := buildWelcomeRuntime(true, "v1", 30, []welcomePackage{{Version: "v1"}}, welcomeMessageOptions{})
+	rt := buildWelcomeRuntime(true, []string{"v1"}, 30, []welcomePackage{{Version: "v1"}}, welcomeMessageOptions{})
 	if rt.welcomeMessageEnabled {
 		t.Fatal("want welcomeMessageEnabled=false by default")
+	}
+}
+
+// TestBuildWelcomeRuntimeBackcompat verifies existing behaviour is preserved.
+func TestBuildWelcomeRuntimeBackcompat(t *testing.T) {
+	t.Parallel()
+	pkgs := []welcomePackage{{Version: "v1"}, {Version: "v2"}}
+	tests := []struct {
+		name         string
+		enabled      bool
+		active       []string
+		scanSecs     int
+		wantActive   string
+		wantInterval time.Duration
+	}{
+		{"defaults active to first package", true, nil, 0, "v1", welcomeDefaultScanInterval},
+		{"unknown active falls back to first", true, []string{"vX"}, 0, "v1", welcomeDefaultScanInterval},
+		{"explicit active respected", true, []string{"v2"}, 120, "v2", 120 * time.Second},
+		{"interval below floor is clamped", false, []string{"v1"}, 1, "v1", welcomeDefaultScanInterval},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			rt := buildWelcomeRuntime(tt.enabled, tt.active, tt.scanSecs, pkgs, welcomeMessageOptions{})
+			if rt.enabled != tt.enabled {
+				t.Fatalf("enabled: want %v, got %v", tt.enabled, rt.enabled)
+			}
+			firstActive := ""
+			if len(rt.activeVersions) > 0 {
+				firstActive = rt.activeVersions[0]
+			}
+			if firstActive != tt.wantActive {
+				t.Fatalf("activeVersion: want %q, got %q", tt.wantActive, firstActive)
+			}
+			if rt.interval != tt.wantInterval {
+				t.Fatalf("interval: want %v, got %v", tt.wantInterval, rt.interval)
+			}
+		})
 	}
 }
 
@@ -128,40 +167,5 @@ func TestWelcomeScanSkipsWhisperWhenDepNil(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-// TestBuildWelcomeRuntimeBackcompat verifies existing behaviour is preserved.
-func TestBuildWelcomeRuntimeBackcompat(t *testing.T) {
-	t.Parallel()
-	pkgs := []welcomePackage{{Version: "v1"}, {Version: "v2"}}
-	tests := []struct {
-		name         string
-		enabled      bool
-		active       string
-		scanSecs     int
-		wantActive   string
-		wantInterval time.Duration
-	}{
-		{"defaults active to first package", true, "", 0, "v1", welcomeDefaultScanInterval},
-		{"unknown active falls back to first", true, "vX", 0, "v1", welcomeDefaultScanInterval},
-		{"explicit active respected", true, "v2", 120, "v2", 120 * time.Second},
-		{"interval below floor is clamped", false, "v1", 1, "v1", welcomeDefaultScanInterval},
-	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			rt := buildWelcomeRuntime(tt.enabled, tt.active, tt.scanSecs, pkgs, welcomeMessageOptions{})
-			if rt.enabled != tt.enabled {
-				t.Fatalf("enabled: want %v, got %v", tt.enabled, rt.enabled)
-			}
-			if rt.activeVersion != tt.wantActive {
-				t.Fatalf("activeVersion: want %q, got %q", tt.wantActive, rt.activeVersion)
-			}
-			if rt.interval != tt.wantInterval {
-				t.Fatalf("interval: want %v, got %v", tt.wantInterval, rt.interval)
-			}
-		})
 	}
 }

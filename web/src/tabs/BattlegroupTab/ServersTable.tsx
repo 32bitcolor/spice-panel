@@ -1,15 +1,16 @@
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import { DataTable } from '../../dune-ui'
 import { phaseColor } from './helpers'
 import { getServerColumns, type ServerRow, type ServerSortKey } from './types'
 
-type Props = {
+type ServersTableProps = {
   servers: ServerRow[]
   isInitializing: boolean
   emptyMessage?: string
 }
 
-export function ServersTable({ servers, isInitializing, emptyMessage }: Props) {
+export const ServersTable: React.FC<ServersTableProps> = ({ servers, isInitializing, emptyMessage }) => {
   const { t } = useTranslation()
   return (
     <DataTable<ServerRow, ServerSortKey>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Select, ListBox, SearchField, Spinner, toast } from '@heroui/react'
 import { MapContainer, ImageOverlay, CircleMarker, Marker, Tooltip, useMapEvents, useMap } from 'react-leaflet'
@@ -386,7 +387,11 @@ function loadCalib(): Record<string, Bounds> {
   }
 }
 
-function InvalidateOnActive({ active }: { active: boolean }) {
+interface InvalidateOnActiveProps {
+  active: boolean
+}
+
+function InvalidateOnActive({ active }: InvalidateOnActiveProps) {
   const map = useMap()
   useEffect(() => {
     if (active) {
@@ -400,7 +405,12 @@ function InvalidateOnActive({ active }: { active: boolean }) {
   return null
 }
 
-function MapClickCapture({ active, onPick }: { active: boolean, onPick: (lat: number, lng: number) => void }) {
+interface MapClickCaptureProps {
+  active: boolean
+  onPick: (lat: number, lng: number) => void
+}
+
+function MapClickCapture({ active, onPick }: MapClickCaptureProps) {
   useMapEvents({
     click(e) {
       if (active) onPick(e.latlng.lat, e.latlng.lng)
@@ -409,11 +419,14 @@ function MapClickCapture({ active, onPick }: { active: boolean, onPick: (lat: nu
   return null
 }
 
-// ── Sprite icon ───────────────────────────────────────────────────────────────
+interface SpriteIconProps {
+  type: string
+  size?: number
+}
 
 // SpriteIcon renders a single icon from the sprite sheet.
 // size: desired display size in CSS px (default 22 = 0.35 × 64, matches reference tool).
-function SpriteIcon({ type, size = 22 }: { type: string, size?: number }) {
+function SpriteIcon({ type, size = 22 }: SpriteIconProps) {
   const pos = ICON_POS[type]
   if (!pos) return null
   const [col, row] = pos
@@ -443,14 +456,16 @@ function SpriteIcon({ type, size = 22 }: { type: string, size?: number }) {
 // drawImage from the sprite sheet. Handles 30k+ points at 60fps — orders of
 // magnitude faster than per-marker DOM elements.
 
-function SpawnCanvasLayer({
-  spawns, effCfg, filter, heatmapMode,
-}: {
+interface SpawnCanvasLayerProps {
   spawns: SpawnEntry[]
   effCfg: MapCfg
   filter: Record<string, boolean>
   heatmapMode: boolean
-}) {
+}
+
+function SpawnCanvasLayer({
+  spawns, effCfg, filter, heatmapMode,
+}: SpawnCanvasLayerProps) {
   const map = useMap()
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const spriteRef = useRef<HTMLImageElement | null>(null)
@@ -553,13 +568,15 @@ function SpawnCanvasLayer({
 // ── Heatmap density overlay ───────────────────────────────────────────────────
 // Renders pre-baked 256×256 RGBA density PNGs over the map, one per resource type.
 // Images are loaded lazily when first needed and cached for the session.
-function HeatmapCanvasLayer({
-  mapKey, effCfg, filter,
-}: {
+interface HeatmapCanvasLayerProps {
   mapKey: string
   effCfg: MapCfg
   filter: Record<string, boolean>
-}) {
+}
+
+function HeatmapCanvasLayer({
+  mapKey, effCfg, filter,
+}: HeatmapCanvasLayerProps) {
   const map = useMap()
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const imageCache = useRef(new Map<string, HTMLImageElement | null>())
@@ -642,9 +659,12 @@ function HeatmapCanvasLayer({
   return null
 }
 
-// ── CDN tile layer ────────────────────────────────────────────────────────────
+interface MapTileLayerProps {
+  tileId: string
+}
+
 // CDN_z = Leaflet_z + 3.  maxNativeZoom=1 means Leaflet zoom > 1 reuses CDN z=4 tiles scaled up.
-function MapTileLayer({ tileId }: { tileId: string }) {
+function MapTileLayer({ tileId }: MapTileLayerProps) {
   const map = useMap()
 
   useEffect(() => {
@@ -680,8 +700,12 @@ function MapTileLayer({ tileId }: { tileId: string }) {
   return null
 }
 
+interface ZoneGridLayerProps {
+  effCfg: MapCfg
+}
+
 // ── Deep Desert zone grid (A1-I9) ─────────────────────────────────────────────
-function ZoneGridLayer({ effCfg }: { effCfg: MapCfg }) {
+function ZoneGridLayer({ effCfg }: ZoneGridLayerProps) {
   const map = useMap()
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
@@ -767,8 +791,12 @@ function ZoneGridLayer({ effCfg }: { effCfg: MapCfg }) {
   return null
 }
 
+interface FitBoundsControllerProps {
+  fitRef: React.MutableRefObject<(() => void) | null>
+}
+
 // ── Fit-bounds bridge (must render inside MapContainer to access useMap) ───────
-function FitBoundsController({ fitRef }: { fitRef: React.MutableRefObject<(() => void) | null> }) {
+function FitBoundsController({ fitRef }: FitBoundsControllerProps) {
   const map = useMap()
   useEffect(() => {
     fitRef.current = () => map.fitBounds(IMAGE_BOUNDS, { animate: true })
@@ -793,10 +821,7 @@ const CATEGORY_GROUPS: { id: string, labelKey: string }[] = [
   { id: 'hazards', labelKey: 'liveMap.filterHazards' },
 ]
 
-// FilterPanel is always-visible — no open/close state, rendered inline as a left sidebar.
-function FilterPanel({
-  filter, onToggle, onClear, spawns, mapKey, heatmapMode, onHeatmapToggle,
-}: {
+interface FilterPanelProps {
   filter: Record<string, boolean>
   onToggle: (key: string, currentVisual: boolean) => void
   onClear: () => void
@@ -804,7 +829,12 @@ function FilterPanel({
   mapKey: string
   heatmapMode: boolean
   onHeatmapToggle: () => void
-}) {
+}
+
+// FilterPanel is always-visible — no open/close state, rendered inline as a left sidebar.
+function FilterPanel({
+  filter, onToggle, onClear, spawns, mapKey, heatmapMode, onHeatmapToggle,
+}: FilterPanelProps) {
   const { t } = useTranslation()
   const [search, setSearch] = useState('')
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
@@ -850,7 +880,8 @@ function FilterPanel({
     )
   }
 
-  function CategorySection({ group }: { group: (typeof CATEGORY_GROUPS)[number] }) {
+  type CategorySectionProps = { group: (typeof CATEGORY_GROUPS)[number] }
+  function CategorySection({ group }: CategorySectionProps) {
     const items = typesByCategory[group.id]
     if (!items?.size) return null
     const isExpanded = expanded[group.id] ?? false
@@ -1017,7 +1048,11 @@ function saveFilter(f: Record<string, boolean>) {
   catch { /* quota */ }
 }
 
-export default function LiveMapTab({ isActive = true }: { isActive?: boolean }) {
+interface LiveMapTabProps {
+  isActive?: boolean
+}
+
+export const LiveMapTab: React.FC<LiveMapTabProps> = ({ isActive = true }) => {
   const { t } = useTranslation()
   const [mapKey, setMapKey] = useState<string>('HaggaBasin')
   const [markers, setMarkers] = useState<MapMarker[]>([])

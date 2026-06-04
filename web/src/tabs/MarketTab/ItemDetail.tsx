@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useEffect, useState } from 'react'
 import { Drawer, Spinner } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
@@ -30,12 +31,19 @@ const MITIGATION_LABELS: Record<string, string> = {
   sandstorm3: 'Sandstorm III',
 }
 
-type Props = {
+interface ItemDetailProps {
   item: MarketItem | null
   onClose: () => void
 }
 
-export default function ItemDetail({ item, onClose }: Props) {
+interface RowProps {
+  label: string
+  value: string
+  accent?: boolean
+  wrap?: boolean
+}
+
+export const ItemDetail: React.FC<ItemDetailProps> = ({ item, onClose }) => {
   const { t } = useTranslation()
   const [listings, setListings] = useState<MarketListing[]>([])
   const [loading, setLoading] = useState(false)
@@ -229,7 +237,7 @@ export default function ItemDetail({ item, onClose }: Props) {
   )
 }
 
-function Row({ label, value, accent, wrap }: { label: string, value: string, accent?: boolean, wrap?: boolean }) {
+function Row({ label, value, accent, wrap }: RowProps) {
   return (
     <div className={`flex text-xs py-0.5 ${wrap ? 'flex-col gap-0.5' : 'items-center justify-between'}`}>
       <span className="text-muted shrink-0">{label}</span>

@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState, forwardRef, useImperativeHandle } from 'react'
 import { toast } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
@@ -12,7 +13,7 @@ export type ConfigEditorHandle = {
   setEnabled: (v: boolean) => void
 }
 
-type Props = {
+type BotConfigEditorProps = {
   config: BotConfig
   onSaved: (cfg: BotConfig) => void
 }
@@ -25,7 +26,14 @@ function percentToThreshold(p: number): number {
   return Math.round(p) / 100
 }
 
-const BotConfigEditor = forwardRef<ConfigEditorHandle, Props>(function BotConfigEditor({ config, onSaved }, ref) {
+function capitalize(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+const BotConfigEditorComponent = forwardRef<
+  ConfigEditorHandle,
+  BotConfigEditorProps
+>(function BotConfigEditor({ config, onSaved }, ref) {
   const { t } = useTranslation()
   const [draft, setDraft] = useState<BotConfig>(config)
   const [buyPct, setBuyPct] = useState<number>(thresholdToPercent(config.buy_threshold))
@@ -220,13 +228,15 @@ const BotConfigEditor = forwardRef<ConfigEditorHandle, Props>(function BotConfig
   )
 })
 
-export default BotConfigEditor
+export const BotConfigEditor = BotConfigEditorComponent
 
-function capitalize(s: string) {
-  return s.charAt(0).toUpperCase() + s.slice(1)
+interface FieldProps {
+  label: string
+  hint?: string
+  children: React.ReactNode
 }
 
-function Field({ label, hint, children }: { label: string, hint?: string, children: React.ReactNode }) {
+function Field({ label, hint, children }: FieldProps) {
   return (
     <div className="flex flex-col gap-0.5">
       <label className="text-xs text-muted">

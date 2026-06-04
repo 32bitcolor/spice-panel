@@ -977,7 +977,7 @@
     "removeItem": "Supprimer l'objet",
     "saveConfig": "Enregistrer la configuration",
     "runNow": "Exécuter maintenant",
-    "grantsTitle": "Historique des attributions (100 dernières)",
+    "grantsTitle": "Historique des attributions ({{count}})",
     "grantsLabel": "Attributions de pack de bienvenue",
     "noGrants": "Aucune attribution encore.",
     "retry": "Réessayer",
@@ -1007,7 +1007,15 @@
       "messagePlaceholder": "Bienvenue sur le serveur ! Profitez de votre pack de départ.",
       "senderLabel": "ID FLS de l'expéditeur (optionnel)",
       "senderPlaceholder": "Laisser vide pour utiliser le personnage GM configuré"
-    }
+    },
+    "sections": {
+      "config": "Configuration",
+      "packages": "Paquets",
+      "grants": "Attributions"
+    },
+    "configSubtitle": "Activez les attributions, définissez les paquets actifs et configurez le message de bienvenue.",
+    "packagesSubtitle": "Créez et gérez des paquets d'objets. Chaque version peut être attribuée indépendamment.",
+    "activeVersionGranted": "VERSION(S) ACTIVE(S) (ATTRIBUÉE)"
   },
   "settings": {
     "backendUrl": "URL du backend",

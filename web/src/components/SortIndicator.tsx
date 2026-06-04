@@ -1,6 +1,12 @@
+import type React from 'react'
 import type { SortDir } from '../hooks/useTableSort'
 
-export function SortIndicator({ active, dir }: { active: boolean, dir: SortDir }) {
+interface SortIndicatorProps {
+  active: boolean
+  dir: SortDir
+}
+
+export const SortIndicator: React.FC<SortIndicatorProps> = ({ active, dir }) => {
   return (
     <span style={{ marginLeft: 4, opacity: active ? 1 : 0.25 }}>
       {active ? (dir === 'asc' ? '▲' : '▼') : '▲'}

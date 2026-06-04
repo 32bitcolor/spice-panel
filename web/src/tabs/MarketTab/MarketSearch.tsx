@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useEffect, useState } from 'react'
 import { ListBox, SearchField, Select, Button } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
@@ -9,13 +10,13 @@ export type MarketFilters = {
   owner: '' | 'bot' | 'player'
 }
 
-type Props = {
+type MarketSearchProps = {
   filters: MarketFilters
   onChange: (f: MarketFilters) => void
   onReset: () => void
 }
 
-export default function MarketSearch({ filters, onChange, onReset }: Props) {
+export const MarketSearch: React.FC<MarketSearchProps> = ({ filters, onChange, onReset }: MarketSearchProps) => {
   const { t } = useTranslation()
   const [searchDraft, setSearchDraft] = useState(filters.search)
 

@@ -1,9 +1,10 @@
+import type React from 'react'
 import { useState, useEffect, useRef } from 'react'
 import { ListBox } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
 import { LANGUAGES, setLocale, LOCALE_KEY, DEFAULT_LOCALE } from '../i18n'
 
-export function LanguageSelector() {
+export const LanguageSelector: React.FC = () => {
   const { t } = useTranslation()
   const [current, setCurrent] = useState(
     localStorage.getItem(LOCALE_KEY) ?? DEFAULT_LOCALE,

@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import type { MarketItem } from '../../api/client'
 import { iconUrl, categoryColor, qualityLabel } from '../../utils/icons'
@@ -22,12 +23,12 @@ const RARITY_TEXT: Record<string, string> = {
   memento: 'text-rarity-memento',
 }
 
-type Props = {
+type MarketGridProps = {
   items: MarketItem[]
   onSelect: (item: MarketItem) => void
 }
 
-export default function MarketGrid({ items, onSelect }: Props) {
+export const MarketGrid: React.FC<MarketGridProps> = ({ items, onSelect }: MarketGridProps) => {
   const { t } = useTranslation()
 
   if (items.length === 0) {

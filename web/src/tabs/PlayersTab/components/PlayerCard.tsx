@@ -1,13 +1,14 @@
+import type React from 'react'
 import type { Player } from '../../../api/client'
 import { StatusDot } from './StatusDot'
 
-interface Props {
+interface PlayerCardProps {
   player: Player
   selected: boolean
   onSelect: (player: Player) => void
 }
 
-export function PlayerCard({ player, selected, onSelect }: Props) {
+export const PlayerCard: React.FC<PlayerCardProps> = ({ player, selected, onSelect }) => {
   return (
     <button
       type="button"

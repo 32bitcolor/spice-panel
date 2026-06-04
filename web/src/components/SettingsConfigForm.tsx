@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState, useEffect, type MutableRefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Checkbox, Input, Select, ListBox, Spinner, Tabs, toast } from '@heroui/react'
@@ -56,7 +57,13 @@ function mergeConfig(fetched: Record<string, unknown>): AppConfig {
 
 // ── field primitives matching BotConfigEditor ─────────────────────────────────
 
-function F({ label, hint, children }: { label: string, hint?: string, children: React.ReactNode }) {
+interface FieldProps {
+  label: string
+  hint?: string
+  children: React.ReactNode
+}
+
+function F({ label, hint, children }: FieldProps) {
   return (
     <div className="flex flex-col gap-1">
       <label className="text-xs text-muted font-medium">
@@ -75,14 +82,14 @@ function F({ label, hint, children }: { label: string, hint?: string, children: 
   )
 }
 
-interface TIProps {
+interface TextInputProps {
   value: string | number
   onChange: (v: string) => void
   placeholder?: string
   type?: string
 }
 
-function TI({ value, onChange, placeholder, type = 'text' }: TIProps) {
+function TI({ value, onChange, placeholder, type = 'text' }: TextInputProps) {
   return (
     <Input
       className="font-mono"
@@ -95,14 +102,14 @@ function TI({ value, onChange, placeholder, type = 'text' }: TIProps) {
   )
 }
 
-interface CBProps {
+interface CheckboxFieldProps {
   label: string
   checked: boolean
   onChange: (v: boolean) => void
   hint?: string
 }
 
-function CB({ label, checked, onChange, hint }: CBProps) {
+function CB({ label, checked, onChange, hint }: CheckboxFieldProps) {
   return (
     <div className="flex flex-col gap-0.5">
       <Checkbox isSelected={!!checked} onChange={onChange}>
@@ -113,18 +120,22 @@ function CB({ label, checked, onChange, hint }: CBProps) {
   )
 }
 
-function G2({ children }: { children: React.ReactNode }) {
+interface GridRowProps {
+  children: React.ReactNode
+}
+
+function G2({ children }: GridRowProps) {
   return <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">{children}</div>
 }
 
 // ── main component ────────────────────────────────────────────────────────────
 
-interface Props {
+interface SettingsConfigFormProps {
   saveRef?: MutableRefObject<(() => Promise<void>) | null>
   onSavingChange?: (saving: boolean) => void
 }
 
-export default function SettingsConfigForm({ saveRef, onSavingChange }: Props) {
+export const SettingsConfigForm: React.FC<SettingsConfigFormProps> = ({ saveRef, onSavingChange }) => {
   const { t } = useTranslation()
   const [cfg, setCfg] = useState<AppConfig>(EMPTY)
   const [loading, setLoading] = useState(true)

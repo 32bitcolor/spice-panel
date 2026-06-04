@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState, useEffect } from 'react'
 import { Button, toast } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
@@ -7,11 +8,11 @@ import { DataTable, Icon, LoadingState, SectionLabel, type Column } from '../../
 
 type ItemKey = 'template' | 'stack' | 'quality' | 'durability' | 'actions'
 
-interface Props {
+interface InventoryViewProps {
   player: Player
 }
 
-export function InventoryView({ player }: Props) {
+export const InventoryView: React.FC<InventoryViewProps> = ({ player }) => {
   const { t } = useTranslation()
   const [items, setItems] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(false)

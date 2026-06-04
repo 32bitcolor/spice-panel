@@ -1,3 +1,4 @@
+import type React from 'react'
 import { DataTable, type Column } from '../../dune-ui'
 import { useTranslation } from 'react-i18next'
 import type { MarketItem } from '../../api/client'
@@ -15,12 +16,12 @@ const RARITY_COLORS: Record<string, string> = {
   memento: 'text-rarity-memento',
 }
 
-type Props = {
+type MarketTableProps = {
   items: MarketItem[]
   onSelect: (item: MarketItem) => void
 }
 
-export default function MarketTable({ items, onSelect }: Props) {
+export const MarketTable: React.FC<MarketTableProps> = ({ items, onSelect }: MarketTableProps) => {
   const { t } = useTranslation()
 
   const COLUMNS: Column<Key>[] = [

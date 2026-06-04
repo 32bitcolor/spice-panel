@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState, useEffect } from 'react'
 import { Button, Chip, Modal, Spinner, toast } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
@@ -8,13 +9,13 @@ import { DataTable, Icon, LoadingState, Panel, SectionLabel, type Column } from 
 type ItemKey = 'template' | 'stack' | 'quality' | 'durability' | 'actions'
 type VehicleKey = 'class' | 'location' | 'chassis' | 'name' | 'type' | 'actions'
 
-interface Props {
+interface InventoryModalProps {
   player: Player
   open: boolean
   onClose: () => void
 }
 
-export function InventoryModal({ player, open, onClose }: Props) {
+export const InventoryModal: React.FC<InventoryModalProps> = ({ player, open, onClose }) => {
   const { t } = useTranslation()
   const [items, setItems] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -26,7 +27,7 @@ export function InventoryModal({ player, open, onClose }: Props) {
     { key: 'stack', label: t('players.inventory.columns.stack') },
     { key: 'quality', label: t('players.inventory.columns.quality') },
     { key: 'durability', label: t('players.inventory.columns.durability') },
-    { key: 'actions', label: '�', sortable: false },
+    { key: 'actions', label: ' ', sortable: false },
   ]
 
   const VEHICLE_COLUMNS: Column<VehicleKey>[] = [
@@ -35,7 +36,7 @@ export function InventoryModal({ player, open, onClose }: Props) {
     { key: 'chassis', label: t('players.vehicles.columns.chassis') },
     { key: 'name', label: t('players.vehicles.columns.name') },
     { key: 'type', label: t('players.vehicles.columns.type'), sortable: false },
-    { key: 'actions', label: '�', sortable: false },
+    { key: 'actions', label: ' ', sortable: false },
   ]
 
   useEffect(() => {
@@ -97,7 +98,6 @@ export function InventoryModal({ player, open, onClose }: Props) {
       }
       else {
         toast.success(t('players.inventory.repairGearDone', { repaired: res.repaired, scanned: res.scanned }))
-        // Refetch so the UI reflects the new durability values.
         api.players.inventory(player.id).then(setItems).catch(() => {})
       }
     }
@@ -114,12 +114,11 @@ export function InventoryModal({ player, open, onClose }: Props) {
         toast.success(t('players.vehicles.repairNone', { label }))
       }
       else if (res.skipped > 0) {
-        toast.success(t('players.vehicles.repairPartialDetail', { repaired: res.repaired, total: res.total, label, skipped: res.skipped }))
+        toast.success(t('players.vehicles.repairPartial', { repaired: res.repaired, total: res.total, label, skipped: res.skipped }))
       }
       else {
         toast.success(t('players.vehicles.repairDone', { repaired: res.repaired, label }))
       }
-      // Refresh the chassis % indicator.
       api.players.vehicles(player.controller_id).then(setVehicles).catch(() => {})
     }
     catch (e: unknown) {
@@ -157,7 +156,6 @@ export function InventoryModal({ player, open, onClose }: Props) {
                   )
                 : (
                     <div className="flex flex-col gap-4 flex-1 min-h-0 overflow-hidden">
-                      {/* Items — fills remaining space and owns its own scroll */}
                       <Panel className="flex-1 min-h-0 overflow-hidden">
                         <div className="shrink-0 flex items-center justify-between">
                           <SectionLabel>{t('players.inventory.itemsLabel')}</SectionLabel>
@@ -196,9 +194,7 @@ export function InventoryModal({ player, open, onClose }: Props) {
                               case 'durability': return (
                                 <span className="text-muted">
                                   {i.durability}
-                                  {' '}
-                                  /
-                                  {' '}
+                                  {' / '}
                                   {i.max_durability}
                                 </span>
                               )
@@ -216,7 +212,6 @@ export function InventoryModal({ player, open, onClose }: Props) {
                         />
                       </Panel>
 
-                      {/* Vehicles — fixed ~4-row window, scrolls independently */}
                       <Panel className="shrink-0">
                         <div className="flex items-center gap-2">
                           <SectionLabel>{t('players.vehicles.vehiclesLabel')}</SectionLabel>
@@ -244,7 +239,7 @@ export function InventoryModal({ player, open, onClose }: Props) {
                           renderCell={(v, key) => {
                             switch (key) {
                               case 'class': return <span className="font-semibold">{v.class}</span>
-                              case 'location': return <span className="text-muted">{v.map || '—'}</span>
+                              case 'location': return <span className="text-muted">{v.map || '–'}</span>
                               case 'chassis':
                                 return (
                                   <span className={v.chassis_durability < 0.3 ? 'text-danger' : 'text-muted'}>
@@ -252,7 +247,7 @@ export function InventoryModal({ player, open, onClose }: Props) {
                                     %
                                   </span>
                                 )
-                              case 'name': return <span className="text-muted">{v.vehicle_name || '—'}</span>
+                              case 'name': return <span className="text-muted">{v.vehicle_name || '–'}</span>
                               case 'type':
                                 return (
                                   <div className="flex gap-1">

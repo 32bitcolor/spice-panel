@@ -977,7 +977,7 @@
     "removeItem": "Eliminar objeto",
     "saveConfig": "Guardar configuración",
     "runNow": "Ejecutar ahora",
-    "grantsTitle": "Historial de otorgamientos (últimos 100)",
+    "grantsTitle": "Historial de concesiones ({{count}})",
     "grantsLabel": "Otorgamientos de kit de bienvenida",
     "noGrants": "Aún no hay otorgamientos.",
     "retry": "Reintentar",
@@ -1007,7 +1007,15 @@
       "messagePlaceholder": "¡Bienvenido al servidor! Disfruta tu paquete inicial.",
       "senderLabel": "ID FLS del remitente (opcional)",
       "senderPlaceholder": "Dejar en blanco para usar el personaje GM configurado"
-    }
+    },
+    "sections": {
+      "config": "Configuración",
+      "packages": "Paquetes",
+      "grants": "Concesiones"
+    },
+    "configSubtitle": "Activa concesiones, establece paquetes activos y configura el mensaje de bienvenida.",
+    "packagesSubtitle": "Crea y gestiona paquetes de objetos. Cada versión puede concederse de forma independiente.",
+    "activeVersionGranted": "VERSIÓN(ES) ACTIVA(S) (CONCEDIDA)"
   },
   "settings": {
     "backendUrl": "URL del backend",

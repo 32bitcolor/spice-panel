@@ -977,7 +977,7 @@
     "removeItem": "Eşyayı kaldır",
     "saveConfig": "Yapılandırmayı Kaydet",
     "runNow": "Şimdi Çalıştır",
-    "grantsTitle": "Verme Geçmişi (son 100)",
+    "grantsTitle": "Verme Geçmişi ({{count}})",
     "grantsLabel": "Karşılama paketi vermeleri",
     "noGrants": "Henüz verme yok.",
     "retry": "Yeniden Dene",
@@ -1007,7 +1007,15 @@
       "messagePlaceholder": "Sunucuya hoş geldiniz! Başlangıç paketinizin keyfini çıkarın.",
       "senderLabel": "Gönderici FLS Kimliği (isteğe bağlı)",
       "senderPlaceholder": "Yapılandırılmış GM kişiliğini kullanmak için boş bırakın"
-    }
+    },
+    "sections": {
+      "config": "Yapılandırma",
+      "packages": "Paketler",
+      "grants": "Verilmişler"
+    },
+    "configSubtitle": "Vermeleri etkinleştirin, aktif paketleri ayarlayın ve karşılama mesajını yapılandırın.",
+    "packagesSubtitle": "Eşya paketleri oluşturun ve yönetin. Her sürüm bağımsız olarak verilebilir.",
+    "activeVersionGranted": "AKTİF SÜRÜM(LER) (VERİLEN)"
   },
   "settings": {
     "backendUrl": "Arka Uç URL'si",

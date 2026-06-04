@@ -522,6 +522,7 @@ export interface WelcomePackageConfig {
   enabled: boolean
   scan_interval_secs: number
   active_version: string
+  active_versions: string[]
   packages: WelcomePackage[]
   welcome_message_enabled: boolean
   welcome_message: string

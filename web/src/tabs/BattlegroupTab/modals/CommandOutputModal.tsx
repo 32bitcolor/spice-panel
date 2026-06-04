@@ -1,9 +1,10 @@
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Modal, Spinner } from '@heroui/react'
 import { api } from '../../../api/client'
 import { Icon } from '../../../dune-ui'
 
-type Props = {
+type CommandOutputModalProps = {
   runningCmd: string | null
   cmdOutput: string | null
   cmdDone: boolean
@@ -11,9 +12,9 @@ type Props = {
   onClose: () => void
 }
 
-export function CommandOutputModal({
+export const CommandOutputModal: React.FC<CommandOutputModalProps> = ({
   runningCmd, cmdOutput, cmdDone, lastBackupFile, onClose,
-}: Props) {
+}) => {
   const { t } = useTranslation()
   return (
     <Modal>

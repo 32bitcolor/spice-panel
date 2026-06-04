@@ -1,14 +1,15 @@
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlertDialog, Button } from '@heroui/react'
 import type { ActionDef } from '../types'
 
-type Props = {
+type ConfirmDialogProps = {
   action: ActionDef | null
   onConfirm: (a: ActionDef) => void
   onClose: () => void
 }
 
-export function ConfirmDialog({ action, onConfirm, onClose }: Props) {
+export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ action, onConfirm, onClose }) => {
   const { t } = useTranslation()
   return (
     <AlertDialog.Backdrop isOpen={action !== null} onOpenChange={(v) => { if (!v) onClose() }}>

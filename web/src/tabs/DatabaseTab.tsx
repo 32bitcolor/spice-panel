@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import CodeMirror from '@uiw/react-codemirror'
 import { createTheme } from '@uiw/codemirror-themes'
@@ -90,15 +91,17 @@ function ResultTable({ headers, rows }: TableData) {
   )
 }
 
-/** Type-ahead table picker — matches the GiveItemsModal search-dropdown pattern. */
-function TableSearchInput({ value, onChange, onRun, tableNames, ariaLabel, placeholder }: {
+interface TableSearchInputProps {
   value: string
   onChange: (v: string) => void
   onRun: () => void
   tableNames: string[]
   ariaLabel: string
   placeholder: string
-}) {
+}
+
+/** Type-ahead table picker — matches the GiveItemsModal search-dropdown pattern. */
+function TableSearchInput({ value, onChange, onRun, tableNames, ariaLabel, placeholder }: TableSearchInputProps) {
   const [open, setOpen] = useState(false)
 
   const filtered = useMemo(() => {
@@ -171,15 +174,17 @@ function TableSearchInput({ value, onChange, onRun, tableNames, ariaLabel, place
 
 // ── Main component ───────────────────────────────────────────────────────────
 
-type DatabaseTabProps
-  = { showSubnav?: false, section?: Section, onSectionChange?: never }
-    | { showSubnav: true, section?: Section, onSectionChange: (s: Section) => void }
+interface DatabaseTabProps {
+  showSubnav?: boolean
+  section?: Section
+  onSectionChange?: (s: Section) => void
+}
 
-export default function DatabaseTab({
+export const DatabaseTab: React.FC<DatabaseTabProps> = ({
   section = 'tables',
   onSectionChange,
   showSubnav,
-}: DatabaseTabProps) {
+}) => {
   const { t } = useTranslation()
 
   const SECTIONS = useMemo<{ key: Section, label: string }[]>(() => [

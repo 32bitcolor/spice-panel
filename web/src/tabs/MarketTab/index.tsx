@@ -1,20 +1,21 @@
+import type React from 'react'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Button, Spinner } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../api/client'
 import type { MarketItem } from '../../api/client'
 import { Icon, LoadingState, PageHeader } from '../../dune-ui'
-import MarketSidebar from './MarketSidebar'
-import MarketSearch, { type MarketFilters } from './MarketSearch'
-import MarketTable from './MarketTable'
-import MarketGrid from './MarketGrid'
-import ViewToggle, { type MarketView } from './ViewToggle'
-import ItemDetail from './ItemDetail'
-import BotControlPanel from './bot/BotControlPanel'
+import { MarketSidebar } from './MarketSidebar'
+import { MarketSearch, type MarketFilters } from './MarketSearch'
+import { MarketTable } from './MarketTable'
+import { MarketGrid } from './MarketGrid'
+import { ViewToggle, type MarketView } from './ViewToggle'
+import { ItemDetail } from './ItemDetail'
+import { BotControlPanel } from './bot/BotControlPanel'
 
 const DEFAULT_FILTERS: MarketFilters = { search: '', category: '', owner: '' }
 
-export default function MarketTab() {
+export const MarketTab: React.FC = () => {
   const { t } = useTranslation()
   const [items, setItems] = useState<MarketItem[]>([])
   const [categories, setCategories] = useState<string[]>([])

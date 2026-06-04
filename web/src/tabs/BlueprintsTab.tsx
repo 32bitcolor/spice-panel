@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Button,
@@ -18,7 +19,11 @@ import { DataTable, Dropzone, Icon, PageHeader, type Column } from '../dune-ui'
 
 type Key = 'id' | 'owner_name' | 'name' | 'item_id' | 'pieces' | 'placeables' | 'actions'
 
-export default function BlueprintsTab({ isSignedIn = true }: { isSignedIn?: boolean }) {
+interface BlueprintsTabProps {
+  isSignedIn?: boolean
+}
+
+export const BlueprintsTab: React.FC<BlueprintsTabProps> = ({ isSignedIn = true }) => {
   const { t } = useTranslation()
   const [blueprints, setBlueprints] = useState<BlueprintRow[]>([])
   const [loading, setLoading] = useState(false)
@@ -148,7 +153,13 @@ export default function BlueprintsTab({ isSignedIn = true }: { isSignedIn?: bool
   )
 }
 
-function ImportModal({ open, onClose, onSuccess }: { open: boolean, onClose: () => void, onSuccess: () => void }) {
+interface ImportModalProps {
+  open: boolean
+  onClose: () => void
+  onSuccess: () => void
+}
+
+function ImportModal({ open, onClose, onSuccess }: ImportModalProps) {
   const { t } = useTranslation()
   const [file, setFile] = useState<File | null>(null)
   const [players, setPlayers] = useState<Player[]>([])

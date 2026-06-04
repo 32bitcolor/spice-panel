@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -57,6 +58,7 @@ CREATE TABLE IF NOT EXISTS welcome_config (
 	enabled                        INTEGER NOT NULL DEFAULT 0,
 	scan_secs                      INTEGER NOT NULL DEFAULT 30,
 	active_version                 TEXT    NOT NULL DEFAULT '',
+	active_versions_json           TEXT    NOT NULL DEFAULT '',
 	packages_json                  TEXT    NOT NULL DEFAULT '[]',
 	welcome_message_enabled        INTEGER NOT NULL DEFAULT 0,
 	welcome_message                TEXT    NOT NULL DEFAULT '',
@@ -66,10 +68,13 @@ CREATE TABLE IF NOT EXISTS welcome_config (
 
 // welcomeConfigRow holds the single config row stored in welcome_config.
 // PackagesJSON is the JSON-encoded []welcomePackage slice.
+// ActiveVersions is the list of active package versions (new field).
+// ActiveVersion is the legacy single-version field kept for backwards compat.
 type welcomeConfigRow struct {
 	Enabled                    bool
 	ScanSecs                   int
 	ActiveVersion              string
+	ActiveVersions             []string
 	PackagesJSON               string
 	WelcomeMessageEnabled      bool
 	WelcomeMessage             string
@@ -93,6 +98,7 @@ func openWelcomeStore(path string) (*welcomeStore, error) {
 		"ALTER TABLE welcome_config ADD COLUMN welcome_message_enabled INTEGER NOT NULL DEFAULT 0",
 		"ALTER TABLE welcome_config ADD COLUMN welcome_message TEXT NOT NULL DEFAULT ''",
 		"ALTER TABLE welcome_config ADD COLUMN welcome_whisper_source_player TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE welcome_config ADD COLUMN active_versions_json TEXT NOT NULL DEFAULT ''",
 	} {
 		if _, alterErr := db.Exec(col); alterErr != nil {
 			if !isDuplicateColumnErr(alterErr) {
@@ -219,23 +225,33 @@ func (s *welcomeStore) saveConfig(cfg welcomeConfigRow) error {
 	if cfg.WelcomeMessageEnabled {
 		msgEnabled = 1
 	}
+	// Derive compat active_version from slice (first element) or keep as-is.
+	activeVersion := cfg.ActiveVersion
+	if len(cfg.ActiveVersions) > 0 {
+		activeVersion = cfg.ActiveVersions[0]
+	}
+	activeVersionsJSON, err := json.Marshal(cfg.ActiveVersions)
+	if err != nil {
+		return fmt.Errorf("marshal active_versions: %w", err)
+	}
 	now := time.Now().UTC().Format(time.RFC3339)
-	_, err := s.db.Exec(`
+	_, err = s.db.Exec(`
 		INSERT INTO welcome_config
-			(id, enabled, scan_secs, active_version, packages_json,
+			(id, enabled, scan_secs, active_version, active_versions_json, packages_json,
 			 welcome_message_enabled, welcome_message, welcome_whisper_source_player,
 			 updated_at)
-		VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			enabled                       = excluded.enabled,
 			scan_secs                     = excluded.scan_secs,
 			active_version                = excluded.active_version,
+			active_versions_json          = excluded.active_versions_json,
 			packages_json                 = excluded.packages_json,
 			welcome_message_enabled       = excluded.welcome_message_enabled,
 			welcome_message               = excluded.welcome_message,
 			welcome_whisper_source_player = excluded.welcome_whisper_source_player,
 			updated_at                    = excluded.updated_at`,
-		enabled, cfg.ScanSecs, cfg.ActiveVersion, cfg.PackagesJSON,
+		enabled, cfg.ScanSecs, activeVersion, string(activeVersionsJSON), cfg.PackagesJSON,
 		msgEnabled, cfg.WelcomeMessage, cfg.WelcomeWhisperSourcePlayer, now)
 	if err != nil {
 		return fmt.Errorf("save welcome config: %w", err)
@@ -248,11 +264,12 @@ func (s *welcomeStore) saveConfig(cfg welcomeConfigRow) error {
 func (s *welcomeStore) loadConfig() (welcomeConfigRow, bool, error) {
 	var row welcomeConfigRow
 	var enabledInt, msgEnabledInt int
+	var activeVersionsJSON string
 	err := s.db.QueryRow(`
-		SELECT enabled, scan_secs, active_version, packages_json,
+		SELECT enabled, scan_secs, active_version, active_versions_json, packages_json,
 		       welcome_message_enabled, welcome_message, welcome_whisper_source_player
 		FROM welcome_config WHERE id = 1`).
-		Scan(&enabledInt, &row.ScanSecs, &row.ActiveVersion, &row.PackagesJSON,
+		Scan(&enabledInt, &row.ScanSecs, &row.ActiveVersion, &activeVersionsJSON, &row.PackagesJSON,
 			&msgEnabledInt, &row.WelcomeMessage, &row.WelcomeWhisperSourcePlayer)
 	if errors.Is(err, sql.ErrNoRows) {
 		return welcomeConfigRow{}, false, nil
@@ -262,5 +279,14 @@ func (s *welcomeStore) loadConfig() (welcomeConfigRow, bool, error) {
 	}
 	row.Enabled = enabledInt != 0
 	row.WelcomeMessageEnabled = msgEnabledInt != 0
+	// Parse active_versions_json; fall back to promoting active_version for old rows.
+	if activeVersionsJSON != "" && activeVersionsJSON != "null" && activeVersionsJSON != "[]" {
+		if jsonErr := json.Unmarshal([]byte(activeVersionsJSON), &row.ActiveVersions); jsonErr != nil {
+			return welcomeConfigRow{}, false, fmt.Errorf("parse active_versions_json: %w", jsonErr)
+		}
+	}
+	if len(row.ActiveVersions) == 0 && row.ActiveVersion != "" {
+		row.ActiveVersions = []string{row.ActiveVersion}
+	}
 	return row, true, nil
 }

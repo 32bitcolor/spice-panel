@@ -977,7 +977,7 @@
     "removeItem": "アイテムを削除",
     "saveConfig": "設定を保存",
     "runNow": "今すぐ実行",
-    "grantsTitle": "付与履歴（最新100件）",
+    "grantsTitle": "付与履歴 ({{count}})",
     "grantsLabel": "ウェルカムパッケージ付与記録",
     "noGrants": "まだ付与記録がありません。",
     "retry": "再試行",
@@ -1007,7 +1007,15 @@
       "messagePlaceholder": "サーバーへようこそ！スターターパックをお楽しみください。",
       "senderLabel": "送信者のFLS ID（任意）",
       "senderPlaceholder": "空白のままにすると設定済みGMペルソナが使用されます"
-    }
+    },
+    "sections": {
+      "config": "設定",
+      "packages": "パッケージ",
+      "grants": "付与履歴"
+    },
+    "configSubtitle": "付与を有効にし、アクティブなパッケージを設定してウェルカムメッセージを構成します。",
+    "packagesSubtitle": "アイテムパッケージを作成・管理します。各バージョンは独立して付与できます。",
+    "activeVersionGranted": "アクティブバージョン（付与済み）"
   },
   "settings": {
     "backendUrl": "バックエンドURL",

@@ -1,10 +1,15 @@
+import type React from 'react'
 import type { ReactNode } from 'react'
+
+interface SectionLabelProps {
+  children: ReactNode
+}
 
 /**
  * Small uppercase amber label — sub-section heading inside a Panel.
  * Pairs with [[PageHeader]] (top-level) and [[SectionDivider]] (mid-level).
  */
-export function SectionLabel({ children }: { children: ReactNode }) {
+export const SectionLabel: React.FC<SectionLabelProps> = ({ children }) => {
   return (
     <h4 className="text-xs font-semibold uppercase tracking-widest text-accent border-l-2 border-[#754d13] pl-2">
       {children}

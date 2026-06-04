@@ -1,3 +1,4 @@
+import type React from 'react'
 import { Label, NumberField } from '@heroui/react'
 
 interface NumberInputProps {
@@ -15,7 +16,7 @@ interface NumberInputProps {
   formatOptions?: Intl.NumberFormatOptions
 }
 
-export function NumberInput({
+export const NumberInput: React.FC<NumberInputProps> = ({
   value,
   onChange,
   min,
@@ -28,7 +29,7 @@ export function NumberInput({
   className,
   showButtons = true,
   formatOptions,
-}: NumberInputProps) {
+}) => {
   const field = (
     <NumberField
       value={value}

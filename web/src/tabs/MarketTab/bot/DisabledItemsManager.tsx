@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState, useEffect, useMemo } from 'react'
 import { Button, SearchField, Spinner, toast } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
@@ -5,7 +6,7 @@ import { api } from '../../../api/client'
 import type { BotConfig, CatalogItem } from '../../../api/client'
 import { DataTable, type Column, Icon } from '../../../dune-ui'
 
-type Props = {
+type DisabledItemsManagerProps = {
   config: BotConfig
   onSaved: (cfg: BotConfig) => void
 }
@@ -13,7 +14,9 @@ type Props = {
 type DisabledRow = { template_id: string, display_name: string }
 type RowKey = 'name' | 'template_id' | 'actions'
 
-export default function DisabledItemsManager({ config, onSaved }: Props) {
+export const DisabledItemsManager: React.FC<DisabledItemsManagerProps> = (
+  { config, onSaved }: DisabledItemsManagerProps,
+) => {
   const { t } = useTranslation()
   const [catalog, setCatalog] = useState<CatalogItem[]>([])
   const [search, setSearch] = useState('')

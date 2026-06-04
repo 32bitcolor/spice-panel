@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -6,7 +7,7 @@ import {
 import type { StatSnapshot } from '../../../api/client'
 import { SectionLabel } from '../../../dune-ui'
 
-interface Props {
+interface XPChartProps {
   data: StatSnapshot[]
 }
 
@@ -19,7 +20,7 @@ function fmtTime(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-export function XPChart({ data }: Props) {
+export const XPChart: React.FC<XPChartProps> = ({ data }) => {
   const { t } = useTranslation()
   const [hidden, setHidden] = useState<Set<string>>(new Set())
 

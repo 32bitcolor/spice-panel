@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Input, Modal, Spinner, toast } from '@heroui/react'
@@ -5,7 +6,7 @@ import { DataTable, SectionLabel, type Column } from '../../../dune-ui'
 import { api } from '../../../api/client'
 import type { TeleportLocation } from '../../../api/client'
 
-interface Props {
+interface ManageLocationsModalProps {
   onClose: (updated?: TeleportLocation[]) => void
 }
 
@@ -19,7 +20,7 @@ const COLUMNS: Column<LocationKey>[] = [
   { key: 'actions', label: ' ', sortable: false, width: 80 },
 ]
 
-export function ManageLocationsModal({ onClose }: Props) {
+export const ManageLocationsModal: React.FC<ManageLocationsModalProps> = ({ onClose }) => {
   const { t } = useTranslation()
   const [locations, setLocations] = useState<TeleportLocation[]>([])
   const [loading, setLoading] = useState(true)

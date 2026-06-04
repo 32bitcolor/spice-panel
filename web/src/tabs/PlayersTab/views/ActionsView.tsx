@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useState, useEffect, useMemo, useCallback, memo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -32,10 +33,6 @@ import type {
 } from '../../../api/client'
 import { ACTION_SECTIONS, XP_TRACKS, FACTIONS, type ActionSection } from '../types'
 
-interface Props {
-  player: Player
-}
-
 const TRAINERS = ['BeneGesserit', 'Mentat', 'Planetologist', 'Swordmaster', 'Trooper'] as const
 type TrainerKey = (typeof TRAINERS)[number]
 
@@ -57,15 +54,17 @@ function useDebounce<T>(value: T, delay = 300): T {
   return debounced
 }
 
+interface DebouncedSearchFieldProps {
+  onSearch: (q: string) => void
+  placeholder?: string
+  className?: string
+}
+
 function DebouncedSearchField({
   onSearch,
   placeholder,
   className,
-}: {
-  onSearch: (q: string) => void
-  placeholder?: string
-  className?: string
-}) {
+}: DebouncedSearchFieldProps) {
   const [value, setValue] = useState('')
   const debounced = useDebounce(value)
   useEffect(() => {
@@ -82,7 +81,11 @@ function DebouncedSearchField({
   )
 }
 
-function KeystonesToggle({ keystones }: { keystones: KeystoneRow[] }) {
+interface KeystonesToggleProps {
+  keystones: KeystoneRow[]
+}
+
+function KeystonesToggle({ keystones }: KeystonesToggleProps) {
   const [open, setOpen] = useState(false)
   return (
     <div className="mt-0.5">
@@ -118,15 +121,17 @@ function KeystonesToggle({ keystones }: { keystones: KeystoneRow[] }) {
   )
 }
 
+interface AddTagsPanelProps {
+  tags: string[]
+  pendingTags: string[]
+  onAdd: (tag: string) => void
+}
+
 const AddTagsPanel = memo(function AddTagsPanel({
   tags,
   pendingTags,
   onAdd,
-}: {
-  tags: string[]
-  pendingTags: string[]
-  onAdd: (tag: string) => void
-}) {
+}: AddTagsPanelProps) {
   const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const debouncedQuery = useDebounce(query)
@@ -171,7 +176,11 @@ const AddTagsPanel = memo(function AddTagsPanel({
   )
 })
 
-export function ActionsView({ player }: Props) {
+interface ActionsViewProps {
+  player: Player
+}
+
+export const ActionsView: React.FC<ActionsViewProps> = ({ player }) => {
   const { t } = useTranslation()
   const [section, setSection] = useState<ActionSection>('resources')
   const [busy, setBusy] = useState(false)

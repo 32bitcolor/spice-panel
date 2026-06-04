@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'
@@ -7,7 +8,7 @@ import { SolarisChart } from './SolarisChart'
 import { SessionChart } from './SessionChart'
 import { XPChart } from './XPChart'
 
-interface Props {
+interface PlayerDetailPanelProps {
   player: Player
 }
 
@@ -24,7 +25,12 @@ function fmtDuration(s: number): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`
 }
 
-function StatRow({ label, value }: { label: string, value: string | number }) {
+interface StatRowProps {
+  label: string
+  value: string | number
+}
+
+function StatRow({ label, value }: StatRowProps) {
   return (
     <div className="flex items-center justify-between py-1 border-b border-border/30 last:border-0">
       <span className="text-sm text-muted">{label}</span>
@@ -33,7 +39,7 @@ function StatRow({ label, value }: { label: string, value: string | number }) {
   )
 }
 
-export function PlayerDetailPanel({ player }: Props) {
+export const PlayerDetailPanel: React.FC<PlayerDetailPanelProps> = ({ player }) => {
   const { t } = useTranslation()
   const [stats, setStats] = useState<PlayerStats | null>(null)
   const [sessions, setSessions] = useState<SessionRecord[]>([])

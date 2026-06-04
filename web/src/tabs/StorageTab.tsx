@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Button, Chip, Modal, SearchField, Spinner, TextField, toast,
@@ -31,7 +32,7 @@ function shortClass(cls: string): string {
   return TYPE_LABELS[cls] ?? cls.replace(/_Placeable$/, '')
 }
 
-export default function StorageTab() {
+export const StorageTab: React.FC = () => {
   const { t } = useTranslation()
 
   const ITEM_COLUMNS: Column<ItemKey>[] = [
@@ -261,13 +262,17 @@ export default function StorageTab() {
   )
 }
 
-function AddItemsModal({ container, open, onClose, onSuccess, onRefresh }: {
+interface AddItemsModalProps {
   container: Container
   open: boolean
   onClose: () => void
   onSuccess: () => void
   onRefresh: () => void
-}) {
+}
+
+const AddItemsModal: React.FC<AddItemsModalProps> = ({
+  container, open, onClose, onSuccess, onRefresh,
+}) => {
   const { t } = useTranslation()
   const [templates, setTemplates] = useState<{ id: string, name: string }[]>([])
   const [loading, setLoading] = useState(false)

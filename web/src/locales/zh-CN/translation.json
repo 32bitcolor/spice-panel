@@ -977,7 +977,7 @@
     "removeItem": "移除物品",
     "saveConfig": "保存配置",
     "runNow": "立即运行",
-    "grantsTitle": "授予历史（最近 100 条）",
+    "grantsTitle": "授予记录 ({{count}})",
     "grantsLabel": "欢迎包裹授予记录",
     "noGrants": "暂无授予记录。",
     "retry": "重试",
@@ -1007,7 +1007,15 @@
       "messagePlaceholder": "欢迎来到服务器！享受您的新手礼包。",
       "senderLabel": "发送者 FLS ID（可选）",
       "senderPlaceholder": "留空则使用已配置的 GM 角色"
-    }
+    },
+    "sections": {
+      "config": "配置",
+      "packages": "礼包",
+      "grants": "授予记录"
+    },
+    "configSubtitle": "启用授予、设置活跃礼包并配置欢迎消息。",
+    "packagesSubtitle": "创建和管理物品礼包。每个版本可独立授予。",
+    "activeVersionGranted": "活跃版本（授予中）"
   },
   "settings": {
     "backendUrl": "后端 URL",

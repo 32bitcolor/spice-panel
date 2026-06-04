@@ -1,9 +1,10 @@
+import type React from 'react'
 import { useMemo, useState } from 'react'
 import { Button } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../../dune-ui'
 
-type Props = {
+type MarketSidebarProps = {
   categories: string[]
   selected: string
   onSelect: (cat: string) => void
@@ -156,7 +157,7 @@ function TreeNode({ node, selected, depth, expanded, onToggle, onSelect }: TreeN
   )
 }
 
-export default function MarketSidebar({ categories, selected, onSelect }: Props) {
+export const MarketSidebar: React.FC<MarketSidebarProps> = ({ categories, selected, onSelect }: MarketSidebarProps) => {
   const { t } = useTranslation()
   const { items, schematics } = useMemo(() => buildTree(categories), [categories])
   const [collapsed, setCollapsed] = useState(false)

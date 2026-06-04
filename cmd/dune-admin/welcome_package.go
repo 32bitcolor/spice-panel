@@ -168,7 +168,7 @@ type welcomePackage struct {
 type welcomePackageRuntime struct {
 	enabled                    bool
 	interval                   time.Duration
-	activeVersion              string
+	activeVersions             []string
 	packages                   []welcomePackage
 	welcomeMessageEnabled      bool
 	welcomeMessage             string
@@ -183,13 +183,24 @@ type welcomeMessageOptions struct {
 	sourcePlayer string
 }
 
-// active returns the package matching activeVersion, if present.
+// activePackages returns all packages whose version is in activeVersions.
+func (rt welcomePackageRuntime) activePackages() []welcomePackage {
+	out := make([]welcomePackage, 0, len(rt.activeVersions))
+	for _, v := range rt.activeVersions {
+		if i := findPackage(rt.packages, v); i >= 0 {
+			out = append(out, rt.packages[i])
+		}
+	}
+	return out
+}
+
+// active returns the first active package (backwards-compat helper).
 func (rt welcomePackageRuntime) active() (welcomePackage, bool) {
-	i := findPackage(rt.packages, rt.activeVersion)
-	if i < 0 {
+	pkgs := rt.activePackages()
+	if len(pkgs) == 0 {
 		return welcomePackage{}, false
 	}
-	return rt.packages[i], true
+	return pkgs[0], true
 }
 
 func findPackage(packages []welcomePackage, version string) int {
@@ -222,16 +233,20 @@ func getWelcomeRuntime() welcomePackageRuntime {
 // buildWelcomeRuntime normalizes raw config (version default, interval clamp)
 // into a runtime value. Shared by startup and the config API so both apply the
 // same defaults.
-func buildWelcomeRuntime(enabled bool, activeVersion string, scanSecs int, packages []welcomePackage, msg welcomeMessageOptions) welcomePackageRuntime {
+func buildWelcomeRuntime(enabled bool, activeVersions []string, scanSecs int, packages []welcomePackage, msg welcomeMessageOptions) welcomePackageRuntime {
 	if packages == nil {
 		packages = []welcomePackage{}
 	}
-	// Default the active version to the first package when unset or unknown.
-	if findPackage(packages, activeVersion) < 0 {
-		activeVersion = ""
-		if len(packages) > 0 {
-			activeVersion = packages[0].Version
+	// Filter activeVersions to only those that exist in the package library.
+	valid := activeVersions[:0:0]
+	for _, v := range activeVersions {
+		if findPackage(packages, v) >= 0 {
+			valid = append(valid, v)
 		}
+	}
+	// Default to first package when nothing valid is selected.
+	if len(valid) == 0 && len(packages) > 0 {
+		valid = []string{packages[0].Version}
 	}
 	interval := time.Duration(scanSecs) * time.Second
 	if interval < welcomeMinScanInterval {
@@ -240,7 +255,7 @@ func buildWelcomeRuntime(enabled bool, activeVersion string, scanSecs int, packa
 	return welcomePackageRuntime{
 		enabled:                    enabled,
 		interval:                   interval,
-		activeVersion:              activeVersion,
+		activeVersions:             valid,
 		packages:                   packages,
 		welcomeMessageEnabled:      msg.enabled,
 		welcomeMessage:             msg.message,
@@ -277,12 +292,9 @@ func welcomePackageScanTick(ctx context.Context) {
 	if !rt.enabled || welcomeStoreDB == nil {
 		return
 	}
-	pkg, ok := rt.active()
-	if !ok {
-		return // no active package selected
-	}
-	if err := validateWelcomeItems(pkg.Items); err != nil {
-		return // active package has nothing valid to grant yet; stay quiet
+	activePkgs := rt.activePackages()
+	if len(activePkgs) == 0 {
+		return
 	}
 	var whisperFn func(context.Context, int64, string, string) error
 	if rt.welcomeMessageEnabled && strings.TrimSpace(rt.welcomeMessage) != "" {
@@ -292,18 +304,23 @@ func welcomePackageScanTick(ctx context.Context) {
 			return sendWelcomeWhisper(wctx, accountID, srcPlayer, msg)
 		}
 	}
-	g, f, _, err := welcomePackageScanOnce(ctx, pkg.Version, pkg.Items, welcomeScanDeps{
-		listAccounts: listWelcomeOnlineAccounts,
-		grant:        welcomeGrantViaGiveItems,
-		whisper:      whisperFn,
-		store:        welcomeStoreDB,
-	})
-	if err != nil {
-		log.Printf("welcome-package: scan error: %v", err)
-		return
-	}
-	if g > 0 || f > 0 {
-		log.Printf("welcome-package: granted=%d failed=%d version=%q", g, f, pkg.Version)
+	for _, pkg := range activePkgs {
+		if err := validateWelcomeItems(pkg.Items); err != nil {
+			continue
+		}
+		g, f, _, err := welcomePackageScanOnce(ctx, pkg.Version, pkg.Items, welcomeScanDeps{
+			listAccounts: listWelcomeOnlineAccounts,
+			grant:        welcomeGrantViaGiveItems,
+			whisper:      whisperFn,
+			store:        welcomeStoreDB,
+		})
+		if err != nil {
+			log.Printf("welcome-package: scan error (version=%q): %v", pkg.Version, err)
+			continue
+		}
+		if g > 0 || f > 0 {
+			log.Printf("welcome-package: granted=%d failed=%d version=%q", g, f, pkg.Version)
+		}
 	}
 }
 

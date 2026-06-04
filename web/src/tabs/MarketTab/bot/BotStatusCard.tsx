@@ -1,3 +1,4 @@
+import type React from 'react'
 import { Chip } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
 import type { BotStatus } from '../../../api/client'
@@ -17,7 +18,11 @@ function fmtBalance(n: number | undefined): string {
   return n.toLocaleString()
 }
 
-export default function BotStatusCard({ status }: { status: BotStatus }) {
+interface BotStatusCardProps {
+  status: BotStatus
+}
+
+export const BotStatusCard: React.FC<BotStatusCardProps> = ({ status }) => {
   const { t } = useTranslation()
   const statusLabel = status.running ? t('market.bot.status.running') : t('market.bot.status.paused')
   const statusColor = status.running ? 'success' : 'warning'
@@ -47,7 +52,13 @@ export default function BotStatusCard({ status }: { status: BotStatus }) {
   )
 }
 
-function Stat({ label, value, accent }: { label: string, value: string, accent?: 'danger' }) {
+interface StatProps {
+  label: string
+  value: string
+  accent?: 'danger'
+}
+
+function Stat({ label, value, accent }: StatProps) {
   return (
     <div className="flex flex-col gap-1 min-w-[100px]">
       <span className="text-xs text-muted uppercase tracking-wider">{label}</span>

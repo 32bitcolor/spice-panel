@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Checkbox, Chip, Spinner, toast } from '@heroui/react'
 import { api, getWsBase } from '../api/client'
@@ -10,7 +11,11 @@ type NavKey = 'cheats' | `pod:${string}`
 
 type CheatKey = 'time' | 'character' | 'cheat_type'
 
-export default function LogsTab({ control }: { control?: string }) {
+interface LogsTabProps {
+  control?: string
+}
+
+export const LogsTab: React.FC<LogsTabProps> = ({ control }) => {
   const { t } = useTranslation()
 
   // Control planes that surface log files (amp, docker, local) get
