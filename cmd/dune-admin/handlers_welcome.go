@@ -158,10 +158,13 @@ func handlePutWelcomeConfig(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		row := welcomeConfigRow{
-			Enabled:       rt.enabled,
-			ScanSecs:      int(rt.interval / time.Second),
-			ActiveVersion: rt.activeVersion,
-			PackagesJSON:  string(pkgsJSON),
+			Enabled:                    rt.enabled,
+			ScanSecs:                   int(rt.interval / time.Second),
+			ActiveVersion:              rt.activeVersion,
+			PackagesJSON:               string(pkgsJSON),
+			WelcomeMessageEnabled:      rt.welcomeMessageEnabled,
+			WelcomeMessage:             rt.welcomeMessage,
+			WelcomeWhisperSourcePlayer: rt.welcomeWhisperSourcePlayer,
 		}
 		if err := welcomeStoreDB.saveConfig(row); err != nil {
 			log.Printf("handlePutWelcomeConfig: save to store: %v", err)

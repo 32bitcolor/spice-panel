@@ -54,6 +54,41 @@ func TestWelcomeConfigStore_LoadMissingReturnsNotOK(t *testing.T) {
 	}
 }
 
+func TestWelcomeConfigStore_WelcomeMessageFieldsRoundTrip(t *testing.T) {
+	t.Parallel()
+	s := openMemWelcomeStore(t)
+
+	cfg := welcomeConfigRow{
+		Enabled:                    true,
+		ScanSecs:                   30,
+		ActiveVersion:              "v1",
+		PackagesJSON:               `[]`,
+		WelcomeMessageEnabled:      true,
+		WelcomeMessage:             "Welcome to the server! Enjoy your starter pack.",
+		WelcomeWhisperSourcePlayer: "some-fls-id-123",
+	}
+	if err := s.saveConfig(cfg); err != nil {
+		t.Fatalf("saveConfig: %v", err)
+	}
+
+	got, ok, err := s.loadConfig()
+	if err != nil {
+		t.Fatalf("loadConfig: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected config to be present after save")
+	}
+	if !got.WelcomeMessageEnabled {
+		t.Error("WelcomeMessageEnabled: want true, got false")
+	}
+	if got.WelcomeMessage != cfg.WelcomeMessage {
+		t.Errorf("WelcomeMessage: want %q, got %q", cfg.WelcomeMessage, got.WelcomeMessage)
+	}
+	if got.WelcomeWhisperSourcePlayer != cfg.WelcomeWhisperSourcePlayer {
+		t.Errorf("WelcomeWhisperSourcePlayer: want %q, got %q", cfg.WelcomeWhisperSourcePlayer, got.WelcomeWhisperSourcePlayer)
+	}
+}
+
 func TestWelcomeConfigStore_OverwriteWithSave(t *testing.T) {
 	t.Parallel()
 	s := openMemWelcomeStore(t)

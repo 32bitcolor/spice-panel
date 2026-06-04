@@ -1,9 +1,71 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 )
+
+// setupWelcomeStore wires a fresh in-memory store into welcomeStoreDB and
+// restores nil on cleanup. NOT parallel — mutates a package global.
+func setupWelcomeStore(t *testing.T) *welcomeStore {
+	t.Helper()
+	s := openMemWelcomeStore(t)
+	welcomeStoreDB = s
+	t.Cleanup(func() { welcomeStoreDB = nil })
+	return s
+}
+
+// TestHandlePutWelcomeConfig_MessageFieldsPersisted verifies that the welcome
+// message fields survive a PUT → GET round-trip via the SQLite store.
+// This is a regression test for the bug where the handler built the
+// welcomeConfigRow without WelcomeMessage* fields, so they were lost on refresh.
+func TestHandlePutWelcomeConfig_MessageFieldsPersisted(t *testing.T) {
+	setupWelcomeStore(t)
+
+	payload := welcomeConfigResponse{
+		Enabled:                    false,
+		ScanIntervalSecs:           30,
+		ActiveVersion:              "",
+		Packages:                   []welcomePackage{},
+		WelcomeMessageEnabled:      true,
+		WelcomeMessage:             "Welcome to the server! Enjoy your starter pack.",
+		WelcomeWhisperSourcePlayer: "fls-id-abc123",
+	}
+	body, _ := json.Marshal(payload)
+
+	putReq := httptest.NewRequest(http.MethodPut, "/api/v1/welcome-package/config", bytes.NewReader(body))
+	putRec := httptest.NewRecorder()
+	handlePutWelcomeConfig(putRec, putReq)
+	if putRec.Code != http.StatusOK {
+		t.Fatalf("PUT: want 200, got %d: %s", putRec.Code, putRec.Body.String())
+	}
+
+	// Simulate a UI refresh: GET re-reads the store.
+	getReq := httptest.NewRequest(http.MethodGet, "/api/v1/welcome-package/config", nil)
+	getRec := httptest.NewRecorder()
+	handleGetWelcomeConfig(getRec, getReq)
+	if getRec.Code != http.StatusOK {
+		t.Fatalf("GET: want 200, got %d: %s", getRec.Code, getRec.Body.String())
+	}
+
+	var got welcomeConfigResponse
+	if err := json.NewDecoder(getRec.Body).Decode(&got); err != nil {
+		t.Fatalf("decode GET response: %v", err)
+	}
+	if !got.WelcomeMessageEnabled {
+		t.Error("WelcomeMessageEnabled: want true, got false after refresh")
+	}
+	if got.WelcomeMessage != payload.WelcomeMessage {
+		t.Errorf("WelcomeMessage: want %q, got %q", payload.WelcomeMessage, got.WelcomeMessage)
+	}
+	if got.WelcomeWhisperSourcePlayer != payload.WelcomeWhisperSourcePlayer {
+		t.Errorf("WelcomeWhisperSourcePlayer: want %q, got %q", payload.WelcomeWhisperSourcePlayer, got.WelcomeWhisperSourcePlayer)
+	}
+}
 
 func TestBuildWelcomeRuntime(t *testing.T) {
 	t.Parallel()
