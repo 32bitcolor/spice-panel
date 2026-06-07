@@ -583,6 +583,24 @@ export interface WelcomeGrantRecord {
   updated_at: string
 }
 
+export interface GivePackItem {
+  template: string
+  qty: number
+  quality: number
+}
+
+export interface GivePack {
+  id: string
+  name: string
+  category: string
+  tier: number
+  items: GivePackItem[]
+}
+
+export interface GivePacksConfig {
+  packs: GivePack[]
+}
+
 export const api = {
   status: () => req<Status>('GET', '/status'),
   reconnect: () => req<Status>('POST', '/reconnect'),
@@ -897,5 +915,10 @@ export const api = {
         account_id: accountId,
       }),
     run: () => req<{ granted: number, failed: number, skipped: number }>('POST', '/welcome-package/run'),
+  },
+
+  givePacks: {
+    config: () => req<GivePacksConfig>('GET', '/give-packs/config'),
+    saveConfig: (cfg: GivePacksConfig) => req<GivePacksConfig>('PUT', '/give-packs/config', cfg),
   },
 }

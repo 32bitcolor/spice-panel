@@ -738,6 +738,7 @@ func main() {
 	defer stopWelcomeScanner()
 
 	initLocationStore()
+	initGivePacksStore()
 
 	startServer(listenAddr)
 }
@@ -752,6 +753,30 @@ func initLocationStore() {
 		return
 	}
 	globalLocationStore = s
+}
+
+// initGivePacksStore opens (or creates) the give-packs SQLite store and seeds
+// it from the embedded default packs.json snapshot on first boot. A failure is
+// non-fatal — handlers guard for a nil store and return 503.
+func initGivePacksStore() {
+	s, err := openGivePacksStore(filepath.Join(configDir(), "give-packs.db"))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "give-packs store: %v (using empty packs)\n", err)
+		return
+	}
+	givePacksStoreDB = s
+	loaded, _, ok, err := s.loadConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "give-packs store load: %v\n", err)
+		return
+	}
+	// Seed from the embedded default snapshot on first boot or when the flag
+	// was never set. Once base_packs_loaded=true, no seeding ever happens again.
+	if !ok || !loaded {
+		if seedErr := seedGivePacks(); seedErr != nil {
+			fmt.Fprintf(os.Stderr, "give-packs seed: %v\n", seedErr)
+		}
+	}
 }
 
 // globalWelcomeCancel stops the welcome-package scanner goroutine on shutdown.

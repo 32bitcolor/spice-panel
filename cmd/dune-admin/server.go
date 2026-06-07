@@ -268,6 +268,10 @@ func startServer(addr string) {
 	mux.HandleFunc("POST /api/v1/welcome-package/retry", handleRetryWelcomeGrant)
 	mux.HandleFunc("POST /api/v1/welcome-package/run", handleRunWelcomePackage)
 
+	// ── give-items packs (operator-configurable pack library) ─────────────────
+	mux.HandleFunc("GET /api/v1/give-packs/config", handleGetGivePacksConfig)
+	mux.HandleFunc("PUT /api/v1/give-packs/config", handlePutGivePacksConfig)
+
 	// ── swagger UI ────────────────────────────────────────────────────────────
 	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 

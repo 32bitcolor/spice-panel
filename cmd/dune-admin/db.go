@@ -332,17 +332,21 @@ type factionTrends struct {
 	Points   []factionTrendPoint `json:"points"`
 }
 
-// bucketFactionTrends aggregates per-account daily snapshots into a per-day,
-// per-faction series. Pure + testable (xpToLevel is its only dependency).
-// metric "level" → average character level per faction; otherwise → summed Solaris.
-func bucketFactionTrends(snaps []daySnap, acctFaction map[int64]string, metric string) factionTrends {
-	type acc struct {
-		sum float64
-		n   int
-	}
-	byDay := map[string]map[string]*acc{}
-	order := []string{}
-	factionSet := map[string]bool{}
+// factionSnapAcc is an intermediate accumulator used by bucketFactionTrends.
+type factionSnapAcc struct {
+	sum float64
+	n   int
+}
+
+// accumulateFactionSnaps groups snapshots by day and faction into accumulators.
+// metric "level" → sum of xpToLevel; otherwise → sum of Solaris.
+func accumulateFactionSnaps(snaps []daySnap, acctFaction map[int64]string, metric string) (
+	byDay map[string]map[string]*factionSnapAcc,
+	order []string,
+	factionSet map[string]bool,
+) {
+	byDay = map[string]map[string]*factionSnapAcc{}
+	factionSet = map[string]bool{}
 	for _, s := range snaps {
 		fac := acctFaction[s.AccountID]
 		if fac == "" {
@@ -350,12 +354,12 @@ func bucketFactionTrends(snaps []daySnap, acctFaction map[int64]string, metric s
 		}
 		factionSet[fac] = true
 		if byDay[s.Day] == nil {
-			byDay[s.Day] = map[string]*acc{}
+			byDay[s.Day] = map[string]*factionSnapAcc{}
 			order = append(order, s.Day)
 		}
 		a := byDay[s.Day][fac]
 		if a == nil {
-			a = &acc{}
+			a = &factionSnapAcc{}
 			byDay[s.Day][fac] = a
 		}
 		if metric == "level" {
@@ -365,6 +369,14 @@ func bucketFactionTrends(snaps []daySnap, acctFaction map[int64]string, metric s
 		}
 		a.n++
 	}
+	return
+}
+
+// bucketFactionTrends aggregates per-account daily snapshots into a per-day,
+// per-faction series. Pure + testable (xpToLevel is its only dependency).
+// metric "level" → average character level per faction; otherwise → summed Solaris.
+func bucketFactionTrends(snaps []daySnap, acctFaction map[int64]string, metric string) factionTrends {
+	byDay, order, factionSet := accumulateFactionSnaps(snaps, acctFaction, metric)
 	sort.Strings(order)
 	factions := make([]string, 0, len(factionSet))
 	for f := range factionSet {

@@ -663,6 +663,48 @@ func TestDetectExchangeID(t *testing.T) {
 	}
 }
 
+// TestSellerPaymentItemPrice_IsPerUnit is a regression test for the
+// double-multiplication overpayment bug.
+//
+// dune_exchange_orders.item_price is a PER-UNIT price. When a seller claims their
+// payout ("Take Solari"), the game computes: payout = item_price × stack_size
+// (from dune_exchange_fulfilled_orders). Storing totalCost (unitPrice×stackSize)
+// as item_price caused the game to pay unitPrice×stackSize×stackSize.
+//
+// Example: 200 darts listed at 80 each → bot debited 16,000 (correct) →
+// seller received 16,000×200 = 3,200,000 instead of 16,000.
+func TestSellerPaymentItemPrice_IsPerUnit(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		unitPrice int64
+		stackSize int64
+	}{
+		{"single item", 80, 1},
+		{"200-dart stack at 80 each (the observed overpay case)", 80, 200},
+		{"high-value item small stack", 50_000, 5},
+		{"zero price edge case", 0, 10},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := sellerPaymentItemPrice(tt.unitPrice)
+			if got != tt.unitPrice {
+				t.Errorf("sellerPaymentItemPrice(%d) = %d, want %d (per-unit, not total)",
+					tt.unitPrice, got, tt.unitPrice)
+			}
+			// Verify the buggy value differs (for non-unit, non-zero stacks) to
+			// confirm the fix actually changes something. When unitPrice==0 the
+			// buggy and correct values are both 0, so the check is meaningless.
+			if tt.stackSize > 1 && tt.unitPrice > 0 && got == tt.unitPrice*tt.stackSize {
+				t.Errorf("returned totalCost=%d — double-multiplication bug still present",
+					tt.unitPrice*tt.stackSize)
+			}
+		})
+	}
+}
+
 func TestDetectAccessPointID(t *testing.T) {
 	errNoRows := pgx.ErrNoRows
 

@@ -671,7 +671,7 @@ func (e *Exchange) buyPlayerListings(ctx context.Context, orderExpiry int64, gam
 			  (exchange_id, access_point_id, owner_id, template_id, expiration_time,
 			   durability_cur, durability_max, item_price, category_mask, category_depth, is_npc_order)
 			VALUES ($1,$2,$3,$4,$5,1.0,1.0,$6,0,0,FALSE) RETURNING id`,
-			e.exchangeID, e.accessPointID, sellerActorID, tmpl, orderExpiry, totalCost,
+			e.exchangeID, e.accessPointID, sellerActorID, tmpl, orderExpiry, sellerPaymentItemPrice(price),
 		).Scan(&logOrderID); err != nil {
 			log.Printf("buy: log order for %s: %v", tmpl, err)
 			_ = tx.Rollback(ctx)
@@ -811,6 +811,17 @@ func (e *Exchange) createListingsBatch(ctx context.Context, listings []pendingLi
 		}
 	}
 	return created, errs
+}
+
+// sellerPaymentItemPrice returns the value to store in dune_exchange_orders.item_price
+// for a seller's "Take Solari" payment log entry.
+//
+// item_price is a PER-UNIT price. The game engine computes the seller's payout as
+// item_price × stack_size (from dune_exchange_fulfilled_orders). Passing totalCost
+// (unitPrice×stackSize) here causes a double-multiplication: seller receives
+// unitPrice×stackSize×stackSize instead of unitPrice×stackSize.
+func sellerPaymentItemPrice(unitPrice int64) int64 {
+	return unitPrice
 }
 
 // BuyTick runs the buy-side operations: learn game epoch and purchase player listings.

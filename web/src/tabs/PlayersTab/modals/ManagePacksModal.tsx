@@ -1,0 +1,375 @@
+import type React from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { Button, Header, ListBox, Modal, SearchField, Select, Separator, Spinner, toast } from '@heroui/react'
+import { useTranslation } from 'react-i18next'
+import { Icon, NumberInput } from '../../../dune-ui'
+import { api } from '../../../api/client'
+import type { GivePack, GivePackItem } from '../../../api/client'
+
+interface ManagePacksModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onSaved: (packs: GivePack[]) => void
+  templates: { id: string, name: string }[]
+}
+
+export const ManagePacksModal: React.FC<ManagePacksModalProps> = ({
+  isOpen,
+  onClose,
+  onSaved,
+  templates,
+}) => {
+  const { t } = useTranslation()
+  const [packs, setPacks] = useState<GivePack[]>([])
+  const [selectedID, setSelectedID] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  // Pack metadata form fields (dual-purpose: create new OR update selected)
+  const [formID, setFormID] = useState('')
+  const [formName, setFormName] = useState('')
+  const [formCategory, setFormCategory] = useState('')
+  const [formTier, setFormTier] = useState(1)
+
+  // Add-item row
+  const [addQuery, setAddQuery] = useState('')
+  const [addSelected, setAddSelected] = useState('')
+  const [addQty, setAddQty] = useState(1)
+  const [addQuality, setAddQuality] = useState(0)
+
+  const loadPacks = useCallback(() => {
+    setLoading(true)
+    api.givePacks.config()
+      .then((cfg) => {
+        const loaded = cfg.packs ?? []
+        setPacks(loaded)
+        setSelectedID(loaded[0]?.id ?? '')
+      })
+      .catch((e) => toast.danger(e instanceof Error ? e.message : String(e)))
+      .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    if (!isOpen) return
+    void Promise.resolve().then(loadPacks)
+  }, [isOpen, loadPacks])
+
+  // Pre-populate form fields when selection changes (useRef avoids re-fire on item edits)
+  const packsRef = useRef(packs)
+  useEffect(() => {
+    packsRef.current = packs
+  }, [packs])
+
+  useEffect(() => {
+    const pack = packsRef.current.find((p) => p.id === selectedID)
+    if (pack) {
+      setFormID(pack.id)
+      setFormName(pack.name)
+      setFormCategory(pack.category)
+      setFormTier(pack.tier)
+    }
+    else {
+      setFormID('')
+      setFormName('')
+      setFormCategory('')
+      setFormTier(1)
+    }
+  }, [selectedID])
+
+  const nameMap = useMemo(() => new Map(templates.map((t) => [t.id, t.name])), [templates])
+
+  const sortedPacks = useMemo(
+    () => [...packs].sort((a, b) => a.category.localeCompare(b.category) || a.tier - b.tier),
+    [packs],
+  )
+
+  const groupedPacks = useMemo(() => {
+    const groups: Record<string, GivePack[]> = {}
+    for (const p of sortedPacks) {
+      if (!groups[p.category]) groups[p.category] = []
+      groups[p.category].push(p)
+    }
+    return Object.entries(groups)
+  }, [sortedPacks])
+
+  const selectedPack = packs.find((p) => p.id === selectedID)
+  const items: GivePackItem[] = selectedPack?.items ?? []
+
+  const setItems = (next: GivePackItem[]) => {
+    setPacks(packs.map((p) => (p.id === selectedID ? { ...p, items: next } : p)))
+  }
+
+  const addFiltered = useMemo(() => {
+    if (!addQuery) return []
+    const q = addQuery.toLowerCase()
+    return templates
+      .filter((tpl) => tpl.id.toLowerCase().includes(q) || tpl.name.toLowerCase().includes(q))
+      .slice(0, 100)
+  }, [templates, addQuery])
+
+  const pickTemplate = (tpl: { id: string, name: string }) => {
+    setAddSelected(tpl.id)
+    setAddQuery(tpl.name ? `${tpl.id}  —  ${tpl.name}` : tpl.id)
+  }
+
+  const addItem = () => {
+    if (!addSelected) return
+    setItems([...items, { template: addSelected, qty: addQty, quality: addQuality }])
+    setAddQuery('')
+    setAddSelected('')
+    setAddQty(1)
+    setAddQuality(0)
+  }
+
+  const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i))
+  const setItem = (i: number, patch: Partial<GivePackItem>) =>
+    setItems(items.map((it, idx) => (idx === i ? { ...it, ...patch } : it)))
+
+  // True when the form is editing an existing pack's metadata
+  const isUpdating = selectedID !== '' && formID.trim() === selectedID
+
+  const applyPack = () => {
+    const id = formID.trim()
+    const name = formName.trim()
+    const category = formCategory.trim()
+    if (!id || !name || !category) return
+    if (isUpdating) {
+      setPacks((prev) => prev.map((p) =>
+        p.id === selectedID ? { ...p, id, name, category, tier: formTier } : p,
+      ))
+      setSelectedID(id)
+    }
+    else {
+      if (packs.some((p) => p.id === id)) {
+        toast.warning(t('players.givePacks.duplicateId'))
+        return
+      }
+      setPacks((prev) => [...prev, { id, name, category, tier: formTier, items: [] }])
+      setSelectedID(id)
+    }
+  }
+
+  const clearPackForm = () => {
+    setFormID('')
+    setFormName('')
+    setFormCategory('')
+    setFormTier(1)
+  }
+
+  const deletePack = (id: string) => {
+    const next = packs.filter((p) => p.id !== id)
+    setPacks(next)
+    if (selectedID === id) setSelectedID(next[0]?.id ?? '')
+  }
+
+  const save = async () => {
+    setSaving(true)
+    try {
+      const cfg = await api.givePacks.saveConfig({ packs })
+      toast.success(t('players.givePacks.saved'))
+      onSaved(cfg.packs)
+    }
+    catch (e) {
+      toast.danger(t('players.givePacks.saveFailed', { message: e instanceof Error ? e.message : String(e) }))
+    }
+    finally {
+      setSaving(false)
+    }
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <Modal.Backdrop isOpen onOpenChange={(v) => { if (!v) onClose() }}>
+      <Modal.Container size="cover" scroll="outside">
+        <Modal.Dialog>
+          <Modal.CloseTrigger />
+          <Modal.Header>
+            <Modal.Heading className="text-accent">{t('players.givePacks.title')}</Modal.Heading>
+          </Modal.Header>
+          <Modal.Body className="flex flex-col gap-4 h-[80vh] min-h-0">
+            {loading
+              ? <Spinner size="sm" color="current" />
+              : (
+                  <div className="flex flex-col h-full min-h-0 gap-3">
+
+                    {/* Pack picker + metadata — single row */}
+                    <div className="flex flex-wrap items-center gap-2 shrink-0 pb-1 border-b border-border">
+                      <Select
+                        aria-label={t('players.givePacks.editingPack')}
+                        selectedKey={selectedID || null}
+                        onSelectionChange={(k) => setSelectedID(k ? String(k) : '')}
+                        className="w-56"
+                      >
+                        <Select.Trigger>
+                          <Select.Value>
+                            {!selectedID
+                              ? '— select —'
+                              : selectedPack
+                                ? `${selectedPack.category} — ${selectedPack.name}`
+                                : selectedID}
+                          </Select.Value>
+                          <Select.Indicator />
+                        </Select.Trigger>
+                        <Select.Popover>
+                          <ListBox>
+                            <ListBox.Item key="_none" id="" textValue="— select —">
+                              — select —
+                              <ListBox.ItemIndicator />
+                            </ListBox.Item>
+                            {groupedPacks.map(([cat, catPacks], i) => (
+                              <ListBox.Section key={cat}>
+                                <Header>{cat}</Header>
+                                {catPacks.map((p) => (
+                                  <ListBox.Item key={p.id} id={p.id} textValue={`${cat} — ${p.name}`}>
+                                    {p.name}
+                                    <ListBox.ItemIndicator />
+                                  </ListBox.Item>
+                                ))}
+                                {i < groupedPacks.length - 1 && <Separator />}
+                              </ListBox.Section>
+                            ))}
+                          </ListBox>
+                        </Select.Popover>
+                      </Select>
+                      {selectedID && (
+                        <Button size="sm" variant="ghost" onPress={() => deletePack(selectedID)} aria-label={t('players.givePacks.deletePack')}>
+                          <Icon name="trash-2" />
+                        </Button>
+                      )}
+                      <Button size="sm" variant="ghost" onPress={clearPackForm} aria-label={t('players.givePacks.newPack')}>
+                        <Icon name="file-plus" />
+                        {' '}
+                        {t('players.givePacks.newPack')}
+                      </Button>
+                      <input
+                        className="bg-surface border border-border rounded-[var(--radius)] px-3 py-2 text-sm text-foreground placeholder:text-muted w-28"
+                        aria-label={t('players.givePacks.packId')}
+                        placeholder={t('players.givePacks.packId')}
+                        value={formID}
+                        onChange={(e) => setFormID(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') applyPack() }}
+                      />
+                      <input
+                        className="bg-surface border border-border rounded-[var(--radius)] px-3 py-2 text-sm text-foreground placeholder:text-muted w-24"
+                        aria-label={t('players.givePacks.packName')}
+                        placeholder={t('players.givePacks.packName')}
+                        value={formName}
+                        onChange={(e) => setFormName(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') applyPack() }}
+                      />
+                      <input
+                        className="bg-surface border border-border rounded-[var(--radius)] px-3 py-2 text-sm text-foreground placeholder:text-muted w-28"
+                        aria-label={t('players.givePacks.category')}
+                        placeholder={t('players.givePacks.category')}
+                        value={formCategory}
+                        onChange={(e) => setFormCategory(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') applyPack() }}
+                      />
+                      <NumberInput ariaLabel={t('players.givePacks.tier')} min={1} value={formTier} onChange={setFormTier} className="w-24" />
+                      <Button
+                        size="sm"
+                        onPress={applyPack}
+                        isDisabled={!formID.trim() || !formName.trim() || !formCategory.trim()}
+                      >
+                        <Icon name={isUpdating ? 'check' : 'plus'} />
+                        {' '}
+                        {isUpdating ? t('players.givePacks.updatePack') : t('players.givePacks.addPack')}
+                      </Button>
+                    </div>
+
+                    {/* Item add row (only when a pack is selected) */}
+                    {selectedID && (
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="relative flex-1">
+                          <SearchField
+                            value={addQuery}
+                            onChange={(v) => {
+                              setAddQuery(v)
+                              setAddSelected('')
+                            }}
+                            className="w-full"
+                          >
+                            <SearchField.Group>
+                              <SearchField.SearchIcon />
+                              <SearchField.Input placeholder={t('players.givePacks.searchTemplates')} />
+                              <SearchField.ClearButton />
+                            </SearchField.Group>
+                          </SearchField>
+                          {addFiltered.length > 0 && (
+                            <div className="absolute z-50 w-full mt-1 rounded-[var(--radius)] border border-border bg-surface overflow-y-auto max-h-52">
+                              {addFiltered.map((tpl) => (
+                                <div
+                                  key={tpl.id}
+                                  className="px-3 py-1.5 text-xs cursor-pointer hover:bg-surface-hover"
+                                  onClick={() => pickTemplate(tpl)}
+                                >
+                                  <span className="font-mono">{tpl.id}</span>
+                                  {tpl.name && (
+                                    <span className="text-muted">
+                                      {' — '}
+                                      {tpl.name}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <NumberInput prefix={t('players.give.qty')} ariaLabel={t('players.give.qty')} min={1} value={addQty} onChange={setAddQty} className="w-48 shrink-0" />
+                        <NumberInput prefix={t('players.give.quality')} ariaLabel={t('players.give.quality')} min={0} value={addQuality} onChange={setAddQuality} className="w-48 shrink-0" />
+                        <Button size="sm" onPress={addItem} isDisabled={!addSelected} className="shrink-0">
+                          <Icon name="plus" />
+                          {' '}
+                          {t('players.givePacks.addItem')}
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Item list (scrollable) */}
+                    <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5 pr-1">
+                      {packs.length === 0
+                        ? <p className="text-xs text-muted">{t('players.givePacks.noPacks')}</p>
+                        : !selectedID
+                            ? <p className="text-xs text-muted">{t('players.givePacks.noPackSelected')}</p>
+                            : items.length === 0
+                              ? <p className="text-xs text-muted">{t('players.givePacks.noItemsYet')}</p>
+                              : items.map((it, i) => (
+                                  <div
+                                    key={i}
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius)] text-xs bg-surface border border-border"
+                                  >
+                                    <div className="flex-1 min-w-0 leading-tight">
+                                      <div className="truncate text-foreground">{nameMap.get(it.template) || it.template}</div>
+                                      {nameMap.get(it.template) && (
+                                        <div className="font-mono text-[10px] text-muted truncate">{it.template}</div>
+                                      )}
+                                    </div>
+                                    <NumberInput ariaLabel={t('players.give.qty')} prefix={t('players.give.qty')} min={1} value={it.qty} onChange={(v) => setItem(i, { qty: v })} className="w-48 shrink-0" />
+                                    <NumberInput ariaLabel={t('players.give.quality')} prefix={t('players.give.quality')} min={0} value={it.quality} onChange={(v) => setItem(i, { quality: v })} className="w-48 shrink-0" />
+                                    <Button size="sm" variant="danger-soft" onPress={() => removeItem(i)} aria-label={t('players.givePacks.removeItem')}>
+                                      <Icon name="x" />
+                                    </Button>
+                                  </div>
+                                ))}
+                    </div>
+
+                    {/* Save button */}
+                    <div className="pt-3 shrink-0 border-t border-border">
+                      <Button size="sm" onPress={save} isDisabled={saving}>
+                        {saving
+                          ? <Spinner size="sm" color="current" />
+                          : <Icon name="save" />}
+                        {' '}
+                        {t('players.givePacks.save')}
+                      </Button>
+                    </div>
+
+                  </div>
+                )}
+          </Modal.Body>
+        </Modal.Dialog>
+      </Modal.Container>
+    </Modal.Backdrop>
+  )
+}

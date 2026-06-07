@@ -1,14 +1,14 @@
 import type React from 'react'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   Button, Header, ListBox, SearchField, Select, Separator, Spinner, TextField, toast,
 } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'
-import type { Player } from '../../../api/client'
+import type { Player, GivePack } from '../../../api/client'
 import { Icon, LoadingState, NumberInput } from '../../../dune-ui'
-import type { PacksData } from '../types'
-import { cdnBase } from '../../../data/itemData'
+import { retainSkippedStaged } from './giveItemsHelpers'
+import { ManagePacksModal } from '../modals/ManagePacksModal'
 
 interface GiveItemsViewProps {
   player: Player
@@ -21,7 +21,7 @@ type StagedItem = { template: string, qty: number, quality: number }
 export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
   const { t } = useTranslation()
   const [templates, setTemplates] = useState<{ id: string, name: string }[]>([])
-  const [packsData, setPacksData] = useState<PacksData>({ packs: {} })
+  const [packs, setPacks] = useState<GivePack[]>([])
   const [loading, setLoading] = useState(false)
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState('')
@@ -30,47 +30,53 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
   const [staged, setStaged] = useState<StagedItem[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<GiveResult>(null)
+  const [manageOpen, setManageOpen] = useState(false)
 
-  useEffect(() => {
-    Promise.resolve()
-      .then(() => {
-        setLoading(true)
-        setQuery('')
-        setSelected('')
-        setQty(1)
-        setQuality(0)
-        setStaged([])
-        setResult(null)
-      })
-      .then(() => Promise.all([
-        api.players.templates(),
-        fetch(`${cdnBase()}/packs.json`).then((r) => r.json() as Promise<PacksData>).catch(() => ({ packs: {} } as PacksData)),
-      ]))
-      .then(([tmpls, packs]) => {
+  const loadData = useCallback(() => {
+    setLoading(true)
+    setQuery('')
+    setSelected('')
+    setQty(1)
+    setQuality(0)
+    setStaged([])
+    setResult(null)
+    Promise.all([
+      api.players.templates(),
+      api.givePacks.config(),
+    ])
+      .then(([tmpls, cfg]) => {
         setTemplates(tmpls)
-        setPacksData(packs)
+        setPacks(cfg.packs ?? [])
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [player.id])
+  }, [])
+
+  useEffect(() => {
+    void Promise.resolve().then(() => loadData())
+  }, [player.id, loadData])
+
+  const nameMap = useMemo(() => new Map(templates.map((t) => [t.id, t.name])), [templates])
 
   const filtered = useMemo(() => {
     if (!query) return []
     const q = query.toLowerCase()
-    return templates.filter((t) => t.id.toLowerCase().includes(q) || t.name.toLowerCase().includes(q)).slice(0, 100)
+    return templates
+      .filter((tpl) => tpl.id.toLowerCase().includes(q) || tpl.name.toLowerCase().includes(q))
+      .slice(0, 100)
   }, [templates, query])
 
   const groupedPacks = useMemo(() => {
     const groups: Record<string, { id: string, name: string, tier: number }[]> = {}
-    for (const [id, pack] of Object.entries(packsData.packs)) {
+    for (const pack of packs) {
       if (!groups[pack.category]) groups[pack.category] = []
-      groups[pack.category].push({ id, name: pack.name, tier: pack.tier })
+      groups[pack.category].push({ id: pack.id, name: pack.name, tier: pack.tier })
     }
     for (const cat of Object.keys(groups)) {
       groups[cat].sort((a, b) => a.tier - b.tier)
     }
     return groups
-  }, [packsData])
+  }, [packs])
 
   const pick = (tpl: { id: string, name: string }) => {
     setSelected(tpl.id)
@@ -103,7 +109,9 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
     try {
       const res = await api.players.giveItems(player.id, staged)
       setResult(res)
-      setStaged([])
+      // Partial-give retry: keep only items that were skipped so the operator
+      // can adjust qty/quality and retry. Items in res.given are cleared.
+      setStaged((prev) => retainSkippedStaged(prev, res.given))
       if (res.skipped.length === 0) {
         toast.success(t('players.give.gaveItems', { count: res.given.length, player: player.name }))
         setQuery('')
@@ -126,173 +134,202 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0">
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col gap-3 pb-2 pr-2">
-        <Select
-          aria-label={t('players.give.loadPack')}
-          placeholder={t('players.give.loadPack')}
-          selectedKey={null}
-          onSelectionChange={(k) => {
-            const id = k ? String(k) : ''
-            const pack = packsData.packs[id]
-            if (pack) setStaged((prev) => [...prev, ...pack.items])
-          }}
-          className="w-full"
-        >
-          <Select.Trigger>
-            <Select.Value />
-            <Select.Indicator />
-          </Select.Trigger>
-          <Select.Popover>
-            <ListBox>
-              {Object.entries(groupedPacks)
-                .sort(([a], [b]) => a.localeCompare(b))
-                .map(([cat, packs], i, arr) => (
-                  <ListBox.Section key={cat}>
-                    <Header>{cat.replace(/-/g, ' ')}</Header>
-                    {packs.map((p) => (
-                      <ListBox.Item key={p.id} id={p.id} textValue={p.name}>
-                        {p.name}
-                        <ListBox.ItemIndicator />
-                      </ListBox.Item>
+    <>
+      <div className="flex flex-col h-full min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col gap-3 pb-2 pr-2">
+          <div className="flex items-center gap-2">
+            <Select
+              aria-label={t('players.give.loadPack')}
+              placeholder={t('players.give.loadPack')}
+              selectedKey={null}
+              onSelectionChange={(k) => {
+                const id = k ? String(k) : ''
+                const pack = packs.find((p) => p.id === id)
+                if (pack) setStaged((prev) => [...prev, ...pack.items])
+              }}
+              className="flex-1"
+            >
+              <Select.Trigger>
+                <Select.Value />
+                <Select.Indicator />
+              </Select.Trigger>
+              <Select.Popover>
+                <ListBox>
+                  {Object.entries(groupedPacks)
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .map(([cat, catPacks], i, arr) => (
+                      <ListBox.Section key={cat}>
+                        <Header>{cat.replace(/-/g, ' ')}</Header>
+                        {catPacks.map((p) => (
+                          <ListBox.Item key={p.id} id={p.id} textValue={p.name}>
+                            {p.name}
+                            <ListBox.ItemIndicator />
+                          </ListBox.Item>
+                        ))}
+                        {i < arr.length - 1 && <Separator />}
+                      </ListBox.Section>
                     ))}
-                    {i < arr.length - 1 && <Separator />}
-                  </ListBox.Section>
-                ))}
-            </ListBox>
-          </Select.Popover>
-        </Select>
+                </ListBox>
+              </Select.Popover>
+            </Select>
+            <Button
+              size="sm"
+              variant="ghost"
+              onPress={() => setManageOpen(true)}
+              aria-label={t('players.give.managePacks')}
+            >
+              <Icon name="settings-2" />
+              {' '}
+              {t('players.give.managePacks')}
+            </Button>
+          </div>
 
-        <div className="flex items-end gap-3">
-          <TextField className="flex-1 min-w-0" aria-label={t('players.inventory.columns.template')}>
-            <div className="relative w-full">
-              <SearchField
-                className="w-full"
-                value={query}
-                onChange={(v) => {
-                  setQuery(v)
-                  setSelected('')
-                }}
-              >
-                <SearchField.Group>
-                  <SearchField.SearchIcon />
-                  <SearchField.Input placeholder={t('players.give.searchTemplates')} />
-                  <SearchField.ClearButton />
-                </SearchField.Group>
-              </SearchField>
-              {filtered.length > 0 && (
-                <div className="absolute z-50 w-full mt-1 rounded-[var(--radius)] border border-border bg-surface overflow-y-auto max-h-52">
-                  {filtered.map((tpl) => (
-                    <div
-                      key={tpl.id}
-                      className="px-3 py-1.5 text-xs cursor-pointer hover:bg-surface-hover"
-                      onClick={() => pick(tpl)}
-                    >
-                      <span className="font-mono">{tpl.id}</span>
-                      {tpl.name
-                        ? (
-                            <span className="text-muted">
-                              {' — '}
-                              {tpl.name}
-                            </span>
-                          )
-                        : null}
+          <div className="flex items-end gap-3">
+            <TextField className="flex-1 min-w-0" aria-label={t('players.inventory.columns.template')}>
+              <div className="relative w-full">
+                <SearchField
+                  className="w-full"
+                  value={query}
+                  onChange={(v) => {
+                    setQuery(v)
+                    setSelected('')
+                  }}
+                >
+                  <SearchField.Group>
+                    <SearchField.SearchIcon />
+                    <SearchField.Input placeholder={t('players.give.searchTemplates')} />
+                    <SearchField.ClearButton />
+                  </SearchField.Group>
+                </SearchField>
+                {filtered.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 rounded-[var(--radius)] border border-border bg-surface overflow-y-auto max-h-52">
+                    {filtered.map((tpl) => (
+                      <div
+                        key={tpl.id}
+                        className="px-3 py-1.5 text-xs cursor-pointer hover:bg-surface-hover"
+                        onClick={() => pick(tpl)}
+                      >
+                        <span className="font-mono">{tpl.id}</span>
+                        {tpl.name
+                          ? (
+                              <span className="text-muted">
+                                {' — '}
+                                {tpl.name}
+                              </span>
+                            )
+                          : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TextField>
+            <NumberInput
+              prefix={t('players.give.qty')}
+              ariaLabel={t('players.give.qty')}
+              min={1}
+              value={qty}
+              onChange={setQty}
+              className="w-56 shrink-0"
+            />
+            <NumberInput
+              prefix={t('players.give.quality')}
+              ariaLabel={t('players.give.quality')}
+              min={0}
+              value={quality}
+              onChange={setQuality}
+              className="w-56 shrink-0"
+            />
+            <Button size="sm" onPress={addToStaged} isDisabled={!selected} className="shrink-0">
+              <Icon name="plus" />
+              {' '}
+              {t('players.give.add')}
+            </Button>
+          </div>
+
+          {staged.length > 0 && (
+            <>
+              <div className="flex flex-col gap-1">
+                {staged.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius)] text-xs bg-surface border border-border"
+                  >
+                    <div className="flex-1 min-w-0 leading-tight">
+                      <div className="truncate text-foreground">{nameMap.get(item.template) || item.template}</div>
+                      {nameMap.get(item.template) && (
+                        <div className="font-mono text-[10px] text-muted truncate">{item.template}</div>
+                      )}
                     </div>
-                  ))}
+                    <NumberInput
+                      ariaLabel={`${t('players.give.qty')} for ${item.template}`}
+                      prefix={t('players.give.qty')}
+                      min={1}
+                      value={item.qty}
+                      onChange={(v) => updateStaged(idx, 'qty', v)}
+                      className="w-56"
+                    />
+                    <NumberInput
+                      ariaLabel={`${t('players.give.quality')} for ${item.template}`}
+                      prefix={t('players.give.quality')}
+                      min={0}
+                      value={item.quality}
+                      onChange={(v) => updateStaged(idx, 'quality', v)}
+                      className="w-56"
+                    />
+                    <Button
+                      size="sm"
+                      variant="danger-soft"
+                      onPress={() => removeFromStaged(idx)}
+                      aria-label={t('common.remove')}
+                    >
+                      <Icon name="x" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {result && (
+            <div className="text-xs rounded-[var(--radius)] px-3 py-2 bg-surface border border-border">
+              {result.given.length > 0 && (
+                <div className="text-success">
+                  {t('players.give.gave')}
+                  {' '}
+                  {result.given.join(', ')}
                 </div>
               )}
-            </div>
-          </TextField>
-          <NumberInput
-            prefix={t('players.give.qty')}
-            ariaLabel={t('players.give.qty')}
-            min={1}
-            value={qty}
-            onChange={setQty}
-            className="w-56 shrink-0"
-          />
-          <NumberInput
-            prefix={t('players.give.quality')}
-            ariaLabel={t('players.give.quality')}
-            min={0}
-            value={quality}
-            onChange={setQuality}
-            className="w-56 shrink-0"
-          />
-          <Button size="sm" onPress={addToStaged} isDisabled={!selected} className="shrink-0">
-            <Icon name="plus" />
-            {' '}
-            {t('players.give.add')}
-          </Button>
-        </div>
-
-        {staged.length > 0 && (
-          <>
-            <div className="flex flex-col gap-1">
-              {staged.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius)] text-xs bg-surface border border-border"
-                >
-                  <span className="flex-1 min-w-0 truncate font-mono text-foreground">{item.template}</span>
-                  <NumberInput
-                    ariaLabel={`${t('players.give.qty')} for ${item.template}`}
-                    prefix={t('players.give.qty')}
-                    min={1}
-                    value={item.qty}
-                    onChange={(v) => updateStaged(idx, 'qty', v)}
-                    className="w-56"
-                  />
-                  <NumberInput
-                    ariaLabel={`${t('players.give.quality')} for ${item.template}`}
-                    prefix={t('players.give.quality')}
-                    min={0}
-                    value={item.quality}
-                    onChange={(v) => updateStaged(idx, 'quality', v)}
-                    className="w-56"
-                  />
-                  <Button
-                    size="sm"
-                    variant="danger-soft"
-                    onPress={() => removeFromStaged(idx)}
-                    aria-label={t('common.remove')}
-                  >
-                    <Icon name="x" />
-                  </Button>
+              {result.skipped.map((s, i) => (
+                <div key={i} className="text-danger">
+                  {t('players.give.skipped', { template: s.template, reason: s.reason })}
                 </div>
               ))}
             </div>
-          </>
-        )}
+          )}
 
-        {result && (
-          <div className="text-xs rounded-[var(--radius)] px-3 py-2 bg-surface border border-border">
-            {result.given.length > 0 && (
-              <div className="text-success">
-                {t('players.give.gave')}
-                {' '}
-                {result.given.join(', ')}
-              </div>
-            )}
-            {result.skipped.map((s, i) => (
-              <div key={i} className="text-danger">
-                {t('players.give.skipped', { template: s.template, reason: s.reason })}
-              </div>
-            ))}
+        </div>
+
+        {staged.length > 0 && (
+          <div className="shrink-0 pt-3 border-t border-border flex justify-end">
+            <Button size="sm" onPress={handleSubmit} isDisabled={submitting || staged.length === 0}>
+              {submitting ? <Spinner size="sm" color="current" /> : <Icon name="gift" />}
+              {' '}
+              {t('players.give.giveCount', { count: staged.length })}
+            </Button>
           </div>
         )}
-
       </div>
 
-      {staged.length > 0 && (
-        <div className="shrink-0 pt-3 border-t border-border flex justify-end">
-          <Button size="sm" onPress={handleSubmit} isDisabled={submitting || staged.length === 0}>
-            {submitting ? <Spinner size="sm" color="current" /> : <Icon name="gift" />}
-            {' '}
-            {t('players.give.giveCount', { count: staged.length })}
-          </Button>
-        </div>
-      )}
-    </div>
+      <ManagePacksModal
+        isOpen={manageOpen}
+        onClose={() => setManageOpen(false)}
+        onSaved={(savedPacks) => {
+          setPacks(savedPacks)
+          setManageOpen(false)
+        }}
+        templates={templates}
+      />
+    </>
   )
 }

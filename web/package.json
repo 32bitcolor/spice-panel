@@ -9,8 +9,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "lint": "eslint . --max-warnings 0",
-    "preview": "vite preview",
-    "i18n:extract": "i18next-parser --config i18next-parser.config.ts"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@clerk/react": "^6.7.1",
@@ -56,8 +55,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
-    "i18next-parser": "^9.4.0",
-    "typescript": "~6.0.2",
+"typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12"
   }

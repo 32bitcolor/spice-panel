@@ -37,6 +37,8 @@ export const PackagesView: React.FC<PackagesViewProps> = ({
     setPackages(packages.map((p) => (p.version === selected ? { ...p, items: next } : p)))
   }
 
+  const nameMap = useMemo(() => new Map(templates.map((t) => [t.id, t.name])), [templates])
+
   const addFiltered = useMemo(() => {
     if (!addQuery) return []
     const q = addQuery.toLowerCase()
@@ -217,7 +219,12 @@ export const PackagesView: React.FC<PackagesViewProps> = ({
                   key={i}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius)] text-xs bg-surface border border-border"
                 >
-                  <span className="flex-1 min-w-0 truncate font-mono text-foreground">{it.template}</span>
+                  <div className="flex-1 min-w-0 leading-tight">
+                    <div className="truncate text-foreground">{nameMap.get(it.template) || it.template}</div>
+                    {nameMap.get(it.template) && (
+                      <div className="font-mono text-[10px] text-muted truncate">{it.template}</div>
+                    )}
+                  </div>
                   <NumberInput ariaLabel="Qty" prefix="Qty" min={1} value={it.qty} onChange={(v) => setItem(i, { qty: v })} className="w-48 shrink-0" />
                   <NumberInput ariaLabel="Quality" prefix="Quality" min={0} value={it.quality} onChange={(v) => setItem(i, { quality: v })} className="w-48 shrink-0" />
                   <Button size="sm" variant="danger-soft" onPress={() => removeItem(i)} aria-label={t('welcome.removeItem')}>

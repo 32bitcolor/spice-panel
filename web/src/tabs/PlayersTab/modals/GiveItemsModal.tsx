@@ -58,6 +58,8 @@ export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, on
       .finally(() => setLoading(false))
   }, [open])
 
+  const nameMap = useMemo(() => new Map(templates.map((t) => [t.id, t.name])), [templates])
+
   const filtered = useMemo(() => {
     if (!query) return []
     const q = query.toLowerCase()
@@ -250,7 +252,12 @@ export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, on
                                 key={idx}
                                 className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius)] text-xs bg-surface border border-border"
                               >
-                                <span className="flex-1 font-mono">{item.template}</span>
+                                <div className="flex-1 min-w-0 leading-tight">
+                                  <div className="truncate text-foreground">{nameMap.get(item.template) || item.template}</div>
+                                  {nameMap.get(item.template) && (
+                                    <div className="font-mono text-[10px] text-muted truncate">{item.template}</div>
+                                  )}
+                                </div>
                                 <NumberInput
                                   ariaLabel={`${t('players.give.qty')} for ${item.template}`}
                                   prefix={t('players.give.qty')}
