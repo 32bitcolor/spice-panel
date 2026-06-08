@@ -325,6 +325,384 @@ func cmdFetchAccountFactions(ctx context.Context, pool *pgxpool.Pool) (map[int64
 	return out, rows.Err()
 }
 
+// ── Guilds (#117 Phase A — read-only) ────────────────────────────────────────
+//
+// Schema (all dune.): guilds(guild_id, guild_name, guild_description,
+// guild_faction → factions.id); guild_members(player_id → actors.id, guild_id,
+// role_id); guild_invites(invite_id, guild_id, player_id → actors.id,
+// sender_player_id → actors.id, invite_sent_timespan). role_id is an in-game
+// rank enum not modelled in the DB, so it is surfaced numerically. Names resolve
+// actors.id → actors.owner_account_id → player_state.character_name.
+
+var errGuildNotFound = errors.New("guild not found")
+
+type guildSummary struct {
+	GuildID     int64  `json:"guild_id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	FactionID   int16  `json:"faction_id"`
+	FactionName string `json:"faction_name"`
+	MemberCount int64  `json:"member_count"`
+}
+
+type guildMember struct {
+	PlayerID      int64  `json:"player_id"`
+	RoleID        int16  `json:"role_id"`
+	CharacterName string `json:"character_name"`
+}
+
+type guildInvite struct {
+	InviteID      int64  `json:"invite_id"`
+	PlayerID      int64  `json:"player_id"`
+	CharacterName string `json:"character_name"`
+	SenderID      int64  `json:"sender_player_id"`
+	SenderName    string `json:"sender_name"`
+}
+
+type guildDetail struct {
+	guildSummary
+	Members []guildMember `json:"members"`
+	Invites []guildInvite `json:"invites"`
+}
+
+// guildMemberDisplayName returns the character name, or a stable "Actor <id>"
+// fallback when the name can't be resolved (the actor row exists — FK-guaranteed
+// — but has no player_state, e.g. a never-fully-initialised or system actor).
+func guildMemberDisplayName(charName string, actorID int64) string {
+	if strings.TrimSpace(charName) != "" {
+		return charName
+	}
+	return fmt.Sprintf("Actor %d", actorID)
+}
+
+// guildSummarySelect is the shared SELECT for list + detail; callers append the
+// ORDER BY (list) or WHERE g.guild_id = $1 (detail).
+const guildSummarySelect = `
+	SELECT g.guild_id,
+	       COALESCE(g.guild_name, ''),
+	       COALESCE(g.guild_description, ''),
+	       g.guild_faction,
+	       COALESCE(f.name, ''),
+	       (SELECT count(*) FROM dune.guild_members m WHERE m.guild_id = g.guild_id)
+	FROM dune.guilds g
+	LEFT JOIN dune.factions f ON f.id = g.guild_faction`
+
+func cmdFetchGuilds(ctx context.Context, pool *pgxpool.Pool) ([]guildSummary, error) {
+	rows, err := pool.Query(ctx, guildSummarySelect+`
+		ORDER BY g.guild_name NULLS LAST, g.guild_id`)
+	if err != nil {
+		return nil, fmt.Errorf("list guilds: %w", err)
+	}
+	defer rows.Close()
+	out := make([]guildSummary, 0, 16)
+	for rows.Next() {
+		var g guildSummary
+		if err := rows.Scan(&g.GuildID, &g.Name, &g.Description, &g.FactionID, &g.FactionName, &g.MemberCount); err != nil {
+			return nil, fmt.Errorf("scan guild: %w", err)
+		}
+		out = append(out, g)
+	}
+	return out, rows.Err()
+}
+
+const guildMembersSQL = `
+	SELECT m.player_id, COALESCE(m.role_id, 0), COALESCE(ps.character_name, '')
+	FROM dune.guild_members m
+	JOIN dune.actors a ON a.id = m.player_id
+	LEFT JOIN dune.player_state ps ON ps.account_id = a.owner_account_id
+	WHERE m.guild_id = $1
+	ORDER BY m.role_id, m.player_id`
+
+const guildInvitesSQL = `
+	SELECT i.invite_id, i.player_id, COALESCE(ps.character_name, ''),
+	       i.sender_player_id, COALESCE(sps.character_name, '')
+	FROM dune.guild_invites i
+	JOIN dune.actors a ON a.id = i.player_id
+	LEFT JOIN dune.player_state ps ON ps.account_id = a.owner_account_id
+	LEFT JOIN dune.actors sa ON sa.id = i.sender_player_id
+	LEFT JOIN dune.player_state sps ON sps.account_id = sa.owner_account_id
+	WHERE i.guild_id = $1
+	ORDER BY i.invite_id`
+
+func scanGuildMembers(ctx context.Context, pool *pgxpool.Pool, guildID int64) ([]guildMember, error) {
+	rows, err := pool.Query(ctx, guildMembersSQL, guildID)
+	if err != nil {
+		return nil, fmt.Errorf("guild members %d: %w", guildID, err)
+	}
+	defer rows.Close()
+	out := make([]guildMember, 0, 16)
+	for rows.Next() {
+		var m guildMember
+		if err := rows.Scan(&m.PlayerID, &m.RoleID, &m.CharacterName); err != nil {
+			return nil, fmt.Errorf("scan guild member: %w", err)
+		}
+		m.CharacterName = guildMemberDisplayName(m.CharacterName, m.PlayerID)
+		out = append(out, m)
+	}
+	return out, rows.Err()
+}
+
+func scanGuildInvites(ctx context.Context, pool *pgxpool.Pool, guildID int64) ([]guildInvite, error) {
+	rows, err := pool.Query(ctx, guildInvitesSQL, guildID)
+	if err != nil {
+		return nil, fmt.Errorf("guild invites %d: %w", guildID, err)
+	}
+	defer rows.Close()
+	out := make([]guildInvite, 0, 8)
+	for rows.Next() {
+		var iv guildInvite
+		if err := rows.Scan(&iv.InviteID, &iv.PlayerID, &iv.CharacterName, &iv.SenderID, &iv.SenderName); err != nil {
+			return nil, fmt.Errorf("scan guild invite: %w", err)
+		}
+		iv.CharacterName = guildMemberDisplayName(iv.CharacterName, iv.PlayerID)
+		iv.SenderName = guildMemberDisplayName(iv.SenderName, iv.SenderID)
+		out = append(out, iv)
+	}
+	return out, rows.Err()
+}
+
+func cmdFetchGuildDetail(ctx context.Context, pool *pgxpool.Pool, guildID int64) (guildDetail, error) {
+	var d guildDetail
+	err := pool.QueryRow(ctx, guildSummarySelect+`
+		WHERE g.guild_id = $1`, guildID).Scan(
+		&d.GuildID, &d.Name, &d.Description, &d.FactionID, &d.FactionName, &d.MemberCount)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return guildDetail{}, errGuildNotFound
+		}
+		return guildDetail{}, fmt.Errorf("guild %d: %w", guildID, err)
+	}
+	if d.Members, err = scanGuildMembers(ctx, pool, guildID); err != nil {
+		return guildDetail{}, err
+	}
+	if d.Invites, err = scanGuildInvites(ctx, pool, guildID); err != nil {
+		return guildDetail{}, err
+	}
+	return d, nil
+}
+
+// ── Guild mutations (#117 Phase B) ───────────────────────────────────────────
+// Writes go through the game's own stored procs (dune.edit_guild_description,
+// promote/demote_guild_member): each self-acquires pg_advisory_xact_lock(601145)
+// and pg_notify('guild_notify_channel', ...) so the live game applies the change —
+// the same safe pattern as faction mutations. Guild NAME has no game proc, so it
+// is a raw UPDATE (lock-guarded, uniqueness-checked) that the game only reflects
+// after it reloads guild data (e.g. a server restart).
+
+const (
+	guildRoleMember = 50
+	guildRoleAdmin  = 100
+)
+
+var errGuildNameTaken = errors.New("guild name already taken")
+
+// guildRoleSetProc picks the game proc for a role change: promoting to admin (100)
+// transfers the single admin slot via promote_guild_member; any lower role goes
+// through demote_guild_member, which refuses to demote the sitting admin.
+func guildRoleSetProc(newRole int16) string {
+	if newRole == guildRoleAdmin {
+		return "promote_guild_member"
+	}
+	return "demote_guild_member"
+}
+
+func cmdEditGuildDescription(ctx context.Context, pool *pgxpool.Pool, guildID int64, desc string) error {
+	if _, err := pool.Exec(ctx, `SELECT dune.edit_guild_description($1, $2)`, guildID, desc); err != nil {
+		return fmt.Errorf("edit guild %d description: %w", guildID, err)
+	}
+	return nil
+}
+
+func cmdSetGuildMemberRole(ctx context.Context, pool *pgxpool.Pool, guildID, playerID int64, newRole int16) error {
+	// Static query strings (no concatenation) selected by the allowlisted helper.
+	var q string
+	switch guildRoleSetProc(newRole) {
+	case "promote_guild_member":
+		q = `SELECT dune.promote_guild_member($1, $2, $3)`
+	default:
+		q = `SELECT dune.demote_guild_member($1, $2, $3)`
+	}
+	if _, err := pool.Exec(ctx, q, guildID, playerID, newRole); err != nil {
+		return fmt.Errorf("set guild %d member %d role %d: %w", guildID, playerID, newRole, err)
+	}
+	return nil
+}
+
+// cmdEditGuildName renames a guild. No game proc exists for this, so it is a raw
+// UPDATE wrapped in a transaction that takes the same advisory lock the game's
+// guild procs use, and rejects a name already in use (case-insensitive, mirroring
+// create_guild). No pg_notify verb exists for a rename, so the game only reflects
+// the new name after it reloads guild data (e.g. a server restart).
+func cmdEditGuildName(ctx context.Context, pool *pgxpool.Pool, guildID int64, name string) error {
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin rename guild %d: %w", guildID, err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	if _, err := tx.Exec(ctx, `SELECT dune.guilds_get_exclusive_operation_lock()`); err != nil {
+		return fmt.Errorf("lock for rename guild %d: %w", guildID, err)
+	}
+
+	var taken bool
+	if err := tx.QueryRow(ctx,
+		`SELECT EXISTS (SELECT 1 FROM dune.guilds WHERE guild_name ILIKE $1 AND guild_id <> $2)`,
+		name, guildID).Scan(&taken); err != nil {
+		return fmt.Errorf("check guild name: %w", err)
+	}
+	if taken {
+		return errGuildNameTaken
+	}
+
+	ct, err := tx.Exec(ctx, `UPDATE dune.guilds SET guild_name = $1 WHERE guild_id = $2`, name, guildID)
+	if err != nil {
+		return fmt.Errorf("rename guild %d: %w", guildID, err)
+	}
+	if ct.RowsAffected() == 0 {
+		return errGuildNotFound
+	}
+	return tx.Commit(ctx)
+}
+
+// ── Landsraad (#117 Phase A — read-only) ─────────────────────────────────────
+//
+// The Landsraad is the weekly political endgame: a term cycle
+// (landsraad_decree_term) with a 25-task board (landsraad_tasks, each keyed to a
+// noble house) and electable server-wide decrees (landsraad_decrees). This is a
+// read-only overview — the latest term + the decree catalogue + that term's task
+// board. Faction/decree ids resolve to names; nullable election fields → "".
+
+type landsraadTerm struct {
+	TermID          int64     `json:"term_id"`
+	StartTime       time.Time `json:"start_time"`
+	EndTime         time.Time `json:"end_time"`
+	TestTerm        bool      `json:"test_term"`
+	ReigningFaction string    `json:"reigning_faction"`
+	ActiveDecree    string    `json:"active_decree"`
+	ElectedDecree   string    `json:"elected_decree"`
+	WinningFaction  string    `json:"winning_faction"`
+}
+
+type landsraadDecree struct {
+	ID       int64   `json:"id"`
+	Name     string  `json:"name"`
+	Weight   float64 `json:"weight"`
+	Disabled bool    `json:"disabled"`
+}
+
+type landsraadTask struct {
+	ID             int64  `json:"id"`
+	BoardIndex     int16  `json:"board_index"`
+	House          string `json:"house"`
+	Completed      bool   `json:"completed"`
+	WinningFaction string `json:"winning_faction"`
+	Sysselraad     bool   `json:"sysselraad"`
+	GoalAmount     int    `json:"goal_amount"`
+}
+
+type landsraadOverview struct {
+	Term    *landsraadTerm    `json:"term"`
+	Decrees []landsraadDecree `json:"decrees"`
+	Tasks   []landsraadTask   `json:"tasks"`
+}
+
+// landsraadHouseName strips the "DA_House" prefix from a task's house_name
+// (e.g. "DA_HouseHagal" -> "Hagal"). Unprefixed values pass through unchanged.
+func landsraadHouseName(raw string) string {
+	return strings.TrimPrefix(raw, "DA_House")
+}
+
+func cmdFetchLandsraad(ctx context.Context, pool *pgxpool.Pool) (landsraadOverview, error) {
+	var ov landsraadOverview
+	term, err := fetchLandsraadTerm(ctx, pool)
+	if err != nil {
+		return ov, err
+	}
+	ov.Term = term
+	if ov.Decrees, err = fetchLandsraadDecrees(ctx, pool); err != nil {
+		return ov, err
+	}
+	if term != nil {
+		if ov.Tasks, err = fetchLandsraadTasks(ctx, pool, term.TermID); err != nil {
+			return ov, err
+		}
+	}
+	return ov, nil
+}
+
+const landsraadTermSQL = `
+	SELECT t.term_id, t.start_time, t.end_time, t.test_term,
+	       COALESCE(rf.name, ''), COALESCE(ad.decree_name, ''),
+	       COALESCE(ed.decree_name, ''), COALESCE(wf.name, '')
+	FROM dune.landsraad_decree_term t
+	LEFT JOIN dune.factions rf ON rf.id = t.reigning_faction_id
+	LEFT JOIN dune.landsraad_decrees ad ON ad.id = t.active_decree_id
+	LEFT JOIN dune.landsraad_decrees ed ON ed.id = t.elected_decree_id
+	LEFT JOIN dune.factions wf ON wf.id = t.winning_faction_id
+	ORDER BY t.term_id DESC
+	LIMIT 1`
+
+// fetchLandsraadTerm returns the latest term, or (nil, nil) when none exist.
+func fetchLandsraadTerm(ctx context.Context, pool *pgxpool.Pool) (*landsraadTerm, error) {
+	var t landsraadTerm
+	err := pool.QueryRow(ctx, landsraadTermSQL).Scan(
+		&t.TermID, &t.StartTime, &t.EndTime, &t.TestTerm,
+		&t.ReigningFaction, &t.ActiveDecree, &t.ElectedDecree, &t.WinningFaction)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("landsraad term: %w", err)
+	}
+	return &t, nil
+}
+
+func fetchLandsraadDecrees(ctx context.Context, pool *pgxpool.Pool) ([]landsraadDecree, error) {
+	rows, err := pool.Query(ctx, `
+		SELECT id, decree_name, weight::float8, disabled
+		FROM dune.landsraad_decrees ORDER BY id`)
+	if err != nil {
+		return nil, fmt.Errorf("landsraad decrees: %w", err)
+	}
+	defer rows.Close()
+	out := make([]landsraadDecree, 0, 16)
+	for rows.Next() {
+		var d landsraadDecree
+		if err := rows.Scan(&d.ID, &d.Name, &d.Weight, &d.Disabled); err != nil {
+			return nil, fmt.Errorf("scan decree: %w", err)
+		}
+		out = append(out, d)
+	}
+	return out, rows.Err()
+}
+
+const landsraadTasksSQL = `
+	SELECT t.id, t.board_index, t.house_name, t.completed,
+	       COALESCE(wf.name, ''), t.sysselraad, t.goal_amount
+	FROM dune.landsraad_tasks t
+	LEFT JOIN dune.factions wf ON wf.id = t.winning_faction_id
+	WHERE t.term_id = $1
+	ORDER BY t.board_index, t.id`
+
+func fetchLandsraadTasks(ctx context.Context, pool *pgxpool.Pool, termID int64) ([]landsraadTask, error) {
+	rows, err := pool.Query(ctx, landsraadTasksSQL, termID)
+	if err != nil {
+		return nil, fmt.Errorf("landsraad tasks %d: %w", termID, err)
+	}
+	defer rows.Close()
+	out := make([]landsraadTask, 0, 32)
+	for rows.Next() {
+		var tk landsraadTask
+		var house string
+		if err := rows.Scan(&tk.ID, &tk.BoardIndex, &house, &tk.Completed, &tk.WinningFaction, &tk.Sysselraad, &tk.GoalAmount); err != nil {
+			return nil, fmt.Errorf("scan task: %w", err)
+		}
+		tk.House = landsraadHouseName(house)
+		out = append(out, tk)
+	}
+	return out, rows.Err()
+}
+
 // factionTrendPoint is one day's per-faction value (faction name -> value).
 type factionTrendPoint struct {
 	Day    string             `json:"day"`

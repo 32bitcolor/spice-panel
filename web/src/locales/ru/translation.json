@@ -1,4 +1,70 @@
 {
+  "landsraad": {
+    "title": "Landsraad",
+    "subtitle": "Еженедельный политический срок — указы и доска задач домов (только чтение).",
+    "failedToLoad": "Не удалось загрузить Ландсраад: {{message}}",
+    "currentTerm": "Текущий срок",
+    "noTerm": "Нет активного срока.",
+    "testTerm": "Тестовый срок",
+    "term": {
+      "id": "Срок",
+      "window": "Период",
+      "reigning": "Правящая фракция",
+      "activeDecree": "Активный указ",
+      "electedDecree": "Избранный указ",
+      "winning": "Победившая фракция"
+    },
+    "decrees": "Указы",
+    "decreesDesc": "Общесерверные бонусы, которые можно избрать каждый срок.",
+    "noDecrees": "Нет указов.",
+    "weight": "Вес {{weight}}",
+    "enabled": "Включён",
+    "disabled": "Отключён",
+    "taskBoard": "Доска задач",
+    "taskBoardDesc": "Задачи вклада домов на текущий срок.",
+    "noTasks": "Нет задач.",
+    "tasks": {
+      "index": "#",
+      "house": "Дом",
+      "goal": "Цель",
+      "completed": "Статус",
+      "sysselraad": "Sysselraad",
+      "done": "Готово",
+      "open": "Открыто",
+      "yes": "Да"
+    }
+  },
+  "guilds": {
+    "title": "Гильдии ({{count}})",
+    "subtitle": "Гильдии игроков на этом сервере.",
+    "view": "Просмотр",
+    "empty": "Гильдии не найдены.",
+    "failedToLoad": "Не удалось загрузить гильдии: {{message}}",
+    "members": "Участники",
+    "invites": "Ожидающие приглашения",
+    "noMembers": "Нет участников.",
+    "noInvites": "Нет ожидающих приглашений.",
+    "roleN": "Роль {{id}}",
+    "manage": "Управление",
+    "editGuild": "Редактировать гильдию",
+    "nameLabel": "Название",
+    "descLabel": "Описание",
+    "save": "Сохранить",
+    "saved": "Гильдия обновлена.",
+    "saveFailed": "Не удалось сохранить: {{message}}",
+    "makeAdmin": "Назначить админом",
+    "roleAdmin": "Админ",
+    "roleMember": "Участник",
+    "roleChanged": "Роль обновлена.",
+    "roleChangeFailed": "Не удалось изменить роль: {{message}}",
+    "invitedBy": "приглашён: {{name}}",
+    "columns": {
+      "name": "Название",
+      "faction": "Фракция",
+      "members": "Участники",
+      "description": "Описание"
+    }
+  },
   "app": {
     "reportIssue": "Сообщить о проблеме на GitHub",
     "changesNote": "Изменения на всех вкладках сохраняются вместе.",
@@ -456,6 +522,8 @@
     "title": "Доска рынка"
   },
   "nav": {
+    "landsraad": "Landsraad",
+    "guilds": "Гильдии",
     "bases": "Базы",
     "battlegroup": "Боевая группа",
     "blueprints": "Чертежи",
