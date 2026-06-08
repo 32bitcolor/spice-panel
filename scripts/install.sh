@@ -243,6 +243,7 @@ log ""
 # ── 4. Install into $INSTALL_DIR ─────────────────────────────────────────────
 log "installing into $INSTALL_DIR (as service user '$SERVICE_USER')…"
 sudo mkdir -p "$INSTALL_DIR"
+sudo chown "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR"
 
 # Backup existing binary (move to .prev for one-step rollback).
 if [[ -f "$INSTALL_DIR/dune-admin" ]]; then
