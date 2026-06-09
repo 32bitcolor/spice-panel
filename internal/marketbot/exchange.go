@@ -87,22 +87,22 @@ type listingInfo struct {
 }
 
 type Exchange struct {
-	db                  *pgxpool.Pool
-	cache               *sql.DB // local SQLite category cache
-	cfg                 *Config
-	segIdx              [4][]string
-	botInvID            int64
-	ownerID             int64 // actor ID of the market bot (Revy)
-	exchangeID          int64
-	accessPointID       int64
-	mapMu               sync.RWMutex // protects prices and catalogMap
-	prices              map[string]int64
-	marketPrices        map[string]marketPrice // real market prices from dune_exchange_get_item_price_stats
-	categories          map[string]categoryEntry
-	catalogMap          map[string]CatalogItem // template_id → catalog entry (for buyable check)
-	gameEpochUnix       int64                  // unix timestamp of the NPC market game clock epoch; 0 = unknown
-	playerGameEpochUnix int64                  // unix timestamp of the player market game clock epoch; 0 = unknown
-	nextPos             int64                  // position_index counter for item inserts
+	db            *pgxpool.Pool
+	cache         *sql.DB // local SQLite category cache
+	cfg           *Config
+	segIdx        [4][]string
+	botInvID      int64
+	ownerID       int64 // actor ID of the market bot (Revy)
+	exchangeID    int64
+	accessPointID int64
+	mapMu         sync.RWMutex // protects prices and catalogMap
+	prices        map[string]int64
+	marketPrices  map[string]marketPrice // real market prices from dune_exchange_get_item_price_stats
+	categories    map[string]categoryEntry
+	catalogMap    map[string]CatalogItem // template_id → catalog entry (for buyable check)
+	gameEpochUnix int64                  // unix timestamp of the NPC market game clock epoch; 0 = unknown
+
+	nextPos int64 // position_index counter for item inserts
 
 	// atomic counters — updated by BuyTick/ListTick, read by statusSnapshot.
 	lastBuyNano   atomic.Int64 // UnixNano of last buy tick; 0 = never
@@ -173,9 +173,6 @@ func NewExchange(db *pgxpool.Pool, cachePath string, catalog []CatalogItem, cfg 
 			log.Printf("loaded game epoch from cache: unix %d (game time now: %d)", ex.gameEpochUnix, ex.gameNow())
 		}
 	}
-	if err := cache.QueryRow(`SELECT value FROM metadata WHERE key = 'player_game_epoch_unix'`).Scan(&ex.playerGameEpochUnix); err == nil {
-		log.Printf("loaded player game epoch from cache: unix %d (player game time now: %d)", ex.playerGameEpochUnix, ex.playerGameNow())
-	}
 	return ex, nil
 }
 
@@ -223,11 +220,6 @@ func (e *Exchange) learnGameEpoch(ctx context.Context) {
 		},
 	)
 
-	// Always learn the player market clock separately. Player listings use a
-	// different game time origin than NPC listings on some servers (issue #142);
-	// keeping a dedicated player epoch ensures the buy-side cutoff uses the
-	// correct timebase rather than the NPC-derived gameNow.
-	e.learnPlayerGameEpoch(ctx)
 }
 
 // applyLearnedEpochTwoTier updates the Exchange epoch using a two-tier strategy:
@@ -289,54 +281,6 @@ func (e *Exchange) gameNow() int64 {
 		return 0
 	}
 	return time.Now().Unix() - e.gameEpochUnix
-}
-
-// playerGameNow returns the current game time for the player marketplace, based
-// on a separate epoch derived from player listings. Returns 0 when unknown.
-// Player listings use a different game clock origin than NPC listings (issue #142).
-func (e *Exchange) playerGameNow() int64 {
-	if e.playerGameEpochUnix == 0 {
-		return 0
-	}
-	return time.Now().Unix() - e.playerGameEpochUnix
-}
-
-// applyLearnedPlayerEpoch updates playerGameEpochUnix from the value returned by
-// fetchRef. Mirrors applyLearnedEpoch but targets the player market game clock,
-// which uses a different time origin from the NPC clock on some servers.
-func applyLearnedPlayerEpoch(e *Exchange, fetchRef func() (int64, error)) {
-	ref, err := fetchRef()
-	if err != nil || ref == 0 {
-		return
-	}
-	if ref >= epochSentinelCutoff {
-		return
-	}
-	gameNow := ref - orderExpirySecs
-	epoch := time.Now().Unix() - gameNow
-	if e.playerGameEpochUnix == epoch {
-		return
-	}
-	e.playerGameEpochUnix = epoch
-	_, _ = e.cache.Exec(`INSERT INTO metadata (key, value) VALUES ('player_game_epoch_unix', ?)
-		ON CONFLICT (key) DO UPDATE SET value = excluded.value`, epoch)
-	log.Printf("player game epoch learned: unix %d (current player game time: %d)", epoch, gameNow)
-}
-
-// learnPlayerGameEpoch updates playerGameEpochUnix from the most recent
-// player-created listing. Called on every BuyTick so the buy-side expiry
-// cutoff always uses the player market clock, not the NPC clock.
-func (e *Exchange) learnPlayerGameEpoch(ctx context.Context) {
-	applyLearnedPlayerEpoch(e, func() (int64, error) {
-		var ref int64
-		err := e.db.QueryRow(ctx, `
-			SELECT expiration_time FROM dune.dune_exchange_orders
-			WHERE is_npc_order = FALSE
-			  AND expiration_time IS NOT NULL
-			  AND expiration_time < $1
-			ORDER BY expiration_time DESC LIMIT 1`, epochSentinelCutoff).Scan(&ref)
-		return ref, err
-	})
 }
 
 // detectExchangeID resolves the exchange ID via a four-tier cascade:
@@ -620,22 +564,11 @@ func (e *Exchange) categoryFor(item CatalogItem) (mask int32, depth int16, ok bo
 	return 0, 0, false
 }
 
-// buyExpiryCutoff returns the game-time cutoff for filtering already-expired
-// player sell orders from the buy query. Returns 0 when the epoch is unknown;
-// the SQL uses ($2 = 0 OR ...) to skip the filter in that case so no valid
-// orders are missed on first boot or after cache clear.
-//
-// CRITICAL: this is a SELECT filter only — the bot must NEVER delete, expire,
-// or otherwise modify player (is_npc_order=FALSE) orders. Players must go to
-// the exchange access point to collect their items and Solari manually.
-func buyExpiryCutoff(gameNow int64) int64 {
-	if gameNow <= 0 {
-		return 0
-	}
-	return gameNow
-}
-
-func (e *Exchange) buyPlayerListings(ctx context.Context, orderExpiry int64, playerGameNow int64, snap configValues) {
+// buyPlayerListings purchases player sell listings priced at or below the bot's
+// threshold. The bot must NEVER delete, expire, or modify player (is_npc_order=FALSE)
+// orders — only the original sell listing is deleted as part of the atomic purchase
+// transaction, and only the bot's own payment entry is inserted.
+func (e *Exchange) buyPlayerListings(ctx context.Context, orderExpiry int64, snap configValues) {
 	if snap.BuyThreshold <= 0 {
 		return
 	}
@@ -643,33 +576,18 @@ func (e *Exchange) buyPlayerListings(ctx context.Context, orderExpiry int64, pla
 		orderExpiry = 999_999_999
 	}
 
-	// Use actual current stack_size from items so partial fills pay the right amount.
-	// quality_level is needed to compare the player's grade-adjusted price against the
-	// bot's grade-adjusted reference price rather than the raw base price.
-	//
-	// Exclude orders whose expiration_time has already passed in player game time.
-	// The game server's dune_exchange_expire_orders proc runs every ~5 minutes and
-	// processes these same expired orders; buying them races with that proc and can
-	// cause the seller's Completed-tab entry ("Take Solari") to be purged before
-	// they collect. When the player epoch is unknown (cutoff = 0) we skip the filter
-	// so no valid orders are dropped on first boot or when no player listings exist.
-	//
-	// MUST NOT touch player orders — only the SELECT filter is applied here.
-	cutoff := buyExpiryCutoff(playerGameNow)
-	log.Printf("buy: tick start npcEpoch=%d npcNow=%d playerNow=%d orderExpiry=%d cutoff=%d paymentExpiry=%d",
-		e.gameEpochUnix, e.gameNow(), playerGameNow, orderExpiry, cutoff, epochSentinelCutoff)
+	log.Printf("buy: tick start npcEpoch=%d npcNow=%d orderExpiry=%d paymentExpiry=%d",
+		e.gameEpochUnix, e.gameNow(), orderExpiry, epochSentinelCutoff)
 
 	rows, err := e.db.Query(ctx, `
 		SELECT o.id, o.template_id, o.item_price, o.item_id, o.owner_id,
 		       COALESCE(i.stack_size, s.initial_stack_size) AS actual_stack,
-		       COALESCE(o.quality_level, 0) AS quality_level,
-		       o.expiration_time
+		       COALESCE(o.quality_level, 0) AS quality_level
 		FROM dune.dune_exchange_orders o
 		JOIN dune.dune_exchange_sell_orders s ON s.order_id = o.id
 		LEFT JOIN dune.items i ON i.id = o.item_id
 		WHERE o.is_npc_order = FALSE AND o.exchange_id = $1
-		  AND ($2 = 0 OR o.expiration_time IS NULL OR o.expiration_time > $2)
-		LIMIT $3`, e.exchangeID, cutoff, snap.MaxBuys*10)
+		LIMIT $2`, e.exchangeID, snap.MaxBuys*10)
 	if err != nil {
 		log.Printf("buy: query: %v", err)
 		return
@@ -685,8 +603,7 @@ func (e *Exchange) buyPlayerListings(ctx context.Context, orderExpiry int64, pla
 
 		var orderID, price, itemID, sellerActorID, stackSize, grade int64
 		var tmpl string
-		var orderExpiration *int64 // nullable game-time expiry of the player's listing
-		if err := rows.Scan(&orderID, &tmpl, &price, &itemID, &sellerActorID, &stackSize, &grade, &orderExpiration); err != nil {
+		if err := rows.Scan(&orderID, &tmpl, &price, &itemID, &sellerActorID, &stackSize, &grade); err != nil {
 			errs++
 			continue
 		}
@@ -718,14 +635,8 @@ func (e *Exchange) buyPlayerListings(ctx context.Context, orderExpiry int64, pla
 
 		totalCost := price * stackSize
 
-		// Diagnostic: log key fields before the transaction so we can confirm
-		// whether a stale epoch would have produced a bad orderExpiry (pre-fix).
-		var listingExpiry int64
-		if orderExpiration != nil {
-			listingExpiry = *orderExpiration
-		}
-		log.Printf("buy: attempt orderID=%d tmpl=%s price=%d stack=%d total=%d seller=%d listing_expiry=%d playerNow=%d",
-			orderID, tmpl, price, stackSize, totalCost, sellerActorID, listingExpiry, playerGameNow)
+		log.Printf("buy: attempt orderID=%d tmpl=%s price=%d stack=%d total=%d seller=%d",
+			orderID, tmpl, price, stackSize, totalCost, sellerActorID)
 
 		tx, err := e.db.Begin(ctx)
 		if err != nil {
@@ -939,13 +850,7 @@ func (e *Exchange) BuyTick(ctx context.Context) {
 		orderExpiry = 999_999_999
 	}
 
-	// Use the player market clock for the buy-side expiry cutoff (issue #142).
-	// Player listings use a different game time origin than NPC listings; passing
-	// gameNow (NPC clock) would incorrectly filter out valid player listings whose
-	// expiration_time values are in a different numeric range.
-	// playerGameNow() returns 0 when no player listings are known, which causes
-	// buyExpiryCutoff to return 0 and disables the filter safely.
-	e.buyPlayerListings(ctx, orderExpiry, e.playerGameNow(), snap)
+	e.buyPlayerListings(ctx, orderExpiry, snap)
 	e.lastBuyNano.Store(time.Now().UnixNano())
 }
 
