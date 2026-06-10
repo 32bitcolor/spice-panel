@@ -1354,6 +1354,9 @@
       "packages": "Packages"
     },
     "title": "Welcome Kits",
+    "revoke": "Revoke",
+    "revoked": "Grant revoked — the package can be granted again",
+    "revokeFailed": "Revoke failed: {{message}}",
     "motd": {
       "enabledHint": "Whispered via the GM persona on each join (every session, not just the first). Use {player} for the player's name.",
       "enabledLabel": "Send a message to players every time they join",

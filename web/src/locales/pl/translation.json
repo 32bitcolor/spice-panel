@@ -1400,6 +1400,9 @@
       "packages": "Pakiety"
     },
     "title": "Zestawy powitalne",
+    "revoke": "Cofnij",
+    "revoked": "Przyznanie cofnięte — pakiet można przyznać ponownie",
+    "revokeFailed": "Cofnięcie nie powiodło się: {{message}}",
     "motd": {
       "enabledHint": "Wysyłane jako szept przez personę GM przy każdym dołączeniu (przy każdej sesji, nie tylko pierwszej). Użyj {player} dla nazwy gracza.",
       "enabledLabel": "Wysyłaj wiadomość do graczy przy każdym dołączeniu",

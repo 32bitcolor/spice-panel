@@ -1354,6 +1354,9 @@
       "packages": "礼包"
     },
     "title": "欢迎礼包",
+    "revoke": "撤销",
+    "revoked": "已撤销发放 — 可再次发放该礼包",
+    "revokeFailed": "撤销失败：{{message}}",
     "motd": {
       "enabledHint": "每次加入时通过 GM 身份私聊发送（每个会话都发送，不仅是首次）。使用 {player} 表示玩家名称。",
       "enabledLabel": "每次玩家加入时发送消息",

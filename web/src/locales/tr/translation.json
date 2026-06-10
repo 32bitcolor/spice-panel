@@ -1354,6 +1354,9 @@
       "packages": "Paketler"
     },
     "title": "Karşılama Kitleri",
+    "revoke": "Geri al",
+    "revoked": "Verme geri alındı — paket tekrar verilebilir",
+    "revokeFailed": "Geri alma başarısız: {{message}}",
     "motd": {
       "enabledHint": "Her katılışta GM kimliği üzerinden fısıldanır (sadece ilk değil, her oturumda). Oyuncu adı için {player} kullanın.",
       "enabledLabel": "Oyunculara her katıldıklarında bir mesaj gönder",

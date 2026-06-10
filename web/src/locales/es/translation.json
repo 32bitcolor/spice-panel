@@ -1377,6 +1377,9 @@
       "packages": "Paquetes"
     },
     "title": "Kits de bienvenida",
+    "revoke": "Revocar",
+    "revoked": "Concesión revocada — el paquete se puede otorgar de nuevo",
+    "revokeFailed": "Error al revocar: {{message}}",
     "motd": {
       "enabledHint": "Susurrado a través del personaje GM en cada conexión (cada sesión, no solo la primera). Usa {player} para el nombre del jugador.",
       "enabledLabel": "Enviar un mensaje a los jugadores cada vez que se conectan",

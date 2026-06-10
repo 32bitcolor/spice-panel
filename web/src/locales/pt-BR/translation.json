@@ -1377,6 +1377,9 @@
       "packages": "Pacotes"
     },
     "title": "Kits de boas-vindas",
+    "revoke": "Revogar",
+    "revoked": "Concessão revogada — o pacote pode ser concedido novamente",
+    "revokeFailed": "Falha ao revogar: {{message}}",
     "motd": {
       "enabledHint": "Sussurrado através da persona GM a cada entrada (toda sessão, não apenas a primeira). Use {player} para o nome do jogador.",
       "enabledLabel": "Enviar uma mensagem aos jogadores sempre que entrarem",

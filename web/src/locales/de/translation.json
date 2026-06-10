@@ -1354,6 +1354,9 @@
       "packages": "Pakete"
     },
     "title": "Willkommenspakete",
+    "revoke": "Widerrufen",
+    "revoked": "Vergabe widerrufen — das Paket kann erneut vergeben werden",
+    "revokeFailed": "Widerruf fehlgeschlagen: {{message}}",
     "motd": {
       "enabledHint": "Bei jedem Beitritt über die GM-Persona geflüstert (jede Sitzung, nicht nur die erste). Verwende {player} für den Spielernamen.",
       "enabledLabel": "Spielern bei jedem Beitritt eine Nachricht senden",
