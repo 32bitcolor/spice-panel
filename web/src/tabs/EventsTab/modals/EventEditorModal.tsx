@@ -1,20 +1,24 @@
 import * as React from 'react'
 import {
-  Button, CloseButton, ListBox, Modal, SearchField, Select, Switch, TextField, toast,
+  Button, Chip, CloseButton, ListBox, Modal, SearchField, Select, Separator, Switch, TextField, toast,
 } from '@heroui/react'
+import type { Selection } from '@heroui/react'
+import type { DataGridColumn } from '@heroui-pro/react'
+import { DataGrid, Segment } from '@heroui-pro/react'
 import { useTranslation } from 'react-i18next'
-import { FieldInput, FieldSelect, Icon, NumberInput, SectionLabel } from '../../../dune-ui'
+import { ActionBar, FieldInput, FieldSelect, Icon, NumberInput, SectionLabel } from '../../../dune-ui'
+import { api } from '../../../api/client'
+import type { EventDefinition, GivePack, Player } from '../../../api/client'
+import type { MilestoneFields, MilestoneSignal, RewardXP, XPType, ZoneRaceFields, KeyedRewardItem } from '../types'
+import { XP_TRACKS } from '../types'
+import { ManagePacksModal } from '../../PlayersTab/modals/ManagePacksModal'
+import type { EventEditorModalProps } from './types'
 
-const FormSection: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="flex flex-col gap-3 rounded-[var(--radius)] border border-border/50 bg-surface-secondary p-4">
+const FormSection: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => (
+  <div className={`flex flex-col gap-3 rounded-[var(--radius)] border border-border bg-surface-secondary p-4 dune-lift ${className ?? ''}`}>
     {children}
   </div>
 )
-import { api } from '../../../api/client'
-import type { EventDefinition, Player } from '../../../api/client'
-import type { MilestoneFields, MilestoneSignal, RewardFields, XPType, ZoneRaceFields } from '../types'
-import { XP_TRACKS } from '../types'
-import type { EventEditorModalProps } from './types'
 
 const parseZoneConfig = (raw: string): ZoneRaceFields => {
   try {
@@ -48,20 +52,6 @@ const parseMilestoneConfig = (raw: string): MilestoneFields => {
   }
 }
 
-const parseReward = (raw: string): RewardFields => {
-  try {
-    const r = JSON.parse(raw || '{}') as Record<string, unknown>
-    return {
-      currency: typeof r.currency === 'number' ? r.currency : 0,
-      items: Array.isArray(r.items) ? r.items as RewardFields['items'] : [],
-      xpRewards: Array.isArray(r.xp) ? r.xp as RewardFields['xpRewards'] : [],
-    }
-  }
-  catch {
-    return { currency: 0, items: [], xpRewards: [] }
-  }
-}
-
 const serializeConfig = (
   type: EventDefinition['type'],
   zone: ZoneRaceFields,
@@ -69,42 +59,39 @@ const serializeConfig = (
 ): string => {
   if (type === 'zone_race') {
     return JSON.stringify({
-      map: zone.map,
-      x: zone.x,
-      y: zone.y,
-      z: zone.z,
-      radius: zone.radius,
-      participants: zone.participants,
+      map: zone.map, x: zone.x, y: zone.y, z: zone.z,
+      radius: zone.radius, participants: zone.participants,
     })
   }
   const cfg: Record<string, unknown> = { signal: ms.signal, award_past: ms.awardPast }
-  if (ms.signal === 'level') {
-    cfg.threshold = ms.threshold
-  }
-  else {
-    cfg.tag_name = ms.tagName
-  }
+  if (ms.signal === 'level') cfg.threshold = ms.threshold
+  else cfg.tag_name = ms.tagName
   return JSON.stringify(cfg)
 }
 
-const serializeReward = (reward: RewardFields): string => {
+const serializeReward = (
+  currency: number,
+  factionScrip: number,
+  items: KeyedRewardItem[],
+  xpRewards: RewardXP[],
+): string => {
   const r: Record<string, unknown> = {}
-  if (reward.currency > 0) r.currency = reward.currency
-  if (reward.items.length > 0) r.items = reward.items
-  if (reward.xpRewards.length > 0) r.xp = reward.xpRewards
-  if (Object.keys(r).length === 0) return ''
-  return JSON.stringify(r)
+  if (currency > 0) r.currency = currency
+  if (factionScrip > 0) r.faction_scrip = factionScrip
+  if (items.length > 0) r.items = items.map(({ template, qty, quality }) => ({ template, qty, quality }))
+  if (xpRewards.length > 0) r.xp = xpRewards
+  return Object.keys(r).length === 0 ? '' : JSON.stringify(r)
 }
 
 export const EventEditorModal: React.FC<EventEditorModalProps> = ({
-  isOpen,
-  onClose,
-  editing,
-  onSaved,
+  isOpen, onClose, editing, onSaved,
 }) => {
   const { t } = useTranslation()
   const isEdit = editing !== null
 
+  const [activeSegment, setActiveSegment] = React.useState<'config' | 'rewards'>('config')
+
+  // Config fields
   const [name, setName] = React.useState('')
   const [type, setType] = React.useState<EventDefinition['type']>('milestone')
   const [zone, setZone] = React.useState<ZoneRaceFields>(
@@ -115,22 +102,39 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
   const [milestone, setMilestone] = React.useState<MilestoneFields>(
     { signal: 'level', threshold: 50, tagName: '', awardPast: false },
   )
-  const [reward, setReward] = React.useState<RewardFields>({ currency: 0, items: [], xpRewards: [] })
+  const [announceTemplate, setAnnounceTemplate] = React.useState('')
   const [maps, setMaps] = React.useState<string[]>([])
+
+  // Reward fields
+  const [rewardCurrency, setRewardCurrency] = React.useState(0)
+  const [rewardFactionScrip, setRewardFactionScrip] = React.useState(0)
+  const [rewardItems, setRewardItems] = React.useState<KeyedRewardItem[]>([])
+  const [rewardItemKeys, setRewardItemKeys] = React.useState<Selection>(new Set())
+  const [rewardXP, setRewardXP] = React.useState<RewardXP[]>([])
+
+  // Item picker state
   const [templates, setTemplates] = React.useState<{ id: string, name: string }[]>([])
+  const [packs, setPacks] = React.useState<GivePack[]>([])
+  const [managePacksOpen, setManagePacksOpen] = React.useState(false)
   const [templateQuery, setTemplateQuery] = React.useState('')
   const [selectedTemplate, setSelectedTemplate] = React.useState('')
   const [itemQty, setItemQty] = React.useState(1)
   const [itemQuality, setItemQuality] = React.useState(0)
+
+  // XP picker state
   const [xpType, setXpType] = React.useState<XPType>('specialization')
   const [xpSpecTrack, setXpSpecTrack] = React.useState<string>(XP_TRACKS[0])
   const [xpAmount, setXpAmount] = React.useState(0)
-  const [announceTemplate, setAnnounceTemplate] = React.useState('')
+
   const [saving, setSaving] = React.useState(false)
+
+  const keyCounter = React.useRef(0)
+  const nextKey = () => String(keyCounter.current++)
 
   React.useEffect(() => {
     if (!isOpen) return
     Promise.resolve().then(() => {
+      setActiveSegment('config')
       if (editing) {
         setName(editing.name)
         setType(editing.type)
@@ -142,7 +146,21 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
           setMilestone(parseMilestoneConfig(editing.config))
           setZone({ map: '', x: 0, y: 0, z: 0, radius: 500, participants: [] })
         }
-        setReward(parseReward(editing.reward))
+        try {
+          const r = JSON.parse(editing.reward || '{}') as Record<string, unknown>
+          setRewardCurrency(typeof r.currency === 'number' ? r.currency : 0)
+          setRewardFactionScrip(typeof r.faction_scrip === 'number' ? r.faction_scrip : 0)
+          type RawItem = { template: string, qty: number, quality: number }
+          const rawItems: RawItem[] = Array.isArray(r.items) ? r.items as RawItem[] : []
+          setRewardItems(rawItems.map((item) => ({ ...item, _key: nextKey() })))
+          setRewardXP(Array.isArray(r.xp) ? r.xp as RewardXP[] : [])
+        }
+        catch {
+          setRewardCurrency(0)
+          setRewardFactionScrip(0)
+          setRewardItems([])
+          setRewardXP([])
+        }
         setAnnounceTemplate(editing.announce_template || '')
       }
       else {
@@ -150,7 +168,10 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
         setType('milestone')
         setZone({ map: '', x: 0, y: 0, z: 0, radius: 500, participants: [] })
         setMilestone({ signal: 'level', threshold: 50, tagName: '', awardPast: false })
-        setReward({ currency: 0, items: [], xpRewards: [] })
+        setRewardCurrency(0)
+        setRewardFactionScrip(0)
+        setRewardItems([])
+        setRewardXP([])
         setAnnounceTemplate('')
       }
       setTemplateQuery('')
@@ -161,10 +182,12 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
       setXpSpecTrack(XP_TRACKS[0])
       setXpAmount(0)
       setParticipantPickKey((k) => k + 1)
+      setRewardItemKeys(new Set())
     })
     api.maps.list().then(setMaps).catch(() => {})
     api.players.templates().then(setTemplates).catch(() => {})
     api.players.list().then(setPlayers).catch(() => {})
+    api.givePacks.config().then((cfg) => setPacks(cfg.packs ?? [])).catch(() => {})
   }, [isOpen, editing])
 
   const filteredTemplates = React.useMemo(() => {
@@ -183,12 +206,8 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
   const handleTypeChange = (newType: string) => {
     const t2 = newType as EventDefinition['type']
     setType(t2)
-    if (t2 === 'zone_race') {
-      setZone({ map: '', x: 0, y: 0, z: 0, radius: 500, participants: [] })
-    }
-    else {
-      setMilestone({ signal: 'level', threshold: 50, tagName: '', awardPast: false })
-    }
+    if (t2 === 'zone_race') setZone({ map: '', x: 0, y: 0, z: 0, radius: 500, participants: [] })
+    else setMilestone({ signal: 'level', threshold: 50, tagName: '', awardPast: false })
   }
 
   const addParticipant = (accountId: number) => {
@@ -207,32 +226,51 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
     setTemplateQuery(tpl.name ? `${tpl.id}  —  ${tpl.name}` : tpl.id)
   }
 
-  const addItem = () => {
+  const addRewardItem = () => {
     if (!selectedTemplate) return
-    setReward((r) => ({
-      ...r,
-      items: [...r.items, { template: selectedTemplate, qty: itemQty, quality: itemQuality }],
-    }))
+    setRewardItems((prev) => [
+      ...prev,
+      { template: selectedTemplate, qty: itemQty, quality: itemQuality, _key: nextKey() },
+    ])
     setTemplateQuery('')
     setSelectedTemplate('')
     setItemQty(1)
     setItemQuality(0)
   }
 
-  const updateItem = (idx: number, field: 'qty' | 'quality', value: number) => {
-    setReward((r) => ({
-      ...r,
-      items: r.items.map((item, i) => i === idx ? { ...item, [field]: value } : item),
-    }))
+  const removeRewardItem = (key: string) => {
+    setRewardItems((prev) => prev.filter((it) => it._key !== key))
+    setRewardItemKeys((prev) => {
+      if (prev === 'all') return new Set(rewardItems.filter((it) => it._key !== key).map((it) => it._key))
+      const next = new Set(prev as Set<string>)
+      next.delete(key)
+      return next
+    })
+  }
+
+  const updateRewardItem = (key: string, field: 'qty' | 'quality', value: number) => {
+    setRewardItems((prev) => prev.map((it) => it._key === key ? { ...it, [field]: value } : it))
+  }
+
+  const rewardSelectionCount = rewardItemKeys === 'all'
+    ? rewardItems.length
+    : (rewardItemKeys as Set<string>).size
+
+  const handleBulkDeleteRewardItems = () => {
+    if (rewardItemKeys === 'all') {
+      setRewardItems([])
+    }
+    else {
+      const keys = rewardItemKeys as Set<string>
+      setRewardItems((prev) => prev.filter((it) => !keys.has(it._key)))
+    }
+    setRewardItemKeys(new Set())
   }
 
   const addXP = () => {
     if (xpAmount <= 0) return
     const track = xpType === 'character' ? 'character' : xpSpecTrack
-    setReward((r) => ({
-      ...r,
-      xpRewards: [...r.xpRewards, { track, amount: xpAmount }],
-    }))
+    setRewardXP((prev) => [...prev, { track, amount: xpAmount }])
     setXpAmount(0)
   }
 
@@ -246,7 +284,7 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
       name: name.trim(),
       type,
       config: serializeConfig(type, zone, milestone),
-      reward: serializeReward(reward),
+      reward: serializeReward(rewardCurrency, rewardFactionScrip, rewardItems, rewardXP),
       announce_channel_id: '',
       announce_template: announceTemplate,
     }
@@ -261,188 +299,476 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
         onClose()
       })
       .catch((e: unknown) => {
-        toast.danger(
-          t('events.editor.saveFailed', { message: e instanceof Error ? e.message : String(e) }),
-        )
+        toast.danger(t('events.editor.saveFailed', { message: e instanceof Error ? e.message : String(e) }))
       })
       .finally(() => setSaving(false))
   }
 
   const fieldLabelClass = 'text-xs text-muted mb-1 block'
-  const rowCard = 'flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius)] text-xs bg-surface border border-border'
+
+  const rewardItemColumns: DataGridColumn<KeyedRewardItem>[] = [
+    {
+      id: 'template',
+      isRowHeader: true,
+      header: t('players.inventory.columns.template'),
+      minWidth: 200,
+      allowsResizing: true,
+      cell: (item) => (
+        <div className="leading-tight py-0.5">
+          <div className="truncate text-sm">{nameMap.get(item.template) || item.template}</div>
+          {nameMap.get(item.template) && (
+            <div className="font-mono text-[10px] text-muted truncate">{item.template}</div>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'qty',
+      header: t('players.give.qty'),
+      minWidth: 130,
+      maxWidth: 250,
+      allowsResizing: true,
+      cell: (item) => (
+        <NumberInput
+          ariaLabel={t('players.give.qty')}
+          min={1}
+          value={item.qty}
+          onChange={(v) => updateRewardItem(item._key, 'qty', v)}
+          className="w-full"
+        />
+      ),
+    },
+    {
+      id: 'quality',
+      header: t('players.give.quality'),
+      minWidth: 130,
+      maxWidth: 250,
+      allowsResizing: true,
+      cell: (item) => (
+        <NumberInput
+          ariaLabel={t('players.give.quality')}
+          min={0}
+          value={item.quality}
+          onChange={(v) => updateRewardItem(item._key, 'quality', v)}
+          className="w-full"
+        />
+      ),
+    },
+    {
+      id: 'actions',
+      header: '',
+      width: 52,
+      cell: (item) => (
+        <Button
+          size="sm"
+          variant="danger-soft"
+          isIconOnly
+          onPress={() => removeRewardItem(item._key)}
+          aria-label={t('common.remove')}
+        >
+          <Icon name="trash" />
+        </Button>
+      ),
+    },
+  ]
 
   return (
-    <Modal.Backdrop variant="blur" className="bg-linear-to-t from-(--background)/85 via-(--background)/40 to-transparent" isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
-      <Modal.Container size="cover" scroll="outside">
-        <Modal.Dialog className="p-10 max-h-[90vh] flex flex-col">
-          <Modal.CloseTrigger />
-          <Modal.Header>
-            <Modal.Heading className="text-accent">
-              {isEdit ? t('events.editor.editTitle') : t('events.editor.createTitle')}
-            </Modal.Heading>
-          </Modal.Header>
-          <Modal.Body className="flex flex-col gap-4 overflow-y-auto flex-1 min-h-0">
+    <>
+      <Modal.Backdrop
+        variant="blur"
+        className="bg-linear-to-t from-(--background)/85 via-(--background)/40 to-transparent"
+        isOpen={isOpen}
+        onOpenChange={(open) => { if (!open) onClose() }}
+      >
+        <Modal.Container size="cover" scroll="outside">
+          <Modal.Dialog className="p-10 dialog-surface-alt">
+            <Modal.CloseTrigger />
+            <Modal.Header className="flex items-center gap-4 shrink-0">
+              <Modal.Heading className="text-accent">
+                {isEdit ? t('events.editor.editTitle') : t('events.editor.createTitle')}
+              </Modal.Heading>
+              <Segment
+                className="ml-auto"
+                selectedKey={activeSegment}
+                onSelectionChange={(k) => setActiveSegment(k as 'config' | 'rewards')}
+                size="sm"
+                aria-label={t('events.editor.createTitle')}
+              >
+                <Segment.Item id="config">
+                  <Segment.Separator />
+                  {t('events.editor.config')}
+                </Segment.Item>
+                <Segment.Item id="rewards">
+                  <Segment.Separator />
+                  {t('events.editor.rewards')}
+                </Segment.Item>
+              </Segment>
+            </Modal.Header>
 
-            {/* Basic Info */}
-            <FormSection>
-              <SectionLabel>{t('events.editor.basics')}</SectionLabel>
-              <div className="flex gap-4 mt-2">
-                <div className="flex-1">
-                  <span className={fieldLabelClass}>{t('events.editor.name')}</span>
-                  <FieldInput
-                    value={name}
-                    onChange={setName}
-                    placeholder={t('events.editor.namePlaceholder')}
-                    ariaLabel={t('events.editor.name')}
-                  />
-                </div>
-                <div className="w-44 shrink-0">
-                  <span className={fieldLabelClass}>{t('events.editor.type')}</span>
-                  <FieldSelect
-                    value={type}
-                    onChange={handleTypeChange}
-                    options={['milestone', 'zone_race']}
-                    isDisabled={isEdit}
-                    ariaLabel={t('events.editor.type')}
-                  />
-                </div>
-              </div>
-            </FormSection>
+            <Modal.Body className="flex flex-col h-[80vh] min-h-0">
 
-            {/* Zone Race Config */}
-            {type === 'zone_race' && (
-              <FormSection>
-                <SectionLabel>{t('events.editor.zoneConfig')}</SectionLabel>
-                <div className="flex flex-col gap-3 mt-2">
-                  <div>
-                    <span className={fieldLabelClass}>{t('events.editor.zoneMap')}</span>
-                    <Select
-                      selectedKey={zone.map || null}
-                      onSelectionChange={(k) => setZone((z) => ({ ...z, map: String(k) }))}
-                      aria-label={t('events.editor.zoneMap')}
-                      className="w-full"
-                      isDisabled={maps.length === 0}
-                    >
-                      <Select.Trigger>
-                        <Select.Value>
-                          {zone.map
-                            ? <span className="font-mono">{zone.map}</span>
-                            : <span className="text-muted">{t('events.editor.zoneMapPlaceholder')}</span>}
-                        </Select.Value>
-                        <Select.Indicator />
-                      </Select.Trigger>
-                      <Select.Popover>
-                        <ListBox>
-                          {maps.map((m) => (
-                            <ListBox.Item key={m} id={m} textValue={m}>
-                              <span className="font-mono">{m}</span>
-                              <ListBox.ItemIndicator />
-                            </ListBox.Item>
-                          ))}
-                        </ListBox>
-                      </Select.Popover>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-4 gap-3">
-                    {(['x', 'y', 'z'] as const).map((axis) => (
-                      <div key={axis}>
-                        <span className={fieldLabelClass}>{axis.toUpperCase()}</span>
-                        <NumberInput
-                          value={zone[axis]}
-                          onChange={(v) => setZone((z) => ({ ...z, [axis]: v }))}
-                          ariaLabel={`${axis.toUpperCase()} coordinate`}
-                        />
-                      </div>
-                    ))}
-                    <div>
-                      <span className={fieldLabelClass}>{t('events.editor.radius')}</span>
-                      <NumberInput
-                        value={zone.radius}
-                        onChange={(v) => setZone((z) => ({ ...z, radius: v }))}
-                        ariaLabel={t('events.editor.radius')}
-                        min={1}
+              {/* Config panel — always mounted */}
+              <div
+                className="flex flex-col gap-4 overflow-y-auto flex-1 min-h-0"
+                style={{ display: activeSegment === 'config' ? undefined : 'none' }}
+              >
+                <FormSection>
+                  <SectionLabel>{t('events.editor.basics')}</SectionLabel>
+                  <div className="flex gap-4 mt-2">
+                    <div className="flex-1">
+                      <span className={fieldLabelClass}>{t('events.editor.name')}</span>
+                      <FieldInput
+                        value={name}
+                        onChange={setName}
+                        placeholder={t('events.editor.namePlaceholder')}
+                        ariaLabel={t('events.editor.name')}
+                      />
+                    </div>
+                    <div className="w-44 shrink-0">
+                      <span className={fieldLabelClass}>{t('events.editor.type')}</span>
+                      <FieldSelect
+                        value={type}
+                        onChange={handleTypeChange}
+                        options={['milestone', 'zone_race']}
+                        isDisabled={isEdit}
+                        ariaLabel={t('events.editor.type')}
                       />
                     </div>
                   </div>
-                  <div>
-                    <span className={fieldLabelClass}>{t('events.editor.participants')}</span>
-                    <div className="flex flex-col gap-1.5">
-                      {availablePlayers.length > 0 && (
+                </FormSection>
+
+                {type === 'zone_race' && (
+                  <FormSection>
+                    <SectionLabel>{t('events.editor.zoneConfig')}</SectionLabel>
+                    <div className="flex flex-col gap-3 mt-2">
+                      <div>
+                        <span className={fieldLabelClass}>{t('events.editor.zoneMap')}</span>
                         <Select
-                          key={participantPickKey}
-                          selectedKey=""
-                          aria-label={t('events.editor.addParticipant')}
-                          onSelectionChange={(k) => addParticipant(Number(k))}
+                          selectedKey={zone.map || null}
+                          onSelectionChange={(k) => setZone((z) => ({ ...z, map: String(k) }))}
+                          aria-label={t('events.editor.zoneMap')}
+                          className="w-full"
+                          isDisabled={maps.length === 0}
                         >
                           <Select.Trigger>
-                            <span className="text-sm text-muted flex-1">
-                              {t('events.editor.addParticipant')}
-                            </span>
+                            <Select.Value>
+                              {zone.map
+                                ? <span className="font-mono">{zone.map}</span>
+                                : <span className="text-muted">{t('events.editor.zoneMapPlaceholder')}</span>}
+                            </Select.Value>
                             <Select.Indicator />
                           </Select.Trigger>
                           <Select.Popover>
                             <ListBox>
-                              {availablePlayers.map((p) => (
-                                <ListBox.Item
-                                  key={p.account_id}
-                                  id={p.account_id}
-                                  textValue={p.name}
-                                >
-                                  {p.name}
-                                  <span className="text-muted text-[10px] ml-1.5 font-mono">
-                                    {p.account_id}
-                                  </span>
+                              {maps.map((m) => (
+                                <ListBox.Item key={m} id={m} textValue={m}>
+                                  <span className="font-mono">{m}</span>
                                   <ListBox.ItemIndicator />
                                 </ListBox.Item>
                               ))}
                             </ListBox>
                           </Select.Popover>
                         </Select>
-                      )}
-                      {players.length === 0 && zone.participants.length === 0 && (
-                        <p className="text-xs text-muted">{t('events.editor.noPlayersLoaded')}</p>
-                      )}
-                      {zone.participants.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {zone.participants.map((id) => (
-                            <span
-                              key={id}
-                              className="inline-flex items-center gap-1 rounded-full bg-accent/15 text-accent px-2 py-0.5 text-xs font-medium"
+                      </div>
+                      <div className="grid grid-cols-4 gap-3">
+                        {(['x', 'y', 'z'] as const).map((axis) => (
+                          <div key={axis}>
+                            <span className={fieldLabelClass}>{axis.toUpperCase()}</span>
+                            <NumberInput
+                              value={zone[axis]}
+                              onChange={(v) => setZone((z) => ({ ...z, [axis]: v }))}
+                              ariaLabel={`${axis.toUpperCase()} coordinate`}
+                            />
+                          </div>
+                        ))}
+                        <div>
+                          <span className={fieldLabelClass}>{t('events.editor.radius')}</span>
+                          <NumberInput
+                            value={zone.radius}
+                            onChange={(v) => setZone((z) => ({ ...z, radius: v }))}
+                            ariaLabel={t('events.editor.radius')}
+                            min={1}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <span className={fieldLabelClass}>{t('events.editor.participants')}</span>
+                        <div className="flex flex-col gap-1.5">
+                          {availablePlayers.length > 0 && (
+                            <Select
+                              key={participantPickKey}
+                              selectedKey=""
+                              aria-label={t('events.editor.addParticipant')}
+                              onSelectionChange={(k) => addParticipant(Number(k))}
                             >
-                              {playerName(id)}
-                              <CloseButton
-                                className="size-4 opacity-60 hover:opacity-100"
-                                onPress={() => setZone((z) => ({
-                                  ...z,
-                                  participants: z.participants.filter((p) => p !== id),
-                                }))}
-                                aria-label={`Remove ${playerName(id)}`}
-                              />
-                            </span>
-                          ))}
+                              <Select.Trigger>
+                                <span className="text-sm text-muted flex-1">
+                                  {t('events.editor.addParticipant')}
+                                </span>
+                                <Select.Indicator />
+                              </Select.Trigger>
+                              <Select.Popover>
+                                <ListBox>
+                                  {availablePlayers.map((p) => (
+                                    <ListBox.Item key={p.account_id} id={p.account_id} textValue={p.name}>
+                                      {p.name}
+                                      <span className="text-muted text-[10px] ml-1.5 font-mono">
+                                        {p.account_id}
+                                      </span>
+                                      <ListBox.ItemIndicator />
+                                    </ListBox.Item>
+                                  ))}
+                                </ListBox>
+                              </Select.Popover>
+                            </Select>
+                          )}
+                          {players.length === 0 && zone.participants.length === 0 && (
+                            <p className="text-xs text-muted">{t('events.editor.noPlayersLoaded')}</p>
+                          )}
+                          {zone.participants.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {zone.participants.map((id) => (
+                                <span
+                                  key={id}
+                                  className="inline-flex items-center gap-1 rounded-full bg-accent/15 text-accent px-2 py-0.5 text-xs font-medium"
+                                >
+                                  {playerName(id)}
+                                  <CloseButton
+                                    className="size-4 opacity-60 hover:opacity-100"
+                                    onPress={() => setZone((z) => ({
+                                      ...z,
+                                      participants: z.participants.filter((p) => p !== id),
+                                    }))}
+                                    aria-label={`Remove ${playerName(id)}`}
+                                  />
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </FormSection>
+                )}
+
+                {type === 'milestone' && (
+                  <FormSection>
+                    <SectionLabel>{t('events.editor.milestoneConfig')}</SectionLabel>
+                    <div className="flex flex-col gap-3 mt-2">
+                      <div>
+                        <span className={fieldLabelClass}>{t('events.editor.signal')}</span>
+                        <Select
+                          selectedKey={milestone.signal}
+                          onSelectionChange={(k) => setMilestone((m) => ({
+                            ...m,
+                            signal: String(k) as MilestoneSignal,
+                          }))}
+                          aria-label={t('events.editor.signal')}
+                          className="w-full"
+                        >
+                          <Select.Trigger>
+                            <Select.Value />
+                            <Select.Indicator />
+                          </Select.Trigger>
+                          <Select.Popover>
+                            <ListBox>
+                              <ListBox.Item key="level" id="level" textValue={t('events.signals.level')}>
+                                {t('events.signals.level')}
+                                <ListBox.ItemIndicator />
+                              </ListBox.Item>
+                              <ListBox.Item
+                                key="achievement_tag"
+                                id="achievement_tag"
+                                textValue={t('events.signals.achievementTag')}
+                              >
+                                {t('events.signals.achievementTag')}
+                                <ListBox.ItemIndicator />
+                              </ListBox.Item>
+                            </ListBox>
+                          </Select.Popover>
+                        </Select>
+                      </div>
+                      {milestone.signal === 'level' && (
+                        <div>
+                          <span className={fieldLabelClass}>{t('events.editor.levelThreshold')}</span>
+                          <NumberInput
+                            value={milestone.threshold}
+                            onChange={(v) => setMilestone((m) => ({ ...m, threshold: v }))}
+                            ariaLabel={t('events.editor.levelThreshold')}
+                            min={1}
+                            className="w-40"
+                          />
                         </div>
                       )}
+                      {milestone.signal === 'achievement_tag' && (
+                        <div>
+                          <span className={fieldLabelClass}>{t('events.editor.tagName')}</span>
+                          <FieldInput
+                            value={milestone.tagName}
+                            onChange={(v) => setMilestone((m) => ({ ...m, tagName: v }))}
+                            placeholder="e.g. SpiceVision_Unlocked"
+                            ariaLabel={t('events.editor.tagName')}
+                          />
+                        </div>
+                      )}
+                      <div className="flex items-center gap-3">
+                        <Switch
+                          size="sm"
+                          isSelected={milestone.awardPast}
+                          onChange={() => setMilestone((m) => ({ ...m, awardPast: !m.awardPast }))}
+                        >
+                          <span className="text-xs">{t('events.editor.awardPast')}</span>
+                        </Switch>
+                        <span className="text-xs text-muted">{t('events.editor.awardPastHint')}</span>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </FormSection>
-            )}
+                  </FormSection>
+                )}
 
-            {/* Milestone Config */}
-            {type === 'milestone' && (
-              <FormSection>
-                <SectionLabel>{t('events.editor.milestoneConfig')}</SectionLabel>
-                <div className="flex flex-col gap-3 mt-2">
-                  <div>
-                    <span className={fieldLabelClass}>{t('events.editor.signal')}</span>
+                <FormSection>
+                  <SectionLabel>{t('events.editor.announceLabel')}</SectionLabel>
+                  <div className="mt-2">
+                    <span className={fieldLabelClass}>{t('events.editor.announceTemplate')}</span>
+                    <FieldInput
+                      value={announceTemplate}
+                      onChange={setAnnounceTemplate}
+                      placeholder="{player} won {event}!"
+                      ariaLabel={t('events.editor.announceTemplate')}
+                    />
+                    <p className="text-xs text-muted mt-1">
+                      {t('events.editor.templateHint')}
+                      {' '}
+                      {t('events.editor.channelDefault')}
+                    </p>
+                  </div>
+                </FormSection>
+              </div>
+
+              {/* Rewards panel — always mounted */}
+              <div
+                className="flex flex-col flex-1 min-h-0 gap-4"
+                style={{ display: activeSegment === 'rewards' ? undefined : 'none' }}
+              >
+                {/* Top row: Currency + XP side by side */}
+                <div className="grid grid-cols-2 gap-4 shrink-0">
+                  <FormSection>
+                    <SectionLabel>{t('events.editor.currency')}</SectionLabel>
+                    <div className="flex flex-col gap-2 mt-2">
+                      <div>
+                        <span className={fieldLabelClass}>{t('events.editor.solari')}</span>
+                        <NumberInput
+                          value={rewardCurrency}
+                          onChange={setRewardCurrency}
+                          ariaLabel={t('events.editor.solari')}
+                          min={0}
+                          prefix="₡"
+                          className="w-full"
+                        />
+                      </div>
+                      <div>
+                        <span className={fieldLabelClass}>{t('events.editor.factionScrip')}</span>
+                        <NumberInput
+                          value={rewardFactionScrip}
+                          onChange={setRewardFactionScrip}
+                          ariaLabel={t('events.editor.factionScrip')}
+                          min={0}
+                          prefix="FS"
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                  </FormSection>
+
+                  <FormSection>
+                    <SectionLabel>{t('events.editor.xpRewards')}</SectionLabel>
+                    <div className="flex items-end gap-2 mt-2">
+                      <div className="w-40 shrink-0">
+                        <span className={fieldLabelClass}>{t('events.editor.xpType')}</span>
+                        <FieldSelect
+                          value={xpType}
+                          onChange={(v) => setXpType(v as XPType)}
+                          options={['character', 'specialization']}
+                          ariaLabel={t('events.editor.xpType')}
+                        />
+                      </div>
+                      {xpType === 'specialization' && (
+                        <div className="w-36 shrink-0">
+                          <span className={fieldLabelClass}>{t('events.editor.xpTrack')}</span>
+                          <FieldSelect
+                            value={xpSpecTrack}
+                            onChange={setXpSpecTrack}
+                            options={[...XP_TRACKS]}
+                            ariaLabel={t('events.editor.xpTrack')}
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <span className={fieldLabelClass}>{t('events.editor.xpAmount')}</span>
+                        <NumberInput
+                          value={xpAmount}
+                          onChange={setXpAmount}
+                          ariaLabel={t('events.editor.xpAmount')}
+                          prefix="XP"
+                          min={0}
+                        />
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onPress={addXP}
+                        isDisabled={xpAmount <= 0}
+                        className="shrink-0 self-end"
+                      >
+                        <Icon name="plus" />
+                        {' '}
+                        {t('common.add')}
+                      </Button>
+                    </div>
+                    {rewardXP.length > 0 && (
+                      <div className="flex flex-col gap-1 mt-2">
+                        {rewardXP.map((x, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius)] text-xs bg-surface border border-border"
+                          >
+                            <span className="flex-1 font-mono text-foreground">{x.track}</span>
+                            <span className="text-muted">
+                              {x.amount.toLocaleString()}
+                              {' XP'}
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="danger-soft"
+                              onPress={() => setRewardXP((prev) => prev.filter((_, i) => i !== idx))}
+                              aria-label={t('common.remove')}
+                            >
+                              <Icon name="trash" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </FormSection>
+                </div>
+
+                {/* Items — fills remaining space */}
+                <FormSection className="flex-1 min-h-0 flex flex-col">
+                  <SectionLabel>{t('events.editor.items')}</SectionLabel>
+                  <div className="flex items-center gap-2 mt-2 shrink-0">
                     <Select
-                      selectedKey={milestone.signal}
-                      onSelectionChange={(k) => setMilestone((m) => ({
-                        ...m,
-                        signal: String(k) as MilestoneSignal,
-                      }))}
-                      aria-label={t('events.editor.signal')}
-                      className="w-full"
+                      aria-label={t('players.give.loadPack')}
+                      placeholder={t('players.give.loadPack')}
+                      selectedKey={null}
+                      onSelectionChange={(k) => {
+                        const pack = packs.find((p) => p.id === String(k))
+                        if (pack) {
+                          setRewardItems((prev) => [
+                            ...prev,
+                            ...pack.items.map((item) => ({ ...item, _key: nextKey() })),
+                          ])
+                        }
+                      }}
+                      className="flex-1"
                     >
                       <Select.Trigger>
                         <Select.Value />
@@ -450,81 +776,27 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
                       </Select.Trigger>
                       <Select.Popover>
                         <ListBox>
-                          <ListBox.Item key="level" id="level" textValue={t('events.signals.level')}>
-                            {t('events.signals.level')}
-                            <ListBox.ItemIndicator />
-                          </ListBox.Item>
-                          <ListBox.Item
-                            key="achievement_tag"
-                            id="achievement_tag"
-                            textValue={t('events.signals.achievementTag')}
-                          >
-                            {t('events.signals.achievementTag')}
-                            <ListBox.ItemIndicator />
-                          </ListBox.Item>
+                          {packs.map((p) => (
+                            <ListBox.Item key={p.id} id={p.id} textValue={p.name}>
+                              {p.name}
+                              <ListBox.ItemIndicator />
+                            </ListBox.Item>
+                          ))}
                         </ListBox>
                       </Select.Popover>
                     </Select>
-                  </div>
-                  {milestone.signal === 'level' && (
-                    <div>
-                      <span className={fieldLabelClass}>{t('events.editor.levelThreshold')}</span>
-                      <NumberInput
-                        value={milestone.threshold}
-                        onChange={(v) => setMilestone((m) => ({ ...m, threshold: v }))}
-                        ariaLabel={t('events.editor.levelThreshold')}
-                        min={1}
-                        className="w-40"
-                      />
-                    </div>
-                  )}
-                  {milestone.signal === 'achievement_tag' && (
-                    <div>
-                      <span className={fieldLabelClass}>{t('events.editor.tagName')}</span>
-                      <FieldInput
-                        value={milestone.tagName}
-                        onChange={(v) => setMilestone((m) => ({ ...m, tagName: v }))}
-                        placeholder="e.g. SpiceVision_Unlocked"
-                        ariaLabel={t('events.editor.tagName')}
-                      />
-                    </div>
-                  )}
-                  <div className="flex items-center gap-3">
-                    <Switch
+                    <Button
                       size="sm"
-                      isSelected={milestone.awardPast}
-                      onChange={() => setMilestone((m) => ({ ...m, awardPast: !m.awardPast }))}
+                      variant="ghost"
+                      onPress={() => setManagePacksOpen(true)}
+                      aria-label={t('players.give.managePacks')}
                     >
-                      <span className="text-xs">{t('events.editor.awardPast')}</span>
-                    </Switch>
-                    <span className="text-xs text-muted">{t('events.editor.awardPastHint')}</span>
+                      <Icon name="settings-2" />
+                      {' '}
+                      {t('players.give.managePacks')}
+                    </Button>
                   </div>
-                </div>
-              </FormSection>
-            )}
-
-            {/* Reward */}
-            <FormSection>
-              <SectionLabel>
-                {`${t('events.editor.rewardLabel')} (${t('common.optional')})`}
-              </SectionLabel>
-              <div className="flex flex-col gap-3 mt-2">
-                <div>
-                  <span className={fieldLabelClass}>{t('events.editor.currency')}</span>
-                  <NumberInput
-                    value={reward.currency}
-                    onChange={(v) => setReward((r) => ({ ...r, currency: v }))}
-                    ariaLabel={t('events.editor.currency')}
-                    min={0}
-                    prefix="₡"
-                    className="w-48"
-                  />
-                </div>
-
-                {/* Item picker */}
-                <div>
-                  <span className={fieldLabelClass}>{t('events.editor.items')}</span>
-                  <div className="flex items-end gap-2">
+                  <div className="flex items-end gap-2 mt-2 shrink-0">
                     <TextField className="flex-1 min-w-0" aria-label={t('players.inventory.columns.template')}>
                       <div className="relative w-full">
                         <SearchField
@@ -581,7 +853,7 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
                     <Button
                       size="sm"
                       variant="ghost"
-                      onPress={addItem}
+                      onPress={addRewardItem}
                       isDisabled={!selectedTemplate}
                       className="shrink-0"
                     >
@@ -590,157 +862,78 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
                       {t('players.give.add')}
                     </Button>
                   </div>
-                  {reward.items.length > 0 && (
-                    <div className="flex flex-col gap-1 mt-2">
-                      {reward.items.map((item, idx) => (
-                        <div key={idx} className={rowCard}>
-                          <div className="flex-1 min-w-0 leading-tight">
-                            <div className="truncate text-foreground">
-                              {nameMap.get(item.template) || item.template}
-                            </div>
-                            {nameMap.get(item.template) && (
-                              <div className="font-mono text-[10px] text-muted truncate">
-                                {item.template}
-                              </div>
-                            )}
-                          </div>
-                          <NumberInput
-                            ariaLabel={`qty for ${item.template}`}
-                            prefix={t('players.give.qty')}
-                            min={1}
-                            value={item.qty}
-                            onChange={(v) => updateItem(idx, 'qty', v)}
-                            className="w-40"
-                          />
-                          <NumberInput
-                            ariaLabel={`quality for ${item.template}`}
-                            prefix={t('players.give.quality')}
-                            min={0}
-                            value={item.quality}
-                            onChange={(v) => updateItem(idx, 'quality', v)}
-                            className="w-40"
-                          />
-                          <Button
-                            size="sm"
-                            variant="danger-soft"
-                            onPress={() => setReward((r) => ({
-                              ...r,
-                              items: r.items.filter((_, i) => i !== idx),
-                            }))}
-                            aria-label={t('common.remove')}
-                          >
-                            <Icon name="trash" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
+                  {rewardItems.length > 0 && (
+                    <DataGrid
+                      aria-label={t('events.editor.items')}
+                      columns={rewardItemColumns}
+                      data={rewardItems}
+                      getRowId={(item) => item._key}
+                      selectedKeys={rewardItemKeys}
+                      selectionMode="multiple"
+                      showSelectionCheckboxes
+                      onSelectionChange={setRewardItemKeys}
+                      className="mt-2 flex-1 min-h-0"
+                      scrollContainerClassName="h-full overflow-y-auto"
+                      allowsColumnResize
+                    />
                   )}
-                </div>
-
-                {/* XP rewards */}
-                <div>
-                  <span className={fieldLabelClass}>{t('events.editor.xpRewards')}</span>
-                  <div className="flex items-end gap-2">
-                    <div className="w-48 shrink-0">
-                      <span className={fieldLabelClass}>{t('events.editor.xpType')}</span>
-                      <FieldSelect
-                        value={xpType}
-                        onChange={(v) => setXpType(v as XPType)}
-                        options={['character', 'specialization']}
-                        ariaLabel={t('events.editor.xpType')}
-                      />
-                    </div>
-                    {xpType === 'specialization' && (
-                      <div className="w-44 shrink-0">
-                        <span className={fieldLabelClass}>{t('events.editor.xpTrack')}</span>
-                        <FieldSelect
-                          value={xpSpecTrack}
-                          onChange={setXpSpecTrack}
-                          options={[...XP_TRACKS]}
-                          ariaLabel={t('events.editor.xpTrack')}
-                        />
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <span className={fieldLabelClass}>{t('events.editor.xpAmount')}</span>
-                      <NumberInput
-                        value={xpAmount}
-                        onChange={setXpAmount}
-                        ariaLabel={t('events.editor.xpAmount')}
-                        prefix="XP"
-                        min={0}
-                      />
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onPress={addXP}
-                      isDisabled={xpAmount <= 0}
-                      className="shrink-0 self-end"
-                    >
-                      <Icon name="plus" />
-                      {' '}
-                      {t('common.add')}
-                    </Button>
-                  </div>
-                  {reward.xpRewards.length > 0 && (
-                    <div className="flex flex-col gap-1 mt-2">
-                      {reward.xpRewards.map((x, idx) => (
-                        <div key={idx} className={rowCard}>
-                          <span className="flex-1 font-mono text-foreground">{x.track}</span>
-                          <span className="text-muted">
-                            {x.amount.toLocaleString()}
-                            {' XP'}
-                          </span>
-                          <Button
-                            size="sm"
-                            variant="danger-soft"
-                            onPress={() => setReward((r) => ({
-                              ...r,
-                              xpRewards: r.xpRewards.filter((_, i) => i !== idx),
-                            }))}
-                            aria-label={t('common.remove')}
-                          >
-                            <Icon name="trash" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                </FormSection>
               </div>
-            </FormSection>
 
-            {/* Announcement */}
-            <FormSection>
-              <SectionLabel>{t('events.editor.announceLabel')}</SectionLabel>
-              <div className="mt-2">
-                <span className={fieldLabelClass}>{t('events.editor.announceTemplate')}</span>
-                <FieldInput
-                  value={announceTemplate}
-                  onChange={setAnnounceTemplate}
-                  placeholder="{player} won {event}!"
-                  ariaLabel={t('events.editor.announceTemplate')}
-                />
-                <p className="text-xs text-muted mt-1">
-                  {t('events.editor.templateHint')}
-                  {' '}
-                  {t('events.editor.channelDefault')}
-                </p>
-              </div>
-            </FormSection>
+            </Modal.Body>
 
-          </Modal.Body>
-          <Modal.Footer className="flex items-center gap-2">
-            <Button size="sm" variant="tertiary" slot="close" onPress={onClose}>
-              {t('common.cancel')}
+            <Modal.Footer className="flex items-center gap-2 shrink-0">
+              <Button size="sm" variant="tertiary" slot="close" onPress={onClose}>
+                {t('common.cancel')}
+              </Button>
+              <Button size="sm" variant="secondary" onPress={handleSave} isDisabled={saving}>
+                {isEdit ? t('common.save') : t('common.create')}
+              </Button>
+            </Modal.Footer>
+          </Modal.Dialog>
+        </Modal.Container>
+
+        <ActionBar aria-label={t('events.editor.items')} isOpen={rewardSelectionCount > 0}>
+          <ActionBar.Prefix>
+            <Chip size="sm" className="shrink-0 tabular-nums">{rewardSelectionCount}</Chip>
+          </ActionBar.Prefix>
+          <Separator />
+          <ActionBar.Content>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-danger"
+              onPress={handleBulkDeleteRewardItems}
+              aria-label={t('common.deleteSelected')}
+            >
+              <Icon name="trash-2" />
+              <span className="action-bar__label">{t('common.deleteSelected')}</span>
             </Button>
-            <Button size="sm" variant="secondary" onPress={handleSave} isDisabled={saving}>
-              {isEdit ? t('common.save') : t('common.create')}
+          </ActionBar.Content>
+          <Separator />
+          <ActionBar.Suffix>
+            <Button
+              isIconOnly
+              size="sm"
+              variant="ghost"
+              onPress={() => setRewardItemKeys(new Set())}
+              aria-label={t('common.clearSelection')}
+            >
+              <Icon name="x" />
             </Button>
-          </Modal.Footer>
-        </Modal.Dialog>
-      </Modal.Container>
-    </Modal.Backdrop>
+          </ActionBar.Suffix>
+        </ActionBar>
+      </Modal.Backdrop>
+
+      <ManagePacksModal
+        isOpen={managePacksOpen}
+        onClose={() => setManagePacksOpen(false)}
+        onSaved={(savedPacks) => {
+          setPacks(savedPacks)
+          setManagePacksOpen(false)
+        }}
+        templates={templates}
+      />
+    </>
   )
 }

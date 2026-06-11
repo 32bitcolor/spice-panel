@@ -496,7 +496,7 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
       {/* Settings modal — structure mirrors BotControlPanel */}
       <Modal.Backdrop variant="blur" className="bg-linear-to-t from-(--background)/85 via-(--background)/40 to-transparent" isOpen={showBackendConfig} onOpenChange={(v) => !v && setShowBackendConfig(false)}>
         <Modal.Container size="cover" scroll="outside">
-          <Modal.Dialog className="p-10 h-[92vh] flex flex-col dialog-surface-alt">
+          <Modal.Dialog className="p-10 dialog-surface-alt">
             <Modal.CloseTrigger />
             <Modal.Header>
               <div className="flex items-baseline gap-6 flex-wrap">
@@ -519,7 +519,7 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
             </Modal.Header>
 
             {/* Body scrolls; form fills it with its own internal tab scroll */}
-            <Modal.Body className="flex flex-col overflow-y-auto flex-1 min-h-0 pr-1">
+            <Modal.Body className="flex flex-col overflow-y-auto h-[80vh] min-h-0 pr-1">
               {showBackendConfig && (
                 <SettingsConfigForm saveRef={formSaveRef} onSavingChange={setFormSaving} />
               )}

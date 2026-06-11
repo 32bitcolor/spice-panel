@@ -1,10 +1,11 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Chip, Link, Switch, toast } from '@heroui/react'
+import { Button, Chip, Link, Separator, Switch, toast } from '@heroui/react'
+import type { Selection } from '@heroui/react'
 import { EmptyState } from '@heroui-pro/react'
 import { api } from '../../api/client'
 import type { EventDefinition, EventClaimRecord } from '../../api/client'
-import { DataTable, Icon, PageHeader, Panel, SectionLabel, type Column } from '../../dune-ui'
+import { ActionBar, DataTable, Icon, PageHeader, Panel, SectionLabel, type Column } from '../../dune-ui'
 import { EventEditorModal } from './modals/EventEditorModal'
 import type { ListKey, ClaimKey } from './types'
 
@@ -17,6 +18,25 @@ export const EventsTab: React.FC = () => {
   const [claimsLoading, setClaimsLoading] = React.useState(false)
   const [editorOpen, setEditorOpen] = React.useState(false)
   const [editingEvent, setEditingEvent] = React.useState<EventDefinition | null>(null)
+  const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set())
+
+  const selectionCount = selectedKeys === 'all' ? events.length : (selectedKeys as Set<string>).size
+
+  const handleBulkDelete = () => {
+    const ids = selectedKeys === 'all'
+      ? events.map((e) => e.id)
+      : [...(selectedKeys as Set<string>)].map(Number)
+    setSelectedKeys(new Set())
+    Promise.all(ids.map((id) => api.events.delete(id)))
+      .then(() => {
+        if (selectedEvent && ids.includes(selectedEvent.id)) setSelectedEvent(null)
+        loadEvents()
+      })
+      .catch((e: unknown) => {
+        toast.danger(t('events.deleteFailed', { message: e instanceof Error ? e.message : String(e) }))
+        loadEvents()
+      })
+  }
 
   const LIST_COLUMNS: Column<ListKey>[] = [
     { key: 'name', label: t('events.columns.name'), minWidth: 200 },
@@ -114,147 +134,183 @@ export const EventsTab: React.FC = () => {
     type === 'zone_race' ? 'warning' : 'accent'
 
   return (
-    <div className="flex flex-col h-full gap-3 min-h-0">
-      <PageHeader title={t('events.title', { count: events.length })} subtitle={t('events.subtitle')}>
-        <Button size="sm" variant="ghost" onPress={loadEvents} isDisabled={loading}>
-          <Icon name="refresh-cw" />
-          {' '}
-          {t('common.refresh')}
-        </Button>
-        <Button size="sm" variant="primary" onPress={openCreate}>
-          <Icon name="plus" />
-          {' '}
-          {t('events.create')}
-        </Button>
-      </PageHeader>
+    <>
+      <div className="flex flex-col h-full gap-3 min-h-0">
+        <PageHeader title={t('events.title', { count: events.length })} subtitle={t('events.subtitle')}>
+          <Button size="sm" variant="ghost" onPress={loadEvents} isDisabled={loading}>
+            <Icon name="refresh-cw" />
+            {' '}
+            {t('common.refresh')}
+          </Button>
+          <Button size="sm" variant="primary" onPress={openCreate}>
+            <Icon name="plus" />
+            {' '}
+            {t('events.create')}
+          </Button>
+        </PageHeader>
 
-      <DataTable<EventDefinition, ListKey>
-        aria-label={t('events.ariaLabel')}
-        className="min-h-0 flex-1"
-        columns={LIST_COLUMNS}
-        rows={events}
-        loading={loading}
-        rowId={(e) => String(e.id)}
-        initialSort={{ column: 'name', direction: 'ascending' }}
-        sortValue={(e, k) => {
-          if (k === 'enabled') return e.enabled ? 1 : 0
-          if (k === 'actions' || k === 'version') return ''
-          return (e as unknown as Record<string, string | number>)[k] ?? ''
-        }}
-        emptyState={(
-          <EmptyState size="sm">
-            <EmptyState.Header>
-              <EmptyState.Title>{t('events.noEvents')}</EmptyState.Title>
-            </EmptyState.Header>
-          </EmptyState>
-        )}
-        renderCell={(ev, key) => {
-          switch (key) {
-            case 'name':
-              return (
-                <Link
-                  className="text-left text-accent"
-                  onPress={() => loadStatus(ev)}
-                >
-                  {ev.name}
-                </Link>
-              )
-            case 'type':
-              return (
-                <Chip size="sm" variant="soft" color={typeChipColor(ev.type)}>
-                  {ev.type === 'zone_race' ? t('events.types.zoneRace') : t('events.types.milestone')}
-                </Chip>
-              )
-            case 'enabled':
-              return (
-                <Switch
-                  size="sm"
-                  isSelected={ev.enabled}
-                  onChange={() => handleToggleEnabled(ev)}
-                  aria-label={t('events.toggleEnabled')}
-                />
-              )
-            case 'version':
-              return <span className="text-muted font-mono text-xs">{ev.version}</span>
-            case 'actions':
-              return (
-                <div className="flex gap-1">
-                  <Button size="sm" variant="ghost" onPress={() => openEdit(ev)} aria-label={t('common.edit') as string}>
-                    <Icon name="pencil" />
-                  </Button>
-                  <Button size="sm" variant="danger-soft" onPress={() => handleDelete(ev)} aria-label={t('common.delete') as string}>
-                    <Icon name="trash-2" />
-                  </Button>
-                </div>
-              )
-          }
-        }}
-      />
+        <DataTable<EventDefinition, ListKey>
+          selectionMode="multiple"
+          selectedKeys={selectedKeys}
+          onSelectionChange={setSelectedKeys}
+          aria-label={t('events.ariaLabel')}
+          className="min-h-0 flex-1"
+          columns={LIST_COLUMNS}
+          rows={events}
+          loading={loading}
+          rowId={(e) => String(e.id)}
+          initialSort={{ column: 'name', direction: 'ascending' }}
+          sortValue={(e, k) => {
+            if (k === 'enabled') return e.enabled ? 1 : 0
+            if (k === 'actions' || k === 'version') return ''
+            return (e as unknown as Record<string, string | number>)[k] ?? ''
+          }}
+          emptyState={(
+            <EmptyState size="sm">
+              <EmptyState.Header>
+                <EmptyState.Title>{t('events.noEvents')}</EmptyState.Title>
+              </EmptyState.Header>
+            </EmptyState>
+          )}
+          renderCell={(ev, key) => {
+            switch (key) {
+              case 'name':
+                return (
+                  <Link
+                    className="text-left text-accent"
+                    onPress={() => loadStatus(ev)}
+                  >
+                    {ev.name}
+                  </Link>
+                )
+              case 'type':
+                return (
+                  <Chip size="sm" variant="soft" color={typeChipColor(ev.type)}>
+                    {ev.type === 'zone_race' ? t('events.types.zoneRace') : t('events.types.milestone')}
+                  </Chip>
+                )
+              case 'enabled':
+                return (
+                  <Switch
+                    size="sm"
+                    isSelected={ev.enabled}
+                    onChange={() => handleToggleEnabled(ev)}
+                    aria-label={t('events.toggleEnabled')}
+                  />
+                )
+              case 'version':
+                return <span className="text-muted font-mono text-xs">{ev.version}</span>
+              case 'actions':
+                return (
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="ghost" onPress={() => openEdit(ev)} aria-label={t('common.edit') as string}>
+                      <Icon name="pencil" />
+                    </Button>
+                    <Button size="sm" variant="danger-soft" onPress={() => handleDelete(ev)} aria-label={t('common.delete') as string}>
+                      <Icon name="trash-2" />
+                    </Button>
+                  </div>
+                )
+            }
+          }}
+        />
 
-      {selectedEvent && (
-        <Panel>
-          <div className="flex items-center justify-between mb-3">
-            <SectionLabel>
-              {t('events.status.title', { name: selectedEvent.name })}
-            </SectionLabel>
-            <div className="flex gap-2">
-              <Button size="sm" variant="ghost" onPress={() => loadStatus(selectedEvent)} isDisabled={claimsLoading}>
-                <Icon name="refresh-cw" />
-              </Button>
-              <Button size="sm" variant="outline" onPress={() => handleReset(selectedEvent)}>
-                {t('events.status.reset')}
-              </Button>
-              <Button size="sm" variant="ghost" onPress={() => setSelectedEvent(null)}>
-                <Icon name="x" />
-              </Button>
+        {selectedEvent && (
+          <Panel>
+            <div className="flex items-center justify-between mb-3">
+              <SectionLabel>
+                {t('events.status.title', { name: selectedEvent.name })}
+              </SectionLabel>
+              <div className="flex gap-2">
+                <Button size="sm" variant="ghost" onPress={() => loadStatus(selectedEvent)} isDisabled={claimsLoading}>
+                  <Icon name="refresh-cw" />
+                </Button>
+                <Button size="sm" variant="outline" onPress={() => handleReset(selectedEvent)}>
+                  {t('events.status.reset')}
+                </Button>
+                <Button size="sm" variant="ghost" onPress={() => setSelectedEvent(null)}>
+                  <Icon name="x" />
+                </Button>
+              </div>
             </div>
-          </div>
-          <DataTable<EventClaimRecord, ClaimKey>
-            aria-label={t('events.status.claimsLabel')}
-            className="max-h-64"
-            columns={CLAIM_COLUMNS}
-            rows={claims}
-            loading={claimsLoading}
-            rowId={(c) => `${c.event_id}-${c.version}-${c.account_id}`}
-            initialSort={{ column: 'claimed_at', direction: 'descending' }}
-            sortValue={(c, k) => (c as unknown as Record<string, string | number>)[k] ?? ''}
-            emptyState={(
-              <EmptyState size="sm">
-                <EmptyState.Header>
-                  <EmptyState.Title>{t('events.status.noClaims')}</EmptyState.Title>
-                </EmptyState.Header>
-              </EmptyState>
-            )}
-            renderCell={(c, key) => {
-              switch (key) {
-                case 'account_id':
-                  return <span className="font-mono text-xs">{c.account_id}</span>
-                case 'version':
-                  return <span className="font-mono text-xs text-muted">{c.version}</span>
-                case 'status':
-                  return (
-                    <Chip size="sm" variant="soft" color={c.status === 'granted' ? 'success' : 'danger'}>
-                      {c.status}
-                    </Chip>
-                  )
-                case 'attempts':
-                  return <span className="text-muted text-xs">{c.attempts}</span>
-                case 'claimed_at':
-                  return <span className="text-muted text-xs">{c.claimed_at || '—'}</span>
-                case 'last_error':
-                  return <span className="text-muted text-xs">{c.last_error || '—'}</span>
-              }
-            }}
-          />
-        </Panel>
-      )}
+            <DataTable<EventClaimRecord, ClaimKey>
+              aria-label={t('events.status.claimsLabel')}
+              className="max-h-64"
+              columns={CLAIM_COLUMNS}
+              rows={claims}
+              loading={claimsLoading}
+              rowId={(c) => `${c.event_id}-${c.version}-${c.account_id}`}
+              initialSort={{ column: 'claimed_at', direction: 'descending' }}
+              sortValue={(c, k) => (c as unknown as Record<string, string | number>)[k] ?? ''}
+              emptyState={(
+                <EmptyState size="sm">
+                  <EmptyState.Header>
+                    <EmptyState.Title>{t('events.status.noClaims')}</EmptyState.Title>
+                  </EmptyState.Header>
+                </EmptyState>
+              )}
+              renderCell={(c, key) => {
+                switch (key) {
+                  case 'account_id':
+                    return <span className="font-mono text-xs">{c.account_id}</span>
+                  case 'version':
+                    return <span className="font-mono text-xs text-muted">{c.version}</span>
+                  case 'status':
+                    return (
+                      <Chip size="sm" variant="soft" color={c.status === 'granted' ? 'success' : 'danger'}>
+                        {c.status}
+                      </Chip>
+                    )
+                  case 'attempts':
+                    return <span className="text-muted text-xs">{c.attempts}</span>
+                  case 'claimed_at':
+                    return <span className="text-muted text-xs">{c.claimed_at || '—'}</span>
+                  case 'last_error':
+                    return <span className="text-muted text-xs">{c.last_error || '—'}</span>
+                }
+              }}
+            />
+          </Panel>
+        )}
 
-      <EventEditorModal
-        isOpen={editorOpen}
-        onClose={() => setEditorOpen(false)}
-        editing={editingEvent}
-        onSaved={loadEvents}
-      />
-    </div>
+        <EventEditorModal
+          isOpen={editorOpen}
+          onClose={() => setEditorOpen(false)}
+          editing={editingEvent}
+          onSaved={loadEvents}
+        />
+      </div>
+
+      <ActionBar aria-label={t('events.ariaLabel')} isOpen={selectionCount > 0}>
+        <ActionBar.Prefix>
+          <Chip size="sm" className="shrink-0 tabular-nums">{selectionCount}</Chip>
+        </ActionBar.Prefix>
+        <Separator />
+        <ActionBar.Content>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-danger"
+            onPress={handleBulkDelete}
+            aria-label={t('common.deleteSelected')}
+          >
+            <Icon name="trash-2" />
+            <span className="action-bar__label">{t('common.deleteSelected')}</span>
+          </Button>
+        </ActionBar.Content>
+        <Separator />
+        <ActionBar.Suffix>
+          <Button
+            isIconOnly
+            size="sm"
+            variant="ghost"
+            onPress={() => setSelectedKeys(new Set())}
+            aria-label={t('common.clearSelection')}
+          >
+            <Icon name="x" />
+          </Button>
+        </ActionBar.Suffix>
+      </ActionBar>
+    </>
   )
 }

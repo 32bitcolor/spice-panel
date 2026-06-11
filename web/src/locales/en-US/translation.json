@@ -1498,7 +1498,11 @@
       "channelDefault": "Posts to the configured Discord announce channel.",
       "created": "Event created.",
       "updated": "Event updated.",
-      "saveFailed": "Failed to save event: {{message}}"
+      "saveFailed": "Failed to save event: {{message}}",
+      "solari": "Solari",
+      "factionScrip": "Faction Scrip",
+      "config": "Config",
+      "rewards": "Rewards"
     }
   }
 }

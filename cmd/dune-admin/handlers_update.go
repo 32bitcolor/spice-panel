@@ -13,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -372,26 +373,56 @@ func signalSelfTERM() error {
 	return p.Signal(syscall.SIGTERM)
 }
 
-// restartProcess re-executes the new binary in place; if that fails it falls
-// back to signalling the process for systemd to restart. Extracted from
+// restartProcess re-executes the new binary in place; if that fails it invokes
+// fallback (SIGTERM on Unix, spawn-and-exit on Windows). Extracted from
 // scheduleRestart so the success/fallback branching is testable without
 // actually replacing or killing the test process.
-func restartProcess(reExec, signalSelf func() error) {
+func restartProcess(reExec, fallback func() error) {
 	if err := reExec(); err != nil {
-		log.Printf("update: in-place re-exec failed (%v); falling back to SIGTERM", err)
-		if serr := signalSelf(); serr != nil {
-			log.Printf("update: SIGTERM fallback failed: %v", serr)
+		log.Printf("update: in-place re-exec failed (%v); falling back to process restart", err)
+		if serr := fallback(); serr != nil {
+			log.Printf("update: process restart fallback failed: %v", serr)
 		}
 	}
 }
 
+// defaultSpawn starts bin as a new child process, inheriting stdout/stderr/stdin.
+func defaultSpawn(bin string) error {
+	cmd := exec.Command(bin, os.Args[1:]...) // #nosec G204,G702 -- own binary at its install path; no external input
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	return cmd.Start()
+}
+
+// spawnAndExit starts a replacement process at bin and then calls exitFn(0).
+// Returns an error if spawning fails (exitFn is NOT called in that case).
+// exitFn is injected so tests can capture the call without actually exiting.
+func spawnAndExit(bin string, spawn func(string) error, exitFn func(int)) error {
+	if err := spawn(bin); err != nil {
+		return fmt.Errorf("spawn replacement process: %w", err)
+	}
+	exitFn(0)
+	return nil
+}
+
+// platformSignalOrSpawn returns the appropriate restart fallback for the OS.
+// On Unix it sends SIGTERM (relies on systemd Restart=always to revive the service).
+// On Windows, SIGTERM is unsupported, so it spawns a new process and exits instead.
+func platformSignalOrSpawn(bin string) func() error {
+	if runtime.GOOS == "windows" {
+		return func() error { return spawnAndExit(bin, defaultSpawn, os.Exit) }
+	}
+	return signalSelfTERM
+}
+
 // scheduleRestart restarts into the new binary after a short delay so the HTTP
 // response can flush. It prefers in-place re-exec (works under any systemd
-// Restart= policy) and falls back to SIGTERM (needs Restart=always). bin is the
-// executable path captured before the binary swap — see reExecSelf.
+// Restart= policy) and falls back to the platform-appropriate restart strategy.
+// bin is the executable path captured before the binary swap — see reExecSelf.
 func scheduleRestart(bin string) {
 	time.Sleep(500 * time.Millisecond)
-	restartProcess(func() error { return reExecSelf(bin) }, signalSelfTERM)
+	restartProcess(func() error { return reExecSelf(bin) }, platformSignalOrSpawn(bin))
 }
 
 // @Summary Download and apply the latest release, then restart

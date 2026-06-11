@@ -27,6 +27,10 @@ export interface RewardItem {
   quality: number
 }
 
+export interface KeyedRewardItem extends RewardItem {
+  _key: string
+}
+
 export interface RewardXP {
   track: string
   amount: number
