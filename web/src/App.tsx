@@ -179,16 +179,17 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
   const currentTab = currentTabFromPath(location.pathname)
   const pathname = location.pathname
 
+  const UPDATE_CACHE_KEY = 'dune_update_cache'
+  const UPDATE_CACHE_TTL_MS = 60 * 60 * 1000
+
   // Check for a newer release via the backend — cached in localStorage for 1 hour
   // to avoid hammering GitHub's unauthenticated API rate limit during dev HMR cycles.
   React.useEffect(() => {
-    const CACHE_KEY = 'dune_update_cache'
-    const TTL_MS = 60 * 60 * 1000
     try {
-      const cached = localStorage.getItem(CACHE_KEY)
+      const cached = localStorage.getItem(UPDATE_CACHE_KEY)
       if (cached) {
         const { ts, data } = JSON.parse(cached)
-        if (Date.now() - ts < TTL_MS) {
+        if (Date.now() - ts < UPDATE_CACHE_TTL_MS) {
           Promise.resolve().then(() => setUpdateInfo(data))
           return
         }
@@ -198,16 +199,21 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
     api.update.check().then((data) => {
       setUpdateInfo(data)
       try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data }))
+        localStorage.setItem(UPDATE_CACHE_KEY, JSON.stringify({ ts: Date.now(), data }))
       }
       catch { /* ignore */ }
     }).catch(() => {})
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const checkUpdate = async () => {
     setUpdateChecking(true)
     try {
-      setUpdateInfo(await api.update.check())
+      const data = await api.update.check()
+      setUpdateInfo(data)
+      try {
+        localStorage.setItem(UPDATE_CACHE_KEY, JSON.stringify({ ts: Date.now(), data }))
+      }
+      catch { /* ignore */ }
     }
     catch {
       // silently ignore — user can retry
@@ -222,6 +228,7 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
     try {
       const result = await api.update.apply(force)
       if (result.updated) {
+        localStorage.removeItem(UPDATE_CACHE_KEY)
         toast.success(force ? t('app.reinstalled', { version: result.version ?? 'latest' }) : t('app.updated', { version: result.version ?? 'latest' }))
         setUpdateInfo(null)
         setTimeout(() => {
