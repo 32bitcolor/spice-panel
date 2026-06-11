@@ -4,7 +4,7 @@ import { Button, CloseButton, Input, Select, ListBox, Spinner, Switch, toast } f
 import { Segment } from '@heroui-pro/react'
 import { api, MASKED } from '../api/client'
 import type { AppConfig } from '../api/client'
-import { NumberInput, Panel, SectionLabel } from '../dune-ui'
+import { Icon, NumberInput, Panel, SectionLabel } from '../dune-ui'
 import type {
   FieldProps,
   TextInputProps,
@@ -207,6 +207,7 @@ export const SettingsConfigForm: React.FC<SettingsConfigFormProps> = ({ saveRef,
   const [backendUrl, setBackendUrl] = React.useState(() => localStorage.getItem('dune_admin_backend') || '')
 
   const [discordRoles, setDiscordRoles] = React.useState<DiscordRole[]>([])
+  const [rolesLoading, setRolesLoading] = React.useState(false)
 
   React.useEffect(() => {
     api.config.get()
@@ -215,9 +216,21 @@ export const SettingsConfigForm: React.FC<SettingsConfigFormProps> = ({ saveRef,
       .finally(() => setLoading(false))
   }, [t])
 
-  React.useEffect(() => {
-    api.discord.roles().then(setDiscordRoles).catch(() => setDiscordRoles([]))
+  const loadDiscordRoles = React.useCallback(() => {
+    setRolesLoading(true)
+    api.discord.roles()
+      .then(setDiscordRoles)
+      .catch(() => setDiscordRoles([]))
+      .finally(() => setRolesLoading(false))
   }, [])
+
+  React.useEffect(() => {
+    Promise.resolve().then(loadDiscordRoles)
+  }, [loadDiscordRoles])
+
+  React.useEffect(() => {
+    if (tab === 'discord') Promise.resolve().then(loadDiscordRoles)
+  }, [tab, loadDiscordRoles])
 
   const set = (key: keyof AppConfig) => (v: string) =>
     setCfg((prev) => ({
@@ -518,7 +531,14 @@ export const SettingsConfigForm: React.FC<SettingsConfigFormProps> = ({ saveRef,
           </Panel>
 
           <Panel>
-            <SectionLabel>{t('settings.sections.discordRoles')}</SectionLabel>
+            <div className="flex items-center justify-between">
+              <SectionLabel>{t('settings.sections.discordRoles')}</SectionLabel>
+              <Button size="sm" variant="ghost" onPress={loadDiscordRoles} isDisabled={rolesLoading}>
+                {rolesLoading ? <Spinner size="sm" color="current" /> : <Icon name="refresh-cw" />}
+                {' '}
+                {t('common.refresh')}
+              </Button>
+            </div>
             <div className="flex flex-col gap-1 -mt-1">
               <p className="text-xs text-muted">{t('settings.discord.rolesHint')}</p>
               <p className="text-sm text-muted">{t('settings.discord.rolesRefreshNote')}</p>
