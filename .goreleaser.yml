@@ -119,6 +119,8 @@ release:
   name_template: "{{.ProjectName}} {{.Tag}}"
   draft: false
   prerelease: auto
+  extra_files:
+    - glob: ./dune-admin-web-dist.tar.gz
 
 # Homebrew formula. GoReleaser renamed the `brews:` key to
 # `homebrew_casks:` in v2.13 but that type generates a Homebrew Cask

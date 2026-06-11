@@ -265,6 +265,26 @@ Prerequisites: Go 1.26+, Node 20.19+ or 22.12+, pnpm 10.28+, `make`.
 > run from a **Git Bash** shell (right-click the folder -> "Git Bash Here"); those
 > recipes use POSIX shell features that cmd.exe can't run.
 
+### Building without a HeroUI Pro license
+
+The frontend uses `@heroui-pro/react`, which requires a `HEROUI_AUTH_TOKEN` to install. If
+you only need to run the app (not modify the frontend), each release ships a prebuilt
+`dune-admin-web-dist.tar.gz` asset. A single make target downloads it and produces a fully
+embedded binary:
+
+```bash
+make build-prebuilt
+```
+
+This fetches the dist that matches the local `VERSION` file (falling back to the latest
+release), extracts it, and compiles the Go binary with the frontend embedded. No Node, pnpm,
+or Pro license required — only Go and `make`.
+
+**Backend-only development** is also possible without a license: run `make dev-backend` for
+hot-reload and point a browser at the prebuilt `dist` from `make build-prebuilt` (served by
+the binary at `http://localhost:8080`). Frontend hot-reload (`make dev`) requires the Pro
+license.
+
 ---
 
 ## Development
@@ -294,10 +314,12 @@ make verify   # fmt-check + vet + test-race + vulncheck + lint + gocognit
 |--------|-------------|
 | `make setup` | Run the interactive setup wizard |
 | `make build` | Build frontend + Go binary for the host OS |
+| `make build-prebuilt` | Download prebuilt dist from a release + embed-build (no Pro license needed) |
 | `make linux` | Cross-compile a Linux amd64 binary (`dune-admin-linux`) |
 | `make dev` | Run backend + frontend in live mode (Air + Vite HMR) |
 | `make dev-server` | Run backend only (`go run ./cmd/dune-admin`) |
 | `make web` | Build the frontend only |
+| `make dist-archive` | Package `cmd/dune-admin/dist` as a release asset tarball (CI use) |
 | `make deploy-web` | Build and deploy the SPA to Cloudflare Pages |
 | `make render-k8s` | Render `deploy/k8s/dune-admin.rendered.yaml` from `~/.dune-admin/config.yaml` |
 | `make k8s-dry-run` | Render and run `kubectl apply --dry-run=client` |

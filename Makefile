@@ -1,4 +1,4 @@
-.PHONY: build web go go-embed linux dev dev-server dev-backend dev-web setup deploy-web \
+.PHONY: build web go go-embed build-prebuilt dist-archive linux dev dev-server dev-backend dev-web setup deploy-web \
         render-k8s render-k8s-stdout k8s-dry-run \
         vulncheck gosec pnpm-audit \
         test test-race vet fmt fmt-check tsc \
@@ -33,7 +33,11 @@ VERSION    ?= $(shell cat VERSION 2>/dev/null || git describe --tags --always --
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_TIME ?= $(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
 endif
-LDFLAGS    := -ldflags "-s -w -X main.AppVersion=$(VERSION) -X main.GitCommit=$(GIT_COMMIT) -X main.BuildTime=$(BUILD_TIME)"
+LDFLAGS      := -ldflags "-s -w -X main.AppVersion=$(VERSION) -X main.GitCommit=$(GIT_COMMIT) -X main.BuildTime=$(BUILD_TIME)"
+DIST_REPO    ?= Icehunter/dune-admin
+DIST_TARBALL := dune-admin-web-dist.tar.gz
+DIST_URL_PINNED  := https://github.com/$(DIST_REPO)/releases/download/v$(VERSION)/$(DIST_TARBALL)
+DIST_URL_LATEST  := https://github.com/$(DIST_REPO)/releases/latest/download/$(DIST_TARBALL)
 
 # Build frontend + backend binary with embedded SPA.
 build: web go-embed
@@ -61,6 +65,31 @@ else
 	$(GO) build -trimpath $(LDFLAGS) -tags embed -o $(BIN) $(CMD)
 	install -m 0755 $(BIN) ./dune-admin
 endif
+
+# Download a prebuilt frontend dist from a GitHub release and embed-build the binary.
+# For contributors without a HeroUI Pro license. Tries v$(VERSION) first, falls back to latest.
+build-prebuilt:
+ifeq ($(OS),Windows_NT)
+	@echo Fetching prebuilt frontend dist (v$(VERSION), falling back to latest)...
+	@if exist cmd\dune-admin\dist rmdir /S /Q cmd\dune-admin\dist
+	@if not exist cmd\dune-admin mkdir cmd\dune-admin
+	@curl -fsSL -o $(DIST_TARBALL) "$(DIST_URL_PINNED)" || curl -fsSL -o $(DIST_TARBALL) "$(DIST_URL_LATEST)"
+	@tar -xzf $(DIST_TARBALL) -C cmd/dune-admin
+	@del /Q $(DIST_TARBALL)
+else
+	@echo "Fetching prebuilt frontend dist (v$(VERSION), falling back to latest)..."
+	@rm -rf cmd/dune-admin/dist
+	@mkdir -p cmd/dune-admin
+	@curl -fsSL -o $(DIST_TARBALL) "$(DIST_URL_PINNED)" \
+		|| curl -fsSL -o $(DIST_TARBALL) "$(DIST_URL_LATEST)"
+	@tar -xzf $(DIST_TARBALL) -C cmd/dune-admin
+	@rm -f $(DIST_TARBALL)
+endif
+	$(MAKE) go-embed
+
+# Archive the locally-built dist as a release asset. Run after `make web` in CI.
+dist-archive:
+	tar -czf $(DIST_TARBALL) -C cmd/dune-admin dist
 
 # Install the binary system-wide (Linux/macOS only).
 install: go

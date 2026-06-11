@@ -76,6 +76,9 @@ jobs:
           HEROUI_AUTH_TOKEN: ${{ secrets.HEROUI_AUTH_TOKEN }}
           VITE_CDN_BASE_URL: ${{ vars.VITE_CDN_BASE_URL }}
 
+      - name: Archive prebuilt frontend dist
+        run: make dist-archive
+
       - name: Install syft (SBOMs)
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
