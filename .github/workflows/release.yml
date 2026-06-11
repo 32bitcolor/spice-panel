@@ -36,7 +36,7 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: '10.28.1'
+          version: "10.28.1"
 
       - name: Run govulncheck
         run: make vulncheck
@@ -62,12 +62,12 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: '10.28.1'
+          version: "10.28.1"
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'pnpm'
+          node-version: "22"
+          cache: "pnpm"
           cache-dependency-path: web/pnpm-lock.yaml
 
       - name: Build frontend (embeds into binary)
@@ -83,6 +83,7 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEROUI_AUTH_TOKEN: ${{ secrets.HEROUI_AUTH_TOKEN }}
           # PAT with `repo` scope on Icehunter/homebrew-tap.
           # If unset, the brews publisher will fail; configure before
           # cutting a release that should land in the tap.
@@ -104,12 +105,12 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: '10.28.1'
+          version: "10.28.1"
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'pnpm'
+          node-version: "22"
+          cache: "pnpm"
           cache-dependency-path: web/pnpm-lock.yaml
 
       - run: pnpm install --frozen-lockfile
