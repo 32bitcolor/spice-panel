@@ -23,9 +23,9 @@ import {
 import {
   worldToLatLng, latLngToWorld, solveBounds, loadCalib, loadFilter, saveFilter, mapUrl,
 } from './utils'
-import type { LiveMapTabProps, SpawnEntry, SpawnFile, CalibPoint, MapCfg, Bounds } from './types'
+import type { SpawnEntry, SpawnFile, CalibPoint, MapCfg, Bounds } from './types'
 
-export const LiveMapTab: React.FC<LiveMapTabProps> = ({ isActive = true }) => {
+export const LiveMapTab: React.FC = () => {
   const { t } = useTranslation()
   const [mapKey, setMapKey] = React.useState<string>('HaggaBasin')
   const [markers, setMarkers] = React.useState<MapMarker[]>([])
@@ -95,12 +95,10 @@ export const LiveMapTab: React.FC<LiveMapTabProps> = ({ isActive = true }) => {
 
   const loadCurrent = React.useCallback(() => load(mapKey), [load, mapKey])
   React.useEffect(() => {
-    if (isActive) {
-      const id = setTimeout(loadCurrent, 0)
-      return () => clearTimeout(id)
-    }
-  }, [isActive, loadCurrent])
-  const { countdown, refresh } = useAutoRefresh(loadCurrent, POLL_MS, isActive)
+    const id = setTimeout(loadCurrent, 0)
+    return () => clearTimeout(id)
+  }, [loadCurrent])
+  const { countdown, refresh } = useAutoRefresh(loadCurrent, POLL_MS)
 
   React.useEffect(() => {
     const cfg = MAPS.find((m) => m.key === mapKey)
@@ -245,7 +243,7 @@ export const LiveMapTab: React.FC<LiveMapTabProps> = ({ isActive = true }) => {
             ? <Spinner size="sm" color="current" />
             : (
                 <>
-                  {isActive && currentMap.hasLiveData && (
+                  {currentMap.hasLiveData && (
                     <span className="w-7 text-right tabular-nums text-muted/60 text-xs">
                       {countdown}
                       s
@@ -432,7 +430,7 @@ export const LiveMapTab: React.FC<LiveMapTabProps> = ({ isActive = true }) => {
                   attributionControl={false}
                   style={{ height: '100%', width: '100%', background: 'var(--color-surface)', cursor: mapCursor }}
                 >
-                  <InvalidateOnActive active={isActive} />
+                  <InvalidateOnActive />
                   <MapClickCapture active={calibrating || teleportMode} onPick={handleMapClick} />
                   {effCfg.tileId
                     ? <MapTileLayer key={mapKey} tileId={effCfg.tileId} />

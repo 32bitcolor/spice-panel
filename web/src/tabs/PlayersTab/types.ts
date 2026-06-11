@@ -1,9 +1,5 @@
 export type DetailTab = 'overview' | 'inventory' | 'vehicles' | 'give' | 'actions'
 
-export interface PlayersTabProps {
-  isActive?: boolean
-}
-
 export type ActionSection
   = | 'resources' | 'specs' | 'progression' | 'contracts' | 'journey' | 'admin' | 'tags' | 'history' | 'experimental'
 

@@ -45,7 +45,7 @@ export const BackendUnreachable: React.FC<BackendUnreachableProps> = ({ onRetry 
               onChange={setUrl}
               placeholder="http://host:8080"
               aria-label={t('app.backendUnreachable.urlLabel')}
-              className="font-mono"
+              className="font-mono flex-1"
             />
             <Button size="sm" onPress={saveAndRetry}>
               <Icon name="refresh-cw" />

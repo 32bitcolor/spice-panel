@@ -40,10 +40,6 @@ export type SpawnFile = {
   spawns: SpawnEntry[]
 }
 
-export interface InvalidateOnActiveProps {
-  active: boolean
-}
-
 export interface MapClickCaptureProps {
   active: boolean
   onPick: (lat: number, lng: number) => void
@@ -87,8 +83,4 @@ export interface FilterPanelProps {
   mapKey: string
   heatmapMode: boolean
   onHeatmapToggle: () => void
-}
-
-export interface LiveMapTabProps {
-  isActive?: boolean
 }

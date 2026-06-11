@@ -65,8 +65,4 @@ export const ACTIONS: ActionDef[] = [
 
 export const INIT_WARN_MS = 3 * 60 * 1000
 
-export interface BattlegroupTabProps {
-  isActive?: boolean
-}
-
 export type ChipColor = 'default' | 'success' | 'warning' | 'danger'

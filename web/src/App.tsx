@@ -10,25 +10,25 @@ import { SettingsConfigForm } from './components/SettingsConfigForm'
 import { LanguageSelector } from './components/LanguageSelector'
 import { ThemeSelector } from './components/ThemeSelector'
 import { HelpMenu } from './components/HelpMenu'
-import { BattlegroupTab } from './tabs/BattlegroupTab'
-import { LiveMapTab } from './tabs/LiveMapTab'
-import { PlayersTab } from './tabs/PlayersTab'
-import { DatabaseTab } from './tabs/DatabaseTab'
-import { LogsTab } from './tabs/LogsTab'
-import { BlueprintsTab } from './tabs/BlueprintsTab'
-import { BasesTab } from './tabs/BasesTab'
-import { GuildsTab } from './tabs/GuildsTab'
-import { LandsraadTab } from './tabs/LandsraadTab'
-import { StorageTab } from './tabs/StorageTab'
-import { ServerSettingsTab } from './tabs/ServerSettingsTab'
-import { DirectorTab } from './tabs/DirectorTab'
-import { MarketTab } from './tabs/MarketTab'
-import { WelcomePackageTab } from './tabs/WelcomePackageTab'
-import { EventsTab } from './tabs/EventsTab'
+const BattlegroupTab = React.lazy(() => import('./tabs/BattlegroupTab').then((m) => ({ default: m.BattlegroupTab })))
+const LiveMapTab = React.lazy(() => import('./tabs/LiveMapTab').then((m) => ({ default: m.LiveMapTab })))
+const PlayersTab = React.lazy(() => import('./tabs/PlayersTab').then((m) => ({ default: m.PlayersTab })))
+const DatabaseTab = React.lazy(() => import('./tabs/DatabaseTab').then((m) => ({ default: m.DatabaseTab })))
+const LogsTab = React.lazy(() => import('./tabs/LogsTab').then((m) => ({ default: m.LogsTab })))
+const BlueprintsTab = React.lazy(() => import('./tabs/BlueprintsTab').then((m) => ({ default: m.BlueprintsTab })))
+const BasesTab = React.lazy(() => import('./tabs/BasesTab').then((m) => ({ default: m.BasesTab })))
+const GuildsTab = React.lazy(() => import('./tabs/GuildsTab').then((m) => ({ default: m.GuildsTab })))
+const LandsraadTab = React.lazy(() => import('./tabs/LandsraadTab').then((m) => ({ default: m.LandsraadTab })))
+const StorageTab = React.lazy(() => import('./tabs/StorageTab').then((m) => ({ default: m.StorageTab })))
+const ServerSettingsTab = React.lazy(() => import('./tabs/ServerSettingsTab').then((m) => ({ default: m.ServerSettingsTab })))
+const DirectorTab = React.lazy(() => import('./tabs/DirectorTab').then((m) => ({ default: m.DirectorTab })))
+const MarketTab = React.lazy(() => import('./tabs/MarketTab').then((m) => ({ default: m.MarketTab })))
+const WelcomePackageTab = React.lazy(() => import('./tabs/WelcomePackageTab').then((m) => ({ default: m.WelcomePackageTab })))
+const EventsTab = React.lazy(() => import('./tabs/EventsTab').then((m) => ({ default: m.EventsTab })))
 import { Icon } from './dune-ui'
 import { api } from './api/client'
 import type { UpdateCheckResult } from './api/client'
-import type { TabId, DbSection, WelcomeSection, AppCoreProps, TabPaneProps, ConnectionBadgeProps } from './types'
+import type { TabId, DbSection, WelcomeSection, AppCoreProps, ConnectionBadgeProps } from './types'
 
 const TAB_IDS = [
   'battlegroup',
@@ -72,24 +72,6 @@ const TAB_ICONS: Record<TabId, string> = {
   welcome: 'gift',
   events: 'calendar-clock',
 }
-
-// Memoized at module level so identity is stable — prevents all inactive tabs from
-// re-rendering whenever AppCore re-renders (e.g. router location change, useStatus poll).
-const BattlegroupTabMemo = React.memo(BattlegroupTab)
-const LiveMapTabMemo = React.memo(LiveMapTab)
-const PlayersTabMemo = React.memo(PlayersTab)
-const DatabaseTabMemo = React.memo(DatabaseTab)
-const LogsTabMemo = React.memo(LogsTab)
-const BlueprintsTabMemo = React.memo(BlueprintsTab)
-const BasesTabMemo = React.memo(BasesTab)
-const GuildsTabMemo = React.memo(GuildsTab)
-const LandsraadTabMemo = React.memo(LandsraadTab)
-const StorageTabMemo = React.memo(StorageTab)
-const ServerSettingsTabMemo = React.memo(ServerSettingsTab)
-const DirectorTabMemo = React.memo(DirectorTab)
-const MarketTabMemo = React.memo(MarketTab)
-const WelcomePackageTabMemo = React.memo(WelcomePackageTab)
-const EventsTabMemo = React.memo(EventsTab)
 
 const hasClerk = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
@@ -197,19 +179,6 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
   const currentTab = currentTabFromPath(location.pathname)
   const pathname = location.pathname
 
-  // Tracks which tabs have been visited at least once — they get mounted and stay
-  // mounted (TabPane keeps them hidden), preserving in-tab state and the isActive
-  // auto-refresh contract. Unvisited tabs never mount, avoiding the startup query storm.
-  const [mounted, setMounted] = React.useState<Set<TabId>>(() => new Set<TabId>([currentTab]))
-  React.useEffect(() => {
-    setMounted((prev) => { // eslint-disable-line react-hooks/set-state-in-effect
-      if (prev.has(currentTab)) return prev
-      const next = new Set(prev)
-      next.add(currentTab)
-      return next
-    })
-  }, [currentTab])
-
   // Check for a newer release via the backend — cached in localStorage for 1 hour
   // to avoid hammering GitHub's unauthenticated API rate limit during dev HMR cycles.
   React.useEffect(() => {
@@ -271,11 +240,16 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
     }
   }
 
-  const renderTab = (id: TabId, node: React.ReactNode) => (
-    <TabPane active={currentTab === id}>
-      {mounted.has(id) ? node : null}
-    </TabPane>
-  )
+  const renderTab = (id: TabId, node: React.ReactNode) => {
+    if (currentTab !== id) return null
+    return (
+      <React.Suspense fallback={<div className="flex-1 flex items-center justify-center"><Spinner /></div>}>
+        <div className="flex-1 flex flex-col min-h-0">
+          {node}
+        </div>
+      </React.Suspense>
+    )
+  }
 
   // #165: when the SPA never reached the backend, show an informative setup
   // screen instead of an empty, non-working dashboard.
@@ -480,21 +454,21 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
 
   const tabContent = (
     <main className="flex-1 flex flex-col overflow-hidden min-h-0">
-      {renderTab('battlegroup', <BattlegroupTabMemo isActive={currentTab === 'battlegroup'} />)}
-      {renderTab('players', <PlayersTabMemo isActive={currentTab === 'players'} />)}
-      {renderTab('database', <DatabaseTabMemo section={dbSection} />)}
-      {renderTab('logs', <LogsTabMemo control={status?.control} />)}
-      {renderTab('blueprints', <BlueprintsTabMemo isSignedIn={isSignedIn} />)}
-      {renderTab('bases', <BasesTabMemo isSignedIn={isSignedIn} />)}
-      {renderTab('guilds', <GuildsTabMemo isSignedIn={isSignedIn} />)}
-      {renderTab('landsraad', <LandsraadTabMemo />)}
-      {renderTab('storage', <StorageTabMemo />)}
-      {renderTab('livemap', <LiveMapTabMemo isActive={currentTab === 'livemap'} />)}
-      {renderTab('server', <ServerSettingsTabMemo />)}
-      {renderTab('director', <DirectorTabMemo />)}
-      {renderTab('market', <MarketTabMemo />)}
-      {renderTab('welcome', <WelcomePackageTabMemo section={welcomeSection} />)}
-      {renderTab('events', <EventsTabMemo />)}
+      {renderTab('battlegroup', <BattlegroupTab />)}
+      {renderTab('players', <PlayersTab />)}
+      {renderTab('database', <DatabaseTab section={dbSection} />)}
+      {renderTab('logs', <LogsTab control={status?.control} />)}
+      {renderTab('blueprints', <BlueprintsTab isSignedIn={isSignedIn} />)}
+      {renderTab('bases', <BasesTab isSignedIn={isSignedIn} />)}
+      {renderTab('guilds', <GuildsTab isSignedIn={isSignedIn} />)}
+      {renderTab('landsraad', <LandsraadTab />)}
+      {renderTab('storage', <StorageTab />)}
+      {renderTab('livemap', <LiveMapTab />)}
+      {renderTab('server', <ServerSettingsTab />)}
+      {renderTab('director', <DirectorTab />)}
+      {renderTab('market', <MarketTab />)}
+      {renderTab('welcome', <WelcomePackageTab section={welcomeSection} />)}
+      {renderTab('events', <EventsTab />)}
     </main>
   )
 
@@ -684,14 +658,6 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
           </Modal.Dialog>
         </Modal.Container>
       </Modal.Backdrop>
-    </div>
-  )
-}
-
-const TabPane: React.FC<TabPaneProps> = ({ active, children }) => {
-  return (
-    <div className={`flex-1 min-h-0 ${active ? 'flex flex-col dune-tab-active' : 'hidden'}`}>
-      {children}
     </div>
   )
 }

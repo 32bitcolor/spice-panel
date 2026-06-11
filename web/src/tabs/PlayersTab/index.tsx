@@ -14,13 +14,13 @@ import { InventoryView } from './views/InventoryView'
 import { VehiclesView } from './views/VehiclesView'
 import { GiveItemsView } from './views/GiveItemsView'
 import { ActionsView } from './views/ActionsView'
-import type { DetailTab, PlayersTabProps } from './types'
+import type { DetailTab } from './types'
 
 const POLL_MS = 30_000
 // Sentinel SideNav key for the server-wide dashboard landing (#130).
 const OVERVIEW_KEY = '__overview__'
 
-export const PlayersTab: React.FC<PlayersTabProps> = ({ isActive = false }) => {
+export const PlayersTab: React.FC = () => {
   const { t } = useTranslation()
 
   const DETAIL_TABS: { key: DetailTab, label: string }[] = [
@@ -55,7 +55,7 @@ export const PlayersTab: React.FC<PlayersTabProps> = ({ isActive = false }) => {
     loadPlayers()
   }, [loadPlayers])
 
-  const { countdown, refresh } = useAutoRefresh(loadPlayers, POLL_MS, isActive)
+  const { countdown, refresh } = useAutoRefresh(loadPlayers, POLL_MS)
 
   const filtered = React.useMemo(() => {
     const q = search.toLowerCase()
@@ -124,12 +124,10 @@ export const PlayersTab: React.FC<PlayersTabProps> = ({ isActive = false }) => {
               ? <Spinner size="sm" color="current" />
               : (
                   <>
-                    {isActive && (
-                      <span className="w-7 text-right tabular-nums text-muted/60 text-xs">
-                        {countdown}
-                        s
-                      </span>
-                    )}
+                    <span className="w-7 text-right tabular-nums text-muted/60 text-xs">
+                      {countdown}
+                      s
+                    </span>
                     <Icon name="refresh-cw" />
                   </>
                 )}

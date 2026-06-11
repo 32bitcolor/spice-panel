@@ -8,7 +8,6 @@ import * as React from 'react'
 export const useAutoRefresh = (
   fn: () => void,
   intervalMs: number,
-  active: boolean,
 ): { countdown: number, refresh: () => void } => {
   const fnRef = React.useRef(fn)
   React.useEffect(() => {
@@ -19,11 +18,6 @@ export const useAutoRefresh = (
   const [countdown, setCountdown] = React.useState(secsTotal)
 
   React.useEffect(() => {
-    if (!active) {
-      Promise.resolve().then(() => setCountdown(secsTotal))
-      return
-    }
-
     Promise.resolve().then(() => setCountdown(secsTotal))
 
     const poll = setInterval(() => {
@@ -39,7 +33,7 @@ export const useAutoRefresh = (
       clearInterval(poll)
       clearInterval(tick)
     }
-  }, [active, intervalMs, secsTotal])
+  }, [intervalMs, secsTotal])
 
   const refresh = React.useCallback(() => {
     fnRef.current()

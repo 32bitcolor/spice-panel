@@ -8,7 +8,7 @@ import { NumberInput, PageHeader, SectionDivider, Icon } from '../../dune-ui'
 import { ScheduledRestartsCard } from '../../components/ScheduledRestartsCard'
 import { useStatus } from '../../hooks/useStatus'
 
-import { ACTIONS, INIT_WARN_MS, type ActionDef, type DetailedStatus, type BattlegroupTabProps } from './types'
+import { ACTIONS, INIT_WARN_MS, type ActionDef, type DetailedStatus } from './types'
 import { ServersTable } from './ServersTable'
 import {
   HealthCard, HealthChips, BgVmCard, ComponentHealthCard, GameReadyCard, WebInterfacesCard,
@@ -19,7 +19,7 @@ import { RestoreModal } from './modals/RestoreModal'
 
 const POLL_MS = 30_000
 
-export const BattlegroupTab: React.FC<BattlegroupTabProps> = ({ isActive = false }) => {
+export const BattlegroupTab: React.FC = () => {
   const { t } = useTranslation()
   const { status: connStatus } = useStatus()
   const [status, setStatus] = React.useState<DetailedStatus | null>(null)
@@ -60,7 +60,7 @@ export const BattlegroupTab: React.FC<BattlegroupTabProps> = ({ isActive = false
     fetchStatus()
   }, [fetchStatus])
 
-  const { countdown, refresh: refreshStatus } = useAutoRefresh(fetchStatus, POLL_MS, isActive)
+  const { countdown, refresh: refreshStatus } = useAutoRefresh(fetchStatus, POLL_MS)
 
   // isInitializing tracks whether we're inside the post-start warning window.
   // We use a boolean state rather than computing from Date.now() in render (impure).
@@ -133,7 +133,7 @@ export const BattlegroupTab: React.FC<BattlegroupTabProps> = ({ isActive = false
         subtitle={t('serverHealth.subtitle')}
         onRefresh={refreshStatus}
         loading={statusLoading}
-        countdown={isActive ? countdown : undefined}
+        countdown={countdown}
       />
 
       <HealthChips bg={bg} servers={servers} status={connStatus} />
