@@ -742,6 +742,8 @@ export interface EventDefinition {
   reward: string
   announce_channel_id: string
   announce_template: string
+  poll_seconds: number
+  jitter_seconds: number
   created_at: string
   updated_at: string
 }
@@ -817,7 +819,22 @@ export interface BattlepassPendingRow {
   account_id: number
   name: string
   online: boolean
-  pending_intel: number
+  tier_key: string
+  tier_label: string
+  intel: number
+  reward_items: string
+}
+
+export interface EventsConfig {
+  events_enabled: boolean | null
+}
+
+export interface BattlepassConfig {
+  battlepass_enabled: boolean | null
+  battlepass_award_past: boolean | null
+  battlepass_poll_seconds: number
+  battlepass_scan_pace_ms: number
+  battlepass_scan_start_delay_ms: number
 }
 
 export const api = {
@@ -1207,6 +1224,8 @@ export const api = {
       req<{ ok: boolean }>('POST', `/events/${id}/enable`, { enabled }),
     status: (id: number) => req<EventStatus>('GET', `/events/${id}/status`),
     reset: (id: number) => req<{ ok: boolean }>('POST', `/events/${id}/reset`),
+    config: () => req<EventsConfig>('GET', '/events/config'),
+    saveConfig: (cfg: EventsConfig) => req<EventsConfig>('PUT', '/events/config', cfg),
   },
   battlepass: {
     tiers: () => req<BattlepassTiersResponse>('GET', '/battlepass/tiers'),
@@ -1218,5 +1237,8 @@ export const api = {
     pending: () => req<BattlepassPendingRow[]>('GET', '/battlepass/pending'),
     reseed: () => req<{ seeded: number }>('POST', '/battlepass/reseed'),
     grant: (account_id: number) => req<{ granted_intel: number, tiers: number }>('POST', '/battlepass/grant', { account_id }),
+    grantTier: (account_id: number, tier_key: string) => req<{ granted_intel: number }>('POST', '/battlepass/grant-tier', { account_id, tier_key }),
+    config: () => req<BattlepassConfig>('GET', '/battlepass/config'),
+    saveConfig: (cfg: BattlepassConfig) => req<BattlepassConfig>('PUT', '/battlepass/config', cfg),
   },
 }

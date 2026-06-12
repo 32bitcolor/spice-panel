@@ -1458,8 +1458,8 @@
     "deleteFailed": "Échec de la suppression de l'événement : {{message}}",
     "resetFailed": "Échec de la réinitialisation de l'événement : {{message}}",
     "resetSuccess": "Réclamations de l'événement effacées.",
-    "confirmDelete": "Supprimer l'événement \"{{name}}\" ?",
-    "confirmReset": "Effacer toutes les réclamations pour \"{{name}}\" ? L'événement pourra se déclencher à nouveau pour tous les joueurs.",
+    "confirmDelete": "Delete \"{{name}}\"? This cannot be undone.",
+    "confirmReset": "Clear all claims for \"{{name}}\"? Players can trigger this event again.",
     "toggleEnabled": "Activer/Désactiver",
     "columns": {
       "name": "Nom",
@@ -1512,19 +1512,37 @@
       "xpAmount": "Montant",
       "announceLabel": "Annonce",
       "announceTemplate": "Modèle d'annonce",
-      "templateHint": "Espaces réservés : {player} {event} {value}.",
+      "templateHint": "Espaces réservés : {player} {event} {value}. ({value} = seuil du jalon ; vide pour les courses de zone.)",
       "channelDefault": "Publie dans le canal d'annonces Discord configuré.",
       "created": "Événement créé.",
       "updated": "Événement mis à jour.",
       "saveFailed": "Échec de l'enregistrement de l'événement : {{message}}",
       "xpType": "Type",
       "addParticipant": "Ajouter un joueur…",
-      "noPlayersLoaded": "Aucun joueur chargé — démarrez le serveur et rechargez."
+      "noPlayersLoaded": "Aucun joueur chargé — démarrez le serveur et rechargez.",
+      "scheduleLabel": "Schedule",
+      "pollSeconds": "Poll Interval (s)",
+      "jitterSeconds": "Jitter (s)",
+      "scheduleHint": "How often to check this event. Jitter adds randomness to avoid thundering herd.",
+      "templatePreview": "Preview:"
     },
     "signals": {
       "level": "Niveau du personnage",
       "achievementTag": "Étiquette de succès"
-    }
+    },
+    "config": {
+      "title": "Paramètres du moteur",
+      "enabled": "Activer le moteur d'événements",
+      "enabledHint": "Lance la boucle de scrutation en arrière-plan. Les événements individuels doivent aussi être activés.",
+      "pollSeconds": "Intervalle d'interrogation (secondes)",
+      "save": "Enregistrer",
+      "saved": "Paramètres enregistrés.",
+      "saveFailed": "Échec de l'enregistrement : {{message}}",
+      "failedToLoad": "Échec du chargement : {{message}}"
+    },
+    "confirmDeleteTitle": "Delete Event",
+    "confirmResetTitle": "Reset Event",
+    "resetConfirmLabel": "Reset"
   },
   "battlepass": {
     "title": "Battlepass ({{count}} paliers)",
@@ -1539,8 +1557,8 @@
       "keeps": "L'historique des claims et les lignes de base des joueurs sont préservés. Les claims se rattachent de nouveau par clé de palier, donc rien n'est regagné ni accordé deux fois. La base de données du jeu n'est pas modifiée."
     },
     "grantDialog": {
-      "title": "Accorder de l'Intel du Battlepass ?",
-      "body": "Accorde {{intel}} points Intel à {{account}} en une seule mise à jour et marque leurs paliers gagnés comme accordés. Le joueur doit rester hors ligne pendant l'application — s'il se connecte en premier, l'octroi échoue et reste en attente pour une nouvelle tentative.",
+      "title": "Accorder la récompense du Battlepass ?",
+      "body": "Accorde {{intel}} Intel à {{account}} pour '{{tier}}' et livre les récompenses en objets attachées. Le joueur doit rester hors ligne — s'il se connecte en premier, l'octroi échoue et reste en attente pour une nouvelle tentative.",
       "confirm": "Accorder {{intel}} Intel"
     },
     "reseedSuccess": "Catalogue réinitialisé avec {{count}} paliers.",
@@ -1552,6 +1570,7 @@
     "invalidAccount": "Entrez un identifiant de compte valide.",
     "requirementLevel": "Atteindre le niveau {{level}}",
     "grantSuccess": "{{intel}} Intel accordés sur {{tiers}} paliers.",
+    "grantTierSuccess": "{{intel}} Intel accordés pour '{{tier}}'.",
     "grantFailed": "Échec de l'octroi : {{message}}",
     "categories": {
       "level": "Niveau",
@@ -1574,7 +1593,25 @@
       "pending": "En attente ({{count}})",
       "progress": "Progression",
       "catalog": "Catalogue",
-      "track": "Piste"
+      "track": "Piste",
+      "config": "Configuration"
+    },
+    "config": {
+      "subtitle": "Paramètres du moteur — les modifications prennent effet au prochain redémarrage.",
+      "engineSection": "Moteur",
+      "enabled": "Activer le moteur de passe de combat",
+      "enabledHint": "Désactivé, le moteur s'arrête et aucune nouvelle réclamation n'est enregistrée.",
+      "awardPast": "Récompenser les niveaux passés",
+      "awardPastHint": "Activé, les niveaux déjà complétés avant le premier scan sont enregistrés comme gagnés. Doit être défini avant le premier scan — non rétroactif.",
+      "timingSection": "Temporisation",
+      "pollSeconds": "Intervalle de sondage (secondes)",
+      "scanPaceMs": "Cadence du scan (ms par joueur)",
+      "scanStartDelayMs": "Délai de démarrage (ms)",
+      "timingHint": "Intervalle de sondage : fréquence de vérification. Cadence : pause entre joueurs pour réduire la charge DB. Délai : attente avant le premier scan.",
+      "save": "Enregistrer la configuration",
+      "saved": "Configuration enregistrée.",
+      "saveFailed": "Échec de la sauvegarde : {{message}}",
+      "failedToLoad": "Échec du chargement de la configuration : {{message}}"
     },
     "editor": {
       "title": "Modifier le Palier",
@@ -1614,12 +1651,21 @@
       "accountId": "Compte",
       "name": "Personnage",
       "online": "Statut",
-      "intel": "Intel en Attente",
+      "intel": "Intel",
+      "tier": "Palier",
+      "items": "Objets",
       "onlineState": "En ligne",
       "offlineState": "Hors ligne",
       "grant": "Accorder",
+      "grantSelected": "Accorder la sélection",
       "grantOnlineHint": "Hors ligne requis",
-      "none": "Aucun joueur avec des récompenses gagnées non accordées."
+      "none": "Aucun joueur avec des récompenses gagnées non accordées.",
+      "bulkGrantSuccess": "{{granted}} récompenses accordées. {{skipped}} ignorées (en ligne).",
+      "bulkGrantDialog": {
+        "title": "Accorder les récompenses sélectionnées ?",
+        "body": "Accorde {{count}} récompenses de palier en attente aux joueurs hors ligne. Les joueurs en ligne de la sélection seront ignorés.",
+        "confirm": "Accorder {{count}}"
+      }
     },
     "progress": {
       "title": "Progression du Joueur",

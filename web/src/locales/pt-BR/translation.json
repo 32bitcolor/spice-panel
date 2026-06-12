@@ -1458,8 +1458,8 @@
     "deleteFailed": "Falha ao excluir o evento: {{message}}",
     "resetFailed": "Falha ao redefinir o evento: {{message}}",
     "resetSuccess": "Reivindicações do evento limpas.",
-    "confirmDelete": "Excluir o evento \"{{name}}\"?",
-    "confirmReset": "Limpar todas as reivindicações de \"{{name}}\"? Isso permitirá que o evento dispare novamente para todos os jogadores.",
+    "confirmDelete": "Delete \"{{name}}\"? This cannot be undone.",
+    "confirmReset": "Clear all claims for \"{{name}}\"? Players can trigger this event again.",
     "toggleEnabled": "Alternar ativado",
     "columns": {
       "name": "Nome",
@@ -1512,19 +1512,37 @@
       "xpAmount": "Quantidade",
       "announceLabel": "Anúncio",
       "announceTemplate": "Template de anúncio",
-      "templateHint": "Espaços reservados: {player} {event} {value}.",
+      "templateHint": "Espaços reservados: {player} {event} {value}. ({value} = limite do marco; vazio para corridas de zona.)",
       "channelDefault": "Publica no canal de anúncios do Discord configurado.",
       "created": "Evento criado.",
       "updated": "Evento atualizado.",
       "saveFailed": "Falha ao salvar o evento: {{message}}",
       "xpType": "Tipo",
       "addParticipant": "Adicionar jogador…",
-      "noPlayersLoaded": "Nenhum jogador carregado — inicie o servidor e recarregue."
+      "noPlayersLoaded": "Nenhum jogador carregado — inicie o servidor e recarregue.",
+      "scheduleLabel": "Schedule",
+      "pollSeconds": "Poll Interval (s)",
+      "jitterSeconds": "Jitter (s)",
+      "scheduleHint": "How often to check this event. Jitter adds randomness to avoid thundering herd.",
+      "templatePreview": "Preview:"
     },
     "signals": {
       "level": "Nível do personagem",
       "achievementTag": "Tag de conquista"
-    }
+    },
+    "config": {
+      "title": "Configurações do motor",
+      "enabled": "Ativar motor de eventos",
+      "enabledHint": "Inicia o loop de polling em segundo plano. Eventos individuais também precisam ter seu interruptor ativado.",
+      "pollSeconds": "Intervalo de polling (segundos)",
+      "save": "Salvar",
+      "saved": "Configurações salvas.",
+      "saveFailed": "Falha ao salvar: {{message}}",
+      "failedToLoad": "Falha ao carregar: {{message}}"
+    },
+    "confirmDeleteTitle": "Delete Event",
+    "confirmResetTitle": "Reset Event",
+    "resetConfirmLabel": "Reset"
   },
   "battlepass": {
     "title": "Battlepass ({{count}} níveis)",
@@ -1539,8 +1557,8 @@
       "keeps": "O histórico de claims e as linhas de base dos jogadores são preservados. Os claims se reconectam pela chave do nível, portanto nada é reganhado ou concedido duas vezes. O banco de dados do jogo não é modificado."
     },
     "grantDialog": {
-      "title": "Conceder Intel do Battlepass?",
-      "body": "Concede {{intel}} pontos de Intel a {{account}} em uma única atualização e marca os níveis ganhos como concedidos. O jogador deve permanecer offline durante a aplicação — se ele entrar primeiro, a concessão falha e fica pendente para nova tentativa.",
+      "title": "Conceder recompensa do Battlepass?",
+      "body": "Concede {{intel}} Intel a {{account}} pelo '{{tier}}' e entrega as recompensas de itens anexadas. O jogador deve permanecer offline — se ele entrar primeiro, a concessão falha e fica pendente para nova tentativa.",
       "confirm": "Conceder {{intel}} Intel"
     },
     "reseedSuccess": "Catálogo reabastecido com {{count}} níveis.",
@@ -1552,6 +1570,7 @@
     "invalidAccount": "Insira um ID de conta válido.",
     "requirementLevel": "Alcance o nível {{level}}",
     "grantSuccess": "{{intel}} Intel concedidos em {{tiers}} níveis.",
+    "grantTierSuccess": "{{intel}} Intel concedidos para '{{tier}}'.",
     "grantFailed": "Falha na concessão: {{message}}",
     "categories": {
       "level": "Nível",
@@ -1574,7 +1593,25 @@
       "pending": "Pendente ({{count}})",
       "progress": "Progresso",
       "catalog": "Catálogo",
-      "track": "Trilha"
+      "track": "Trilha",
+      "config": "Configuração"
+    },
+    "config": {
+      "subtitle": "Configurações do motor — as alterações entram em vigor no próximo reinício do servidor.",
+      "engineSection": "Motor",
+      "enabled": "Ativar motor do passe de batalha",
+      "enabledHint": "Quando desativado, o motor para e nenhuma nova reivindicação é registrada.",
+      "awardPast": "Conceder níveis passados",
+      "awardPastHint": "Quando ativado, os níveis concluídos antes da primeira verificação são registrados como ganhos. Deve ser configurado antes da primeira verificação — não pode ser alterado retroativamente.",
+      "timingSection": "Temporização",
+      "pollSeconds": "Intervalo de consulta (segundos)",
+      "scanPaceMs": "Ritmo de varredura (ms por jogador)",
+      "scanStartDelayMs": "Atraso de inicialização (ms)",
+      "timingHint": "Intervalo de consulta: frequência de verificação. Ritmo: pausa entre jogadores para reduzir carga no BD. Atraso: tempo de espera antes da primeira varredura.",
+      "save": "Salvar configuração",
+      "saved": "Configuração salva.",
+      "saveFailed": "Falha ao salvar: {{message}}",
+      "failedToLoad": "Falha ao carregar a configuração: {{message}}"
     },
     "editor": {
       "title": "Editar Nível",
@@ -1614,12 +1651,21 @@
       "accountId": "Conta",
       "name": "Personagem",
       "online": "Status",
-      "intel": "Intel Pendente",
+      "intel": "Intel",
+      "tier": "Nível",
+      "items": "Itens",
       "onlineState": "Online",
       "offlineState": "Offline",
       "grant": "Conceder",
+      "grantSelected": "Conceder seleção",
       "grantOnlineHint": "Offline necessário",
-      "none": "Nenhum jogador com recompensas ganhas não concedidas."
+      "none": "Nenhum jogador com recompensas ganhas não concedidas.",
+      "bulkGrantSuccess": "{{granted}} recompensas concedidas. {{skipped}} ignoradas (online).",
+      "bulkGrantDialog": {
+        "title": "Conceder recompensas selecionadas?",
+        "body": "Concede {{count}} recompensas de nível pendentes a jogadores offline. Jogadores online na seleção serão ignorados.",
+        "confirm": "Conceder {{count}}"
+      }
     },
     "progress": {
       "title": "Progresso do Jogador",

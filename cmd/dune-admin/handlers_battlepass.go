@@ -288,27 +288,29 @@ func handleBattlepassProgress(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, map[string]any{"claims": claims, "pending_intel": pending})
 }
 
-// handleBattlepassPending lists accounts holding earned-but-ungranted intel,
-// decorated with character name and online state when available.
+// handleBattlepassPending lists all earned-but-ungranted claims at tier
+// granularity, decorated with character name and online state when available.
 func handleBattlepassPending(w http.ResponseWriter, r *http.Request) {
 	if globalBattlepassStore == nil {
 		jsonErr(w, fmt.Errorf("battlepass store not available"), http.StatusServiceUnavailable)
 		return
 	}
-	totals, err := globalBattlepassStore.earnedTotals()
+	tierRows, err := globalBattlepassStore.earnedClaimsWithTiers()
 	if err != nil {
 		log.Printf("handleBattlepassPending: %v", err)
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}
 
-	type pendingRow struct {
-		AccountID    int64  `json:"account_id"`
-		Name         string `json:"name"`
-		Online       bool   `json:"online"`
-		PendingIntel int64  `json:"pending_intel"`
+	type pendingTierRow struct {
+		AccountID   int64  `json:"account_id"`
+		Name        string `json:"name"`
+		Online      bool   `json:"online"`
+		TierKey     string `json:"tier_key"`
+		TierLabel   string `json:"tier_label"`
+		Intel       int64  `json:"intel"`
+		RewardItems string `json:"reward_items"`
 	}
-	rows := make([]pendingRow, 0, len(totals))
 	names := map[int64]battlepassPlayer{}
 	if globalDB != nil {
 		if players, err := cmdFetchBattlepassPlayers(r.Context(), globalDB); err == nil {
@@ -319,15 +321,98 @@ func handleBattlepassPending(w http.ResponseWriter, r *http.Request) {
 			log.Printf("handleBattlepassPending players: %v", err)
 		}
 	}
-	for accountID, intel := range totals {
-		row := pendingRow{AccountID: accountID, PendingIntel: intel}
-		if p, ok := names[accountID]; ok {
+	out := make([]pendingTierRow, 0, len(tierRows))
+	for _, tr := range tierRows {
+		row := pendingTierRow{
+			AccountID:   tr.AccountID,
+			TierKey:     tr.TierKey,
+			TierLabel:   tr.TierLabel,
+			Intel:       tr.Intel,
+			RewardItems: tr.RewardItems,
+		}
+		if p, ok := names[tr.AccountID]; ok {
 			row.Name = p.Name
 			row.Online = p.Online
 		}
-		rows = append(rows, row)
+		out = append(out, row)
 	}
-	jsonOK(w, rows)
+	jsonOK(w, out)
+}
+
+// grantBattlepassTier grants a single earned tier for an account: awards its
+// intel, marks the claim granted, then delivers any item rewards. Mirrors the
+// semantics of grantBattlepassEarned but scoped to one tier.
+func grantBattlepassTier(ctx context.Context, store *battlepassStore, deps battlepassGrantDeps, accountID int64, tierKey string) (int64, error) {
+	claim, err := store.earnedClaim(accountID, tierKey)
+	if err != nil {
+		return 0, err
+	}
+
+	players, err := deps.fetchPlayers(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("fetch players: %w", err)
+	}
+	var pawnID int64
+	for _, p := range players {
+		if p.AccountID == accountID {
+			pawnID = p.PawnID
+			break
+		}
+	}
+	if pawnID == 0 {
+		return 0, errNotFound
+	}
+
+	if err := deps.awardIntel(ctx, pawnID, claim.Intel); err != nil {
+		if recErr := store.recordGrantFailureForTier(accountID, tierKey, err.Error()); recErr != nil {
+			log.Printf("battlepass: record grant failure for %d/%s: %v", accountID, tierKey, recErr)
+		}
+		return 0, err
+	}
+	if err := store.markGrantedForTier(accountID, tierKey); err != nil {
+		return claim.Intel, fmt.Errorf("intel granted but claim update failed: %w", err)
+	}
+	grantBattlepassItems(ctx, store, deps, []battlepassClaim{claim}, pawnID)
+	return claim.Intel, nil
+}
+
+// handleBattlepassGrantTier grants a single earned tier for an account.
+func handleBattlepassGrantTier(w http.ResponseWriter, r *http.Request) {
+	if globalBattlepassStore == nil {
+		jsonErr(w, fmt.Errorf("battlepass store not available"), http.StatusServiceUnavailable)
+		return
+	}
+	var req struct {
+		AccountID int64  `json:"account_id"`
+		TierKey   string `json:"tier_key"`
+	}
+	if err := decode(r, &req); err != nil || req.AccountID == 0 {
+		jsonErr(w, fmt.Errorf("account_id is required"), http.StatusBadRequest)
+		return
+	}
+	if req.TierKey == "" {
+		jsonErr(w, fmt.Errorf("tier_key is required"), http.StatusBadRequest)
+		return
+	}
+	if globalDB == nil {
+		jsonErr(w, fmt.Errorf("database not connected"), http.StatusServiceUnavailable)
+		return
+	}
+
+	intel, err := grantBattlepassTier(r.Context(), globalBattlepassStore, productionBattlepassGrantDeps(), req.AccountID, req.TierKey)
+	switch {
+	case errors.Is(err, errBattlepassNothingEarned):
+		jsonErr(w, err, http.StatusBadRequest)
+		return
+	case errors.Is(err, errNotFound):
+		jsonErr(w, fmt.Errorf("no character found for account %d", req.AccountID), http.StatusNotFound)
+		return
+	case err != nil:
+		log.Printf("handleBattlepassGrantTier account %d tier %s: %v", req.AccountID, req.TierKey, err)
+		jsonErr(w, err, http.StatusConflict)
+		return
+	}
+	jsonOK(w, map[string]any{"granted_intel": intel})
 }
 
 // handleBattlepassReseed resets the tier catalog to the defaults. Claims are
@@ -379,4 +464,55 @@ func handleBattlepassGrant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	jsonOK(w, map[string]any{"granted_intel": total, "tiers": tiers})
+}
+
+// battlepassConfigPayload is the request/response shape for the battlepass
+// config endpoints — the 5 tuning knobs operators can change at runtime.
+type battlepassConfigPayload struct {
+	Enabled          *bool `json:"battlepass_enabled"`
+	AwardPast        *bool `json:"battlepass_award_past"`
+	PollSeconds      int   `json:"battlepass_poll_seconds"`
+	ScanPaceMs       int   `json:"battlepass_scan_pace_ms"`
+	ScanStartDelayMs int   `json:"battlepass_scan_start_delay_ms"`
+}
+
+func battlepassConfigFromLoaded() battlepassConfigPayload {
+	return battlepassConfigPayload{
+		Enabled:          loadedConfig.BattlepassEnabled,
+		AwardPast:        loadedConfig.BattlepassAwardPast,
+		PollSeconds:      loadedConfig.BattlepassPollSeconds,
+		ScanPaceMs:       loadedConfig.BattlepassScanPaceMs,
+		ScanStartDelayMs: loadedConfig.BattlepassScanStartDelayMs,
+	}
+}
+
+// handleGetBattlepassConfig returns the current battlepass engine configuration.
+func handleGetBattlepassConfig(w http.ResponseWriter, r *http.Request) {
+	jsonOK(w, battlepassConfigFromLoaded())
+}
+
+// handleSaveBattlepassConfig persists the battlepass engine config knobs to
+// the config file and updates the in-memory loadedConfig. The running engine is
+// NOT restarted — interval/pace changes take effect on the next server restart.
+func handleSaveBattlepassConfig(w http.ResponseWriter, r *http.Request) {
+	var p battlepassConfigPayload
+	if err := decode(r, &p); err != nil {
+		jsonErr(w, fmt.Errorf("decode: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	loadedConfig.BattlepassEnabled = p.Enabled
+	loadedConfig.BattlepassAwardPast = p.AwardPast
+	loadedConfig.BattlepassPollSeconds = p.PollSeconds
+	loadedConfig.BattlepassScanPaceMs = p.ScanPaceMs
+	loadedConfig.BattlepassScanStartDelayMs = p.ScanStartDelayMs
+
+	if err := writeConfigFile(loadedConfig); err != nil {
+		log.Printf("handleSaveBattlepassConfig: %v", err)
+		jsonErr(w, fmt.Errorf("failed to write config"), http.StatusInternalServerError)
+		return
+	}
+
+	applyBattlepassEngine(loadedConfig)
+	jsonOK(w, battlepassConfigFromLoaded())
 }

@@ -187,6 +187,9 @@ func handleSaveConfig(w http.ResponseWriter, r *http.Request) {
 	// freshly-established globalDB rather than the old (closed) pool.
 	// applyMarketBotConfig will restart the bot (if enabled) with the new pool.
 	applyMarketBotConfig(cfg)
+	// Discord connects outbound (no dependency on globalDB) so restart it last
+	// to pick up any token/guild/role changes without requiring a process restart.
+	applyDiscordConfig(cfg)
 	handleStatus(w, r)
 }
 

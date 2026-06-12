@@ -314,6 +314,8 @@ func startServer(addr string) {
 	// ── live events engine ────────────────────────────────────────────────────
 	mux.HandleFunc("GET /api/v1/events", handleListEvents)
 	mux.HandleFunc("POST /api/v1/events", handleCreateEvent)
+	mux.HandleFunc("GET /api/v1/events/config", handleGetEventsConfig)
+	mux.HandleFunc("PUT /api/v1/events/config", handleSaveEventsConfig)
 	mux.HandleFunc("PUT /api/v1/events/{id}", handleUpdateEvent)
 	mux.HandleFunc("DELETE /api/v1/events/{id}", handleDeleteEvent)
 	mux.HandleFunc("POST /api/v1/events/{id}/enable", handleSetEventEnabled)
@@ -328,6 +330,9 @@ func startServer(addr string) {
 	mux.HandleFunc("GET /api/v1/battlepass/pending", handleBattlepassPending)
 	mux.HandleFunc("POST /api/v1/battlepass/reseed", handleBattlepassReseed)
 	mux.HandleFunc("POST /api/v1/battlepass/grant", handleBattlepassGrant)
+	mux.HandleFunc("POST /api/v1/battlepass/grant-tier", handleBattlepassGrantTier)
+	mux.HandleFunc("GET /api/v1/battlepass/config", handleGetBattlepassConfig)
+	mux.HandleFunc("PUT /api/v1/battlepass/config", handleSaveBattlepassConfig)
 
 	// ── swagger UI ────────────────────────────────────────────────────────────
 	mux.Handle("/swagger/", httpSwagger.WrapHandler)

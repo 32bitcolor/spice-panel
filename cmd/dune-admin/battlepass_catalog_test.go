@@ -45,7 +45,7 @@ func TestBattlepassCatalogShape(t *testing.T) {
 		"level":       40,
 		"story":       7,
 		"side_quest":  7,
-		"faction":     1,
+		"faction":     31,
 		"exploration": 31,
 		"achievement": 72,
 	}
@@ -54,13 +54,13 @@ func TestBattlepassCatalogShape(t *testing.T) {
 			t.Errorf("category %s has %d tiers, want %d", cat, counts[cat], n)
 		}
 	}
-	if len(catalog) != 158 {
-		t.Errorf("catalog has %d tiers, want 158", len(catalog))
+	if len(catalog) != 188 {
+		t.Errorf("catalog has %d tiers, want 188", len(catalog))
 	}
 
-	// Budget sanity: ~1,469 total intel per the approved plan.
-	if total != 1469 {
-		t.Errorf("catalog total intel = %d, want 1469", total)
+	// Budget sanity: 1,469 base + 150 new contract tiers = 1,619.
+	if total != 1619 {
+		t.Errorf("catalog total intel = %d, want 1619", total)
 	}
 	if totals["level"] != 750 {
 		t.Errorf("level track total = %d, want 750", totals["level"])

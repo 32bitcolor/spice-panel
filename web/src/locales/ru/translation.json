@@ -1481,8 +1481,8 @@
     "deleteFailed": "Не удалось удалить событие: {{message}}",
     "resetFailed": "Не удалось сбросить событие: {{message}}",
     "resetSuccess": "Получения наград события очищены.",
-    "confirmDelete": "Удалить событие «{{name}}»?",
-    "confirmReset": "Очистить все получения для «{{name}}»? Это позволит событию сработать снова для всех игроков.",
+    "confirmDelete": "Delete \"{{name}}\"? This cannot be undone.",
+    "confirmReset": "Clear all claims for \"{{name}}\"? Players can trigger this event again.",
     "toggleEnabled": "Переключить включение",
     "columns": {
       "name": "Название",
@@ -1535,19 +1535,37 @@
       "xpAmount": "Количество",
       "announceLabel": "Объявление",
       "announceTemplate": "Шаблон объявления",
-      "templateHint": "Заполнители: {player} {event} {value}.",
+      "templateHint": "Заполнители: {player} {event} {value}. ({value} = порог этапа; пусто для зональных гонок.)",
       "channelDefault": "Публикуется в настроенный канал объявлений Discord.",
       "created": "Событие создано.",
       "updated": "Событие обновлено.",
       "saveFailed": "Не удалось сохранить событие: {{message}}",
       "xpType": "Тип",
       "addParticipant": "Добавить игрока…",
-      "noPlayersLoaded": "Игроки не загружены — запустите сервер и обновите."
+      "noPlayersLoaded": "Игроки не загружены — запустите сервер и обновите.",
+      "scheduleLabel": "Schedule",
+      "pollSeconds": "Poll Interval (s)",
+      "jitterSeconds": "Jitter (s)",
+      "scheduleHint": "How often to check this event. Jitter adds randomness to avoid thundering herd.",
+      "templatePreview": "Preview:"
     },
     "signals": {
       "level": "Уровень персонажа",
       "achievementTag": "Тег достижения"
-    }
+    },
+    "config": {
+      "title": "Настройки движка",
+      "enabled": "Включить движок событий",
+      "enabledHint": "Запускает фоновый цикл опроса. Отдельные события также должны быть включены.",
+      "pollSeconds": "Интервал опроса (секунды)",
+      "save": "Сохранить",
+      "saved": "Настройки сохранены.",
+      "saveFailed": "Ошибка сохранения: {{message}}",
+      "failedToLoad": "Ошибка загрузки: {{message}}"
+    },
+    "confirmDeleteTitle": "Delete Event",
+    "confirmResetTitle": "Reset Event",
+    "resetConfirmLabel": "Reset"
   },
   "battlepass": {
     "title": "Battlepass ({{count}} уровней)",
@@ -1562,8 +1580,8 @@
       "keeps": "История заявок и базовые значения игроков сохраняются. Заявки повторно привязываются по ключу уровня, поэтому ничего не зарабатывается повторно и не выдаётся дважды. База данных игры не затрагивается."
     },
     "grantDialog": {
-      "title": "Выдать Intel Battlepass?",
-      "body": "Начисляет {{intel}} очков Intel игроку {{account}} в одном обновлении и помечает заработанные уровни как выданные. Игрок должен оставаться в офлайне во время применения — если он войдёт раньше, выдача завершится ошибкой и останется в ожидании повторной попытки.",
+      "title": "Выдать награду Battlepass?",
+      "body": "Начисляет {{intel}} Intel игроку {{account}} за '{{tier}}' и доставляет прикреплённые предметы. Игрок должен оставаться в офлайне — если он войдёт раньше, выдача завершится ошибкой и останется в ожидании повторной попытки.",
       "confirm": "Выдать {{intel}} Intel"
     },
     "reseedSuccess": "Каталог пересеян с {{count}} уровнями.",
@@ -1575,6 +1593,7 @@
     "invalidAccount": "Введите корректный ID аккаунта.",
     "requirementLevel": "Достигните уровня {{level}}",
     "grantSuccess": "Выдано {{intel}} Intel на {{tiers}} уровнях.",
+    "grantTierSuccess": "Выдано {{intel}} Intel за '{{tier}}'.",
     "grantFailed": "Выдача не удалась: {{message}}",
     "categories": {
       "level": "Уровень",
@@ -1597,7 +1616,25 @@
       "pending": "Ожидающие ({{count}})",
       "progress": "Прогресс",
       "catalog": "Каталог",
-      "track": "Трек"
+      "track": "Трек",
+      "config": "Настройки"
+    },
+    "config": {
+      "subtitle": "Настройки движка — изменения вступят в силу при следующем перезапуске сервера.",
+      "engineSection": "Движок",
+      "enabled": "Включить движок боевого пропуска",
+      "enabledHint": "При отключении движок останавливается и новые заявки не записываются.",
+      "awardPast": "Начислить прошлые уровни",
+      "awardPastHint": "При включении уровни, завершённые до первого сканирования, записываются как полученные. Необходимо установить до первого сканирования — изменение не имеет обратной силы.",
+      "timingSection": "Тайминги",
+      "pollSeconds": "Интервал опроса (секунды)",
+      "scanPaceMs": "Темп сканирования (мс/игрок)",
+      "scanStartDelayMs": "Задержка запуска (мс)",
+      "timingHint": "Интервал опроса: частота проверки новых заявок. Темп: пауза между игроками для снижения нагрузки на БД. Задержка: ожидание перед первым сканированием.",
+      "save": "Сохранить настройки",
+      "saved": "Настройки сохранены.",
+      "saveFailed": "Ошибка сохранения: {{message}}",
+      "failedToLoad": "Не удалось загрузить настройки: {{message}}"
     },
     "editor": {
       "title": "Редактировать уровень",
@@ -1637,12 +1674,21 @@
       "accountId": "Аккаунт",
       "name": "Персонаж",
       "online": "Статус",
-      "intel": "Ожидающий Intel",
+      "intel": "Intel",
+      "tier": "Уровень",
+      "items": "Предметы",
       "onlineState": "В сети",
       "offlineState": "Не в сети",
       "grant": "Выдать",
+      "grantSelected": "Выдать выбранное",
       "grantOnlineHint": "Требуется офлайн",
-      "none": "Нет игроков с заработанными, но не выданными наградами."
+      "none": "Нет игроков с заработанными, но не выданными наградами.",
+      "bulkGrantSuccess": "Выдано {{granted}} наград. Пропущено {{skipped}} (онлайн).",
+      "bulkGrantDialog": {
+        "title": "Выдать выбранные награды?",
+        "body": "Выдаёт {{count}} ожидающих наград уровней игрокам офлайн. Онлайн-игроки в выборке будут пропущены.",
+        "confirm": "Выдать {{count}}"
+      }
     },
     "progress": {
       "title": "Прогресс игрока",

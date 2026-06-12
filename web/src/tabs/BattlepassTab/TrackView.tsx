@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { Chip, Tooltip } from '@heroui/react'
 import type { BattlepassTier, BattlepassTierCounts } from '../../api/client'
 import { Icon } from '../../dune-ui'
-import { RewardIcon } from './RewardIcons'
 
 const CATEGORY_ORDER = ['level', 'story', 'side_quest', 'faction', 'exploration', 'achievement']
 
@@ -24,6 +23,14 @@ const THEME_FOLDERS: Record<string, string> = {
   atreides: 'atredies',
 }
 
+// Theme folder → filename prefix for icon SVGs (differs from folder for harkonnen/atredies).
+const THEME_ICON_PREFIX: Record<string, string> = {
+  spice: 'spice',
+  harkonnen: 'harko',
+  fremen: 'fremen',
+  atredies: 'atreides',
+}
+
 // Category → card asset basename (one SVG per theme folder).
 const CARD_FILES: Record<string, string> = {
   level: 'level_card',
@@ -32,6 +39,16 @@ const CARD_FILES: Record<string, string> = {
   faction: 'faction_card',
   exploration: 'exploration_card',
   achievement: 'achievement_card',
+}
+
+// Category → themed icon SVG basename (suffix after {prefix}_).
+const CATEGORY_SVG_FILES: Record<string, string> = {
+  level: 'level',
+  story: 'story',
+  side_quest: 'side_quest',
+  faction: 'faction',
+  exploration: 'desert_tower',
+  achievement: 'star',
 }
 
 // The card SVGs are pre-normalized: cropped to the art and centered on a
@@ -89,6 +106,19 @@ const CardArt: React.FC<{ folder: string, file: string }> = ({ folder, file }) =
     className="absolute inset-0 w-full h-full select-none object-contain"
   />
 )
+
+/** Small theme-aware icon from the named SVG set (e.g. intel_token, reward, level). */
+const ThemeIcon: React.FC<{ folder: string, name: string, className?: string }> = ({ folder, name, className }) => {
+  const prefix = THEME_ICON_PREFIX[folder] ?? folder
+  return (
+    <img
+      src={`/theme/${folder}/${prefix}_${name}.svg`}
+      alt=""
+      draggable={false}
+      className={className ?? 'size-3'}
+    />
+  )
+}
 
 /** Battlepass track: themed category cards up top (Level selected by
  *  default); picking one shows that category's rewards as a timeline. */
@@ -200,15 +230,17 @@ export const TrackView: React.FC<TrackViewProps> = ({ tiers, counts, playerCount
                 style={{ fontSize: 'clamp(0.6rem, 0.85vw, 0.8rem)' }}
               >
                 <span className="flex items-center gap-1">
-                  <Icon name={CATEGORY_ICONS[cat] ?? 'circle'} className="size-3" />
+                  {CATEGORY_SVG_FILES[cat]
+                    ? <ThemeIcon folder={folder} name={CATEGORY_SVG_FILES[cat]!} className="size-5" />
+                    : <Icon name={CATEGORY_ICONS[cat] ?? 'circle'} className="size-5" />}
                   {stats.count}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Icon name="lightbulb" className="size-3" />
+                  <ThemeIcon folder={folder} name="intel_token" className="size-5" />
                   {stats.intel}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Icon name="package" className="size-3" />
+                  <ThemeIcon folder={folder} name="reward" className="size-5" />
                   {stats.items}
                 </span>
               </div>
@@ -242,21 +274,25 @@ export const TrackView: React.FC<TrackViewProps> = ({ tiers, counts, playerCount
                                 : 'border-border bg-surface text-muted'
                           }`}
                         >
-                          <RewardIcon tier={tier} className="w-7 h-7" />
+                          <ThemeIcon
+                            folder={folder}
+                            name={CATEGORY_SVG_FILES[tier.category] ?? 'reward'}
+                            className="w-9 h-9"
+                          />
                         </div>
                         <div
-                          className="text-xs font-medium text-center leading-tight line-clamp-2 px-1"
+                          className="text-xs font-medium text-center leading-tight line-clamp-2 px-1 h-[2.5em]"
                         >
                           {tier.label}
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-muted font-mono tabular-nums">
                           <span className="flex items-center gap-0.5">
-                            <Icon name="lightbulb" className="size-3" />
+                            <ThemeIcon folder={folder} name="intel_token" className="size-3.5" />
                             {tier.intel}
                           </span>
                           {itemsN > 0 && (
                             <span className="flex items-center gap-0.5">
-                              <Icon name="package" className="size-3" />
+                              <ThemeIcon folder={folder} name="reward" className="size-3.5" />
                               {itemsN}
                             </span>
                           )}

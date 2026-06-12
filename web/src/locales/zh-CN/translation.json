@@ -1435,8 +1435,8 @@
     "deleteFailed": "删除活动失败：{{message}}",
     "resetFailed": "重置活动失败：{{message}}",
     "resetSuccess": "活动领取记录已清除。",
-    "confirmDelete": "删除活动 \"{{name}}\"？",
-    "confirmReset": "清除 \"{{name}}\" 的所有领取记录？这将允许该活动对所有玩家再次触发。",
+    "confirmDelete": "Delete \"{{name}}\"? This cannot be undone.",
+    "confirmReset": "Clear all claims for \"{{name}}\"? Players can trigger this event again.",
     "toggleEnabled": "切换启用状态",
     "columns": {
       "name": "名称",
@@ -1489,19 +1489,37 @@
       "xpAmount": "数量",
       "announceLabel": "公告",
       "announceTemplate": "公告模板",
-      "templateHint": "占位符：{player} {event} {value}。",
+      "templateHint": "占位符：{player} {event} {value}。（{value} = 里程碑阈值；区域竞速时为空。）",
       "channelDefault": "发布到已配置的 Discord 公告频道。",
       "created": "活动已创建。",
       "updated": "活动已更新。",
       "saveFailed": "保存活动失败：{{message}}",
       "xpType": "类型",
       "addParticipant": "添加玩家…",
-      "noPlayersLoaded": "未加载玩家 — 请启动服务器并重新加载。"
+      "noPlayersLoaded": "未加载玩家 — 请启动服务器并重新加载。",
+      "scheduleLabel": "Schedule",
+      "pollSeconds": "Poll Interval (s)",
+      "jitterSeconds": "Jitter (s)",
+      "scheduleHint": "How often to check this event. Jitter adds randomness to avoid thundering herd.",
+      "templatePreview": "Preview:"
     },
     "signals": {
       "level": "角色等级",
       "achievementTag": "成就标签"
-    }
+    },
+    "config": {
+      "title": "引擎设置",
+      "enabled": "启用事件引擎",
+      "enabledHint": "启动后台轮询循环。各个事件还需要单独启用。",
+      "pollSeconds": "轮询间隔（秒）",
+      "save": "保存",
+      "saved": "设置已保存。",
+      "saveFailed": "保存失败：{{message}}",
+      "failedToLoad": "加载失败：{{message}}"
+    },
+    "confirmDeleteTitle": "Delete Event",
+    "confirmResetTitle": "Reset Event",
+    "resetConfirmLabel": "Reset"
   },
   "battlepass": {
     "title": "战令（{{count}} 阶）",
@@ -1516,8 +1534,8 @@
       "keeps": "领取历史记录和玩家基准值将被保留。领取记录按阶位键重新关联，因此不会重复获得或重复发放。游戏数据库不会受到影响。"
     },
     "grantDialog": {
-      "title": "发放战令情报？",
-      "body": "通过单次更新向 {{account}} 发放 {{intel}} 情报点，并将其已获得的阶位标记为已发放。发放期间玩家必须保持离线状态——若玩家提前登录，发放将失败并保持待重试状态。",
+      "title": "发放战令奖励？",
+      "body": "向 {{account}} 发放「{{tier}}」的 {{intel}} 情报，并发送附带的物品奖励。发放期间玩家必须保持离线状态——若玩家提前登录，发放将失败并保持待重试状态。",
       "confirm": "发放 {{intel}} 情报"
     },
     "reseedSuccess": "目录已用 {{count}} 个阶位重新填充。",
@@ -1529,6 +1547,7 @@
     "invalidAccount": "请输入有效的账户ID。",
     "requirementLevel": "达到 {{level}} 级",
     "grantSuccess": "已在 {{tiers}} 个阶位中发放 {{intel}} 情报。",
+    "grantTierSuccess": "已为「{{tier}}」发放 {{intel}} 情报。",
     "grantFailed": "发放失败：{{message}}",
     "categories": {
       "level": "等级",
@@ -1551,7 +1570,25 @@
       "pending": "待处理（{{count}}）",
       "progress": "进度",
       "catalog": "目录",
-      "track": "轨道"
+      "track": "轨道",
+      "config": "配置"
+    },
+    "config": {
+      "subtitle": "引擎设置 — 更改将在下次服务器重启后生效。",
+      "engineSection": "引擎",
+      "enabled": "启用战令引擎",
+      "enabledHint": "禁用后，轮询引擎停止运行，不再记录新的领取记录。",
+      "awardPast": "补发历史等级",
+      "awardPastHint": "启用后，引擎首次扫描前已完成的等级将被记录为已获得。必须在首次扫描前设置，之后无法追溯修改。",
+      "timingSection": "时间设置",
+      "pollSeconds": "轮询间隔（秒）",
+      "scanPaceMs": "扫描节奏（毫秒/玩家）",
+      "scanStartDelayMs": "启动延迟（毫秒）",
+      "timingHint": "轮询间隔：引擎检查新领取记录的频率。扫描节奏：玩家间的延迟，以减少数据库负载。启动延迟：启动后首次扫描前的等待时间。",
+      "save": "保存配置",
+      "saved": "配置已保存。",
+      "saveFailed": "保存失败：{{message}}",
+      "failedToLoad": "加载配置失败：{{message}}"
     },
     "editor": {
       "title": "编辑阶位",
@@ -1591,12 +1628,21 @@
       "accountId": "账户",
       "name": "角色",
       "online": "状态",
-      "intel": "待发放情报",
+      "intel": "情报",
+      "tier": "阶位",
+      "items": "物品",
       "onlineState": "在线",
       "offlineState": "离线",
       "grant": "发放",
+      "grantSelected": "发放所选",
       "grantOnlineHint": "需要离线",
-      "none": "没有玩家拥有已获得但未发放的奖励。"
+      "none": "没有玩家拥有已获得但未发放的奖励。",
+      "bulkGrantSuccess": "已发放 {{granted}} 个奖励。跳过 {{skipped}} 个（在线）。",
+      "bulkGrantDialog": {
+        "title": "发放所选奖励？",
+        "body": "向离线玩家发放 {{count}} 个待处理的阶位奖励。选中的在线玩家将被跳过。",
+        "confirm": "发放 {{count}}"
+      }
     },
     "progress": {
       "title": "玩家进度",

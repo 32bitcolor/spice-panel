@@ -16,6 +16,11 @@ var discordMu sync.RWMutex
 var globalDiscordSession *discordgo.Session
 var globalDiscordGuildID string
 
+// discordCancelMu guards globalDiscordCancel; kept separate from discordMu to
+// avoid holding the session RWLock during lifecycle transitions.
+var discordCancelMu sync.Mutex
+var globalDiscordCancel context.CancelFunc
+
 func getDiscordState() (*discordgo.Session, string) {
 	discordMu.RLock()
 	defer discordMu.RUnlock()
@@ -61,6 +66,34 @@ func startEmbeddedDiscordBotIfEnabled(cfg appConfig) context.CancelFunc {
 	ctx, cancel := context.WithCancel(context.Background())
 	go discordConnect(ctx, cfg)
 	return cancel
+}
+
+// stopDiscordBot cancels the running Discord bot goroutine (if any) and clears
+// globalDiscordCancel. Safe to call when no bot is running.
+func stopDiscordBot() {
+	discordCancelMu.Lock()
+	defer discordCancelMu.Unlock()
+	if globalDiscordCancel != nil {
+		globalDiscordCancel()
+		globalDiscordCancel = nil
+	}
+}
+
+// applyDiscordConfig stops any running Discord bot and starts a new one if the
+// new config enables it. Called after handleSaveConfig writes the config to disk
+// so that enable/disable takes effect without a process restart.
+func applyDiscordConfig(cfg appConfig) {
+	stopDiscordBot()
+	if !discordBotEnabled(cfg) {
+		return
+	}
+	cancel := startEmbeddedDiscordBotIfEnabled(cfg)
+	if cancel == nil {
+		return
+	}
+	discordCancelMu.Lock()
+	globalDiscordCancel = cancel
+	discordCancelMu.Unlock()
 }
 
 // discordConnect opens the Discord gateway, runs post-open setup, then blocks

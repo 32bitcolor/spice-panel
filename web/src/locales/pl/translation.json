@@ -1481,8 +1481,8 @@
     "deleteFailed": "Nie udało się usunąć wydarzenia: {{message}}",
     "resetFailed": "Nie udało się zresetować wydarzenia: {{message}}",
     "resetSuccess": "Odbiory nagród wydarzenia wyczyszczone.",
-    "confirmDelete": "Usunąć wydarzenie \"{{name}}\"?",
-    "confirmReset": "Wyczyścić wszystkie odbiory dla \"{{name}}\"? Pozwoli to wydarzeniu uruchomić się ponownie dla wszystkich graczy.",
+    "confirmDelete": "Delete \"{{name}}\"? This cannot be undone.",
+    "confirmReset": "Clear all claims for \"{{name}}\"? Players can trigger this event again.",
     "toggleEnabled": "Przełącz włączenie",
     "columns": {
       "name": "Nazwa",
@@ -1535,19 +1535,37 @@
       "xpAmount": "Ilość",
       "announceLabel": "Ogłoszenie",
       "announceTemplate": "Szablon ogłoszenia",
-      "templateHint": "Symbole zastępcze: {player} {event} {value}.",
+      "templateHint": "Symbole zastępcze: {player} {event} {value}. ({value} = próg kamienia milowego; puste dla wyścigów strefowych.)",
       "channelDefault": "Publikuje na skonfigurowanym kanale ogłoszeń Discord.",
       "created": "Wydarzenie utworzone.",
       "updated": "Wydarzenie zaktualizowane.",
       "saveFailed": "Nie udało się zapisać wydarzenia: {{message}}",
       "xpType": "Typ",
       "addParticipant": "Dodaj gracza…",
-      "noPlayersLoaded": "Nie załadowano graczy — uruchom serwer i odśwież."
+      "noPlayersLoaded": "Nie załadowano graczy — uruchom serwer i odśwież.",
+      "scheduleLabel": "Schedule",
+      "pollSeconds": "Poll Interval (s)",
+      "jitterSeconds": "Jitter (s)",
+      "scheduleHint": "How often to check this event. Jitter adds randomness to avoid thundering herd.",
+      "templatePreview": "Preview:"
     },
     "signals": {
       "level": "Poziom postaci",
       "achievementTag": "Tag osiągnięcia"
-    }
+    },
+    "config": {
+      "title": "Ustawienia silnika",
+      "enabled": "Włącz silnik zdarzeń",
+      "enabledHint": "Uruchamia pętlę odpytywania w tle. Poszczególne zdarzenia muszą też mieć włączony przełącznik.",
+      "pollSeconds": "Interwał odpytywania (sekundy)",
+      "save": "Zapisz",
+      "saved": "Ustawienia zapisane.",
+      "saveFailed": "Błąd zapisu: {{message}}",
+      "failedToLoad": "Błąd ładowania: {{message}}"
+    },
+    "confirmDeleteTitle": "Delete Event",
+    "confirmResetTitle": "Reset Event",
+    "resetConfirmLabel": "Reset"
   },
   "battlepass": {
     "title": "Battlepass ({{count}} poziomów)",
@@ -1562,8 +1580,8 @@
       "keeps": "Historia claimów i linie bazowe graczy są zachowane. Claimy ponownie powiązują się według klucza poziomu, więc nic nie jest ponownie zdobywane ani przyznawane podwójnie. Baza danych gry nie jest modyfikowana."
     },
     "grantDialog": {
-      "title": "Przyznać Intel Battlepass?",
-      "body": "Przyznaje {{intel}} punktów Intelu do {{account}} w jednej aktualizacji i oznacza zdobyte poziomy jako przyznane. Gracz musi pozostać offline podczas aplikowania — jeśli zaloguje się wcześniej, przyznanie nie powiedzie się i pozostanie oczekujące na ponowną próbę.",
+      "title": "Przyznać nagrodę Battlepass?",
+      "body": "Przyznaje {{intel}} Intel graczowi {{account}} za '{{tier}}' i dostarcza dołączone nagrody w przedmiotach. Gracz musi pozostać offline — jeśli zaloguje się wcześniej, przyznanie nie powiedzie się i pozostanie oczekujące na ponowną próbę.",
       "confirm": "Przyznaj {{intel}} Intelu"
     },
     "reseedSuccess": "Katalog zasilony ponownie z {{count}} poziomami.",
@@ -1575,6 +1593,7 @@
     "invalidAccount": "Wprowadź poprawne ID konta.",
     "requirementLevel": "Osiągnij poziom {{level}}",
     "grantSuccess": "Przyznano {{intel}} Intelu na {{tiers}} poziomach.",
+    "grantTierSuccess": "Przyznano {{intel}} Intel za '{{tier}}'.",
     "grantFailed": "Przyznanie nie powiodło się: {{message}}",
     "categories": {
       "level": "Poziom",
@@ -1597,7 +1616,25 @@
       "pending": "Oczekujące ({{count}})",
       "progress": "Postęp",
       "catalog": "Katalog",
-      "track": "Ścieżka"
+      "track": "Ścieżka",
+      "config": "Konfiguracja"
+    },
+    "config": {
+      "subtitle": "Ustawienia silnika — zmiany wchodzą w życie po ponownym uruchomieniu serwera.",
+      "engineSection": "Silnik",
+      "enabled": "Włącz silnik karnetu bojowego",
+      "enabledHint": "Po wyłączeniu silnik przestaje działać i nie rejestruje nowych roszczeń.",
+      "awardPast": "Przyznaj minione poziomy",
+      "awardPastHint": "Po włączeniu poziomy ukończone przed pierwszym skanem są rejestrowane jako zdobyte. Należy ustawić przed pierwszym skanem — nie można zmienić retroaktywnie.",
+      "timingSection": "Taktowanie",
+      "pollSeconds": "Interwał odpytywania (sekundy)",
+      "scanPaceMs": "Tempo skanowania (ms/gracz)",
+      "scanStartDelayMs": "Opóźnienie startu (ms)",
+      "timingHint": "Interwał odpytywania: jak często silnik sprawdza nowe roszczenia. Tempo: przerwa między graczami zmniejszająca obciążenie bazy danych. Opóźnienie: czas oczekiwania przed pierwszym skanem.",
+      "save": "Zapisz konfigurację",
+      "saved": "Konfiguracja zapisana.",
+      "saveFailed": "Zapis nie powiódł się: {{message}}",
+      "failedToLoad": "Nie udało się załadować konfiguracji: {{message}}"
     },
     "editor": {
       "title": "Edytuj Poziom",
@@ -1637,12 +1674,21 @@
       "accountId": "Konto",
       "name": "Postać",
       "online": "Status",
-      "intel": "Oczekujący Intel",
+      "intel": "Intel",
+      "tier": "Poziom",
+      "items": "Przedmioty",
       "onlineState": "Online",
       "offlineState": "Offline",
       "grant": "Przyznaj",
+      "grantSelected": "Przyznaj wybrane",
       "grantOnlineHint": "Wymagany tryb offline",
-      "none": "Brak graczy ze zdobytymi, nieprzyznanymi nagrodami."
+      "none": "Brak graczy ze zdobytymi, nieprzyznanymi nagrodami.",
+      "bulkGrantSuccess": "Przyznano {{granted}} nagród. Pominięto {{skipped}} (online).",
+      "bulkGrantDialog": {
+        "title": "Przyznać wybrane nagrody?",
+        "body": "Przyznaje {{count}} oczekujących nagród poziomów graczom offline. Gracze online w wyborze zostaną pominięci.",
+        "confirm": "Przyznaj {{count}}"
+      }
     },
     "progress": {
       "title": "Postęp Gracza",

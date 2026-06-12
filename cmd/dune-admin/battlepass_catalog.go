@@ -253,6 +253,46 @@ var battlepassAchievementCategories = []string{
 	"combat", "exploration", "industry", "misc", "progression", "skills", "social",
 }
 
+// battlepassLandsraadContracts are real DA_LDR_* journey card root nodes from
+// MnemonicRecall/Data/JourneyCards/LandsraadContracts/. Each fires once when a
+// player completes that Landsraad council contract. Intel kept light (5/tier) —
+// contracts are repeatable side-content, not milestone quests.
+var battlepassLandsraadContracts = []struct {
+	node  string
+	label string
+}{
+	{"DA_LDR_Combat_DecapitationStrike_01", "Contract: Decapitation Strike"},
+	{"DA_LDR_Combat_FalseFlagStrike_01", "Contract: False Flag Strike"},
+	{"DA_LDR_Combat_GraveOfTheFireflies_01", "Contract: Grave of the Fireflies"},
+	{"DA_LDR_Combat_HeartOfTheMatter", "Contract: Heart of the Matter"},
+	{"DA_LDR_Combat_SpringingATrap", "Contract: Springing a Trap"},
+	{"DA_LDR_Crafting_EnergyOfTheFuture_01", "Contract: Energy of the Future"},
+	{"DA_LDR_Crafting_HarnessingThePowerOfTheStorm_01", "Contract: Harnessing the Power of the Storm"},
+	{"DA_LDR_Crafting_ReadingTheMail_01", "Contract: Reading the Mail"},
+	{"DA_LDR_Crafting_SurveillanceRun", "Contract: Surveillance Run"},
+	{"DA_LDR_Crafting_TheComingAndGoing", "Contract: The Coming and Going"},
+	{"DA_LDR_Exploration_FlightOfTheCalypso_01", "Contract: Flight of the Calypso"},
+	{"DA_LDR_Exploration_FremenFinds", "Contract: Fremen Finds"},
+	{"DA_LDR_Exploration_RaceAgainstTime_01", "Contract: Race Against Time"},
+	{"DA_LDR_Exploration_TreasureHunt_01", "Contract: Treasure Hunt"},
+	{"DA_LDR_Gather_FieldTesting", "Contract: Field Testing"},
+	{"DA_LDR_Gather_LivingOfTheLand_01", "Contract: Living off the Land"},
+	{"DA_LDR_Gather_PreciousResources_01", "Contract: Precious Resources"},
+	{"DA_LDR_Gather_TestingStationCleanup_01", "Contract: Testing Station Cleanup"},
+	{"DA_LDR_Gathering_FieldOfFlowers_01", "Contract: Field of Flowers"},
+	{"DA_LDR_JourneyContract_Exploration_RiftReconRun_01", "Contract: Rift Recon Run"},
+	{"DA_LDR_JourneyContract_WarCouncil_KillMaasKharet_01", "Contract: Kill Maas Kharet"},
+	{"DA_LDR_JourneyContract_WarCouncil_KillWeaponTest_01", "Contract: Weapon Test I"},
+	{"DA_LDR_JourneyContract_WarCouncil_KillWeaponTest_02", "Contract: Weapon Test II"},
+	{"DA_LDR_JourneyContract_WarCouncil_KillWeaponTest_03", "Contract: Weapon Test III"},
+	{"DA_LDR_Subterfuge_ALessonInBotanyAndPain_01", "Contract: A Lesson in Botany and Pain"},
+	{"DA_LDR_Subterfuge_ATrailOfBlood", "Contract: A Trail of Blood"},
+	{"DA_LDR_Subterfuge_InTheShadows", "Contract: In the Shadows"},
+	{"DA_LDR_Subterfuge_ShapingOperations_01", "Contract: Shaping Operations"},
+	{"DA_LDR_Subterfuge_SpyingOnCompetition_1", "Contract: Spying on Competition"},
+	{"DA_LDR_Syndicate_Assassination_1", "Contract: Syndicate Assassination"},
+}
+
 // defaultBattlepassCatalog builds the seed tier list.
 func defaultBattlepassCatalog() []battlepassTier {
 	var out []battlepassTier
@@ -322,6 +362,18 @@ func defaultBattlepassCatalog() []battlepassTier {
 			Intel:       ex.intel,
 			RewardItems: ex.items,
 			Enabled:     true,
+		})
+	}
+
+	for _, ldr := range battlepassLandsraadContracts {
+		out = append(out, battlepassTier{
+			TierKey:   "journey:" + ldr.node,
+			Category:  "faction",
+			Label:     ldr.label,
+			Signal:    battlepassSignalJourneyNode,
+			SignalKey: ldr.node,
+			Intel:     5,
+			Enabled:   true,
 		})
 	}
 

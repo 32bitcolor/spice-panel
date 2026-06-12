@@ -1435,8 +1435,8 @@
     "deleteFailed": "Etkinlik silinemedi: {{message}}",
     "resetFailed": "Etkinlik sıfırlanamadı: {{message}}",
     "resetSuccess": "Etkinlik talepleri temizlendi.",
-    "confirmDelete": "\"{{name}}\" etkinliği silinsin mi?",
-    "confirmReset": "\"{{name}}\" için tüm talepler temizlensin mi? Bu, etkinliğin tüm oyuncular için yeniden tetiklenmesine olanak tanır.",
+    "confirmDelete": "Delete \"{{name}}\"? This cannot be undone.",
+    "confirmReset": "Clear all claims for \"{{name}}\"? Players can trigger this event again.",
     "toggleEnabled": "Etkinleştirmeyi değiştir",
     "columns": {
       "name": "Ad",
@@ -1489,19 +1489,37 @@
       "xpAmount": "Miktar",
       "announceLabel": "Duyuru",
       "announceTemplate": "Duyuru Şablonu",
-      "templateHint": "Yer tutucular: {player} {event} {value}.",
+      "templateHint": "Yer tutucular: {player} {event} {value}. ({value} = kilometre taşı eşiği; bölge yarışları için boş.)",
       "channelDefault": "Yapılandırılan Discord duyuru kanalına gönderilir.",
       "created": "Etkinlik oluşturuldu.",
       "updated": "Etkinlik güncellendi.",
       "saveFailed": "Etkinlik kaydedilemedi: {{message}}",
       "xpType": "Tür",
       "addParticipant": "Oyuncu ekle…",
-      "noPlayersLoaded": "Yüklenmiş oyuncu yok — sunucuyu başlatın ve yeniden yükleyin."
+      "noPlayersLoaded": "Yüklenmiş oyuncu yok — sunucuyu başlatın ve yeniden yükleyin.",
+      "scheduleLabel": "Schedule",
+      "pollSeconds": "Poll Interval (s)",
+      "jitterSeconds": "Jitter (s)",
+      "scheduleHint": "How often to check this event. Jitter adds randomness to avoid thundering herd.",
+      "templatePreview": "Preview:"
     },
     "signals": {
       "level": "Karakter Seviyesi",
       "achievementTag": "Başarı Etiketi"
-    }
+    },
+    "config": {
+      "title": "Motor Ayarları",
+      "enabled": "Etkinlik motorunu etkinleştir",
+      "enabledHint": "Arka plan yoklama döngüsünü başlatır. Bireysel etkinliklerin de kendi etkin anahtarı açık olmalıdır.",
+      "pollSeconds": "Yoklama aralığı (saniye)",
+      "save": "Kaydet",
+      "saved": "Ayarlar kaydedildi.",
+      "saveFailed": "Kaydetme başarısız: {{message}}",
+      "failedToLoad": "Yükleme başarısız: {{message}}"
+    },
+    "confirmDeleteTitle": "Delete Event",
+    "confirmResetTitle": "Reset Event",
+    "resetConfirmLabel": "Reset"
   },
   "battlepass": {
     "title": "Battlepass ({{count}} kademesi)",
@@ -1516,8 +1534,8 @@
       "keeps": "Talep geçmişi ve oyuncu temel değerleri korunur. Talepler kademe anahtarına göre yeniden bağlanır, bu nedenle hiçbir şey yeniden kazanılmaz veya çift verilmez. Oyun veritabanına dokunulmaz."
     },
     "grantDialog": {
-      "title": "Battlepass inteli verilsin mi?",
-      "body": "{{account}} hesabına tek bir güncellemeyle {{intel}} intel puanı verir ve kazanılan kademeleri verildi olarak işaretler. Oyuncu, uygulanırken çevrimdışı kalmalıdır — önce giriş yaparsa verme işlemi başarısız olur ve yeniden deneme için beklemede kalır.",
+      "title": "Battlepass ödülü verilsin mi?",
+      "body": "'{{tier}}' için {{account}} hesabına {{intel}} intel verir ve eklenen eşya ödüllerini teslim eder. Oyuncu çevrimdışı kalmalıdır — önce giriş yaparsa verme işlemi başarısız olur ve yeniden deneme için beklemede kalır.",
       "confirm": "{{intel}} Intel Ver"
     },
     "reseedSuccess": "Katalog {{count}} kademeyle yeniden dolduruldu.",
@@ -1529,6 +1547,7 @@
     "invalidAccount": "Geçerli bir hesap kimliği girin.",
     "requirementLevel": "{{level}}. seviyeye ulaş",
     "grantSuccess": "{{tiers}} kademe boyunca {{intel}} intel verildi.",
+    "grantTierSuccess": "'{{tier}}' için {{intel}} intel verildi.",
     "grantFailed": "Verme başarısız: {{message}}",
     "categories": {
       "level": "Seviye",
@@ -1551,7 +1570,25 @@
       "pending": "Beklemede ({{count}})",
       "progress": "İlerleme",
       "catalog": "Katalog",
-      "track": "Parkur"
+      "track": "Parkur",
+      "config": "Yapılandırma"
+    },
+    "config": {
+      "subtitle": "Motor ayarları — değişiklikler sunucu yeniden başlatıldığında geçerli olur.",
+      "engineSection": "Motor",
+      "enabled": "Savaş geçidi motorunu etkinleştir",
+      "enabledHint": "Devre dışı bırakıldığında motor durur ve yeni talepler kaydedilmez.",
+      "awardPast": "Geçmiş kademeleri ver",
+      "awardPastHint": "Etkinleştirildiğinde, ilk taramadan önce tamamlanan kademeler kazanılmış olarak kaydedilir. İlk taramadan önce ayarlanmalıdır — geriye dönük değiştirilemez.",
+      "timingSection": "Zamanlama",
+      "pollSeconds": "Yoklama aralığı (saniye)",
+      "scanPaceMs": "Tarama hızı (ms/oyuncu)",
+      "scanStartDelayMs": "Başlangıç gecikmesi (ms)",
+      "timingHint": "Yoklama aralığı: motorun ne sıklıkla kontrol ettiği. Tarama hızı: veritabanı yükünü azaltmak için oyuncular arası duraklama. Başlangıç gecikmesi: ilk taramaya kadar bekleme süresi.",
+      "save": "Yapılandırmayı kaydet",
+      "saved": "Yapılandırma kaydedildi.",
+      "saveFailed": "Kaydetme başarısız: {{message}}",
+      "failedToLoad": "Yapılandırma yüklenemedi: {{message}}"
     },
     "editor": {
       "title": "Kademe Düzenle",
@@ -1591,12 +1628,21 @@
       "accountId": "Hesap",
       "name": "Karakter",
       "online": "Durum",
-      "intel": "Bekleyen Intel",
+      "intel": "Intel",
+      "tier": "Kademe",
+      "items": "Eşyalar",
       "onlineState": "Çevrimiçi",
       "offlineState": "Çevrimdışı",
       "grant": "Ver",
+      "grantSelected": "Seçilenleri ver",
       "grantOnlineHint": "Çevrimdışı gerekli",
-      "none": "Kazanılmış, verilmemiş ödülü olan oyuncu yok."
+      "none": "Kazanılmış, verilmemiş ödülü olan oyuncu yok.",
+      "bulkGrantSuccess": "{{granted}} ödül verildi. {{skipped}} atlandı (çevrimiçi).",
+      "bulkGrantDialog": {
+        "title": "Seçilen ödüller verilsin mi?",
+        "body": "{{count}} bekleyen kademe ödülünü çevrimdışı oyunculara verir. Seçimdeki çevrimiçi oyuncular atlanır.",
+        "confirm": "{{count}} ver"
+      }
     },
     "progress": {
       "title": "Oyuncu İlerlemesi",

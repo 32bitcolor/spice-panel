@@ -1441,8 +1441,8 @@
       "keeps": "Claim history and player baselines are preserved. Claims re-attach by tier key, so nothing is re-earned or double-granted. The game database is not touched."
     },
     "grantDialog": {
-      "title": "Grant battlepass intel?",
-      "body": "Grants {{intel}} intel points to {{account}} in a single update and marks their earned tiers as granted. The player must remain offline while it applies — if they log in first, the grant fails and stays pending for retry.",
+      "title": "Grant battlepass reward?",
+      "body": "Grants {{intel}} intel to {{account}} for '{{tier}}' and delivers any attached item rewards. The player must remain offline — if they log in first, the grant fails and stays pending for retry.",
       "confirm": "Grant {{intel}} Intel"
     },
     "reseedSuccess": "Catalog reseeded with {{count}} tiers.",
@@ -1454,6 +1454,7 @@
     "invalidAccount": "Enter a valid account ID.",
     "requirementLevel": "Reach level {{level}}",
     "grantSuccess": "Granted {{intel}} intel across {{tiers}} tiers.",
+    "grantTierSuccess": "Granted {{intel}} intel for '{{tier}}'.",
     "grantFailed": "Grant failed: {{message}}",
     "categories": {
       "level": "Level",
@@ -1476,7 +1477,25 @@
       "pending": "Pending ({{count}})",
       "progress": "Progress",
       "catalog": "Catalog",
-      "track": "Track"
+      "track": "Track",
+      "config": "Config"
+    },
+    "config": {
+      "subtitle": "Engine settings — changes take effect on next server restart.",
+      "engineSection": "Engine",
+      "enabled": "Enable battlepass engine",
+      "enabledHint": "When disabled, the polling engine stops and no new claims are recorded.",
+      "awardPast": "Award past tiers",
+      "awardPastHint": "When enabled, tiers already completed before the engine first ran are recorded as earned. Must be set before the first scan — after a player is baselined this cannot be changed retroactively.",
+      "timingSection": "Timing",
+      "pollSeconds": "Poll interval (seconds)",
+      "scanPaceMs": "Scan pace (ms per player)",
+      "scanStartDelayMs": "Boot delay (ms)",
+      "timingHint": "Poll interval: how often the engine checks for new claims. Scan pace: delay between players to reduce database load. Boot delay: how long to wait before the first scan after startup.",
+      "save": "Save Config",
+      "saved": "Configuration saved.",
+      "saveFailed": "Failed to save: {{message}}",
+      "failedToLoad": "Failed to load config: {{message}}"
     },
     "editor": {
       "title": "Edit Tier",
@@ -1516,12 +1535,21 @@
       "accountId": "Account",
       "name": "Character",
       "online": "Status",
-      "intel": "Pending Intel",
+      "intel": "Intel",
+      "tier": "Tier",
+      "items": "Items",
       "onlineState": "Online",
       "offlineState": "Offline",
       "grant": "Grant",
+      "grantSelected": "Grant Selected",
       "grantOnlineHint": "Offline required",
-      "none": "No players with earned, ungranted rewards."
+      "none": "No players with earned, ungranted rewards.",
+      "bulkGrantSuccess": "Granted {{granted}} rewards. {{skipped}} skipped (online).",
+      "bulkGrantDialog": {
+        "title": "Grant selected rewards?",
+        "body": "Grant {{count}} pending tier rewards to offline players. Any online players in the selection will be skipped.",
+        "confirm": "Grant {{count}}"
+      }
     },
     "progress": {
       "title": "Player Progress",
@@ -1550,8 +1578,11 @@
     "deleteFailed": "Failed to delete event: {{message}}",
     "resetFailed": "Failed to reset event: {{message}}",
     "resetSuccess": "Event claims cleared.",
-    "confirmDelete": "Delete event \"{{name}}\"?",
-    "confirmReset": "Clear all claims for \"{{name}}\"? This will allow the event to fire again for all players.",
+    "confirmDeleteTitle": "Delete Event",
+    "confirmDelete": "Delete \"{{name}}\"? This cannot be undone.",
+    "confirmResetTitle": "Reset Event",
+    "confirmReset": "Clear all claims for \"{{name}}\"? Players can trigger this event again.",
+    "resetConfirmLabel": "Reset",
     "toggleEnabled": "Toggle enabled",
     "columns": {
       "name": "Name",
@@ -1611,8 +1642,13 @@
       "xpAmount": "Amount",
       "announceLabel": "Announcement",
       "announceTemplate": "Announce Template",
-      "templateHint": "Placeholders: {player} {event} {value}.",
+      "templateHint": "Placeholders: {player} {event} {value}. ({value} = milestone threshold; empty for zone races.)",
+      "templatePreview": "Preview:",
       "channelDefault": "Posts to the configured Discord announce channel.",
+      "scheduleLabel": "Schedule",
+      "pollSeconds": "Poll Interval (s)",
+      "jitterSeconds": "Jitter (s)",
+      "scheduleHint": "How often to check this event. Jitter adds randomness to avoid thundering herd.",
       "created": "Event created.",
       "updated": "Event updated.",
       "saveFailed": "Failed to save event: {{message}}",
@@ -1620,6 +1656,16 @@
       "factionScrip": "Faction Scrip",
       "config": "Config",
       "rewards": "Rewards"
+    },
+    "config": {
+      "title": "Engine Settings",
+      "enabled": "Enable events engine",
+      "enabledHint": "Starts the background polling loop. Individual events also need their Enabled toggle set.",
+      "pollSeconds": "Poll interval (seconds)",
+      "save": "Save",
+      "saved": "Settings saved.",
+      "saveFailed": "Failed to save settings: {{message}}",
+      "failedToLoad": "Failed to load settings: {{message}}"
     }
   }
 }

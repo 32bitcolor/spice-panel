@@ -122,6 +122,10 @@ func openBattlepassStore(path string) (*battlepassStore, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open battlepass store: %w", err)
 	}
+	// SQLite is not safe for concurrent writers; a single open connection also
+	// ensures in-memory databases (:memory:) share one instance across all
+	// callers rather than each connection seeing its own empty database.
+	db.SetMaxOpenConns(1)
 	if err := initBattlepassSchema(db); err != nil {
 		_ = db.Close()
 		return nil, err
@@ -355,6 +359,92 @@ func (s *battlepassStore) earnedClaims(accountID int64) ([]battlepassClaim, erro
 	}
 	defer func() { _ = rows.Close() }()
 	return scanBattlepassClaims(rows)
+}
+
+// battlepassEarnedTierRow is one pending claim joined with its tier's display
+// metadata, used by the pending endpoint to return tier-level rows.
+type battlepassEarnedTierRow struct {
+	TierKey     string `json:"tier_key"`
+	AccountID   int64  `json:"account_id"`
+	Intel       int64  `json:"intel"`
+	TierLabel   string `json:"tier_label"`
+	RewardItems string `json:"reward_items"`
+}
+
+// earnedClaimsWithTiers returns all earned claims joined with their tier's
+// label and reward_items. Claims with no matching tier fall back to tier_key
+// as the label and empty reward_items.
+func (s *battlepassStore) earnedClaimsWithTiers() ([]battlepassEarnedTierRow, error) {
+	rows, err := s.db.Query(`
+		SELECT c.tier_key, c.account_id, c.intel,
+		       COALESCE(NULLIF(t.label, ''), c.tier_key),
+		       COALESCE(t.reward_items, '')
+		FROM battlepass_claims c
+		LEFT JOIN battlepass_tiers t ON t.tier_key = c.tier_key
+		WHERE c.status = ?
+		ORDER BY t.label, c.account_id`, battlepassClaimEarned)
+	if err != nil {
+		return nil, fmt.Errorf("earned claims with tiers: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	out := make([]battlepassEarnedTierRow, 0)
+	for rows.Next() {
+		var r battlepassEarnedTierRow
+		if err := rows.Scan(&r.TierKey, &r.AccountID, &r.Intel, &r.TierLabel, &r.RewardItems); err != nil {
+			return nil, fmt.Errorf("scan earned tier row: %w", err)
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+
+// earnedClaim returns the single earned claim for an account+tier pair.
+// Returns errBattlepassNothingEarned if no earned claim exists.
+func (s *battlepassStore) earnedClaim(accountID int64, tierKey string) (battlepassClaim, error) {
+	var c battlepassClaim
+	err := s.db.QueryRow(
+		`SELECT `+battlepassClaimColumns+` FROM battlepass_claims
+		 WHERE account_id = ? AND tier_key = ? AND status = ?`,
+		accountID, tierKey, battlepassClaimEarned).
+		Scan(&c.TierKey, &c.AccountID, &c.Status, &c.Intel,
+			&c.EarnedAt, &c.GrantedAt, &c.Attempts, &c.LastError)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return battlepassClaim{}, errBattlepassNothingEarned
+		}
+		return battlepassClaim{}, fmt.Errorf("earned claim %d/%s: %w", accountID, tierKey, err)
+	}
+	return c, nil
+}
+
+// markGrantedForTier flips a single earned claim to granted.
+func (s *battlepassStore) markGrantedForTier(accountID int64, tierKey string) error {
+	now := time.Now().UTC().Format(time.RFC3339)
+	_, err := s.db.Exec(`
+		UPDATE battlepass_claims
+		SET status = ?, granted_at = ?, last_error = '', updated_at = ?
+		WHERE account_id = ? AND tier_key = ? AND status = ?`,
+		battlepassClaimGranted, now, now, accountID, tierKey, battlepassClaimEarned)
+	if err != nil {
+		return fmt.Errorf("mark battlepass granted for %d/%s: %w", accountID, tierKey, err)
+	}
+	return nil
+}
+
+// recordGrantFailureForTier notes a failed grant on a single claim; it
+// remains earned so the grant can be retried.
+func (s *battlepassStore) recordGrantFailureForTier(accountID int64, tierKey, errMsg string) error {
+	now := time.Now().UTC().Format(time.RFC3339)
+	_, err := s.db.Exec(`
+		UPDATE battlepass_claims
+		SET attempts = attempts + 1, last_error = ?, updated_at = ?
+		WHERE account_id = ? AND tier_key = ? AND status = ?`,
+		errMsg, now, accountID, tierKey, battlepassClaimEarned)
+	if err != nil {
+		return fmt.Errorf("record battlepass grant failure for %d/%s: %w", accountID, tierKey, err)
+	}
+	return nil
 }
 
 // earnedTotals returns account_id → pending (earned, ungranted) intel.

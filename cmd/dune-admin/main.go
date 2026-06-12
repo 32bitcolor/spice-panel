@@ -219,18 +219,28 @@ type appConfig struct {
 	WelcomePackageItems   []welcomePackageItem `yaml:"welcome_package_items,omitempty"   json:"welcome_package_items,omitempty"`
 
 	// ── Live events engine ─────────────────────────────────────────────────
-	// EventsEnabled starts the background polling engine. Pointer so we can
-	// distinguish "unset" (default-off) from "explicitly false".
-	EventsEnabled     *bool `yaml:"events_enabled"      json:"events_enabled"`
-	EventsPollSeconds int   `yaml:"events_poll_seconds" json:"events_poll_seconds"`
+	// EventsEnabled starts the background polling engine. Per-event poll_seconds
+	// and jitter_seconds are configured on each event definition.
+	EventsEnabled *bool `yaml:"events_enabled" json:"events_enabled"`
 
 	// ── Battlepass ─────────────────────────────────────────────────────────
 	// BattlepassEnabled starts the tier-evaluation loop (default off).
 	// BattlepassAwardPast rewards pre-existing progress on first evaluation;
 	// default off — old progress is baselined and only new unlocks earn intel.
-	BattlepassEnabled     *bool `yaml:"battlepass_enabled"      json:"battlepass_enabled"`
-	BattlepassAwardPast   *bool `yaml:"battlepass_award_past"   json:"battlepass_award_past"`
-	BattlepassPollSeconds int   `yaml:"battlepass_poll_seconds" json:"battlepass_poll_seconds"`
+	// IMPORTANT: set award_past=true on the FIRST scan for an account — if
+	// an account is first scanned with award_past=false, its tiers are written
+	// as "baseline" permanently and flipping award_past later has no effect.
+	// To repopulate Pending after changing modes, clear the battlepass_* tables
+	// in dune-admin.db (or delete the whole file to reset all stores).
+	// BattlepassScanPaceMs is the inter-player delay (ms) during evaluation;
+	// 0 disables pacing; negative → default 75ms; max 5000ms.
+	// BattlepassScanStartDelayMs is the delay (ms) before the boot scan so the
+	// server and DB pool finish warming; 0 is immediate; negative → 3000ms.
+	BattlepassEnabled          *bool `yaml:"battlepass_enabled"            json:"battlepass_enabled"`
+	BattlepassAwardPast        *bool `yaml:"battlepass_award_past"         json:"battlepass_award_past"`
+	BattlepassPollSeconds      int   `yaml:"battlepass_poll_seconds"       json:"battlepass_poll_seconds"`
+	BattlepassScanPaceMs       int   `yaml:"battlepass_scan_pace_ms"       json:"battlepass_scan_pace_ms"`
+	BattlepassScanStartDelayMs int   `yaml:"battlepass_scan_start_delay_ms" json:"battlepass_scan_start_delay_ms"`
 }
 
 // marketBotEnabled returns the effective bot-enabled flag. Missing yaml key →
@@ -831,9 +841,8 @@ func main() {
 		remoteBotProxy = newRemoteBotClient(loadedConfig.MarketBotRemoteURL, loadedConfig.MarketBotRemoteToken)
 	}
 
-	if cancel := startEmbeddedDiscordBotIfEnabled(loadedConfig); cancel != nil {
-		defer cancel()
-	}
+	applyDiscordConfig(loadedConfig)
+	defer stopDiscordBot()
 
 	globalWelcomeCancel = startWelcomePackageScanner(loadedConfig)
 	defer stopWelcomeScanner()
@@ -855,11 +864,11 @@ func main() {
 	initEventStore()
 	initBattlepassStore()
 
-	if cancel := startEventEngineIfEnabled(loadedConfig); cancel != nil {
-		defer cancel()
-	}
+	applyEventEngine(loadedConfig)
+	defer stopEventEngine()
 
-	startBattlepassIfEnabled(loadedConfig)
+	applyBattlepassEngine(loadedConfig)
+	defer stopBattlepassEngine()
 
 	startServer(listenAddr)
 }

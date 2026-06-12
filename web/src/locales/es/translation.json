@@ -1458,8 +1458,8 @@
     "deleteFailed": "Error al eliminar el evento: {{message}}",
     "resetFailed": "Error al restablecer el evento: {{message}}",
     "resetSuccess": "Reclamaciones del evento borradas.",
-    "confirmDelete": "¿Eliminar el evento \"{{name}}\"?",
-    "confirmReset": "¿Borrar todas las reclamaciones de \"{{name}}\"? Esto permitirá que el evento se active de nuevo para todos los jugadores.",
+    "confirmDelete": "Delete \"{{name}}\"? This cannot be undone.",
+    "confirmReset": "Clear all claims for \"{{name}}\"? Players can trigger this event again.",
     "toggleEnabled": "Alternar activado",
     "columns": {
       "name": "Nombre",
@@ -1512,19 +1512,37 @@
       "xpAmount": "Cantidad",
       "announceLabel": "Anuncio",
       "announceTemplate": "Plantilla de anuncio",
-      "templateHint": "Marcadores de posición: {player} {event} {value}.",
+      "templateHint": "Marcadores de posición: {player} {event} {value}. ({value} = umbral del hito; vacío para carreras de zona.)",
       "channelDefault": "Publica en el canal de anuncios de Discord configurado.",
       "created": "Evento creado.",
       "updated": "Evento actualizado.",
       "saveFailed": "Error al guardar el evento: {{message}}",
       "xpType": "Tipo",
       "addParticipant": "Añadir jugador…",
-      "noPlayersLoaded": "No hay jugadores cargados — inicia el servidor y recarga."
+      "noPlayersLoaded": "No hay jugadores cargados — inicia el servidor y recarga.",
+      "scheduleLabel": "Schedule",
+      "pollSeconds": "Poll Interval (s)",
+      "jitterSeconds": "Jitter (s)",
+      "scheduleHint": "How often to check this event. Jitter adds randomness to avoid thundering herd.",
+      "templatePreview": "Preview:"
     },
     "signals": {
       "level": "Nivel de personaje",
       "achievementTag": "Etiqueta de logro"
-    }
+    },
+    "config": {
+      "title": "Configuración del motor",
+      "enabled": "Activar motor de eventos",
+      "enabledHint": "Inicia el bucle de sondeo en segundo plano. Los eventos individuales también necesitan su interruptor activado.",
+      "pollSeconds": "Intervalo de sondeo (segundos)",
+      "save": "Guardar",
+      "saved": "Configuración guardada.",
+      "saveFailed": "Error al guardar: {{message}}",
+      "failedToLoad": "Error al cargar: {{message}}"
+    },
+    "confirmDeleteTitle": "Delete Event",
+    "confirmResetTitle": "Reset Event",
+    "resetConfirmLabel": "Reset"
   },
   "battlepass": {
     "title": "Battlepass ({{count}} rangos)",
@@ -1539,8 +1557,8 @@
       "keeps": "El historial de claims y las líneas base de los jugadores se conservan. Los claims se vuelven a vincular por clave de rango, por lo que nada se gana de nuevo ni se otorga dos veces. La base de datos del juego no se modifica."
     },
     "grantDialog": {
-      "title": "¿Otorgar Intel del Battlepass?",
-      "body": "Otorga {{intel}} puntos de Intel a {{account}} en una sola actualización y marca sus rangos ganados como otorgados. El jugador debe permanecer desconectado mientras se aplica — si inicia sesión primero, el otorgamiento falla y queda pendiente para reintento.",
+      "title": "¿Otorgar recompensa del Battlepass?",
+      "body": "Otorga {{intel}} Intel a {{account}} por '{{tier}}' y entrega las recompensas de objetos adjuntas. El jugador debe permanecer desconectado — si inicia sesión primero, el otorgamiento falla y queda pendiente para reintento.",
       "confirm": "Otorgar {{intel}} Intel"
     },
     "reseedSuccess": "Catálogo reestablecido con {{count}} rangos.",
@@ -1552,6 +1570,7 @@
     "invalidAccount": "Introduce un ID de cuenta válido.",
     "requirementLevel": "Alcanza el nivel {{level}}",
     "grantSuccess": "{{intel}} Intel otorgado a través de {{tiers}} rangos.",
+    "grantTierSuccess": "{{intel}} Intel otorgado para '{{tier}}'.",
     "grantFailed": "Error al otorgar: {{message}}",
     "categories": {
       "level": "Nivel",
@@ -1574,7 +1593,25 @@
       "pending": "Pendiente ({{count}})",
       "progress": "Progreso",
       "catalog": "Catálogo",
-      "track": "Pista"
+      "track": "Pista",
+      "config": "Configuración"
+    },
+    "config": {
+      "subtitle": "Ajustes del motor — los cambios se aplican al reiniciar el servidor.",
+      "engineSection": "Motor",
+      "enabled": "Activar motor de pase de batalla",
+      "enabledHint": "Cuando está desactivado, el motor deja de funcionar y no se registran nuevas reclamaciones.",
+      "awardPast": "Otorgar niveles pasados",
+      "awardPastHint": "Cuando está activo, los niveles completados antes del primer escaneo se registran como ganados. Debe configurarse antes del primer escaneo — no se puede cambiar retroactivamente.",
+      "timingSection": "Temporización",
+      "pollSeconds": "Intervalo de sondeo (segundos)",
+      "scanPaceMs": "Ritmo de escaneo (ms por jugador)",
+      "scanStartDelayMs": "Retraso de arranque (ms)",
+      "timingHint": "Intervalo de sondeo: frecuencia de búsqueda de reclamaciones. Ritmo: pausa entre jugadores para reducir carga en la BD. Retraso: tiempo de espera antes del primer escaneo.",
+      "save": "Guardar configuración",
+      "saved": "Configuración guardada.",
+      "saveFailed": "Error al guardar: {{message}}",
+      "failedToLoad": "Error al cargar la configuración: {{message}}"
     },
     "editor": {
       "title": "Editar Rango",
@@ -1614,12 +1651,21 @@
       "accountId": "Cuenta",
       "name": "Personaje",
       "online": "Estado",
-      "intel": "Intel Pendiente",
+      "intel": "Intel",
+      "tier": "Rango",
+      "items": "Objetos",
       "onlineState": "En línea",
       "offlineState": "Desconectado",
       "grant": "Otorgar",
+      "grantSelected": "Otorgar selección",
       "grantOnlineHint": "Se requiere estar desconectado",
-      "none": "No hay jugadores con recompensas ganadas sin otorgar."
+      "none": "No hay jugadores con recompensas ganadas sin otorgar.",
+      "bulkGrantSuccess": "{{granted}} recompensas otorgadas. {{skipped}} omitidas (en línea).",
+      "bulkGrantDialog": {
+        "title": "¿Otorgar recompensas seleccionadas?",
+        "body": "Otorga {{count}} recompensas de rango pendientes a jugadores desconectados. Los jugadores en línea de la selección serán omitidos.",
+        "confirm": "Otorgar {{count}}"
+      }
     },
     "progress": {
       "title": "Progreso del Jugador",

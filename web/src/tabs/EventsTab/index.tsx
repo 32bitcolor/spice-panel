@@ -4,8 +4,8 @@ import { Button, Chip, Link, Separator, Switch, toast } from '@heroui/react'
 import type { Selection } from '@heroui/react'
 import { EmptyState } from '@heroui-pro/react'
 import { api } from '../../api/client'
-import type { EventDefinition, EventClaimRecord } from '../../api/client'
-import { ActionBar, DataTable, Icon, PageHeader, Panel, SectionLabel, type Column } from '../../dune-ui'
+import type { EventDefinition, EventClaimRecord, EventsConfig } from '../../api/client'
+import { ActionBar, ConfirmDialog, DataTable, Icon, PageHeader, Panel, SectionLabel, type Column } from '../../dune-ui'
 import { EventEditorModal } from './modals/EventEditorModal'
 import type { ListKey, ClaimKey } from './types'
 
@@ -19,6 +19,10 @@ export const EventsTab: React.FC = () => {
   const [editorOpen, setEditorOpen] = React.useState(false)
   const [editingEvent, setEditingEvent] = React.useState<EventDefinition | null>(null)
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set())
+  const [cfg, setCfg] = React.useState<EventsConfig>({ events_enabled: false })
+  const [cfgSaving, setCfgSaving] = React.useState(false)
+  const [deleteTarget, setDeleteTarget] = React.useState<EventDefinition | null>(null)
+  const [resetTarget, setResetTarget] = React.useState<EventDefinition | null>(null)
 
   const selectionCount = selectedKeys === 'all' ? events.length : (selectedKeys as Set<string>).size
 
@@ -81,9 +85,29 @@ export const EventsTab: React.FC = () => {
     [t],
   )
 
+  const loadConfig = React.useCallback(() => {
+    api.events.config()
+      .then(setCfg)
+      .catch(() => { /* silent — config non-critical */ })
+  }, [])
+
+  const toggleEnabled = (enabled: boolean) => {
+    const prev = cfg
+    setCfg((p) => ({ ...p, events_enabled: enabled }))
+    setCfgSaving(true)
+    api.events.saveConfig({ ...cfg, events_enabled: enabled })
+      .then(setCfg)
+      .catch((e: unknown) => {
+        setCfg(prev)
+        toast.danger(t('events.config.saveFailed', { message: e instanceof Error ? e.message : String(e) }))
+      })
+      .finally(() => setCfgSaving(false))
+  }
+
   React.useEffect(() => {
     loadEvents()
-  }, [loadEvents])
+    loadConfig()
+  }, [loadEvents, loadConfig])
 
   const handleToggleEnabled = (ev: EventDefinition) => {
     api.events
@@ -95,7 +119,13 @@ export const EventsTab: React.FC = () => {
   }
 
   const handleDelete = (ev: EventDefinition) => {
-    if (!confirm(t('events.confirmDelete', { name: ev.name }))) return
+    setDeleteTarget(ev)
+  }
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return
+    const ev = deleteTarget
+    setDeleteTarget(null)
     api.events
       .delete(ev.id)
       .then(() => {
@@ -108,7 +138,13 @@ export const EventsTab: React.FC = () => {
   }
 
   const handleReset = (ev: EventDefinition) => {
-    if (!confirm(t('events.confirmReset', { name: ev.name }))) return
+    setResetTarget(ev)
+  }
+
+  const confirmReset = () => {
+    if (!resetTarget) return
+    const ev = resetTarget
+    setResetTarget(null)
     api.events
       .reset(ev.id)
       .then(() => {
@@ -137,6 +173,15 @@ export const EventsTab: React.FC = () => {
     <>
       <div className="flex flex-col h-full gap-3 min-h-0">
         <PageHeader title={t('events.title', { count: events.length })} subtitle={t('events.subtitle')}>
+          <Switch
+            isSelected={cfg.events_enabled ?? false}
+            onChange={toggleEnabled}
+            isDisabled={cfgSaving}
+            size="sm"
+          >
+            <Switch.Control><Switch.Thumb /></Switch.Control>
+            <Switch.Content>{t('events.config.enabled')}</Switch.Content>
+          </Switch>
           <Button size="sm" variant="ghost" onPress={loadEvents} isDisabled={loading}>
             <Icon name="refresh-cw" />
             {' '}
@@ -282,6 +327,23 @@ export const EventsTab: React.FC = () => {
           onSaved={loadEvents}
         />
       </div>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title={t('events.confirmDeleteTitle')}
+        description={t('events.confirmDelete', { name: deleteTarget?.name ?? '' })}
+        confirmLabel={t('common.delete')}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
+      <ConfirmDialog
+        open={resetTarget !== null}
+        title={t('events.confirmResetTitle')}
+        description={t('events.confirmReset', { name: resetTarget?.name ?? '' })}
+        confirmLabel={t('events.resetConfirmLabel')}
+        onConfirm={confirmReset}
+        onCancel={() => setResetTarget(null)}
+      />
 
       <ActionBar aria-label={t('events.ariaLabel')} isOpen={selectionCount > 0}>
         <ActionBar.Prefix>

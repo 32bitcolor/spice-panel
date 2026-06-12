@@ -1435,8 +1435,8 @@
     "deleteFailed": "Event konnte nicht gelöscht werden: {{message}}",
     "resetFailed": "Event konnte nicht zurückgesetzt werden: {{message}}",
     "resetSuccess": "Event-Ansprüche gelöscht.",
-    "confirmDelete": "Event \"{{name}}\" löschen?",
-    "confirmReset": "Alle Ansprüche für \"{{name}}\" löschen? Dadurch kann das Event für alle Spieler erneut ausgelöst werden.",
+    "confirmDelete": "Delete \"{{name}}\"? This cannot be undone.",
+    "confirmReset": "Clear all claims for \"{{name}}\"? Players can trigger this event again.",
     "toggleEnabled": "Aktivierung umschalten",
     "columns": {
       "name": "Name",
@@ -1489,19 +1489,37 @@
       "xpAmount": "Menge",
       "announceLabel": "Ankündigung",
       "announceTemplate": "Ankündigungsvorlage",
-      "templateHint": "Platzhalter: {player} {event} {value}.",
+      "templateHint": "Platzhalter: {player} {event} {value}. ({value} = Meilensteinschwellwert; leer bei Zonenrennen.)",
       "channelDefault": "Wird im konfigurierten Discord-Ankündigungskanal gepostet.",
       "created": "Event erstellt.",
       "updated": "Event aktualisiert.",
       "saveFailed": "Event konnte nicht gespeichert werden: {{message}}",
       "xpType": "Typ",
       "addParticipant": "Spieler hinzufügen…",
-      "noPlayersLoaded": "Keine Spieler geladen — Server starten und neu laden."
+      "noPlayersLoaded": "Keine Spieler geladen — Server starten und neu laden.",
+      "scheduleLabel": "Schedule",
+      "pollSeconds": "Poll Interval (s)",
+      "jitterSeconds": "Jitter (s)",
+      "scheduleHint": "How often to check this event. Jitter adds randomness to avoid thundering herd.",
+      "templatePreview": "Preview:"
     },
     "signals": {
       "level": "Charakterstufe",
       "achievementTag": "Erfolgs-Tag"
-    }
+    },
+    "config": {
+      "title": "Engine-Einstellungen",
+      "enabled": "Events-Engine aktivieren",
+      "enabledHint": "Startet die Hintergrund-Polling-Schleife. Einzelne Events benötigen zusätzlich ihren Aktiviert-Schalter.",
+      "pollSeconds": "Abfrageintervall (Sekunden)",
+      "save": "Speichern",
+      "saved": "Einstellungen gespeichert.",
+      "saveFailed": "Fehler beim Speichern: {{message}}",
+      "failedToLoad": "Fehler beim Laden: {{message}}"
+    },
+    "confirmDeleteTitle": "Delete Event",
+    "confirmResetTitle": "Reset Event",
+    "resetConfirmLabel": "Reset"
   },
   "battlepass": {
     "title": "Battlepass ({{count}} Stufen)",
@@ -1516,8 +1534,8 @@
       "keeps": "Claim-Verlauf und Spieler-Basiswerte bleiben erhalten. Claims werden erneut nach Stufenschlüssel zugeordnet, sodass nichts doppelt verdient oder doppelt vergeben wird. Die Spieldatenbank wird nicht berührt."
     },
     "grantDialog": {
-      "title": "Battlepass-Intel vergeben?",
-      "body": "Vergibt {{intel}} Intel-Punkte an {{account}} in einer einzigen Aktualisierung und markiert die verdienten Stufen als vergeben. Der Spieler muss offline bleiben, während dies angewendet wird — wenn er sich zuerst einloggt, schlägt die Vergabe fehl und bleibt zur Wiederholung ausstehend.",
+      "title": "Battlepass-Belohnung vergeben?",
+      "body": "Vergibt {{intel}} Intel an {{account}} für '{{tier}}' und liefert etwaige Gegenstandsbelohnungen. Der Spieler muss offline bleiben — wenn er sich zuerst einloggt, schlägt die Vergabe fehl und bleibt zur Wiederholung ausstehend.",
       "confirm": "{{intel}} Intel vergeben"
     },
     "reseedSuccess": "Katalog mit {{count}} Stufen neu befüllt.",
@@ -1529,6 +1547,7 @@
     "invalidAccount": "Geben Sie eine gültige Konto-ID ein.",
     "requirementLevel": "Erreiche Stufe {{level}}",
     "grantSuccess": "{{intel}} Intel über {{tiers}} Stufen vergeben.",
+    "grantTierSuccess": "{{intel}} Intel für '{{tier}}' vergeben.",
     "grantFailed": "Vergabe fehlgeschlagen: {{message}}",
     "categories": {
       "level": "Stufe",
@@ -1551,7 +1570,25 @@
       "pending": "Ausstehend ({{count}})",
       "progress": "Fortschritt",
       "catalog": "Katalog",
-      "track": "Pfad"
+      "track": "Pfad",
+      "config": "Konfiguration"
+    },
+    "config": {
+      "subtitle": "Engine-Einstellungen — Änderungen werden beim nächsten Serverstart wirksam.",
+      "engineSection": "Engine",
+      "enabled": "Battlepass-Engine aktivieren",
+      "enabledHint": "Wenn deaktiviert, stoppt die Polling-Engine und es werden keine neuen Claims aufgezeichnet.",
+      "awardPast": "Vergangene Stufen belohnen",
+      "awardPastHint": "Wenn aktiviert, werden bereits abgeschlossene Stufen als verdient erfasst. Muss vor dem ersten Scan gesetzt werden — danach nicht mehr retroaktiv änderbar.",
+      "timingSection": "Zeitsteuerung",
+      "pollSeconds": "Abfrageintervall (Sekunden)",
+      "scanPaceMs": "Scan-Tempo (ms pro Spieler)",
+      "scanStartDelayMs": "Startverzögerung (ms)",
+      "timingHint": "Abfrageintervall: wie oft die Engine neue Claims prüft. Scan-Tempo: Verzögerung zwischen Spielern zur DB-Entlastung. Startverzögerung: Wartezeit vor dem ersten Scan nach dem Start.",
+      "save": "Konfiguration speichern",
+      "saved": "Konfiguration gespeichert.",
+      "saveFailed": "Speichern fehlgeschlagen: {{message}}",
+      "failedToLoad": "Konfiguration konnte nicht geladen werden: {{message}}"
     },
     "editor": {
       "title": "Stufe bearbeiten",
@@ -1591,12 +1628,21 @@
       "accountId": "Konto",
       "name": "Charakter",
       "online": "Status",
-      "intel": "Ausstehendes Intel",
+      "intel": "Intel",
+      "tier": "Stufe",
+      "items": "Gegenstände",
       "onlineState": "Online",
       "offlineState": "Offline",
       "grant": "Vergeben",
+      "grantSelected": "Auswahl gewähren",
       "grantOnlineHint": "Offline erforderlich",
-      "none": "Keine Spieler mit verdienten, nicht vergebenen Belohnungen."
+      "none": "Keine Spieler mit verdienten, nicht vergebenen Belohnungen.",
+      "bulkGrantSuccess": "{{granted}} Belohnungen gewährt. {{skipped}} übersprungen (online).",
+      "bulkGrantDialog": {
+        "title": "Ausgewählte Belohnungen gewähren?",
+        "body": "{{count}} ausstehende Stufenbelohnungen an Offline-Spieler gewähren. Online-Spieler in der Auswahl werden übersprungen.",
+        "confirm": "{{count}} gewähren"
+      }
     },
     "progress": {
       "title": "Spielerfortschritt",

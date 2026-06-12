@@ -1,6 +1,6 @@
 import * as React from 'react'
 import {
-  Button, Chip, CloseButton, ListBox, Modal, SearchField, Select, Separator, Switch, TextField, toast,
+  Button, Chip, CloseButton, ListBox, Modal, SearchField, Select, Separator, Switch, TextArea, TextField, toast,
 } from '@heroui/react'
 import type { Selection } from '@heroui/react'
 import type { DataGridColumn } from '@heroui-pro/react'
@@ -103,6 +103,8 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
     { signal: 'level', threshold: 50, tagName: '', awardPast: false },
   )
   const [announceTemplate, setAnnounceTemplate] = React.useState('')
+  const [pollSeconds, setPollSeconds] = React.useState(7)
+  const [jitterSeconds, setJitterSeconds] = React.useState(3)
   const [maps, setMaps] = React.useState<string[]>([])
 
   // Reward fields
@@ -162,6 +164,8 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
           setRewardXP([])
         }
         setAnnounceTemplate(editing.announce_template || '')
+        setPollSeconds(editing.poll_seconds > 0 ? editing.poll_seconds : 7)
+        setJitterSeconds(editing.jitter_seconds > 0 ? editing.jitter_seconds : 3)
       }
       else {
         setName('')
@@ -173,6 +177,8 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
         setRewardItems([])
         setRewardXP([])
         setAnnounceTemplate('')
+        setPollSeconds(7)
+        setJitterSeconds(3)
       }
       setTemplateQuery('')
       setSelectedTemplate('')
@@ -203,11 +209,19 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
     [templates],
   )
 
+  const ZONE_RACE_DEFAULT_TEMPLATE = '{player} completed {event}!'
+
   const handleTypeChange = (newType: string) => {
     const t2 = newType as EventDefinition['type']
     setType(t2)
-    if (t2 === 'zone_race') setZone({ map: '', x: 0, y: 0, z: 0, radius: 500, participants: [] })
-    else setMilestone({ signal: 'level', threshold: 50, tagName: '', awardPast: false })
+    if (t2 === 'zone_race') {
+      setZone({ map: '', x: 0, y: 0, z: 0, radius: 500, participants: [] })
+      if (!announceTemplate) setAnnounceTemplate(ZONE_RACE_DEFAULT_TEMPLATE)
+    }
+    else {
+      setMilestone({ signal: 'level', threshold: 50, tagName: '', awardPast: false })
+      if (announceTemplate === ZONE_RACE_DEFAULT_TEMPLATE) setAnnounceTemplate('')
+    }
   }
 
   const addParticipant = (accountId: number) => {
@@ -287,6 +301,8 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
       reward: serializeReward(rewardCurrency, rewardFactionScrip, rewardItems, rewardXP),
       announce_channel_id: '',
       announce_template: announceTemplate,
+      poll_seconds: pollSeconds,
+      jitter_seconds: jitterSeconds,
     }
     const call = isEdit && editing
       ? api.events.update(editing.id, payload)
@@ -631,20 +647,59 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
 
                 <FormSection>
                   <SectionLabel>{t('events.editor.announceLabel')}</SectionLabel>
-                  <div className="mt-2">
-                    <span className={fieldLabelClass}>{t('events.editor.announceTemplate')}</span>
-                    <FieldInput
+                  <div className="mt-2 flex flex-col gap-2">
+                    <TextArea
+                      aria-label={t('events.editor.announceTemplate')}
+                      fullWidth
+                      rows={3}
+                      placeholder={type === 'zone_race'
+                        ? '{player} completed {event}!'
+                        : '{player} reached level {value} in {event}!'}
                       value={announceTemplate}
-                      onChange={setAnnounceTemplate}
-                      placeholder="{player} won {event}!"
-                      ariaLabel={t('events.editor.announceTemplate')}
+                      onChange={(e) => setAnnounceTemplate(e.target.value)}
                     />
-                    <p className="text-xs text-muted mt-1">
+                    <p className="text-xs text-muted">
                       {t('events.editor.templateHint')}
                       {' '}
                       {t('events.editor.channelDefault')}
                     </p>
+                    {announceTemplate.trim() && (
+                      <div className="rounded border border-border bg-surface-secondary px-3 py-2">
+                        <span className="text-xs text-muted block mb-1">{t('events.editor.templatePreview')}</span>
+                        <span className="text-sm">
+                          {announceTemplate
+                            .replace('{player}', players[0]?.name ?? 'PlayerName')
+                            .replace('{event}', name || 'EventName')
+                            .replace('{value}', type === 'milestone' ? String(milestone.threshold) : '')}
+                        </span>
+                      </div>
+                    )}
                   </div>
+                </FormSection>
+
+                <FormSection>
+                  <SectionLabel>{t('events.editor.scheduleLabel')}</SectionLabel>
+                  <div className="mt-2 flex gap-4">
+                    <NumberInput
+                      label={t('events.editor.pollSeconds')}
+                      min={1}
+                      max={3600}
+                      step={1}
+                      value={pollSeconds}
+                      onChange={setPollSeconds}
+                      className="flex-1"
+                    />
+                    <NumberInput
+                      label={t('events.editor.jitterSeconds')}
+                      min={1}
+                      max={300}
+                      step={1}
+                      value={jitterSeconds}
+                      onChange={setJitterSeconds}
+                      className="flex-1"
+                    />
+                  </div>
+                  <p className="text-xs text-muted mt-1">{t('events.editor.scheduleHint')}</p>
                 </FormSection>
               </div>
 

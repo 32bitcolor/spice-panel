@@ -1435,8 +1435,8 @@
     "deleteFailed": "イベントの削除に失敗しました：{{message}}",
     "resetFailed": "イベントのリセットに失敗しました：{{message}}",
     "resetSuccess": "イベントの受領記録をクリアしました。",
-    "confirmDelete": "イベント \"{{name}}\" を削除しますか？",
-    "confirmReset": "\"{{name}}\" のすべての受領記録をクリアしますか？すべてのプレイヤーに対してイベントが再度発動できるようになります。",
+    "confirmDelete": "Delete \"{{name}}\"? This cannot be undone.",
+    "confirmReset": "Clear all claims for \"{{name}}\"? Players can trigger this event again.",
     "toggleEnabled": "有効/無効を切り替え",
     "columns": {
       "name": "名前",
@@ -1489,19 +1489,37 @@
       "xpAmount": "数量",
       "announceLabel": "アナウンス",
       "announceTemplate": "アナウンステンプレート",
-      "templateHint": "プレースホルダー：{player} {event} {value}。",
+      "templateHint": "プレースホルダー：{player} {event} {value}。（{value} = マイルストーンの閾値、ゾーンレースでは空。）",
       "channelDefault": "設定された Discord アナウンスチャンネルに投稿されます。",
       "created": "イベントを作成しました。",
       "updated": "イベントを更新しました。",
       "saveFailed": "イベントの保存に失敗しました：{{message}}",
       "xpType": "タイプ",
       "addParticipant": "プレイヤーを追加…",
-      "noPlayersLoaded": "プレイヤーが読み込まれていません — サーバーを起動して再読み込みしてください。"
+      "noPlayersLoaded": "プレイヤーが読み込まれていません — サーバーを起動して再読み込みしてください。",
+      "scheduleLabel": "Schedule",
+      "pollSeconds": "Poll Interval (s)",
+      "jitterSeconds": "Jitter (s)",
+      "scheduleHint": "How often to check this event. Jitter adds randomness to avoid thundering herd.",
+      "templatePreview": "Preview:"
     },
     "signals": {
       "level": "キャラクターレベル",
       "achievementTag": "実績タグ"
-    }
+    },
+    "config": {
+      "title": "エンジン設定",
+      "enabled": "イベントエンジンを有効化",
+      "enabledHint": "バックグラウンドポーリングループを開始します。個別のイベントも有効化が必要です。",
+      "pollSeconds": "ポーリング間隔（秒）",
+      "save": "保存",
+      "saved": "設定を保存しました。",
+      "saveFailed": "保存に失敗しました: {{message}}",
+      "failedToLoad": "読み込みに失敗しました: {{message}}"
+    },
+    "confirmDeleteTitle": "Delete Event",
+    "confirmResetTitle": "Reset Event",
+    "resetConfirmLabel": "Reset"
   },
   "battlepass": {
     "title": "バトルパス（{{count}} ティア）",
@@ -1516,8 +1534,8 @@
       "keeps": "クレーム履歴とプレイヤーのベースラインは保持されます。クレームはティアキーで再紐付けされるため、再取得や二重付与は発生しません。ゲームデータベースは変更されません。"
     },
     "grantDialog": {
-      "title": "バトルパスのインテルを付与しますか？",
-      "body": "{{account}} に {{intel}} インテルポイントを1回のアップデートで付与し、獲得済みティアを付与済みとしてマークします。適用中はプレイヤーがオフラインのままである必要があります — 先にログインした場合、付与は失敗し再試行待ちになります。",
+      "title": "バトルパス報酬を付与しますか？",
+      "body": "「{{tier}}」の {{intel}} インテルを {{account}} に付与し、付属するアイテム報酬を配送します。適用中はプレイヤーがオフラインのままである必要があります — 先にログインした場合、付与は失敗し再試行待ちになります。",
       "confirm": "{{intel}} インテルを付与"
     },
     "reseedSuccess": "カタログが {{count}} ティアで再シードされました。",
@@ -1529,6 +1547,7 @@
     "invalidAccount": "有効なアカウントIDを入力してください。",
     "requirementLevel": "レベル {{level}} に到達",
     "grantSuccess": "{{tiers}} ティアにわたって {{intel}} インテルを付与しました。",
+    "grantTierSuccess": "「{{tier}}」に {{intel}} インテルを付与しました。",
     "grantFailed": "付与に失敗しました：{{message}}",
     "categories": {
       "level": "レベル",
@@ -1551,7 +1570,25 @@
       "pending": "保留中（{{count}}）",
       "progress": "進捗",
       "catalog": "カタログ",
-      "track": "トラック"
+      "track": "トラック",
+      "config": "設定"
+    },
+    "config": {
+      "subtitle": "エンジン設定 — 変更は次回のサーバー再起動時に有効になります。",
+      "engineSection": "エンジン",
+      "enabled": "バトルパスエンジンを有効化",
+      "enabledHint": "無効にするとポーリングエンジンが停止し、新しいクレームは記録されません。",
+      "awardPast": "過去のティアを付与する",
+      "awardPastHint": "有効にすると、初回スキャン前に完了済みのティアも獲得済みとして記録されます。初回スキャン前に設定する必要があり、その後は遡及変更できません。",
+      "timingSection": "タイミング",
+      "pollSeconds": "ポーリング間隔（秒）",
+      "scanPaceMs": "スキャンペース（ms/プレイヤー）",
+      "scanStartDelayMs": "起動遅延（ms）",
+      "timingHint": "ポーリング間隔：エンジンの確認頻度。スキャンペース：DB負荷軽減のためのプレイヤー間の遅延。起動遅延：起動後の初回スキャンまでの待機時間。",
+      "save": "設定を保存",
+      "saved": "設定が保存されました。",
+      "saveFailed": "保存に失敗しました：{{message}}",
+      "failedToLoad": "設定の読み込みに失敗しました：{{message}}"
     },
     "editor": {
       "title": "ティアを編集",
@@ -1591,12 +1628,21 @@
       "accountId": "アカウント",
       "name": "キャラクター",
       "online": "ステータス",
-      "intel": "保留中のインテル",
+      "intel": "インテル",
+      "tier": "ティア",
+      "items": "アイテム",
       "onlineState": "オンライン",
       "offlineState": "オフライン",
       "grant": "付与",
+      "grantSelected": "選択を付与",
       "grantOnlineHint": "オフライン必須",
-      "none": "獲得済みで未付与の報酬を持つプレイヤーはいません。"
+      "none": "獲得済みで未付与の報酬を持つプレイヤーはいません。",
+      "bulkGrantSuccess": "{{granted}} 件の報酬を付与しました。{{skipped}} 件をスキップ（オンライン）。",
+      "bulkGrantDialog": {
+        "title": "選択した報酬を付与しますか？",
+        "body": "{{count}} 件の保留中のティア報酬をオフラインプレイヤーに付与します。オンラインプレイヤーはスキップされます。",
+        "confirm": "{{count}} 件を付与"
+      }
     },
     "progress": {
       "title": "プレイヤー進捗",

@@ -209,3 +209,37 @@ func handleResetEvent(w http.ResponseWriter, r *http.Request) {
 func isValidEventType(t eventType) bool {
 	return t == eventTypeZoneRace || t == eventTypeMilestone
 }
+
+// ── config ────────────────────────────────────────────────────────────────────
+
+// eventsConfigPayload is the request/response shape for the events config endpoints.
+type eventsConfigPayload struct {
+	Enabled *bool `json:"events_enabled"`
+}
+
+func eventsConfigFromLoaded() eventsConfigPayload {
+	return eventsConfigPayload{Enabled: loadedConfig.EventsEnabled}
+}
+
+func handleGetEventsConfig(w http.ResponseWriter, _ *http.Request) {
+	jsonOK(w, eventsConfigFromLoaded())
+}
+
+func handleSaveEventsConfig(w http.ResponseWriter, r *http.Request) {
+	var p eventsConfigPayload
+	if err := decode(r, &p); err != nil {
+		jsonErr(w, fmt.Errorf("decode: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	loadedConfig.EventsEnabled = p.Enabled
+
+	if err := writeConfigFile(loadedConfig); err != nil {
+		log.Printf("handleSaveEventsConfig: %v", err)
+		jsonErr(w, fmt.Errorf("failed to write config"), http.StatusInternalServerError)
+		return
+	}
+
+	applyEventEngine(loadedConfig)
+	jsonOK(w, eventsConfigFromLoaded())
+}

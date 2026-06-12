@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -246,6 +247,45 @@ func TestBattlepassStoreRecordGrantFailure(t *testing.T) {
 	}
 }
 
+// TestBattlepassReseedUpdatesCategoryAndLabel verifies that reseeding an
+// existing tier updates its mutable fields (category, label, intel) even
+// when the tier_key stays the same — the scenario that occurs when the
+// catalog source changes a tier's category between server restarts.
+func TestBattlepassReseedUpdatesCategoryAndLabel(t *testing.T) {
+	s := testBattlepassStore(t)
+
+	old := []battlepassTier{{
+		TierKey:  "journey:DA_LDR_Combat_DecapitationStrike_01",
+		Category: "contracts", Label: "Contract: Decapitation Strike",
+		Signal: battlepassSignalJourneyNode, SignalKey: "DA_LDR_Combat_DecapitationStrike_01",
+		Intel: 5, Enabled: true,
+	}}
+	if err := s.reseedTiers(old); err != nil {
+		t.Fatalf("initial reseed: %v", err)
+	}
+
+	updated := []battlepassTier{{
+		TierKey:  "journey:DA_LDR_Combat_DecapitationStrike_01",
+		Category: "faction", Label: "Contract: Decapitation Strike",
+		Signal: battlepassSignalJourneyNode, SignalKey: "DA_LDR_Combat_DecapitationStrike_01",
+		Intel: 5, Enabled: true,
+	}}
+	if err := s.reseedTiers(updated); err != nil {
+		t.Fatalf("reseed with updated category: %v", err)
+	}
+
+	tiers, err := s.listTiers()
+	if err != nil {
+		t.Fatalf("listTiers: %v", err)
+	}
+	if len(tiers) != 1 {
+		t.Fatalf("want 1 tier, got %d", len(tiers))
+	}
+	if tiers[0].Category != "faction" {
+		t.Errorf("category = %q, want %q", tiers[0].Category, "faction")
+	}
+}
+
 func TestBattlepassStoreReseedPreservesClaims(t *testing.T) {
 	s := testBattlepassStore(t)
 	if _, err := s.seedTiersIfEmpty(testTiers()); err != nil {
@@ -269,6 +309,129 @@ func TestBattlepassStoreReseedPreservesClaims(t *testing.T) {
 	keys, _ := s.claimedKeys(1)
 	if keys["level:5"] != battlepassClaimGranted {
 		t.Fatalf("reseed lost claims: %v", keys)
+	}
+}
+
+func TestEarnedClaimsWithTiers_empty(t *testing.T) {
+	s := testBattlepassStore(t)
+	rows, err := s.earnedClaimsWithTiers()
+	if err != nil {
+		t.Fatalf("earnedClaimsWithTiers: %v", err)
+	}
+	if len(rows) != 0 {
+		t.Fatalf("want 0 rows, got %d", len(rows))
+	}
+}
+
+func TestEarnedClaimsWithTiers_onlyEarned(t *testing.T) {
+	s := testBattlepassStore(t)
+	if _, err := s.seedTiersIfEmpty(testTiers()); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	_ = s.recordClaim("level:5", 1, 10, battlepassClaimEarned)
+	_ = s.recordClaim("level:5", 2, 10, battlepassClaimBaseline)
+	_ = s.recordClaim("journey:DA_MQ_FindTheFremen", 1, 40, battlepassClaimGranted)
+	_ = s.recordClaim("tag:Exploration.Cave.Large.Altar1", 3, 5, battlepassClaimEarned)
+
+	rows, err := s.earnedClaimsWithTiers()
+	if err != nil {
+		t.Fatalf("earnedClaimsWithTiers: %v", err)
+	}
+	if len(rows) != 2 {
+		t.Fatalf("want 2 earned rows, got %d: %+v", len(rows), rows)
+	}
+	// Verify tier label comes through from the join.
+	labels := map[string]string{}
+	for _, r := range rows {
+		labels[r.TierKey] = r.TierLabel
+	}
+	if labels["level:5"] != "Level 5" {
+		t.Errorf("tier label for level:5 = %q, want %q", labels["level:5"], "Level 5")
+	}
+	if labels["tag:Exploration.Cave.Large.Altar1"] != "Altar 1" {
+		t.Errorf("tier label for tag:Exploration.Cave.Large.Altar1 = %q, want %q", labels["tag:Exploration.Cave.Large.Altar1"], "Altar 1")
+	}
+}
+
+func TestEarnedClaimsWithTiers_noTierLabel(t *testing.T) {
+	s := testBattlepassStore(t)
+	// Claim without a matching tier row — label falls back to tier_key.
+	_ = s.recordClaim("orphan:key", 1, 10, battlepassClaimEarned)
+
+	rows, err := s.earnedClaimsWithTiers()
+	if err != nil {
+		t.Fatalf("earnedClaimsWithTiers: %v", err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("want 1 row, got %d", len(rows))
+	}
+	if rows[0].TierLabel != "orphan:key" {
+		t.Errorf("fallback label = %q, want tier_key", rows[0].TierLabel)
+	}
+}
+
+func TestEarnedClaim_found(t *testing.T) {
+	s := testBattlepassStore(t)
+	_ = s.recordClaim("level:5", 1, 10, battlepassClaimEarned)
+
+	c, err := s.earnedClaim(1, "level:5")
+	if err != nil {
+		t.Fatalf("earnedClaim: %v", err)
+	}
+	if c.TierKey != "level:5" || c.AccountID != 1 || c.Intel != 10 {
+		t.Fatalf("claim = %+v, want level:5/account=1/intel=10", c)
+	}
+}
+
+func TestEarnedClaim_notFound(t *testing.T) {
+	s := testBattlepassStore(t)
+	_ = s.recordClaim("level:5", 1, 10, battlepassClaimBaseline)
+
+	if _, err := s.earnedClaim(1, "level:5"); !errors.Is(err, errBattlepassNothingEarned) {
+		t.Fatalf("want errBattlepassNothingEarned, got %v", err)
+	}
+	if _, err := s.earnedClaim(1, "nonexistent"); !errors.Is(err, errBattlepassNothingEarned) {
+		t.Fatalf("want errBattlepassNothingEarned for missing key, got %v", err)
+	}
+}
+
+func TestMarkGrantedForTier_singleTier(t *testing.T) {
+	s := testBattlepassStore(t)
+	_ = s.recordClaim("level:5", 1, 10, battlepassClaimEarned)
+	_ = s.recordClaim("level:10", 1, 15, battlepassClaimEarned)
+
+	if err := s.markGrantedForTier(1, "level:5"); err != nil {
+		t.Fatalf("markGrantedForTier: %v", err)
+	}
+
+	keys, _ := s.claimedKeys(1)
+	if keys["level:5"] != battlepassClaimGranted {
+		t.Errorf("level:5 = %q, want granted", keys["level:5"])
+	}
+	if keys["level:10"] != battlepassClaimEarned {
+		t.Errorf("level:10 = %q, want earned (untouched)", keys["level:10"])
+	}
+}
+
+func TestRecordGrantFailureForTier_singleTier(t *testing.T) {
+	s := testBattlepassStore(t)
+	_ = s.recordClaim("level:5", 1, 10, battlepassClaimEarned)
+	_ = s.recordClaim("level:10", 1, 15, battlepassClaimEarned)
+
+	if err := s.recordGrantFailureForTier(1, "level:5", "timed out"); err != nil {
+		t.Fatalf("recordGrantFailureForTier: %v", err)
+	}
+
+	claims, _ := s.listClaims(1)
+	byKey := map[string]battlepassClaim{}
+	for _, c := range claims {
+		byKey[c.TierKey] = c
+	}
+	if byKey["level:5"].Attempts != 1 || byKey["level:5"].LastError != "timed out" {
+		t.Errorf("level:5 = %+v, want attempts=1 lastError=timed out", byKey["level:5"])
+	}
+	if byKey["level:10"].Attempts != 0 {
+		t.Errorf("level:10 attempts = %d, want 0 (untouched)", byKey["level:10"].Attempts)
 	}
 }
 

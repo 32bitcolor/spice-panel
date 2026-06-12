@@ -5,9 +5,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand/v2"
 	"strings"
+	"sync"
 	"time"
 )
+
+// globalEventsCancel stops the running events engine goroutine.
+// Protected by globalEventsMu; nil when the engine is not running.
+var globalEventsCancel context.CancelFunc
+var globalEventsMu sync.Mutex
 
 // milestoneSignal names the data source used to evaluate a milestone event.
 type milestoneSignal string
@@ -347,22 +354,33 @@ func reconcileEvent(ctx context.Context, deps eventDeps, store *eventStore, def 
 
 // ── polling loop ──────────────────────────────────────────────────────────────
 
-// runEventEngine is the background polling loop. It loads enabled events on
-// each tick and dispatches each to its type evaluator.
-func runEventEngine(ctx context.Context, deps eventDeps, store *eventStore, interval time.Duration) {
-	ticker := time.NewTicker(interval)
+// runEventEngine is the background polling loop. It checks every second and
+// dispatches events that are due based on their per-event poll_seconds +
+// random jitter (0..jitter_seconds).
+func runEventEngine(ctx context.Context, deps eventDeps, store *eventStore) {
+	lastEval := make(map[int64]time.Time)
+	nextDue := make(map[int64]time.Time) // when each event is next scheduled
+
+	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-ticker.C:
-			processEventTick(ctx, deps, store)
+		case now := <-ticker.C:
+			processEventTick(ctx, deps, store, now, lastEval, nextDue)
 		}
 	}
 }
 
-func processEventTick(ctx context.Context, deps eventDeps, store *eventStore) {
+func processEventTick(
+	ctx context.Context,
+	deps eventDeps,
+	store *eventStore,
+	now time.Time,
+	lastEval map[int64]time.Time,
+	nextDue map[int64]time.Time,
+) {
 	events, err := store.list()
 	if err != nil {
 		log.Printf("events: list: %v", err)
@@ -372,7 +390,49 @@ func processEventTick(ctx context.Context, deps eventDeps, store *eventStore) {
 		if !def.Enabled {
 			continue
 		}
+		if !scheduleEventIfDue(def, now, lastEval, nextDue) {
+			continue
+		}
 		processOneEvent(ctx, deps, store, def)
+	}
+	pruneDeletedEvents(events, lastEval, nextDue)
+}
+
+// scheduleEventIfDue returns true if def is due to fire at now, and advances
+// its nextDue entry. On first sight of an event it fires immediately.
+func scheduleEventIfDue(def eventDefinition, now time.Time, lastEval, nextDue map[int64]time.Time) bool {
+	due, hasDue := nextDue[def.ID]
+	if !hasDue {
+		nextDue[def.ID] = now
+		due = now
+	}
+	if now.Before(due) {
+		return false
+	}
+	lastEval[def.ID] = now
+	poll := time.Duration(def.PollSeconds) * time.Second
+	if poll <= 0 {
+		poll = 7 * time.Second
+	}
+	jitter := time.Duration(0)
+	if def.JitterSeconds > 0 {
+		jitter = time.Duration(rand.IntN(def.JitterSeconds+1)) * time.Second //nolint:gosec
+	}
+	nextDue[def.ID] = now.Add(poll + jitter)
+	return true
+}
+
+// pruneDeletedEvents removes map entries for events that no longer exist.
+func pruneDeletedEvents(events []eventDefinition, lastEval, nextDue map[int64]time.Time) {
+	live := make(map[int64]struct{}, len(events))
+	for _, d := range events {
+		live[d.ID] = struct{}{}
+	}
+	for id := range lastEval {
+		if _, ok := live[id]; !ok {
+			delete(lastEval, id)
+			delete(nextDue, id)
+		}
 	}
 }
 
@@ -397,27 +457,44 @@ func processOneEvent(ctx context.Context, deps eventDeps, store *eventStore, def
 	}
 }
 
-// startEventEngineIfEnabled wires production dependencies and starts the
-// background goroutine. Mirrors the startSessionPoller / startWelcomePackageScanner
-// lifecycle pattern in sessions.go and welcome_package.go.
-func startEventEngineIfEnabled(cfg appConfig) context.CancelFunc {
+// applyEventEngine stops any running events engine goroutine, then starts a
+// new one if events_enabled is true. Safe to call from config save handlers.
+func applyEventEngine(cfg appConfig) {
+	globalEventsMu.Lock()
+	defer globalEventsMu.Unlock()
+
+	if globalEventsCancel != nil {
+		globalEventsCancel()
+		globalEventsCancel = nil
+		log.Printf("events: engine stopped")
+	}
+
 	if !eventsEnabled(cfg) {
-		return func() {}
+		return
 	}
 	if globalEventStore == nil {
 		log.Printf("events: store not initialised — engine disabled")
-		return func() {}
+		return
 	}
 
-	interval := clampEventInterval(cfg.EventsPollSeconds)
 	deps := productionEventDeps()
 
-	// Reconcile already-satisfied milestones silently before the live loop starts.
 	go reconcileAllEvents(context.Background(), deps, globalEventStore)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go runEventEngine(ctx, deps, globalEventStore, interval)
-	return cancel
+	globalEventsCancel = cancel
+	go runEventEngine(ctx, deps, globalEventStore)
+	log.Printf("events: engine started (per-event scheduling)")
+}
+
+// stopEventEngine cancels the running events engine goroutine if any.
+func stopEventEngine() {
+	globalEventsMu.Lock()
+	defer globalEventsMu.Unlock()
+	if globalEventsCancel != nil {
+		globalEventsCancel()
+		globalEventsCancel = nil
+	}
 }
 
 // reconcileAllEvents backfills claims for all milestone events on startup.
@@ -435,17 +512,6 @@ func reconcileAllEvents(ctx context.Context, deps eventDeps, store *eventStore) 
 			log.Printf("events: reconcile event %d: %v", def.ID, err)
 		}
 	}
-}
-
-// clampEventInterval converts EventsPollSeconds to a Duration, clamped [1s, 60s].
-func clampEventInterval(secs int) time.Duration {
-	if secs < 1 {
-		secs = 7
-	}
-	if secs > 60 {
-		secs = 60
-	}
-	return time.Duration(secs) * time.Second
 }
 
 // productionEventDeps builds the event deps using live globals. Called from

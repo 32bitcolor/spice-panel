@@ -7,12 +7,14 @@ import { api } from '../../api/client'
 import type { BattlepassPendingRow, BattlepassTier, BattlepassTierCounts } from '../../api/client'
 import { ActionBar, ConfirmDialog, DataTable, FieldSelect, Icon, NumberInput, PageHeader, Panel, SectionLabel, type Column } from '../../dune-ui'
 import { TierEditorModal } from './modals/TierEditorModal'
+import { RewardIcon } from './RewardIcons'
 import { TrackView } from './TrackView'
+import { ConfigView } from './views/ConfigView'
 import { ProgressView } from './views/ProgressView'
 
-type Section = 'pending' | 'progress' | 'catalog' | 'track'
+type Section = 'pending' | 'progress' | 'catalog' | 'track' | 'config'
 type TierKey = 'label' | 'category' | 'requirement' | 'intel' | 'rewards' | 'earned' | 'granted' | 'enabled' | 'actions'
-type PendingKey = 'account_id' | 'name' | 'online' | 'pending_intel' | 'actions'
+type PendingKey = 'name' | 'tier_label' | 'intel' | 'items' | 'actions'
 
 const CATEGORY_ALL = 'all'
 const CATEGORY_ORDER = ['level', 'story', 'side_quest', 'faction', 'exploration', 'achievement']
@@ -37,12 +39,14 @@ export const BattlepassTab: React.FC = () => {
   const [category, setCategory] = React.useState<string>(CATEGORY_ALL)
   const [pending, setPending] = React.useState<BattlepassPendingRow[]>([])
   const [pendingLoading, setPendingLoading] = React.useState(false)
-  const [granting, setGranting] = React.useState<number | null>(null)
+  const [granting, setGranting] = React.useState<string | null>(null)
   const [reseedOpen, setReseedOpen] = React.useState(false)
   const [grantTarget, setGrantTarget] = React.useState<BattlepassPendingRow | null>(null)
   const [editorTier, setEditorTier] = React.useState<BattlepassTier | null>(null)
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set())
   const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false)
+  const [pendingSelectedKeys, setPendingSelectedKeys] = React.useState<Selection>(new Set())
+  const [bulkGrantOpen, setBulkGrantOpen] = React.useState(false)
 
   const loadTiers = React.useCallback(() => {
     Promise.resolve()
@@ -82,11 +86,12 @@ export const BattlepassTab: React.FC = () => {
 
   const handleGrant = (row: BattlepassPendingRow) => {
     setGrantTarget(null)
-    setGranting(row.account_id)
+    const grantKey = `${row.account_id}:${row.tier_key}`
+    setGranting(grantKey)
     api.battlepass
-      .grant(row.account_id)
+      .grantTier(row.account_id, row.tier_key)
       .then((r) => {
-        toast.success(t('battlepass.grantSuccess', { intel: r.granted_intel, tiers: r.tiers }))
+        toast.success(t('battlepass.grantTierSuccess', { intel: r.granted_intel, tier: row.tier_label }))
         loadPending()
       })
       .catch((e: unknown) => {
@@ -121,6 +126,7 @@ export const BattlepassTab: React.FC = () => {
   const visibleTiers = category === CATEGORY_ALL ? tiers : tiers.filter((x) => x.category === category)
   const totalIntel = tiers.reduce((sum, x) => (x.enabled ? sum + x.intel : sum), 0)
   const selectionCount = selectedKeys === 'all' ? visibleTiers.length : (selectedKeys as Set<string>).size
+  const pendingSelectionCount = pendingSelectedKeys === 'all' ? pending.length : (pendingSelectedKeys as Set<string>).size
 
   const selectedIds = (): number[] => {
     if (selectedKeys === 'all') return visibleTiers.map((x) => x.id)
@@ -142,6 +148,23 @@ export const BattlepassTab: React.FC = () => {
         toast.danger(t('battlepass.updateFailed', { message: e instanceof Error ? e.message : String(e) }))
         loadTiers()
       })
+  }
+
+  const handleBulkGrant = () => {
+    setBulkGrantOpen(false)
+    const keys = pendingSelectedKeys === 'all'
+      ? pending.map((p) => `${p.account_id}:${p.tier_key}`)
+      : [...(pendingSelectedKeys as Set<string>)]
+    const eligible = pending.filter((p) => !p.online && keys.includes(`${p.account_id}:${p.tier_key}`))
+    const skipped = keys.length - eligible.length
+    setPendingSelectedKeys(new Set())
+    const grant = (row: BattlepassPendingRow) =>
+      api.battlepass.grantTier(row.account_id, row.tier_key).then(() => 1 as const).catch(() => 0 as const)
+    Promise.all(eligible.map(grant)).then((results) => {
+      const granted = results.reduce((a, b) => a + b, 0 as number)
+      toast.success(t('battlepass.pending.bulkGrantSuccess', { granted, skipped }))
+      loadPending()
+    }).catch(() => { loadPending() })
   }
 
   const categoryLabel = (cat: string): string => {
@@ -182,10 +205,10 @@ export const BattlepassTab: React.FC = () => {
   ]
 
   const PENDING_COLUMNS: Column<PendingKey>[] = [
-    { key: 'account_id', label: t('battlepass.pending.accountId'), width: 110 },
     { key: 'name', label: t('battlepass.pending.name'), minWidth: 160 },
-    { key: 'online', label: t('battlepass.pending.online'), width: 90 },
-    { key: 'pending_intel', label: t('battlepass.pending.intel'), width: 110 },
+    { key: 'tier_label', label: t('battlepass.pending.tier'), minWidth: 180 },
+    { key: 'intel', label: t('battlepass.pending.intel'), width: 90 },
+    { key: 'items', label: t('battlepass.pending.items'), width: 60, sortable: false },
     { key: 'actions', label: '', width: 150, sortable: false },
   ]
 
@@ -218,6 +241,10 @@ export const BattlepassTab: React.FC = () => {
               <Segment.Separator />
               {t('battlepass.sections.track')}
             </Segment.Item>
+            <Segment.Item id="config">
+              <Segment.Separator />
+              {t('battlepass.sections.config')}
+            </Segment.Item>
           </Segment>
           <Button size="sm" variant="ghost" onPress={refresh} isDisabled={loading || pendingLoading}>
             <Icon name="refresh-cw" />
@@ -229,17 +256,19 @@ export const BattlepassTab: React.FC = () => {
         {section === 'pending' && (
           <div className="flex flex-col min-h-0 flex-1">
             <DataTable<BattlepassPendingRow, PendingKey>
+              selectionMode="multiple"
+              selectedKeys={pendingSelectedKeys}
+              onSelectionChange={setPendingSelectedKeys}
               aria-label={t('battlepass.sections.pending', { count: pending.length })}
               pageSize={50}
               rowHeight={48}
               columns={PENDING_COLUMNS}
               rows={pending}
               loading={pendingLoading}
-              rowId={(p) => String(p.account_id)}
-              initialSort={{ column: 'pending_intel', direction: 'descending' }}
+              rowId={(p) => `${p.account_id}:${p.tier_key}`}
+              initialSort={{ column: 'intel', direction: 'descending' }}
               sortValue={(p, k) => {
-                if (k === 'online') return p.online ? 1 : 0
-                if (k === 'actions') return ''
+                if (k === 'actions' || k === 'items') return ''
                 return (p as unknown as Record<string, string | number>)[k] ?? ''
               }}
               emptyState={(
@@ -250,26 +279,38 @@ export const BattlepassTab: React.FC = () => {
                 </EmptyState>
               )}
               renderCell={(p, key) => {
+                const grantKey = `${p.account_id}:${p.tier_key}`
                 switch (key) {
-                  case 'account_id':
-                    return <span className="font-mono text-xs">{p.account_id}</span>
                   case 'name':
-                    return p.name || <span className="text-muted">—</span>
-                  case 'online':
                     return (
-                      <Chip size="sm" variant="soft" color={p.online ? 'success' : 'default'}>
-                        {p.online ? t('battlepass.pending.onlineState') : t('battlepass.pending.offlineState')}
-                      </Chip>
+                      <span className="flex items-center gap-1.5">
+                        <span
+                          className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${p.online ? 'bg-success' : 'bg-border'}`}
+                          title={p.online ? t('battlepass.pending.onlineState') : t('battlepass.pending.offlineState')}
+                        />
+                        {p.name || <span className="text-muted">—</span>}
+                      </span>
                     )
-                  case 'pending_intel':
-                    return <span className="font-mono tabular-nums">{p.pending_intel}</span>
+                  case 'tier_label':
+                    return <span>{p.tier_label}</span>
+                  case 'intel':
+                    return <span className="font-mono tabular-nums">{p.intel}</span>
+                  case 'items':
+                    return p.reward_items
+                      ? (
+                          <RewardIcon
+                            tier={{ reward_items: p.reward_items, category: '' } as Parameters<typeof RewardIcon>[0]['tier']}
+                            className="w-4 h-4 text-muted"
+                          />
+                        )
+                      : <span className="text-muted">—</span>
                   case 'actions':
                     return (
                       <Button
                         size="sm"
                         variant="primary"
                         onPress={() => setGrantTarget(p)}
-                        isDisabled={p.online || granting === p.account_id}
+                        isDisabled={p.online || granting === grantKey}
                       >
                         <Icon name="gift" />
                         {' '}
@@ -412,6 +453,12 @@ export const BattlepassTab: React.FC = () => {
           </Panel>
         )}
 
+        {section === 'config' && (
+          <Panel className="flex flex-col min-h-0 flex-1">
+            <ConfigView />
+          </Panel>
+        )}
+
         <ConfirmDialog
           open={reseedOpen}
           title={t('battlepass.reseedDialog.title')}
@@ -434,12 +481,13 @@ export const BattlepassTab: React.FC = () => {
         <ConfirmDialog
           open={grantTarget != null}
           title={t('battlepass.grantDialog.title')}
-          confirmLabel={t('battlepass.grantDialog.confirm', { intel: grantTarget?.pending_intel ?? 0 })}
+          confirmLabel={t('battlepass.grantDialog.confirm', { intel: grantTarget?.intel ?? 0 })}
           onConfirm={() => grantTarget && handleGrant(grantTarget)}
           onCancel={() => setGrantTarget(null)}
           description={t('battlepass.grantDialog.body', {
-            intel: grantTarget?.pending_intel ?? 0,
+            intel: grantTarget?.intel ?? 0,
             account: grantTarget?.name || grantTarget?.account_id || '',
+            tier: grantTarget?.tier_label ?? '',
           })}
         />
 
@@ -452,6 +500,15 @@ export const BattlepassTab: React.FC = () => {
           description={t('battlepass.bulkDeleteDialog.body', { count: selectionCount })}
         />
 
+        <ConfirmDialog
+          open={bulkGrantOpen}
+          title={t('battlepass.pending.bulkGrantDialog.title')}
+          confirmLabel={t('battlepass.pending.bulkGrantDialog.confirm', { count: pendingSelectionCount })}
+          onConfirm={handleBulkGrant}
+          onCancel={() => setBulkGrantOpen(false)}
+          description={t('battlepass.pending.bulkGrantDialog.body', { count: pendingSelectionCount })}
+        />
+
         <TierEditorModal
           isOpen={editorTier != null}
           onClose={() => setEditorTier(null)}
@@ -459,6 +516,31 @@ export const BattlepassTab: React.FC = () => {
           onSaved={loadTiers}
         />
       </div>
+
+      <ActionBar aria-label={t('battlepass.pending.title', { count: pending.length })} isOpen={section === 'pending' && pendingSelectionCount > 0}>
+        <ActionBar.Prefix>
+          <Chip size="sm" className="shrink-0 tabular-nums">{pendingSelectionCount}</Chip>
+        </ActionBar.Prefix>
+        <Separator />
+        <ActionBar.Content>
+          <Button size="sm" variant="ghost" onPress={() => setBulkGrantOpen(true)}>
+            <Icon name="gift" />
+            <span className="action-bar__label">{t('battlepass.pending.grantSelected')}</span>
+          </Button>
+        </ActionBar.Content>
+        <Separator />
+        <ActionBar.Suffix>
+          <Button
+            isIconOnly
+            size="sm"
+            variant="ghost"
+            onPress={() => setPendingSelectedKeys(new Set())}
+            aria-label={t('common.clearSelection')}
+          >
+            <Icon name="x" />
+          </Button>
+        </ActionBar.Suffix>
+      </ActionBar>
 
       <ActionBar aria-label={t('battlepass.catalog.title', { count: visibleTiers.length })} isOpen={section === 'catalog' && selectionCount > 0}>
         <ActionBar.Prefix>

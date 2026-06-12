@@ -703,16 +703,7 @@ func setupEventsEngine(ok func(string), ask func(string, string) string, cfg *ap
 	}
 	t := true
 	cfg.EventsEnabled = &t
-	pollStr := strings.TrimSpace(ask("Poll interval in seconds (1–60, default 7)", "7"))
-	poll, err := strconv.Atoi(pollStr)
-	if err != nil || poll < 1 {
-		poll = 7
-	}
-	if poll > 60 {
-		poll = 60
-	}
-	cfg.EventsPollSeconds = poll
-	ok("Live events engine configured")
+	ok("Live events engine configured (poll interval set per event)")
 	fmt.Println()
 }
 

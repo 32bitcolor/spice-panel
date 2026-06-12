@@ -93,3 +93,104 @@ func TestStartEmbeddedDiscordBotAsync(t *testing.T) {
 		t.Fatal("startEmbeddedDiscordBotIfEnabled blocked for >2s — should return immediately")
 	}
 }
+
+func TestStopDiscordBot_ClearsCancel(t *testing.T) {
+	stopped := false
+	discordCancelMu.Lock()
+	globalDiscordCancel = func() { stopped = true }
+	discordCancelMu.Unlock()
+	t.Cleanup(func() {
+		discordCancelMu.Lock()
+		globalDiscordCancel = nil
+		discordCancelMu.Unlock()
+	})
+
+	stopDiscordBot()
+
+	discordCancelMu.Lock()
+	remaining := globalDiscordCancel
+	discordCancelMu.Unlock()
+
+	if remaining != nil {
+		t.Fatal("expected globalDiscordCancel to be nil after stop")
+	}
+	if !stopped {
+		t.Fatal("expected previous cancel func to be called by stopDiscordBot")
+	}
+}
+
+func TestApplyDiscordConfig_StopsRunningBot(t *testing.T) {
+	stopped := false
+	discordCancelMu.Lock()
+	globalDiscordCancel = func() { stopped = true }
+	discordCancelMu.Unlock()
+	t.Cleanup(func() {
+		discordCancelMu.Lock()
+		globalDiscordCancel = nil
+		discordCancelMu.Unlock()
+	})
+
+	applyDiscordConfig(appConfig{DiscordBotEnabled: boolPtr(false)})
+
+	discordCancelMu.Lock()
+	remaining := globalDiscordCancel
+	discordCancelMu.Unlock()
+
+	if remaining != nil {
+		t.Fatal("expected globalDiscordCancel nil after disabling")
+	}
+	if !stopped {
+		t.Fatal("expected running cancel func to be called on disable")
+	}
+}
+
+func TestApplyDiscordConfig_NoopWhenDisabledAndNotRunning(t *testing.T) {
+	discordCancelMu.Lock()
+	globalDiscordCancel = nil
+	discordCancelMu.Unlock()
+
+	applyDiscordConfig(appConfig{DiscordBotEnabled: boolPtr(false)})
+
+	discordCancelMu.Lock()
+	remaining := globalDiscordCancel
+	discordCancelMu.Unlock()
+
+	if remaining != nil {
+		t.Fatal("expected globalDiscordCancel to remain nil")
+	}
+}
+
+func TestApplyDiscordConfig_SetsCancel_WhenEnabled(t *testing.T) {
+	discordCancelMu.Lock()
+	globalDiscordCancel = nil
+	discordCancelMu.Unlock()
+	t.Cleanup(func() {
+		stopDiscordBot()
+	})
+
+	cfg := appConfig{
+		DiscordBotEnabled: boolPtr(true),
+		DiscordBotToken:   "fake-token-apply-test",
+		DiscordGuildID:    "123456789012345678",
+	}
+
+	done := make(chan struct{})
+	go func() {
+		applyDiscordConfig(cfg)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("applyDiscordConfig blocked for >2s — should return immediately")
+	}
+
+	discordCancelMu.Lock()
+	remaining := globalDiscordCancel
+	discordCancelMu.Unlock()
+
+	if remaining == nil {
+		t.Fatal("expected globalDiscordCancel to be set after enabling")
+	}
+}

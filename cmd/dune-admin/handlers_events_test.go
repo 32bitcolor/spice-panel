@@ -404,3 +404,106 @@ func itoa(n int64) string {
 	b, _ := json.Marshal(n)
 	return string(b)
 }
+
+// ── events config ─────────────────────────────────────────────────────────────
+
+func TestHandleGetEventsConfig(t *testing.T) {
+	orig := loadedConfig
+	t.Cleanup(func() { loadedConfig = orig })
+
+	enabled := true
+	loadedConfig = appConfig{EventsEnabled: &enabled}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/events/config", nil)
+	rec := httptest.NewRecorder()
+	handleGetEventsConfig(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var got eventsConfigPayload
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if got.Enabled == nil || !*got.Enabled {
+		t.Errorf("Enabled = %v, want true", got.Enabled)
+	}
+}
+
+func TestHandleSaveEventsConfig(t *testing.T) {
+	orig := loadedConfig
+	t.Cleanup(func() { loadedConfig = orig })
+	t.Setenv("DUNE_ADMIN_CONFIG_DIR", t.TempDir())
+
+	body, _ := json.Marshal(eventsConfigPayload{Enabled: boolPtr(true)})
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/events/config", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	handleSaveEventsConfig(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var got eventsConfigPayload
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if got.Enabled == nil || !*got.Enabled {
+		t.Errorf("Enabled = %v, want true", got.Enabled)
+	}
+	if loadedConfig.EventsEnabled == nil || !*loadedConfig.EventsEnabled {
+		t.Errorf("loadedConfig.EventsEnabled = %v, want true", loadedConfig.EventsEnabled)
+	}
+}
+
+func TestHandleSaveEventsConfig_BadJSON(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/events/config", bytes.NewReader([]byte(`{bad`)))
+	rec := httptest.NewRecorder()
+	handleSaveEventsConfig(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestApplyEventEngine_StopsRunningEngine(t *testing.T) {
+	// Arrange: place a sentinel cancel in the global so we can detect it gets called.
+	called := false
+	globalEventsMu.Lock()
+	globalEventsCancel = func() { called = true }
+	globalEventsMu.Unlock()
+	t.Cleanup(func() {
+		globalEventsMu.Lock()
+		globalEventsCancel = nil
+		globalEventsMu.Unlock()
+	})
+
+	// Act: apply with enabled=false — no store, so engine won't start.
+	disabled := false
+	applyEventEngine(appConfig{EventsEnabled: &disabled})
+
+	if !called {
+		t.Error("expected existing cancel to be called when engine is stopped")
+	}
+	globalEventsMu.Lock()
+	nilAfter := globalEventsCancel == nil
+	globalEventsMu.Unlock()
+	if !nilAfter {
+		t.Error("expected globalEventsCancel to be nil after stop")
+	}
+}
+
+func TestApplyEventEngine_NoopWhenDisabledAndStopped(t *testing.T) {
+	globalEventsMu.Lock()
+	globalEventsCancel = nil
+	globalEventsMu.Unlock()
+
+	disabled := false
+	// Should not panic or set a new cancel when already stopped.
+	applyEventEngine(appConfig{EventsEnabled: &disabled})
+
+	globalEventsMu.Lock()
+	c := globalEventsCancel
+	globalEventsMu.Unlock()
+	if c != nil {
+		t.Error("expected globalEventsCancel to remain nil")
+	}
+}

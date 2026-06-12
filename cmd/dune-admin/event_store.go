@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -28,6 +29,8 @@ type eventDefinition struct {
 	Reward            string    `json:"reward"`
 	AnnounceChannelID string    `json:"announce_channel_id"`
 	AnnounceTemplate  string    `json:"announce_template"`
+	PollSeconds       int       `json:"poll_seconds"`
+	JitterSeconds     int       `json:"jitter_seconds"`
 	CreatedAt         string    `json:"created_at"`
 	UpdatedAt         string    `json:"updated_at"`
 }
@@ -55,6 +58,8 @@ CREATE TABLE IF NOT EXISTS event_definitions (
 	reward_json         TEXT    NOT NULL DEFAULT '',
 	announce_channel_id TEXT    NOT NULL DEFAULT '',
 	announce_template   TEXT    NOT NULL DEFAULT '',
+	poll_seconds        INTEGER NOT NULL DEFAULT 7,
+	jitter_seconds      INTEGER NOT NULL DEFAULT 3,
 	created_at          TEXT    NOT NULL,
 	updated_at          TEXT    NOT NULL
 );
@@ -75,6 +80,15 @@ var errNotFound = fmt.Errorf("not found")
 func initEventsSchema(db *sql.DB) error {
 	if _, err := db.Exec(eventsStoreSchema); err != nil {
 		return fmt.Errorf("init events schema: %w", err)
+	}
+	// Add schedule columns to existing databases that predate this migration.
+	for _, stmt := range []string{
+		"ALTER TABLE event_definitions ADD COLUMN poll_seconds   INTEGER NOT NULL DEFAULT 7",
+		"ALTER TABLE event_definitions ADD COLUMN jitter_seconds INTEGER NOT NULL DEFAULT 3",
+	} {
+		if _, err := db.Exec(stmt); err != nil && !strings.Contains(err.Error(), "duplicate column") {
+			return fmt.Errorf("migrate event_definitions: %w", err)
+		}
 	}
 	return nil
 }
@@ -102,7 +116,8 @@ func openEventStore(path string) (*eventStore, error) {
 func (s *eventStore) list() ([]eventDefinition, error) {
 	rows, err := s.db.Query(`
 		SELECT id, name, type, enabled, version, config_json, reward_json,
-		       announce_channel_id, announce_template, created_at, updated_at
+		       announce_channel_id, announce_template, poll_seconds, jitter_seconds,
+		       created_at, updated_at
 		FROM event_definitions ORDER BY id`)
 	if err != nil {
 		return nil, fmt.Errorf("list events: %w", err)
@@ -115,7 +130,7 @@ func (s *eventStore) list() ([]eventDefinition, error) {
 		var enabledInt int
 		if err := rows.Scan(&d.ID, &d.Name, &d.Type, &enabledInt, &d.Version,
 			&d.Config, &d.Reward, &d.AnnounceChannelID, &d.AnnounceTemplate,
-			&d.CreatedAt, &d.UpdatedAt); err != nil {
+			&d.PollSeconds, &d.JitterSeconds, &d.CreatedAt, &d.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan event: %w", err)
 		}
 		d.Enabled = enabledInt != 0
@@ -129,11 +144,12 @@ func (s *eventStore) get(id int64) (*eventDefinition, error) {
 	var enabledInt int
 	err := s.db.QueryRow(`
 		SELECT id, name, type, enabled, version, config_json, reward_json,
-		       announce_channel_id, announce_template, created_at, updated_at
+		       announce_channel_id, announce_template, poll_seconds, jitter_seconds,
+		       created_at, updated_at
 		FROM event_definitions WHERE id = ?`, id).
 		Scan(&d.ID, &d.Name, &d.Type, &enabledInt, &d.Version,
 			&d.Config, &d.Reward, &d.AnnounceChannelID, &d.AnnounceTemplate,
-			&d.CreatedAt, &d.UpdatedAt)
+			&d.PollSeconds, &d.JitterSeconds, &d.CreatedAt, &d.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errNotFound
 	}
@@ -149,13 +165,20 @@ func (s *eventStore) create(d eventDefinition) (*eventDefinition, error) {
 	if d.Config == "" {
 		d.Config = "{}"
 	}
+	if d.PollSeconds <= 0 {
+		d.PollSeconds = 7
+	}
+	if d.JitterSeconds <= 0 {
+		d.JitterSeconds = 3
+	}
 	res, err := s.db.Exec(`
 		INSERT INTO event_definitions
 			(name, type, enabled, version, config_json, reward_json,
-			 announce_channel_id, announce_template, created_at, updated_at)
-		VALUES (?, ?, 0, 1, ?, ?, ?, ?, ?, ?)`,
+			 announce_channel_id, announce_template, poll_seconds, jitter_seconds,
+			 created_at, updated_at)
+		VALUES (?, ?, 0, 1, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		d.Name, string(d.Type), d.Config, d.Reward,
-		d.AnnounceChannelID, d.AnnounceTemplate, now, now)
+		d.AnnounceChannelID, d.AnnounceTemplate, d.PollSeconds, d.JitterSeconds, now, now)
 	if err != nil {
 		return nil, fmt.Errorf("create event: %w", err)
 	}
@@ -165,13 +188,20 @@ func (s *eventStore) create(d eventDefinition) (*eventDefinition, error) {
 
 func (s *eventStore) update(d eventDefinition) (*eventDefinition, error) {
 	now := time.Now().UTC().Format(time.RFC3339)
+	if d.PollSeconds <= 0 {
+		d.PollSeconds = 7
+	}
+	if d.JitterSeconds <= 0 {
+		d.JitterSeconds = 3
+	}
 	res, err := s.db.Exec(`
 		UPDATE event_definitions
 		SET name = ?, type = ?, config_json = ?, reward_json = ?,
-		    announce_channel_id = ?, announce_template = ?, updated_at = ?
+		    announce_channel_id = ?, announce_template = ?,
+		    poll_seconds = ?, jitter_seconds = ?, updated_at = ?
 		WHERE id = ?`,
 		d.Name, string(d.Type), d.Config, d.Reward,
-		d.AnnounceChannelID, d.AnnounceTemplate, now, d.ID)
+		d.AnnounceChannelID, d.AnnounceTemplate, d.PollSeconds, d.JitterSeconds, now, d.ID)
 	if err != nil {
 		return nil, fmt.Errorf("update event %d: %w", d.ID, err)
 	}

@@ -4,8 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 )
+
+// globalBattlepassCancel stops the running battlepass engine goroutine.
+// Protected by globalBattlepassMu; nil when the engine is not running.
+var globalBattlepassCancel context.CancelFunc
+var globalBattlepassMu sync.Mutex
 
 // battlepassPlayer is the per-character snapshot the battlepass engine needs.
 // Level is derived in the bulk fetch so evaluation makes no per-player level
@@ -24,6 +30,10 @@ type battlepassDeps struct {
 	fetchPlayers               func(ctx context.Context) ([]battlepassPlayer, error)
 	fetchCompletedJourneyNodes func(ctx context.Context, accountID int64) ([]string, error)
 	fetchPlayerTags            func(ctx context.Context, accountID int64) ([]string, error)
+	// pace is a context-aware delay injected between players in the evaluation
+	// loop so a scan does not burst Postgres. Production uses a timer-based
+	// sleep; tests inject a no-op or recording stub.
+	pace func(ctx context.Context, d time.Duration) error
 }
 
 // globalBattlepassStore is set once at startup, guarded in every handler.
@@ -149,8 +159,9 @@ func fetchBattlepassSignals(ctx context.Context, deps battlepassDeps, accountID 
 
 // evaluateBattlepassTick evaluates every tracked player against the enabled
 // tiers. Per-player failures are logged and skipped so one bad row cannot
-// stall the whole pass.
-func evaluateBattlepassTick(ctx context.Context, deps battlepassDeps, store *battlepassStore, awardPast bool) error {
+// stall the whole pass. paceEvery > 0 inserts a context-aware pause between
+// players; a ctx cancellation mid-pace returns the ctx error immediately.
+func evaluateBattlepassTick(ctx context.Context, deps battlepassDeps, store *battlepassStore, awardPast bool, paceEvery time.Duration) error {
 	tiers, err := store.listTiers()
 	if err != nil {
 		return fmt.Errorf("battlepass list tiers: %w", err)
@@ -162,7 +173,12 @@ func evaluateBattlepassTick(ctx context.Context, deps battlepassDeps, store *bat
 	if err != nil {
 		return fmt.Errorf("battlepass fetch players: %w", err)
 	}
-	for _, p := range players {
+	for i, p := range players {
+		if i > 0 && paceEvery > 0 {
+			if err := deps.pace(ctx, paceEvery); err != nil {
+				return err // ctx cancelled mid-scan: stop cleanly
+			}
+		}
 		if err := evaluateBattlepassPlayer(ctx, deps, store, tiers, p, awardPast); err != nil {
 			log.Printf("battlepass: evaluate account %d: %v", p.AccountID, err)
 		}
@@ -187,8 +203,51 @@ func clampBattlepassInterval(secs int) time.Duration {
 	return time.Duration(secs) * time.Second
 }
 
+// clampBattlepassPaceMs converts BattlepassScanPaceMs to a Duration.
+// 0 is preserved (explicit opt-out of pacing); negative → default 75ms; max 5000ms.
+func clampBattlepassPaceMs(ms int) time.Duration {
+	if ms < 0 {
+		ms = 75
+	}
+	if ms > 5000 {
+		ms = 5000
+	}
+	return time.Duration(ms) * time.Millisecond
+}
+
+// clampBattlepassStartDelayMs converts BattlepassScanStartDelayMs to a Duration.
+// 0 is preserved (immediate boot scan); negative → default 3000ms; max 30000ms.
+func clampBattlepassStartDelayMs(ms int) time.Duration {
+	if ms < 0 {
+		ms = 3000
+	}
+	if ms > 30000 {
+		ms = 30000
+	}
+	return time.Duration(ms) * time.Millisecond
+}
+
+// bootBattlepassScan runs a single evaluation tick after an optional ctx-aware
+// start delay. Called once at engine startup before the ticker loop begins.
+// Returns early (without scanning) if ctx is cancelled during the delay.
+func bootBattlepassScan(ctx context.Context, deps battlepassDeps, store *battlepassStore, awardPast bool, paceEvery, startDelay time.Duration) {
+	if startDelay > 0 {
+		if err := deps.pace(ctx, startDelay); err != nil {
+			return // cancelled during warm-up
+		}
+	}
+	if err := evaluateBattlepassTick(ctx, deps, store, awardPast, paceEvery); err != nil {
+		log.Printf("battlepass: boot scan: %v", err)
+	}
+}
+
 // runBattlepassEngine runs the evaluation loop until ctx is cancelled.
-func runBattlepassEngine(ctx context.Context, deps battlepassDeps, store *battlepassStore, interval time.Duration, awardPast bool) {
+// It performs an immediate boot scan (after an optional start delay) before
+// entering the ticker loop, so the dashboard populates quickly on startup
+// without waiting a full poll interval.
+func runBattlepassEngine(ctx context.Context, deps battlepassDeps, store *battlepassStore, interval, paceEvery, startDelay time.Duration, awardPast bool) {
+	bootBattlepassScan(ctx, deps, store, awardPast, paceEvery, startDelay)
+
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for {
@@ -196,7 +255,7 @@ func runBattlepassEngine(ctx context.Context, deps battlepassDeps, store *battle
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if err := evaluateBattlepassTick(ctx, deps, store, awardPast); err != nil {
+			if err := evaluateBattlepassTick(ctx, deps, store, awardPast, paceEvery); err != nil {
 				log.Printf("battlepass: tick: %v", err)
 			}
 		}
@@ -225,6 +284,19 @@ func productionBattlepassDeps() battlepassDeps {
 			}
 			return cmdFetchPlayerTagsForAccount(ctx, globalDB, accountID)
 		},
+		pace: func(ctx context.Context, d time.Duration) error {
+			if d <= 0 {
+				return nil
+			}
+			t := time.NewTimer(d)
+			defer t.Stop()
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-t.C:
+				return nil
+			}
+		},
 	}
 }
 
@@ -245,22 +317,52 @@ func battlepassAwardPast(cfg appConfig) bool {
 	return *cfg.BattlepassAwardPast
 }
 
-// startBattlepassIfEnabled seeds the catalog and starts the evaluation loop
-// when battlepass_enabled is set. The store is opened either way so the
-// admin UI can browse/edit the catalog before enabling.
-func startBattlepassIfEnabled(cfg appConfig) {
+// applyBattlepassEngine syncs the catalog, then stops any running battlepass
+// engine goroutine and starts a new one if battlepass_enabled is true.
+// Safe to call from config save handlers.
+func applyBattlepassEngine(cfg appConfig) {
 	if globalBattlepassStore == nil {
 		return
 	}
-	if n, err := globalBattlepassStore.seedTiersIfEmpty(defaultBattlepassCatalog()); err != nil {
-		log.Printf("battlepass: seed catalog: %v", err)
-	} else if n > 0 {
-		log.Printf("battlepass: seeded %d default tiers", n)
+
+	catalog := defaultBattlepassCatalog()
+	if err := globalBattlepassStore.reseedTiers(catalog); err != nil {
+		log.Printf("battlepass: reseed catalog: %v", err)
+	} else {
+		log.Printf("battlepass: catalog synced (%d tiers)", len(catalog))
 	}
+
+	globalBattlepassMu.Lock()
+	defer globalBattlepassMu.Unlock()
+
+	if globalBattlepassCancel != nil {
+		globalBattlepassCancel()
+		globalBattlepassCancel = nil
+		log.Printf("battlepass: engine stopped")
+	}
+
 	if !battlepassEnabled(cfg) {
 		return
 	}
+
 	interval := clampBattlepassInterval(cfg.BattlepassPollSeconds)
-	log.Printf("battlepass: engine enabled (interval %s, award_past=%t)", interval, battlepassAwardPast(cfg))
-	go runBattlepassEngine(context.Background(), productionBattlepassDeps(), globalBattlepassStore, interval, battlepassAwardPast(cfg))
+	paceEvery := clampBattlepassPaceMs(cfg.BattlepassScanPaceMs)
+	startDelay := clampBattlepassStartDelayMs(cfg.BattlepassScanStartDelayMs)
+	log.Printf("battlepass: engine started (interval %s, pace %s, start_delay %s, award_past=%t)",
+		interval, paceEvery, startDelay, battlepassAwardPast(cfg))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	globalBattlepassCancel = cancel
+	go runBattlepassEngine(ctx, productionBattlepassDeps(),
+		globalBattlepassStore, interval, paceEvery, startDelay, battlepassAwardPast(cfg))
+}
+
+// stopBattlepassEngine cancels the running battlepass engine goroutine if any.
+func stopBattlepassEngine() {
+	globalBattlepassMu.Lock()
+	defer globalBattlepassMu.Unlock()
+	if globalBattlepassCancel != nil {
+		globalBattlepassCancel()
+		globalBattlepassCancel = nil
+	}
 }

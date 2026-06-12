@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -37,6 +38,7 @@ func TestBattlepassHandlers_NilStore(t *testing.T) {
 		{"pending", handleBattlepassPending, http.MethodGet, "/api/v1/battlepass/pending", ""},
 		{"reseed", handleBattlepassReseed, http.MethodPost, "/api/v1/battlepass/reseed", ""},
 		{"grant", handleBattlepassGrant, http.MethodPost, "/api/v1/battlepass/grant", ""},
+		{"grant-tier", handleBattlepassGrantTier, http.MethodPost, "/api/v1/battlepass/grant-tier", ""},
 		{"bulk", handleBattlepassTiersBulk, http.MethodPost, "/api/v1/battlepass/tiers/bulk", ""},
 	}
 	for _, c := range cases {
@@ -384,5 +386,276 @@ func TestGrantBattlepassEarned_AwardFailureKeepsEarned(t *testing.T) {
 	claims, _ := s.listClaims(1)
 	if claims[0].Status != battlepassClaimEarned || claims[0].Attempts != 1 || claims[0].LastError == "" {
 		t.Fatalf("claim after failed grant = %+v, want earned with attempt recorded", claims[0])
+	}
+}
+
+// ── config ────────────────────────────────────────────────────────────────────
+
+func TestHandleGetBattlepassConfig(t *testing.T) {
+	orig := loadedConfig
+	t.Cleanup(func() { loadedConfig = orig })
+
+	enabled := true
+	loadedConfig = appConfig{
+		BattlepassEnabled:          &enabled,
+		BattlepassAwardPast:        nil,
+		BattlepassPollSeconds:      120,
+		BattlepassScanPaceMs:       100,
+		BattlepassScanStartDelayMs: 5000,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/battlepass/config", nil)
+	rec := httptest.NewRecorder()
+	handleGetBattlepassConfig(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var got battlepassConfigPayload
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if got.Enabled == nil || !*got.Enabled {
+		t.Errorf("Enabled = %v, want true", got.Enabled)
+	}
+	if got.AwardPast != nil {
+		t.Errorf("AwardPast = %v, want nil (unset)", got.AwardPast)
+	}
+	if got.PollSeconds != 120 {
+		t.Errorf("PollSeconds = %d, want 120", got.PollSeconds)
+	}
+	if got.ScanPaceMs != 100 {
+		t.Errorf("ScanPaceMs = %d, want 100", got.ScanPaceMs)
+	}
+	if got.ScanStartDelayMs != 5000 {
+		t.Errorf("ScanStartDelayMs = %d, want 5000", got.ScanStartDelayMs)
+	}
+}
+
+func TestHandleSaveBattlepassConfig(t *testing.T) {
+	orig := loadedConfig
+	t.Cleanup(func() { loadedConfig = orig })
+
+	// Redirect config writes to a temp dir so we don't touch the real config.
+	t.Setenv("DUNE_ADMIN_CONFIG_DIR", t.TempDir())
+
+	body, _ := json.Marshal(battlepassConfigPayload{
+		Enabled:          boolPtr(true),
+		AwardPast:        boolPtr(false),
+		PollSeconds:      90,
+		ScanPaceMs:       50,
+		ScanStartDelayMs: 2000,
+	})
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/battlepass/config", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	handleSaveBattlepassConfig(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var got battlepassConfigPayload
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if got.Enabled == nil || !*got.Enabled {
+		t.Errorf("Enabled = %v, want true", got.Enabled)
+	}
+	if got.PollSeconds != 90 {
+		t.Errorf("PollSeconds = %d, want 90", got.PollSeconds)
+	}
+	// Verify loadedConfig was updated in-memory.
+	if loadedConfig.BattlepassPollSeconds != 90 {
+		t.Errorf("loadedConfig.PollSeconds = %d, want 90", loadedConfig.BattlepassPollSeconds)
+	}
+}
+
+func TestHandleSaveBattlepassConfig_BadJSON(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/battlepass/config", bytes.NewReader([]byte(`{bad`)))
+	rec := httptest.NewRecorder()
+	handleSaveBattlepassConfig(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestApplyBattlepassEngine_StopsRunningEngine(t *testing.T) {
+	// globalBattlepassStore == nil in unit tests, so applyBattlepassEngine returns
+	// before reaching the cancel logic. We test the cancel directly via stopBattlepassEngine.
+	called := false
+	globalBattlepassMu.Lock()
+	globalBattlepassCancel = func() { called = true }
+	globalBattlepassMu.Unlock()
+	t.Cleanup(func() {
+		globalBattlepassMu.Lock()
+		globalBattlepassCancel = nil
+		globalBattlepassMu.Unlock()
+	})
+
+	stopBattlepassEngine()
+
+	if !called {
+		t.Error("expected existing cancel to be called by stopBattlepassEngine")
+	}
+	globalBattlepassMu.Lock()
+	nilAfter := globalBattlepassCancel == nil
+	globalBattlepassMu.Unlock()
+	if !nilAfter {
+		t.Error("expected globalBattlepassCancel to be nil after stop")
+	}
+}
+
+// ── grant-tier ────────────────────────────────────────────────────────────────
+
+func TestGrantBattlepassTier_success(t *testing.T) {
+	s := testBattlepassStore(t)
+	tiers := testTiers()
+	tiers[0].RewardItems = `[{"template":"Kindjal_4","qty":1,"quality":3}]`
+	if _, err := s.seedTiersIfEmpty(tiers); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	_ = s.recordClaim("level:5", 1, 10, battlepassClaimEarned)
+	_ = s.recordClaim("journey:DA_MQ_FindTheFremen", 1, 40, battlepassClaimEarned)
+
+	var awarded []int64
+	var givenItems []string
+	deps := grantTestDeps([]battlepassPlayer{{AccountID: 1, PawnID: 100}}, nil, &awarded)
+	deps.giveItem = func(_ context.Context, _ int64, template string, qty, _ int64) error {
+		givenItems = append(givenItems, template)
+		return nil
+	}
+
+	intel, err := grantBattlepassTier(context.Background(), s, deps, 1, "level:5")
+	if err != nil {
+		t.Fatalf("grantBattlepassTier: %v", err)
+	}
+	if intel != 10 {
+		t.Errorf("granted intel = %d, want 10", intel)
+	}
+	// Only level:5 claim should be granted.
+	keys, _ := s.claimedKeys(1)
+	if keys["level:5"] != battlepassClaimGranted {
+		t.Errorf("level:5 = %q, want granted", keys["level:5"])
+	}
+	if keys["journey:DA_MQ_FindTheFremen"] != battlepassClaimEarned {
+		t.Errorf("journey claim = %q, want earned (untouched)", keys["journey:DA_MQ_FindTheFremen"])
+	}
+	if len(givenItems) != 1 || givenItems[0] != "Kindjal_4" {
+		t.Errorf("givenItems = %v, want [Kindjal_4]", givenItems)
+	}
+}
+
+func TestGrantBattlepassTier_notEarned(t *testing.T) {
+	s := testBattlepassStore(t)
+	deps := grantTestDeps([]battlepassPlayer{{AccountID: 1, PawnID: 100}}, nil, nil)
+
+	if _, err := grantBattlepassTier(context.Background(), s, deps, 1, "level:5"); !errors.Is(err, errBattlepassNothingEarned) {
+		t.Fatalf("want errBattlepassNothingEarned, got %v", err)
+	}
+}
+
+func TestGrantBattlepassTier_playerNotFound(t *testing.T) {
+	s := testBattlepassStore(t)
+	_ = s.recordClaim("level:5", 1, 10, battlepassClaimEarned)
+	deps := grantTestDeps([]battlepassPlayer{{AccountID: 99, PawnID: 999}}, nil, nil)
+
+	if _, err := grantBattlepassTier(context.Background(), s, deps, 1, "level:5"); !errors.Is(err, errNotFound) {
+		t.Fatalf("want errNotFound, got %v", err)
+	}
+}
+
+func TestGrantBattlepassTier_intelFailure_recordsOnTier(t *testing.T) {
+	s := testBattlepassStore(t)
+	_ = s.recordClaim("level:5", 1, 10, battlepassClaimEarned)
+	_ = s.recordClaim("level:10", 1, 15, battlepassClaimEarned)
+	deps := grantTestDeps([]battlepassPlayer{{AccountID: 1, PawnID: 100}}, fmt.Errorf("db offline"), nil)
+
+	if _, err := grantBattlepassTier(context.Background(), s, deps, 1, "level:5"); err == nil {
+		t.Fatal("expected error")
+	}
+	claims, _ := s.listClaims(1)
+	byKey := map[string]battlepassClaim{}
+	for _, c := range claims {
+		byKey[c.TierKey] = c
+	}
+	if byKey["level:5"].Attempts != 1 || byKey["level:5"].LastError == "" {
+		t.Errorf("level:5 = %+v, want attempts=1 and last_error set", byKey["level:5"])
+	}
+	if byKey["level:10"].Attempts != 0 {
+		t.Errorf("level:10 attempts = %d, want 0 (untouched)", byKey["level:10"].Attempts)
+	}
+}
+
+func TestHandleBattlepassGrantTier(t *testing.T) {
+	s := setupBattlepassStore(t)
+	if _, err := s.seedTiersIfEmpty(testTiers()); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	_ = s.recordClaim("level:5", 1, 10, battlepassClaimEarned)
+
+	// Use nil globalDB — productionBattlepassGrantDeps will fail player lookup.
+	// Override with test deps via the handler's seam. Since handleBattlepassGrantTier
+	// calls productionBattlepassGrantDeps() directly (no seam yet), we instead test
+	// via grantBattlepassTier directly and verify the HTTP plumbing separately.
+	// HTTP plumbing: bad JSON → 400.
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/battlepass/grant-tier", bytes.NewReader([]byte(`{bad`)))
+	rec := httptest.NewRecorder()
+	handleBattlepassGrantTier(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("bad JSON: want 400, got %d", rec.Code)
+	}
+
+	// Missing account_id → 400.
+	body, _ := json.Marshal(map[string]any{"tier_key": "level:5"})
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/battlepass/grant-tier", bytes.NewReader(body))
+	rec = httptest.NewRecorder()
+	handleBattlepassGrantTier(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("missing account_id: want 400, got %d", rec.Code)
+	}
+
+	// Missing tier_key → 400.
+	body, _ = json.Marshal(map[string]any{"account_id": 1})
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/battlepass/grant-tier", bytes.NewReader(body))
+	rec = httptest.NewRecorder()
+	handleBattlepassGrantTier(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("missing tier_key: want 400, got %d", rec.Code)
+	}
+}
+
+func TestHandleGetBattlepassPending_tierFormat(t *testing.T) {
+	s := setupBattlepassStore(t)
+	if _, err := s.seedTiersIfEmpty(testTiers()); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	_ = s.recordClaim("level:5", 1, 10, battlepassClaimEarned)
+	_ = s.recordClaim("level:5", 2, 10, battlepassClaimBaseline)
+	_ = s.recordClaim("journey:DA_MQ_FindTheFremen", 1, 40, battlepassClaimGranted)
+	_ = s.recordClaim("tag:Exploration.Cave.Large.Altar1", 3, 5, battlepassClaimEarned)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/battlepass/pending", nil)
+	rec := httptest.NewRecorder()
+	handleBattlepassPending(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var rows []struct {
+		AccountID int64  `json:"account_id"`
+		TierKey   string `json:"tier_key"`
+		TierLabel string `json:"tier_label"`
+		Intel     int64  `json:"intel"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &rows); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if len(rows) != 2 {
+		t.Fatalf("want 2 tier rows (only earned), got %d: %+v", len(rows), rows)
+	}
+	// Verify tier_label is populated from the join.
+	for _, r := range rows {
+		if r.TierLabel == "" {
+			t.Errorf("row %+v has empty tier_label", r)
+		}
 	}
 }
