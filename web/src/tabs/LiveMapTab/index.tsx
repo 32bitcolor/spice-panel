@@ -8,6 +8,7 @@ import 'leaflet/dist/leaflet.css'
 import { api, ApiError } from '../../api/client'
 import type { MapMarker, Player } from '../../api/client'
 import { ConfirmDialog, Icon, PageHeader } from '../../dune-ui'
+import { PlayerSearchField } from '../../components/PlayerSearchField'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh'
 import { InvalidateOnActive } from './components/InvalidateOnActive'
 import { MapClickCapture } from './components/MapClickCapture'
@@ -368,28 +369,14 @@ export const LiveMapTab: React.FC = () => {
           </div>
           {teleportDest && (
             <>
-              <Select
-                aria-label={t('liveMap.teleportPlayer')}
+              <PlayerSearchField
+                ariaLabel={t('liveMap.teleportPlayer')}
                 placeholder={t('liveMap.teleportSelectPlayer')}
-                selectedKey={teleportFlsId || null}
-                onSelectionChange={(k) => setTeleportFlsId(k ? String(k) : '')}
+                players={allPlayers}
+                onSelect={(p) => setTeleportFlsId(p.fls_id)}
+                onClear={() => setTeleportFlsId('')}
                 className="w-56"
-              >
-                <Select.Trigger>
-                  <Select.Value />
-                  <Select.Indicator />
-                </Select.Trigger>
-                <Select.Popover>
-                  <ListBox>
-                    {allPlayers.map((p) => (
-                      <ListBox.Item key={p.fls_id} id={p.fls_id} textValue={p.name}>
-                        {p.name}
-                        <ListBox.ItemIndicator />
-                      </ListBox.Item>
-                    ))}
-                  </ListBox>
-                </Select.Popover>
-              </Select>
+              />
               <Button size="sm" isDisabled={!teleportFlsId || teleporting} onPress={doTeleport}>
                 {teleporting ? <Spinner size="sm" color="current" /> : t('liveMap.teleportHere')}
               </Button>

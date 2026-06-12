@@ -368,7 +368,8 @@
     "optional": "optional",
     "deleteSelected": "Delete selected",
     "clearSelection": "Clear selection",
-    "noItems": "No items yet."
+    "noItems": "No items yet.",
+    "beta": "Beta"
   },
   "database": {
     "columnColumn": "Column",
@@ -679,6 +680,7 @@
     "storage": "Storage",
     "welcome": "Welcome Kits",
     "events": "Live Events",
+    "battlepass": "Battlepass",
     "menu": "Navigation"
   },
   "players": {
@@ -1420,6 +1422,119 @@
     },
     "runConfirmTitle": "Grant welcome package now?",
     "runConfirmBody": "This grants package(s) {{versions}} to all eligible online players right now. Continue?"
+  },
+  "playerSearch": {
+    "placeholder": "Search players…",
+    "loading": "Loading players…",
+    "loadFailed": "Failed to load players: {{message}}"
+  },
+  "battlepass": {
+    "title": "Battlepass ({{count}} tiers)",
+    "subtitle": "Intel-point reward track — {{intel}} total intel across enabled tiers. Earned rewards are granted manually while the player is offline.",
+    "reseed": "Reset Catalog",
+    "reseedDialog": {
+      "title": "Reset the tier catalog?",
+      "intro": "This deletes every tier definition and re-inserts the {{count}} built-in defaults:",
+      "resetsIntel": "Intel value edits are discarded",
+      "resetsEnabled": "Enable/disable toggles are reset — all default tiers come back enabled",
+      "removesCustom": "Tiers not in the default catalog are removed",
+      "keeps": "Claim history and player baselines are preserved. Claims re-attach by tier key, so nothing is re-earned or double-granted. The game database is not touched."
+    },
+    "grantDialog": {
+      "title": "Grant battlepass intel?",
+      "body": "Grants {{intel}} intel points to {{account}} in a single update and marks their earned tiers as granted. The player must remain offline while it applies — if they log in first, the grant fails and stays pending for retry.",
+      "confirm": "Grant {{intel}} Intel"
+    },
+    "reseedSuccess": "Catalog reseeded with {{count}} tiers.",
+    "failedToLoad": "Failed to load battlepass data: {{message}}",
+    "updateFailed": "Failed to update tier: {{message}}",
+    "toggleEnabled": "Toggle tier",
+    "editIntelPrompt": "Intel reward for \"{{label}}\":",
+    "invalidIntel": "Intel must be a non-negative whole number.",
+    "invalidAccount": "Enter a valid account ID.",
+    "requirementLevel": "Reach level {{level}}",
+    "grantSuccess": "Granted {{intel}} intel across {{tiers}} tiers.",
+    "grantFailed": "Grant failed: {{message}}",
+    "categories": {
+      "level": "Level",
+      "story": "Story",
+      "side_quest": "Side Quest",
+      "faction": "Faction",
+      "exploration": "Exploration",
+      "achievement": "Achievement"
+    },
+    "status": {
+      "baseline": "baseline",
+      "earned": "earned",
+      "granted": "granted"
+    },
+    "catalog": {
+      "title": "Tier Catalog ({{count}})",
+      "empty": "No tiers in the catalog. Use Reset Catalog to seed the defaults."
+    },
+    "sections": {
+      "pending": "Pending ({{count}})",
+      "progress": "Progress",
+      "catalog": "Catalog",
+      "track": "Track"
+    },
+    "editor": {
+      "title": "Edit Tier",
+      "tierSection": "Tier",
+      "label": "Label",
+      "itemRewards": "Item Rewards",
+      "saved": "Tier saved."
+    },
+    "bulk": {
+      "enable": "Enable",
+      "disable": "Disable",
+      "delete": "Delete"
+    },
+    "bulkSuccess": "Updated {{count}} tiers.",
+    "bulkDeleteDialog": {
+      "title": "Delete selected tiers?",
+      "body": "Removes {{count}} tiers from the catalog. Claim history is kept, and a Reset Catalog restores default tiers later — but custom labels, intel values, and item rewards on the deleted tiers are lost.",
+      "confirm": "Delete {{count}} Tiers"
+    },
+    "track": {
+      "empty": "No enabled tiers to display.",
+      "laneSummary": "{{count}} tiers · {{intel}} intel",
+      "tooltip": "{{pct}}% of players reached this tier ({{count}} of {{total}})."
+    },
+    "columns": {
+      "label": "Tier",
+      "category": "Category",
+      "requirement": "Requirement",
+      "intel": "Intel",
+      "rewards": "Items",
+      "earned": "Earned",
+      "granted": "Granted",
+      "enabled": "Enabled"
+    },
+    "pending": {
+      "title": "Pending Grants ({{count}})",
+      "accountId": "Account",
+      "name": "Character",
+      "online": "Status",
+      "intel": "Pending Intel",
+      "onlineState": "Online",
+      "offlineState": "Offline",
+      "grant": "Grant",
+      "grantOnlineHint": "Offline required",
+      "none": "No players with earned, ungranted rewards."
+    },
+    "progress": {
+      "title": "Player Progress",
+      "hint": "Search for a player above to see their battlepass claims.",
+      "noClaims": "No battlepass claims for account {{account}}."
+    },
+    "claims": {
+      "tier": "Tier",
+      "status": "Status",
+      "earnedAt": "Earned",
+      "grantedAt": "Granted",
+      "lastError": "Last Error"
+    }
   },
   "events": {
     "title": "Events ({{count}})",

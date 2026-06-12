@@ -4234,8 +4234,13 @@ func intelAtLevel(level int) int64 {
 // checkPlayerOffline returns an error if the player is currently online.
 // playerID is the pawn actor ID (PlayerCharacter).
 func checkPlayerOffline(ctx context.Context, playerID int64) error {
+	return checkPlayerOfflinePool(ctx, globalDB, playerID)
+}
+
+// checkPlayerOfflinePool is the injectable (ctx+pool) form of checkPlayerOffline.
+func checkPlayerOfflinePool(ctx context.Context, pool *pgxpool.Pool, playerID int64) error {
 	var status string
-	err := globalDB.QueryRow(ctx, `
+	err := pool.QueryRow(ctx, `
 		SELECT online_status::text FROM dune.player_state
 		WHERE player_pawn_id = $1`, playerID).Scan(&status)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -4466,30 +4471,39 @@ func cmdAwardIntel(playerID int64, amount int64) Cmd {
 		if globalDB == nil {
 			return msgMutate{err: fmt.Errorf("not connected")}
 		}
-		if playerID == 0 {
-			return msgMutate{err: fmt.Errorf("player ID required")}
-		}
-		ctx := context.Background()
-		if err := checkPlayerOffline(ctx, playerID); err != nil {
+		if err := cmdAwardIntelCtx(context.Background(), globalDB, playerID, amount); err != nil {
 			return msgMutate{err: err}
-		}
-		res, err := globalDB.Exec(ctx, `
-			UPDATE dune.actors
-			SET properties = jsonb_set(
-				properties,
-				'{TechKnowledgePlayerComponent,m_TechKnowledgePoints}',
-				to_jsonb((properties->'TechKnowledgePlayerComponent'->>'m_TechKnowledgePoints')::bigint + $2)
-			)
-			WHERE id = $1
-			  AND properties ? 'TechKnowledgePlayerComponent'`, playerID, amount)
-		if err != nil {
-			return msgMutate{err: fmt.Errorf("award intel: %w", err)}
-		}
-		if res.RowsAffected() == 0 {
-			return msgMutate{err: fmt.Errorf("TechKnowledgePlayerComponent not found for player %d — ensure player is a PlayerCharacter actor", playerID)}
 		}
 		return msgMutate{ok: fmt.Sprintf("Awarded %d intel points to player %d", amount, playerID)}
 	}
+}
+
+// cmdAwardIntelCtx is the injectable (ctx+pool) form of cmdAwardIntel, used by
+// the battlepass grant flow. The player must be offline — the game caches
+// TechKnowledgePlayerComponent in memory and would clobber a live edit.
+func cmdAwardIntelCtx(ctx context.Context, pool *pgxpool.Pool, playerID, amount int64) error {
+	if playerID == 0 {
+		return fmt.Errorf("player ID required")
+	}
+	if err := checkPlayerOfflinePool(ctx, pool, playerID); err != nil {
+		return err
+	}
+	res, err := pool.Exec(ctx, `
+		UPDATE dune.actors
+		SET properties = jsonb_set(
+			properties,
+			'{TechKnowledgePlayerComponent,m_TechKnowledgePoints}',
+			to_jsonb((properties->'TechKnowledgePlayerComponent'->>'m_TechKnowledgePoints')::bigint + $2)
+		)
+		WHERE id = $1
+		  AND properties ? 'TechKnowledgePlayerComponent'`, playerID, amount)
+	if err != nil {
+		return fmt.Errorf("award intel: %w", err)
+	}
+	if res.RowsAffected() == 0 {
+		return fmt.Errorf("TechKnowledgePlayerComponent not found for player %d — ensure player is a PlayerCharacter actor", playerID)
+	}
+	return nil
 }
 
 // ── blueprint JSON types ──────────────────────────────────────────────────────
@@ -6570,6 +6584,63 @@ func cmdFetchPlayerTagsForAccount(ctx context.Context, pool *pgxpool.Pool, accou
 		tags = append(tags, tag)
 	}
 	return tags, rows.Err()
+}
+
+// cmdFetchBattlepassPlayers returns one row per character the battlepass
+// engine tracks: account, pawn actor, name, online flag, and level (derived
+// from the same FLevelComponent XP source as cmdFetchCharacterLevel).
+func cmdFetchBattlepassPlayers(ctx context.Context, pool *pgxpool.Pool) ([]battlepassPlayer, error) {
+	rows, err := pool.Query(ctx, `
+		SELECT ps.account_id,
+		       ps.player_pawn_id,
+		       COALESCE(ps.character_name, ''),
+		       (ps.online_status::text = 'Online'),
+		       COALESCE((fe.components->'FLevelComponent'->1->>'TotalXPEarned')::bigint, 0)
+		FROM dune.player_state ps
+		LEFT JOIN dune.actor_fgl_entities afe
+		       ON afe.actor_id = ps.player_pawn_id AND afe.slot_name = 'DuneCharacter'
+		LEFT JOIN dune.fgl_entities fe ON fe.entity_id = afe.entity_id
+		WHERE ps.player_pawn_id IS NOT NULL
+		  AND ps.account_id <> $1`, gmIdentityAccountID)
+	if err != nil {
+		return nil, fmt.Errorf("fetch battlepass players: %w", err)
+	}
+	defer rows.Close()
+
+	out := make([]battlepassPlayer, 0)
+	for rows.Next() {
+		var p battlepassPlayer
+		var xp int64
+		if err := rows.Scan(&p.AccountID, &p.PawnID, &p.Name, &p.Online, &xp); err != nil {
+			return nil, fmt.Errorf("scan battlepass player: %w", err)
+		}
+		p.Level = xpToLevel(xp)
+		out = append(out, p)
+	}
+	return out, rows.Err()
+}
+
+// cmdFetchCompletedJourneyNodeIDs returns the IDs of every completed journey
+// story node for the account. Used by the battlepass engine, which polls
+// slower than the journey cache TTL and reads completion state only.
+func cmdFetchCompletedJourneyNodeIDs(ctx context.Context, pool *pgxpool.Pool, accountID int64) ([]string, error) {
+	rows, err := pool.Query(ctx, `
+		SELECT story_node_id FROM dune.journey_story_node
+		WHERE account_id = $1 AND complete_condition_state = 'true'::jsonb`, accountID)
+	if err != nil {
+		return nil, fmt.Errorf("fetch completed journey nodes for account %d: %w", accountID, err)
+	}
+	defer rows.Close()
+
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan completed journey node: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
 }
 
 // cmdGiveItemCtx is the injectable form used by the events engine.

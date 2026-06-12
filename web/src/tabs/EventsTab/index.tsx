@@ -196,7 +196,9 @@ export const EventsTab: React.FC = () => {
                     isSelected={ev.enabled}
                     onChange={() => handleToggleEnabled(ev)}
                     aria-label={t('events.toggleEnabled')}
-                  />
+                  >
+                    <Switch.Control><Switch.Thumb /></Switch.Control>
+                  </Switch>
                 )
               case 'version':
                 return <span className="text-muted font-mono text-xs">{ev.version}</span>

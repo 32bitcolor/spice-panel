@@ -370,7 +370,8 @@
     "optional": "optionnel",
     "deleteSelected": "Supprimer la sélection",
     "clearSelection": "Effacer la sélection",
-    "noItems": "Aucun élément pour l'instant."
+    "noItems": "Aucun élément pour l'instant.",
+    "beta": "Bêta"
   },
   "database": {
     "columnColumn": "Colonne",
@@ -686,7 +687,8 @@
     "storage": "Stockage",
     "welcome": "Kits de bienvenue",
     "events": "Événements en direct",
-    "menu": "Navigation"
+    "menu": "Navigation",
+    "battlepass": "Passe de combat"
   },
   "players": {
     "actions": {
@@ -1522,6 +1524,114 @@
     "signals": {
       "level": "Niveau du personnage",
       "achievementTag": "Étiquette de succès"
+    }
+  },
+  "battlepass": {
+    "title": "Battlepass ({{count}} paliers)",
+    "subtitle": "Piste de récompenses Intel — {{intel}} intel total sur les paliers activés. Les récompenses gagnées sont accordées manuellement pendant que le joueur est hors ligne.",
+    "reseed": "Réinitialiser le Catalogue",
+    "reseedDialog": {
+      "title": "Réinitialiser le catalogue de paliers ?",
+      "intro": "Cela supprime toutes les définitions de paliers et réinsère les {{count}} valeurs par défaut intégrées :",
+      "resetsIntel": "Les modifications de valeurs Intel sont supprimées",
+      "resetsEnabled": "Les bascules d'activation/désactivation sont réinitialisées — tous les paliers par défaut reviennent activés",
+      "removesCustom": "Les paliers absents du catalogue par défaut sont supprimés",
+      "keeps": "L'historique des claims et les lignes de base des joueurs sont préservés. Les claims se rattachent de nouveau par clé de palier, donc rien n'est regagné ni accordé deux fois. La base de données du jeu n'est pas modifiée."
+    },
+    "grantDialog": {
+      "title": "Accorder de l'Intel du Battlepass ?",
+      "body": "Accorde {{intel}} points Intel à {{account}} en une seule mise à jour et marque leurs paliers gagnés comme accordés. Le joueur doit rester hors ligne pendant l'application — s'il se connecte en premier, l'octroi échoue et reste en attente pour une nouvelle tentative.",
+      "confirm": "Accorder {{intel}} Intel"
+    },
+    "reseedSuccess": "Catalogue réinitialisé avec {{count}} paliers.",
+    "failedToLoad": "Échec du chargement des données du Battlepass : {{message}}",
+    "updateFailed": "Échec de la mise à jour du palier : {{message}}",
+    "toggleEnabled": "Basculer le palier",
+    "editIntelPrompt": "Récompense Intel pour \"{{label}}\" :",
+    "invalidIntel": "L'Intel doit être un nombre entier non négatif.",
+    "invalidAccount": "Entrez un identifiant de compte valide.",
+    "requirementLevel": "Atteindre le niveau {{level}}",
+    "grantSuccess": "{{intel}} Intel accordés sur {{tiers}} paliers.",
+    "grantFailed": "Échec de l'octroi : {{message}}",
+    "categories": {
+      "level": "Niveau",
+      "story": "Histoire",
+      "side_quest": "Quête Secondaire",
+      "faction": "Faction",
+      "exploration": "Exploration",
+      "achievement": "Succès"
+    },
+    "status": {
+      "baseline": "référence",
+      "earned": "gagné",
+      "granted": "accordé"
+    },
+    "catalog": {
+      "title": "Catalogue de Paliers ({{count}})",
+      "empty": "Aucun palier dans le catalogue. Utilisez Réinitialiser le Catalogue pour charger les valeurs par défaut."
+    },
+    "sections": {
+      "pending": "En attente ({{count}})",
+      "progress": "Progression",
+      "catalog": "Catalogue",
+      "track": "Piste"
+    },
+    "editor": {
+      "title": "Modifier le Palier",
+      "tierSection": "Palier",
+      "label": "Libellé",
+      "itemRewards": "Récompenses d'Objets",
+      "saved": "Palier sauvegardé."
+    },
+    "bulk": {
+      "enable": "Activer",
+      "disable": "Désactiver",
+      "delete": "Supprimer"
+    },
+    "bulkSuccess": "{{count}} paliers mis à jour.",
+    "bulkDeleteDialog": {
+      "title": "Supprimer les paliers sélectionnés ?",
+      "body": "Supprime {{count}} paliers du catalogue. L'historique des claims est conservé et une Réinitialisation du Catalogue restaurera les paliers par défaut ultérieurement — mais les libellés personnalisés, les valeurs Intel et les récompenses d'objets des paliers supprimés sont perdus.",
+      "confirm": "Supprimer {{count}} Paliers"
+    },
+    "track": {
+      "empty": "Aucun palier activé à afficher.",
+      "laneSummary": "{{count}} paliers · {{intel}} intel",
+      "tooltip": "{{pct}}% des joueurs ont atteint ce palier ({{count}} sur {{total}})."
+    },
+    "columns": {
+      "label": "Palier",
+      "category": "Catégorie",
+      "requirement": "Prérequis",
+      "intel": "Intel",
+      "rewards": "Objets",
+      "earned": "Gagné",
+      "granted": "Accordé",
+      "enabled": "Activé"
+    },
+    "pending": {
+      "title": "Octrois en Attente ({{count}})",
+      "accountId": "Compte",
+      "name": "Personnage",
+      "online": "Statut",
+      "intel": "Intel en Attente",
+      "onlineState": "En ligne",
+      "offlineState": "Hors ligne",
+      "grant": "Accorder",
+      "grantOnlineHint": "Hors ligne requis",
+      "none": "Aucun joueur avec des récompenses gagnées non accordées."
+    },
+    "progress": {
+      "title": "Progression du Joueur",
+      "hint": "Recherchez un joueur ci-dessus pour voir ses claims du Battlepass.",
+      "noClaims": "Aucun claim Battlepass pour le compte {{account}}."
+    },
+    "claims": {
+      "tier": "Palier",
+      "status": "Statut",
+      "earnedAt": "Gagné le",
+      "grantedAt": "Accordé le",
+      "lastError": "Dernière Erreur"
     }
   }
 }

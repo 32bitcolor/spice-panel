@@ -21,7 +21,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             <AlertDialog.Heading>{title}</AlertDialog.Heading>
           </AlertDialog.Header>
           <AlertDialog.Body>
-            <p className="text-sm text-muted">{description}</p>
+            <div className="text-sm text-muted">{description}</div>
           </AlertDialog.Body>
           <AlertDialog.Footer>
             <Button slot="close" variant="ghost" onPress={onCancel}>{t('common.cancel')}</Button>

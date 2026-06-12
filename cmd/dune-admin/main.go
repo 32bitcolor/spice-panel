@@ -223,6 +223,14 @@ type appConfig struct {
 	// distinguish "unset" (default-off) from "explicitly false".
 	EventsEnabled     *bool `yaml:"events_enabled"      json:"events_enabled"`
 	EventsPollSeconds int   `yaml:"events_poll_seconds" json:"events_poll_seconds"`
+
+	// ── Battlepass ─────────────────────────────────────────────────────────
+	// BattlepassEnabled starts the tier-evaluation loop (default off).
+	// BattlepassAwardPast rewards pre-existing progress on first evaluation;
+	// default off — old progress is baselined and only new unlocks earn intel.
+	BattlepassEnabled     *bool `yaml:"battlepass_enabled"      json:"battlepass_enabled"`
+	BattlepassAwardPast   *bool `yaml:"battlepass_award_past"   json:"battlepass_award_past"`
+	BattlepassPollSeconds int   `yaml:"battlepass_poll_seconds" json:"battlepass_poll_seconds"`
 }
 
 // marketBotEnabled returns the effective bot-enabled flag. Missing yaml key →
@@ -845,10 +853,13 @@ func main() {
 	initLocationStore()
 	initGivePacksStore()
 	initEventStore()
+	initBattlepassStore()
 
 	if cancel := startEventEngineIfEnabled(loadedConfig); cancel != nil {
 		defer cancel()
 	}
+
+	startBattlepassIfEnabled(loadedConfig)
 
 	startServer(listenAddr)
 }
@@ -918,6 +929,21 @@ func initEventStore() {
 		return
 	}
 	globalEventStore = s
+}
+
+// initBattlepassStore opens (or creates) the battlepass SQLite store and sets
+// globalBattlepassStore. A failure is non-fatal — handlers guard for nil.
+func initBattlepassStore() {
+	if globalStore != nil {
+		globalBattlepassStore = newBattlepassStore(globalStore)
+		return
+	}
+	s, err := openBattlepassStore(filepath.Join(configDir(), "battlepass.db"))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "battlepass store: %v (battlepass disabled)\n", err)
+		return
+	}
+	globalBattlepassStore = s
 }
 
 // globalWelcomeCancel stops the welcome-package scanner goroutine on shutdown.

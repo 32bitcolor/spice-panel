@@ -374,10 +374,13 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
 
   return (
     <>
+      {/* Hidden (not stacked) while Manage Packs is open — stacked sibling
+          modals fight over the React Aria overlay and the top one goes inert.
+          Component stays mounted, so unsaved edits survive the swap. */}
       <Modal.Backdrop
         variant="blur"
         className="bg-linear-to-t from-(--background)/85 via-(--background)/40 to-transparent"
-        isOpen={isOpen}
+        isOpen={isOpen && !managePacksOpen}
         onOpenChange={(open) => { if (!open) onClose() }}
       >
         <Modal.Container size="cover" scroll="outside">
@@ -617,7 +620,8 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
                           isSelected={milestone.awardPast}
                           onChange={() => setMilestone((m) => ({ ...m, awardPast: !m.awardPast }))}
                         >
-                          <span className="text-xs">{t('events.editor.awardPast')}</span>
+                          <Switch.Control><Switch.Thumb /></Switch.Control>
+                          <Switch.Content className="text-xs">{t('events.editor.awardPast')}</Switch.Content>
                         </Switch>
                         <span className="text-xs text-muted">{t('events.editor.awardPastHint')}</span>
                       </div>
@@ -890,39 +894,42 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
                 {isEdit ? t('common.save') : t('common.create')}
               </Button>
             </Modal.Footer>
+
+            {/* Inside the dialog: outside it, React Aria's modal underlay
+                makes the bar inert. The dialog's filter creates a containing
+                block, so position:fixed pins it to the dialog bottom. */}
+            <ActionBar aria-label={t('events.editor.items')} isOpen={rewardSelectionCount > 0}>
+              <ActionBar.Prefix>
+                <Chip size="sm" className="shrink-0 tabular-nums">{rewardSelectionCount}</Chip>
+              </ActionBar.Prefix>
+              <Separator />
+              <ActionBar.Content>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-danger"
+                  onPress={handleBulkDeleteRewardItems}
+                  aria-label={t('common.deleteSelected')}
+                >
+                  <Icon name="trash-2" />
+                  <span className="action-bar__label">{t('common.deleteSelected')}</span>
+                </Button>
+              </ActionBar.Content>
+              <Separator />
+              <ActionBar.Suffix>
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="ghost"
+                  onPress={() => setRewardItemKeys(new Set())}
+                  aria-label={t('common.clearSelection')}
+                >
+                  <Icon name="x" />
+                </Button>
+              </ActionBar.Suffix>
+            </ActionBar>
           </Modal.Dialog>
         </Modal.Container>
-
-        <ActionBar aria-label={t('events.editor.items')} isOpen={rewardSelectionCount > 0}>
-          <ActionBar.Prefix>
-            <Chip size="sm" className="shrink-0 tabular-nums">{rewardSelectionCount}</Chip>
-          </ActionBar.Prefix>
-          <Separator />
-          <ActionBar.Content>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-danger"
-              onPress={handleBulkDeleteRewardItems}
-              aria-label={t('common.deleteSelected')}
-            >
-              <Icon name="trash-2" />
-              <span className="action-bar__label">{t('common.deleteSelected')}</span>
-            </Button>
-          </ActionBar.Content>
-          <Separator />
-          <ActionBar.Suffix>
-            <Button
-              isIconOnly
-              size="sm"
-              variant="ghost"
-              onPress={() => setRewardItemKeys(new Set())}
-              aria-label={t('common.clearSelection')}
-            >
-              <Icon name="x" />
-            </Button>
-          </ActionBar.Suffix>
-        </ActionBar>
       </Modal.Backdrop>
 
       <ManagePacksModal

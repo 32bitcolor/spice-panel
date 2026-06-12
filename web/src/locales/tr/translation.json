@@ -368,7 +368,8 @@
     "optional": "isteğe bağlı",
     "deleteSelected": "Seçilenleri sil",
     "clearSelection": "Seçimi temizle",
-    "noItems": "Henüz öğe yok."
+    "noItems": "Henüz öğe yok.",
+    "beta": "Beta"
   },
   "database": {
     "columnColumn": "Sütun",
@@ -679,7 +680,8 @@
     "storage": "Depolama",
     "welcome": "Karşılama Kitleri",
     "events": "Canlı Etkinlikler",
-    "menu": "Gezinti"
+    "menu": "Gezinti",
+    "battlepass": "Savaş Geçişi"
   },
   "players": {
     "actions": {
@@ -1499,6 +1501,114 @@
     "signals": {
       "level": "Karakter Seviyesi",
       "achievementTag": "Başarı Etiketi"
+    }
+  },
+  "battlepass": {
+    "title": "Battlepass ({{count}} kademesi)",
+    "subtitle": "Intel puanı ödül parkuru — etkin kademelerde toplam {{intel}} intel. Kazanılan ödüller, oyuncu çevrimdışıyken manuel olarak verilir.",
+    "reseed": "Kataloğu Sıfırla",
+    "reseedDialog": {
+      "title": "Kademe kataloğu sıfırlansın mı?",
+      "intro": "Bu, tüm kademe tanımlarını siler ve {{count}} adet yerleşik varsayılanı yeniden ekler:",
+      "resetsIntel": "Intel değeri düzenlemeleri atılır",
+      "resetsEnabled": "Etkinleştirme/devre dışı bırakma geçişleri sıfırlanır — tüm varsayılan kademeler etkin olarak geri döner",
+      "removesCustom": "Varsayılan katalogda yer almayan kademeler kaldırılır",
+      "keeps": "Talep geçmişi ve oyuncu temel değerleri korunur. Talepler kademe anahtarına göre yeniden bağlanır, bu nedenle hiçbir şey yeniden kazanılmaz veya çift verilmez. Oyun veritabanına dokunulmaz."
+    },
+    "grantDialog": {
+      "title": "Battlepass inteli verilsin mi?",
+      "body": "{{account}} hesabına tek bir güncellemeyle {{intel}} intel puanı verir ve kazanılan kademeleri verildi olarak işaretler. Oyuncu, uygulanırken çevrimdışı kalmalıdır — önce giriş yaparsa verme işlemi başarısız olur ve yeniden deneme için beklemede kalır.",
+      "confirm": "{{intel}} Intel Ver"
+    },
+    "reseedSuccess": "Katalog {{count}} kademeyle yeniden dolduruldu.",
+    "failedToLoad": "Battlepass verileri yüklenemedi: {{message}}",
+    "updateFailed": "Kademe güncellenemedi: {{message}}",
+    "toggleEnabled": "Kademeyi değiştir",
+    "editIntelPrompt": "\"{{label}}\" için Intel ödülü:",
+    "invalidIntel": "Intel negatif olmayan bir tam sayı olmalıdır.",
+    "invalidAccount": "Geçerli bir hesap kimliği girin.",
+    "requirementLevel": "{{level}}. seviyeye ulaş",
+    "grantSuccess": "{{tiers}} kademe boyunca {{intel}} intel verildi.",
+    "grantFailed": "Verme başarısız: {{message}}",
+    "categories": {
+      "level": "Seviye",
+      "story": "Hikaye",
+      "side_quest": "Yan Görev",
+      "faction": "Hizip",
+      "exploration": "Keşif",
+      "achievement": "Başarım"
+    },
+    "status": {
+      "baseline": "temel",
+      "earned": "kazanıldı",
+      "granted": "verildi"
+    },
+    "catalog": {
+      "title": "Kademe Kataloğu ({{count}})",
+      "empty": "Katalogda kademe yok. Varsayılanları yüklemek için Kataloğu Sıfırla'yı kullan."
+    },
+    "sections": {
+      "pending": "Beklemede ({{count}})",
+      "progress": "İlerleme",
+      "catalog": "Katalog",
+      "track": "Parkur"
+    },
+    "editor": {
+      "title": "Kademe Düzenle",
+      "tierSection": "Kademe",
+      "label": "Etiket",
+      "itemRewards": "Eşya Ödülleri",
+      "saved": "Kademe kaydedildi."
+    },
+    "bulk": {
+      "enable": "Etkinleştir",
+      "disable": "Devre Dışı Bırak",
+      "delete": "Sil"
+    },
+    "bulkSuccess": "{{count}} kademe güncellendi.",
+    "bulkDeleteDialog": {
+      "title": "Seçili kademeler silinsin mi?",
+      "body": "Katalogdan {{count}} kademe kaldırır. Talep geçmişi korunur ve Kataloğu Sıfırla ile varsayılan kademeler daha sonra geri yüklenebilir — ancak silinen kademelerdeki özel etiketler, intel değerleri ve eşya ödülleri kaybolur.",
+      "confirm": "{{count}} Kademeyi Sil"
+    },
+    "track": {
+      "empty": "Görüntülenecek etkin kademe yok.",
+      "laneSummary": "{{count}} kademe · {{intel}} intel",
+      "tooltip": "Oyuncuların %{{pct}}'i bu kademeye ulaştı ({{total}} kişiden {{count}})."
+    },
+    "columns": {
+      "label": "Kademe",
+      "category": "Kategori",
+      "requirement": "Gereksinim",
+      "intel": "Intel",
+      "rewards": "Eşyalar",
+      "earned": "Kazanıldı",
+      "granted": "Verildi",
+      "enabled": "Etkin"
+    },
+    "pending": {
+      "title": "Bekleyen Vermeler ({{count}})",
+      "accountId": "Hesap",
+      "name": "Karakter",
+      "online": "Durum",
+      "intel": "Bekleyen Intel",
+      "onlineState": "Çevrimiçi",
+      "offlineState": "Çevrimdışı",
+      "grant": "Ver",
+      "grantOnlineHint": "Çevrimdışı gerekli",
+      "none": "Kazanılmış, verilmemiş ödülü olan oyuncu yok."
+    },
+    "progress": {
+      "title": "Oyuncu İlerlemesi",
+      "hint": "Battlepass taleplerini görmek için yukarıda bir oyuncu arayın.",
+      "noClaims": "{{account}} hesabı için Battlepass talebi yok."
+    },
+    "claims": {
+      "tier": "Kademe",
+      "status": "Durum",
+      "earnedAt": "Kazanıldı",
+      "grantedAt": "Verildi",
+      "lastError": "Son Hata"
     }
   }
 }

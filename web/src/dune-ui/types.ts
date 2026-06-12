@@ -79,7 +79,7 @@ export interface FieldSelectProps {
 export type ConfirmDialogProps = {
   open: boolean
   title: string
-  description: string
+  description: React.ReactNode
   confirmLabel?: string
   onConfirm: () => void
   onCancel: () => void
@@ -177,6 +177,9 @@ export type PageHeaderProps = {
 export type PanelProps = {
   children: React.ReactNode
   className?: string
+  /** Extra classes for the inner Widget.Content (e.g. `flex-1 min-h-0` so a
+   *  paged DataTable can fill the panel and keep its pager visible). */
+  contentClassName?: string
 }
 
 export type SideNavRenderSlot = React.ReactNode | ((active: boolean) => React.ReactNode)

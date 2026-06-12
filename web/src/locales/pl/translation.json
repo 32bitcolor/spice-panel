@@ -372,7 +372,8 @@
     "optional": "opcjonalne",
     "deleteSelected": "Usuń zaznaczone",
     "clearSelection": "Wyczyść zaznaczenie",
-    "noItems": "Brak elementów."
+    "noItems": "Brak elementów.",
+    "beta": "Beta"
   },
   "database": {
     "columnColumn": "Kolumna",
@@ -693,7 +694,8 @@
     "storage": "Magazyn",
     "welcome": "Zestawy powitalne",
     "events": "Wydarzenia na żywo",
-    "menu": "Nawigacja"
+    "menu": "Nawigacja",
+    "battlepass": "Battlepass"
   },
   "players": {
     "actions": {
@@ -1545,6 +1547,114 @@
     "signals": {
       "level": "Poziom postaci",
       "achievementTag": "Tag osiągnięcia"
+    }
+  },
+  "battlepass": {
+    "title": "Battlepass ({{count}} poziomów)",
+    "subtitle": "Ścieżka nagród Intelu — {{intel}} intelu łącznie na włączonych poziomach. Zdobyte nagrody są przyznawane ręcznie, gdy gracz jest offline.",
+    "reseed": "Resetuj Katalog",
+    "reseedDialog": {
+      "title": "Zresetować katalog poziomów?",
+      "intro": "Spowoduje to usunięcie wszystkich definicji poziomów i ponowne wstawienie {{count}} wbudowanych domyślnych:",
+      "resetsIntel": "Edycje wartości Intelu zostaną odrzucone",
+      "resetsEnabled": "Przełączniki włącz/wyłącz zostaną zresetowane — wszystkie domyślne poziomy powrócą jako włączone",
+      "removesCustom": "Poziomy nieobecne w domyślnym katalogu zostaną usunięte",
+      "keeps": "Historia claimów i linie bazowe graczy są zachowane. Claimy ponownie powiązują się według klucza poziomu, więc nic nie jest ponownie zdobywane ani przyznawane podwójnie. Baza danych gry nie jest modyfikowana."
+    },
+    "grantDialog": {
+      "title": "Przyznać Intel Battlepass?",
+      "body": "Przyznaje {{intel}} punktów Intelu do {{account}} w jednej aktualizacji i oznacza zdobyte poziomy jako przyznane. Gracz musi pozostać offline podczas aplikowania — jeśli zaloguje się wcześniej, przyznanie nie powiedzie się i pozostanie oczekujące na ponowną próbę.",
+      "confirm": "Przyznaj {{intel}} Intelu"
+    },
+    "reseedSuccess": "Katalog zasilony ponownie z {{count}} poziomami.",
+    "failedToLoad": "Nie udało się załadować danych Battlepass: {{message}}",
+    "updateFailed": "Nie udało się zaktualizować poziomu: {{message}}",
+    "toggleEnabled": "Przełącz poziom",
+    "editIntelPrompt": "Nagroda Intelu za \"{{label}}\":",
+    "invalidIntel": "Intel musi być nieujemną liczbą całkowitą.",
+    "invalidAccount": "Wprowadź poprawne ID konta.",
+    "requirementLevel": "Osiągnij poziom {{level}}",
+    "grantSuccess": "Przyznano {{intel}} Intelu na {{tiers}} poziomach.",
+    "grantFailed": "Przyznanie nie powiodło się: {{message}}",
+    "categories": {
+      "level": "Poziom",
+      "story": "Fabuła",
+      "side_quest": "Zadanie Poboczne",
+      "faction": "Frakcja",
+      "exploration": "Eksploracja",
+      "achievement": "Osiągnięcie"
+    },
+    "status": {
+      "baseline": "linia bazowa",
+      "earned": "zdobyty",
+      "granted": "przyznany"
+    },
+    "catalog": {
+      "title": "Katalog Poziomów ({{count}})",
+      "empty": "Brak poziomów w katalogu. Użyj Resetuj Katalog, aby załadować domyślne."
+    },
+    "sections": {
+      "pending": "Oczekujące ({{count}})",
+      "progress": "Postęp",
+      "catalog": "Katalog",
+      "track": "Ścieżka"
+    },
+    "editor": {
+      "title": "Edytuj Poziom",
+      "tierSection": "Poziom",
+      "label": "Etykieta",
+      "itemRewards": "Nagrody Przedmiotów",
+      "saved": "Poziom zapisany."
+    },
+    "bulk": {
+      "enable": "Włącz",
+      "disable": "Wyłącz",
+      "delete": "Usuń"
+    },
+    "bulkSuccess": "Zaktualizowano {{count}} poziomów.",
+    "bulkDeleteDialog": {
+      "title": "Usunąć zaznaczone poziomy?",
+      "body": "Usuwa {{count}} poziomów z katalogu. Historia claimów jest zachowana, a Reset Katalogu przywróci domyślne poziomy później — ale niestandardowe etykiety, wartości Intelu i nagrody przedmiotów usuniętych poziomów zostaną utracone.",
+      "confirm": "Usuń {{count}} Poziomów"
+    },
+    "track": {
+      "empty": "Brak włączonych poziomów do wyświetlenia.",
+      "laneSummary": "{{count}} poziomów · {{intel}} intel",
+      "tooltip": "{{pct}}% graczy osiągnęło ten poziom ({{count}} z {{total}})."
+    },
+    "columns": {
+      "label": "Poziom",
+      "category": "Kategoria",
+      "requirement": "Wymaganie",
+      "intel": "Intel",
+      "rewards": "Przedmioty",
+      "earned": "Zdobyty",
+      "granted": "Przyznany",
+      "enabled": "Włączony"
+    },
+    "pending": {
+      "title": "Oczekujące Przyznania ({{count}})",
+      "accountId": "Konto",
+      "name": "Postać",
+      "online": "Status",
+      "intel": "Oczekujący Intel",
+      "onlineState": "Online",
+      "offlineState": "Offline",
+      "grant": "Przyznaj",
+      "grantOnlineHint": "Wymagany tryb offline",
+      "none": "Brak graczy ze zdobytymi, nieprzyznanymi nagrodami."
+    },
+    "progress": {
+      "title": "Postęp Gracza",
+      "hint": "Wyszukaj gracza powyżej, aby zobaczyć jego claimy Battlepass.",
+      "noClaims": "Brak claimów Battlepass dla konta {{account}}."
+    },
+    "claims": {
+      "tier": "Poziom",
+      "status": "Status",
+      "earnedAt": "Zdobyto",
+      "grantedAt": "Przyznano",
+      "lastError": "Ostatni Błąd"
     }
   }
 }

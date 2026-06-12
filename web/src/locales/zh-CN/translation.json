@@ -368,7 +368,8 @@
     "optional": "可选",
     "deleteSelected": "删除所选",
     "clearSelection": "清除选择",
-    "noItems": "暂无项目。"
+    "noItems": "暂无项目。",
+    "beta": "测试版"
   },
   "database": {
     "columnColumn": "列",
@@ -679,7 +680,8 @@
     "storage": "仓库",
     "welcome": "欢迎礼包",
     "events": "实时活动",
-    "menu": "导航"
+    "menu": "导航",
+    "battlepass": "战斗通行证"
   },
   "players": {
     "actions": {
@@ -1499,6 +1501,114 @@
     "signals": {
       "level": "角色等级",
       "achievementTag": "成就标签"
+    }
+  },
+  "battlepass": {
+    "title": "战令（{{count}} 阶）",
+    "subtitle": "情报点奖励轨道 — 已启用阶位共 {{intel}} 情报。已获得的奖励在玩家离线时手动发放。",
+    "reseed": "重置目录",
+    "reseedDialog": {
+      "title": "重置阶位目录？",
+      "intro": "这将删除所有阶位定义，并重新插入 {{count}} 个内置默认值：",
+      "resetsIntel": "情报值编辑将被丢弃",
+      "resetsEnabled": "启用/禁用开关将被重置——所有默认阶位重新变为启用状态",
+      "removesCustom": "不在默认目录中的阶位将被移除",
+      "keeps": "领取历史记录和玩家基准值将被保留。领取记录按阶位键重新关联，因此不会重复获得或重复发放。游戏数据库不会受到影响。"
+    },
+    "grantDialog": {
+      "title": "发放战令情报？",
+      "body": "通过单次更新向 {{account}} 发放 {{intel}} 情报点，并将其已获得的阶位标记为已发放。发放期间玩家必须保持离线状态——若玩家提前登录，发放将失败并保持待重试状态。",
+      "confirm": "发放 {{intel}} 情报"
+    },
+    "reseedSuccess": "目录已用 {{count}} 个阶位重新填充。",
+    "failedToLoad": "加载战令数据失败：{{message}}",
+    "updateFailed": "更新阶位失败：{{message}}",
+    "toggleEnabled": "切换阶位",
+    "editIntelPrompt": "「{{label}}」的情报奖励：",
+    "invalidIntel": "情报必须是非负整数。",
+    "invalidAccount": "请输入有效的账户ID。",
+    "requirementLevel": "达到 {{level}} 级",
+    "grantSuccess": "已在 {{tiers}} 个阶位中发放 {{intel}} 情报。",
+    "grantFailed": "发放失败：{{message}}",
+    "categories": {
+      "level": "等级",
+      "story": "主线",
+      "side_quest": "支线任务",
+      "faction": "派系",
+      "exploration": "探索",
+      "achievement": "成就"
+    },
+    "status": {
+      "baseline": "基准",
+      "earned": "已获得",
+      "granted": "已发放"
+    },
+    "catalog": {
+      "title": "阶位目录（{{count}}）",
+      "empty": "目录中没有阶位。使用重置目录来加载默认值。"
+    },
+    "sections": {
+      "pending": "待处理（{{count}}）",
+      "progress": "进度",
+      "catalog": "目录",
+      "track": "轨道"
+    },
+    "editor": {
+      "title": "编辑阶位",
+      "tierSection": "阶位",
+      "label": "标签",
+      "itemRewards": "物品奖励",
+      "saved": "阶位已保存。"
+    },
+    "bulk": {
+      "enable": "启用",
+      "disable": "禁用",
+      "delete": "删除"
+    },
+    "bulkSuccess": "已更新 {{count}} 个阶位。",
+    "bulkDeleteDialog": {
+      "title": "删除选中的阶位？",
+      "body": "从目录中移除 {{count}} 个阶位。领取历史记录将被保留，重置目录可在以后恢复默认阶位——但被删除阶位的自定义标签、情报值和物品奖励将永久丢失。",
+      "confirm": "删除 {{count}} 个阶位"
+    },
+    "track": {
+      "empty": "没有已启用的阶位可显示。",
+      "laneSummary": "{{count}} 阶 · {{intel}} 情报",
+      "tooltip": "{{pct}}% 的玩家达到了此阶位（{{total}} 人中的 {{count}} 人）。"
+    },
+    "columns": {
+      "label": "阶位",
+      "category": "类别",
+      "requirement": "条件",
+      "intel": "情报",
+      "rewards": "物品",
+      "earned": "已获得",
+      "granted": "已发放",
+      "enabled": "已启用"
+    },
+    "pending": {
+      "title": "待发放（{{count}}）",
+      "accountId": "账户",
+      "name": "角色",
+      "online": "状态",
+      "intel": "待发放情报",
+      "onlineState": "在线",
+      "offlineState": "离线",
+      "grant": "发放",
+      "grantOnlineHint": "需要离线",
+      "none": "没有玩家拥有已获得但未发放的奖励。"
+    },
+    "progress": {
+      "title": "玩家进度",
+      "hint": "在上方搜索玩家以查看其战令领取记录。",
+      "noClaims": "账户 {{account}} 没有战令领取记录。"
+    },
+    "claims": {
+      "tier": "阶位",
+      "status": "状态",
+      "earnedAt": "获得时间",
+      "grantedAt": "发放时间",
+      "lastError": "最后错误"
     }
   }
 }

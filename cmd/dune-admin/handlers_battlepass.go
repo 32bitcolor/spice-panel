@@ -1,0 +1,382 @@
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
+	"net/http"
+	"strconv"
+)
+
+// errBattlepassNothingEarned signals a grant request for an account with no
+// grantable (earned) claims.
+var errBattlepassNothingEarned = errors.New("no earned battlepass rewards to grant")
+
+// battlepassGrantDeps holds the injectable pieces of the grant flow so it can
+// be unit-tested without a live DB.
+type battlepassGrantDeps struct {
+	fetchPlayers func(ctx context.Context) ([]battlepassPlayer, error)
+	awardIntel   func(ctx context.Context, pawnID, amount int64) error
+	giveItem     func(ctx context.Context, actorID int64, template string, qty, quality int64) error
+}
+
+// grantBattlepassEarned sums the account's earned claims, awards the intel in
+// one update (the player must be offline), marks the claims granted, then
+// delivers any per-tier item rewards. Failed intel awards are recorded on the
+// claims, which stay earned for retry; item failures after the intel grant
+// are logged but do not re-open the claims (a retry would double-pay intel).
+func grantBattlepassEarned(ctx context.Context, store *battlepassStore, deps battlepassGrantDeps, accountID int64) (int64, int, error) {
+	earned, err := store.earnedClaims(accountID)
+	if err != nil {
+		return 0, 0, fmt.Errorf("earned claims: %w", err)
+	}
+	if len(earned) == 0 {
+		return 0, 0, errBattlepassNothingEarned
+	}
+
+	players, err := deps.fetchPlayers(ctx)
+	if err != nil {
+		return 0, 0, fmt.Errorf("fetch players: %w", err)
+	}
+	var pawnID int64
+	for _, p := range players {
+		if p.AccountID == accountID {
+			pawnID = p.PawnID
+			break
+		}
+	}
+	if pawnID == 0 {
+		return 0, 0, errNotFound
+	}
+
+	var total int64
+	for _, c := range earned {
+		total += c.Intel
+	}
+	if err := deps.awardIntel(ctx, pawnID, total); err != nil {
+		if recErr := store.recordGrantFailure(accountID, err.Error()); recErr != nil {
+			log.Printf("battlepass: record grant failure for %d: %v", accountID, recErr)
+		}
+		return 0, 0, err
+	}
+	if err := store.markGrantedForAccount(accountID); err != nil {
+		// Intel was applied but the ledger update failed — surface loudly so
+		// the admin can reconcile before retrying (a retry would double-pay).
+		return total, len(earned), fmt.Errorf("intel granted but claim update failed: %w", err)
+	}
+	grantBattlepassItems(ctx, store, deps, earned, pawnID)
+	return total, len(earned), nil
+}
+
+// grantBattlepassItems delivers the item rewards attached to the earned
+// tiers. Runs after the intel grant; failures are logged, not retried.
+func grantBattlepassItems(ctx context.Context, store *battlepassStore, deps battlepassGrantDeps, earned []battlepassClaim, pawnID int64) {
+	tiers, err := store.listTiers()
+	if err != nil {
+		log.Printf("battlepass: list tiers for item rewards: %v", err)
+		return
+	}
+	rewardsByKey := make(map[string]string, len(tiers))
+	for _, t := range tiers {
+		if t.RewardItems != "" {
+			rewardsByKey[t.TierKey] = t.RewardItems
+		}
+	}
+	for _, c := range earned {
+		raw, ok := rewardsByKey[c.TierKey]
+		if !ok {
+			continue
+		}
+		var items []rewardItem
+		if err := json.Unmarshal([]byte(raw), &items); err != nil {
+			log.Printf("battlepass: tier %s reward_items: %v", c.TierKey, err)
+			continue
+		}
+		for _, item := range items {
+			if err := deps.giveItem(ctx, pawnID, item.Template, item.Qty, item.Quality); err != nil {
+				log.Printf("battlepass: give item %q for tier %s account %d: %v", item.Template, c.TierKey, c.AccountID, err)
+			}
+		}
+	}
+}
+
+// productionBattlepassGrantDeps builds grant deps from live globals.
+func productionBattlepassGrantDeps() battlepassGrantDeps {
+	return battlepassGrantDeps{
+		fetchPlayers: func(ctx context.Context) ([]battlepassPlayer, error) {
+			return cmdFetchBattlepassPlayers(ctx, globalDB)
+		},
+		awardIntel: func(ctx context.Context, pawnID, amount int64) error {
+			return cmdAwardIntelCtx(ctx, globalDB, pawnID, amount)
+		},
+		giveItem: func(ctx context.Context, actorID int64, template string, qty, quality int64) error {
+			return cmdGiveItemCtx(ctx, globalDB, actorID, template, qty, quality)
+		},
+	}
+}
+
+// ── handlers ──────────────────────────────────────────────────────────────────
+
+// handleListBattlepassTiers returns the tier catalog with per-tier claim counts.
+func handleListBattlepassTiers(w http.ResponseWriter, r *http.Request) {
+	if globalBattlepassStore == nil {
+		jsonErr(w, fmt.Errorf("battlepass store not available"), http.StatusServiceUnavailable)
+		return
+	}
+	tiers, err := globalBattlepassStore.listTiers()
+	if err != nil {
+		log.Printf("handleListBattlepassTiers: %v", err)
+		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
+		return
+	}
+	counts, err := globalBattlepassStore.countsByTier()
+	if err != nil {
+		log.Printf("handleListBattlepassTiers counts: %v", err)
+		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
+		return
+	}
+	// playerCount lets the UI render per-tier population percentages. Best
+	// effort: 0 when the game DB is unavailable.
+	playerCount := 0
+	if globalDB != nil {
+		if players, err := cmdFetchBattlepassPlayers(r.Context(), globalDB); err == nil {
+			playerCount = len(players)
+		} else {
+			log.Printf("handleListBattlepassTiers players: %v", err)
+		}
+	}
+	jsonOK(w, map[string]any{"tiers": tiers, "counts": counts, "player_count": playerCount})
+}
+
+// handleBattlepassTiersBulk enables, disables, or deletes a set of tiers.
+func handleBattlepassTiersBulk(w http.ResponseWriter, r *http.Request) {
+	if globalBattlepassStore == nil {
+		jsonErr(w, fmt.Errorf("battlepass store not available"), http.StatusServiceUnavailable)
+		return
+	}
+	var req struct {
+		IDs    []int64 `json:"ids"`
+		Action string  `json:"action"`
+	}
+	if err := decode(r, &req); err != nil || len(req.IDs) == 0 {
+		jsonErr(w, fmt.Errorf("ids and action are required"), http.StatusBadRequest)
+		return
+	}
+	var err error
+	switch req.Action {
+	case "enable":
+		err = globalBattlepassStore.setTiersEnabled(req.IDs, true)
+	case "disable":
+		err = globalBattlepassStore.setTiersEnabled(req.IDs, false)
+	case "delete":
+		err = globalBattlepassStore.deleteTiers(req.IDs)
+	default:
+		jsonErr(w, fmt.Errorf("action must be enable, disable, or delete"), http.StatusBadRequest)
+		return
+	}
+	if err != nil {
+		log.Printf("handleBattlepassTiersBulk %s: %v", req.Action, err)
+		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
+		return
+	}
+	jsonOK(w, map[string]any{"ok": true, "count": len(req.IDs)})
+}
+
+// mergeBattlepassTierUpdate resolves the optional label/reward_items fields
+// against the existing tier: omitted fields keep their current values so
+// callers like the inline intel editor don't have to send everything.
+// Non-empty reward_items must parse as a []rewardItem JSON array.
+func mergeBattlepassTierUpdate(existing *battlepassTier, reqLabel, reqRewardItems *string) (string, string, error) {
+	label := existing.Label
+	if reqLabel != nil && *reqLabel != "" {
+		label = *reqLabel
+	}
+	rewardItems := existing.RewardItems
+	if reqRewardItems != nil {
+		if *reqRewardItems != "" {
+			var items []rewardItem
+			if err := json.Unmarshal([]byte(*reqRewardItems), &items); err != nil {
+				return "", "", fmt.Errorf("reward_items must be a JSON array of {template, qty, quality}")
+			}
+		}
+		rewardItems = *reqRewardItems
+	}
+	return label, rewardItems, nil
+}
+
+// handleUpdateBattlepassTier adjusts a tier's intel reward and enabled flag.
+func handleUpdateBattlepassTier(w http.ResponseWriter, r *http.Request) {
+	if globalBattlepassStore == nil {
+		jsonErr(w, fmt.Errorf("battlepass store not available"), http.StatusServiceUnavailable)
+		return
+	}
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		jsonErr(w, fmt.Errorf("invalid id"), http.StatusBadRequest)
+		return
+	}
+	var req struct {
+		Label       *string `json:"label"`
+		Intel       int64   `json:"intel"`
+		Enabled     bool    `json:"enabled"`
+		RewardItems *string `json:"reward_items"`
+	}
+	if err := decode(r, &req); err != nil {
+		jsonErr(w, fmt.Errorf("invalid request body"), http.StatusBadRequest)
+		return
+	}
+	if req.Intel < 0 {
+		jsonErr(w, fmt.Errorf("intel must be >= 0"), http.StatusBadRequest)
+		return
+	}
+
+	existing, err := globalBattlepassStore.getTier(id)
+	if errors.Is(err, errNotFound) {
+		jsonErr(w, fmt.Errorf("tier not found"), http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("handleUpdateBattlepassTier get: %v", err)
+		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
+		return
+	}
+
+	label, rewardItems, err := mergeBattlepassTierUpdate(existing, req.Label, req.RewardItems)
+	if err != nil {
+		jsonErr(w, err, http.StatusBadRequest)
+		return
+	}
+
+	tier, err := globalBattlepassStore.updateTier(id, label, req.Intel, req.Enabled, rewardItems)
+	if errors.Is(err, errNotFound) {
+		jsonErr(w, fmt.Errorf("tier not found"), http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("handleUpdateBattlepassTier: %v", err)
+		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
+		return
+	}
+	jsonOK(w, tier)
+}
+
+// handleBattlepassProgress returns one account's claims and pending intel.
+func handleBattlepassProgress(w http.ResponseWriter, r *http.Request) {
+	if globalBattlepassStore == nil {
+		jsonErr(w, fmt.Errorf("battlepass store not available"), http.StatusServiceUnavailable)
+		return
+	}
+	accountID, err := strconv.ParseInt(r.PathValue("accountId"), 10, 64)
+	if err != nil {
+		jsonErr(w, fmt.Errorf("invalid account id"), http.StatusBadRequest)
+		return
+	}
+	claims, err := globalBattlepassStore.listClaims(accountID)
+	if err != nil {
+		log.Printf("handleBattlepassProgress: %v", err)
+		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
+		return
+	}
+	var pending int64
+	for _, c := range claims {
+		if c.Status == battlepassClaimEarned {
+			pending += c.Intel
+		}
+	}
+	jsonOK(w, map[string]any{"claims": claims, "pending_intel": pending})
+}
+
+// handleBattlepassPending lists accounts holding earned-but-ungranted intel,
+// decorated with character name and online state when available.
+func handleBattlepassPending(w http.ResponseWriter, r *http.Request) {
+	if globalBattlepassStore == nil {
+		jsonErr(w, fmt.Errorf("battlepass store not available"), http.StatusServiceUnavailable)
+		return
+	}
+	totals, err := globalBattlepassStore.earnedTotals()
+	if err != nil {
+		log.Printf("handleBattlepassPending: %v", err)
+		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
+		return
+	}
+
+	type pendingRow struct {
+		AccountID    int64  `json:"account_id"`
+		Name         string `json:"name"`
+		Online       bool   `json:"online"`
+		PendingIntel int64  `json:"pending_intel"`
+	}
+	rows := make([]pendingRow, 0, len(totals))
+	names := map[int64]battlepassPlayer{}
+	if globalDB != nil {
+		if players, err := cmdFetchBattlepassPlayers(r.Context(), globalDB); err == nil {
+			for _, p := range players {
+				names[p.AccountID] = p
+			}
+		} else {
+			log.Printf("handleBattlepassPending players: %v", err)
+		}
+	}
+	for accountID, intel := range totals {
+		row := pendingRow{AccountID: accountID, PendingIntel: intel}
+		if p, ok := names[accountID]; ok {
+			row.Name = p.Name
+			row.Online = p.Online
+		}
+		rows = append(rows, row)
+	}
+	jsonOK(w, rows)
+}
+
+// handleBattlepassReseed resets the tier catalog to the defaults. Claims are
+// keyed by tier_key and survive the reseed.
+func handleBattlepassReseed(w http.ResponseWriter, r *http.Request) {
+	if globalBattlepassStore == nil {
+		jsonErr(w, fmt.Errorf("battlepass store not available"), http.StatusServiceUnavailable)
+		return
+	}
+	catalog := defaultBattlepassCatalog()
+	if err := globalBattlepassStore.reseedTiers(catalog); err != nil {
+		log.Printf("handleBattlepassReseed: %v", err)
+		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
+		return
+	}
+	jsonOK(w, map[string]any{"seeded": len(catalog)})
+}
+
+// handleBattlepassGrant applies an account's earned intel to its character.
+// The player must be offline — the game would clobber a live edit.
+func handleBattlepassGrant(w http.ResponseWriter, r *http.Request) {
+	if globalBattlepassStore == nil {
+		jsonErr(w, fmt.Errorf("battlepass store not available"), http.StatusServiceUnavailable)
+		return
+	}
+	if globalDB == nil {
+		jsonErr(w, fmt.Errorf("database not connected"), http.StatusServiceUnavailable)
+		return
+	}
+	var req struct {
+		AccountID int64 `json:"account_id"`
+	}
+	if err := decode(r, &req); err != nil || req.AccountID == 0 {
+		jsonErr(w, fmt.Errorf("account_id is required"), http.StatusBadRequest)
+		return
+	}
+
+	total, tiers, err := grantBattlepassEarned(r.Context(), globalBattlepassStore, productionBattlepassGrantDeps(), req.AccountID)
+	switch {
+	case errors.Is(err, errBattlepassNothingEarned):
+		jsonErr(w, err, http.StatusBadRequest)
+		return
+	case errors.Is(err, errNotFound):
+		jsonErr(w, fmt.Errorf("no character found for account %d", req.AccountID), http.StatusNotFound)
+		return
+	case err != nil:
+		log.Printf("handleBattlepassGrant account %d: %v", req.AccountID, err)
+		jsonErr(w, err, http.StatusConflict)
+		return
+	}
+	jsonOK(w, map[string]any{"granted_intel": total, "tiers": tiers})
+}

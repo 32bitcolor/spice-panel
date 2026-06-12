@@ -368,39 +368,40 @@ export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, on
               {t('players.give.giveCount', { count: staged.length })}
             </Button>
           </Modal.Footer>
+          {/* Inside the dialog: outside it, React Aria's modal underlay
+              makes the bar inert (no hover, clicks fall through). */}
+          <ActionBar aria-label={t('players.give.modalTitle', { name: player.name })} isOpen={selectionCount > 0}>
+            <ActionBar.Prefix>
+              <Chip size="sm" className="shrink-0 tabular-nums">{selectionCount}</Chip>
+            </ActionBar.Prefix>
+            <Separator />
+            <ActionBar.Content>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-danger"
+                onPress={handleBulkDelete}
+                aria-label={t('common.deleteSelected')}
+              >
+                <Icon name="trash-2" />
+                <span className="action-bar__label">{t('common.deleteSelected')}</span>
+              </Button>
+            </ActionBar.Content>
+            <Separator />
+            <ActionBar.Suffix>
+              <Button
+                isIconOnly
+                size="sm"
+                variant="ghost"
+                onPress={() => setSelectedKeys(new Set())}
+                aria-label={t('common.clearSelection')}
+              >
+                <Icon name="x" />
+              </Button>
+            </ActionBar.Suffix>
+          </ActionBar>
         </Modal.Dialog>
       </Modal.Container>
-
-      <ActionBar aria-label={t('players.give.modalTitle', { name: player.name })} isOpen={selectionCount > 0}>
-        <ActionBar.Prefix>
-          <Chip size="sm" className="shrink-0 tabular-nums">{selectionCount}</Chip>
-        </ActionBar.Prefix>
-        <Separator />
-        <ActionBar.Content>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-danger"
-            onPress={handleBulkDelete}
-            aria-label={t('common.deleteSelected')}
-          >
-            <Icon name="trash-2" />
-            <span className="action-bar__label">{t('common.deleteSelected')}</span>
-          </Button>
-        </ActionBar.Content>
-        <Separator />
-        <ActionBar.Suffix>
-          <Button
-            isIconOnly
-            size="sm"
-            variant="ghost"
-            onPress={() => setSelectedKeys(new Set())}
-            aria-label={t('common.clearSelection')}
-          >
-            <Icon name="x" />
-          </Button>
-        </ActionBar.Suffix>
-      </ActionBar>
     </Modal.Backdrop>
   )
 }

@@ -370,7 +370,8 @@
     "optional": "opcional",
     "deleteSelected": "Eliminar seleccionados",
     "clearSelection": "Limpiar selección",
-    "noItems": "Aún no hay objetos."
+    "noItems": "Aún no hay objetos.",
+    "beta": "Beta"
   },
   "database": {
     "columnColumn": "Columna",
@@ -686,7 +687,8 @@
     "storage": "Almacenamiento",
     "welcome": "Kits de bienvenida",
     "events": "Eventos en vivo",
-    "menu": "Navegación"
+    "menu": "Navegación",
+    "battlepass": "Pase de batalla"
   },
   "players": {
     "actions": {
@@ -1522,6 +1524,114 @@
     "signals": {
       "level": "Nivel de personaje",
       "achievementTag": "Etiqueta de logro"
+    }
+  },
+  "battlepass": {
+    "title": "Battlepass ({{count}} rangos)",
+    "subtitle": "Pista de recompensas de Intel — {{intel}} intel total a través de los rangos activados. Las recompensas ganadas se otorgan manualmente mientras el jugador está desconectado.",
+    "reseed": "Restablecer Catálogo",
+    "reseedDialog": {
+      "title": "¿Restablecer el catálogo de rangos?",
+      "intro": "Esto elimina todas las definiciones de rangos y reinserta los {{count}} valores predeterminados integrados:",
+      "resetsIntel": "Las ediciones de valores de Intel se descartan",
+      "resetsEnabled": "Los interruptores de activar/desactivar se restablecen — todos los rangos predeterminados vuelven activados",
+      "removesCustom": "Los rangos que no están en el catálogo predeterminado son eliminados",
+      "keeps": "El historial de claims y las líneas base de los jugadores se conservan. Los claims se vuelven a vincular por clave de rango, por lo que nada se gana de nuevo ni se otorga dos veces. La base de datos del juego no se modifica."
+    },
+    "grantDialog": {
+      "title": "¿Otorgar Intel del Battlepass?",
+      "body": "Otorga {{intel}} puntos de Intel a {{account}} en una sola actualización y marca sus rangos ganados como otorgados. El jugador debe permanecer desconectado mientras se aplica — si inicia sesión primero, el otorgamiento falla y queda pendiente para reintento.",
+      "confirm": "Otorgar {{intel}} Intel"
+    },
+    "reseedSuccess": "Catálogo reestablecido con {{count}} rangos.",
+    "failedToLoad": "Error al cargar datos del Battlepass: {{message}}",
+    "updateFailed": "Error al actualizar el rango: {{message}}",
+    "toggleEnabled": "Alternar rango",
+    "editIntelPrompt": "Recompensa de Intel para \"{{label}}\":",
+    "invalidIntel": "El Intel debe ser un número entero no negativo.",
+    "invalidAccount": "Introduce un ID de cuenta válido.",
+    "requirementLevel": "Alcanza el nivel {{level}}",
+    "grantSuccess": "{{intel}} Intel otorgado a través de {{tiers}} rangos.",
+    "grantFailed": "Error al otorgar: {{message}}",
+    "categories": {
+      "level": "Nivel",
+      "story": "Historia",
+      "side_quest": "Misión Secundaria",
+      "faction": "Facción",
+      "exploration": "Exploración",
+      "achievement": "Logro"
+    },
+    "status": {
+      "baseline": "línea base",
+      "earned": "ganado",
+      "granted": "otorgado"
+    },
+    "catalog": {
+      "title": "Catálogo de Rangos ({{count}})",
+      "empty": "No hay rangos en el catálogo. Usa Restablecer Catálogo para cargar los valores predeterminados."
+    },
+    "sections": {
+      "pending": "Pendiente ({{count}})",
+      "progress": "Progreso",
+      "catalog": "Catálogo",
+      "track": "Pista"
+    },
+    "editor": {
+      "title": "Editar Rango",
+      "tierSection": "Rango",
+      "label": "Etiqueta",
+      "itemRewards": "Recompensas de Objetos",
+      "saved": "Rango guardado."
+    },
+    "bulk": {
+      "enable": "Activar",
+      "disable": "Desactivar",
+      "delete": "Eliminar"
+    },
+    "bulkSuccess": "{{count}} rangos actualizados.",
+    "bulkDeleteDialog": {
+      "title": "¿Eliminar los rangos seleccionados?",
+      "body": "Elimina {{count}} rangos del catálogo. El historial de claims se conserva y un Restablecimiento de Catálogo restaurará los rangos predeterminados más tarde — pero las etiquetas personalizadas, los valores de Intel y las recompensas de objetos de los rangos eliminados se pierden.",
+      "confirm": "Eliminar {{count}} Rangos"
+    },
+    "track": {
+      "empty": "No hay rangos activados para mostrar.",
+      "laneSummary": "{{count}} rangos · {{intel}} intel",
+      "tooltip": "{{pct}}% de los jugadores alcanzaron este rango ({{count}} de {{total}})."
+    },
+    "columns": {
+      "label": "Rango",
+      "category": "Categoría",
+      "requirement": "Requisito",
+      "intel": "Intel",
+      "rewards": "Objetos",
+      "earned": "Ganado",
+      "granted": "Otorgado",
+      "enabled": "Activado"
+    },
+    "pending": {
+      "title": "Otorgamientos Pendientes ({{count}})",
+      "accountId": "Cuenta",
+      "name": "Personaje",
+      "online": "Estado",
+      "intel": "Intel Pendiente",
+      "onlineState": "En línea",
+      "offlineState": "Desconectado",
+      "grant": "Otorgar",
+      "grantOnlineHint": "Se requiere estar desconectado",
+      "none": "No hay jugadores con recompensas ganadas sin otorgar."
+    },
+    "progress": {
+      "title": "Progreso del Jugador",
+      "hint": "Busca un jugador arriba para ver sus claims del Battlepass.",
+      "noClaims": "No hay claims del Battlepass para la cuenta {{account}}."
+    },
+    "claims": {
+      "tier": "Rango",
+      "status": "Estado",
+      "earnedAt": "Ganado",
+      "grantedAt": "Otorgado",
+      "lastError": "Último Error"
     }
   }
 }

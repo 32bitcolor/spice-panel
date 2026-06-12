@@ -1,12 +1,13 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAtom } from 'jotai'
-import { Button, Checkbox, Input, ListBox, SearchField, Select, TextArea, toast } from '@heroui/react'
+import { Button, Checkbox, Input, ListBox, Select, TextArea, toast } from '@heroui/react'
 import { Panel, SectionLabel } from '../../../../../dune-ui'
 import { vehiclesSyncAtom } from '../../../../../data/store'
 import { api } from '../../../../../api/client'
 import { busyAtom, partitionsAtom, allPlayersAtom } from '../store'
 import { useRun, useGate } from '../hooks/useActions'
+import { PlayerSearchField } from '../../../../../components/PlayerSearchField'
 import type { AdminSectionProps } from './types'
 
 export const AdminSection: React.FC<AdminSectionProps> = ({
@@ -25,8 +26,6 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
   const [teleportY, setTeleportY] = React.useState('')
   const [teleportZ, setTeleportZ] = React.useState('')
   const [selectedTeleportTarget, setSelectedTeleportTarget] = React.useState<number | null>(null)
-  const [targetSearch, setTargetSearch] = React.useState('')
-  const [targetDropdownOpen, setTargetDropdownOpen] = React.useState(false)
   const [whisperText, setWhisperText] = React.useState('')
   const [whisperSenderName, setWhisperSenderName] = React.useState('GM')
   const [spawnVehicleId, setSpawnVehicleId] = React.useState('')
@@ -129,18 +128,6 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
         ),
       `Teleported ${player.name} to (${teleportX}, ${teleportY}, ${teleportZ})`,
     )
-
-  const handleTargetSearch = (v: string) => {
-    setTargetSearch(v)
-    setSelectedTeleportTarget(null)
-    setTargetDropdownOpen(true)
-  }
-
-  const handleTargetPlayerClick = (targetPlayer: typeof allPlayers[0]) => {
-    setTargetSearch(targetPlayer.name)
-    setSelectedTeleportTarget(targetPlayer.id)
-    setTargetDropdownOpen(false)
-  }
 
   const handleTeleportToPlayer = () => {
     const target = allPlayers.find((p) => p.id === selectedTeleportTarget)
@@ -403,54 +390,14 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
           exactly on another character&apos;s current position.
         </div>
         <div className="flex items-center gap-3">
-          <div className="relative flex-1" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setTargetDropdownOpen(false) }}>
-            <SearchField
-              value={targetSearch}
-              onChange={handleTargetSearch}
-              onFocus={() => setTargetDropdownOpen(true)}
-              className="w-full"
-              aria-label={t('players.actions.admin.pickTarget')}
-            >
-              <SearchField.Group>
-                <SearchField.SearchIcon />
-                <SearchField.Input
-                  placeholder={allPlayers.length === 0 ? t('players.actions.admin.loadingPlayers') : t('players.actions.admin.pickTarget')}
-                  aria-label={t('players.actions.admin.selectTargetLabel')}
-                  onKeyDown={(e) => { if (e.key === 'Escape') setTargetDropdownOpen(false) }}
-                />
-                <SearchField.ClearButton />
-              </SearchField.Group>
-            </SearchField>
-            {targetDropdownOpen && (
-              <div className="absolute z-50 w-full mt-1 rounded-[var(--radius)] border border-border bg-surface overflow-y-auto max-h-52 shadow-lg">
-                {allPlayers
-                  .filter(
-                    (p) =>
-                      !targetSearch
-                      || p.name.toLowerCase().includes(targetSearch.toLowerCase()),
-                  )
-                  .slice(0, 50)
-                  .map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      className="w-full text-left px-3 py-1.5 text-xs cursor-pointer hover:bg-surface-hover flex items-center justify-between gap-2"
-                      onMouseDown={(e) => {
-                        e.preventDefault()
-                        handleTargetPlayerClick(p)
-                      }}
-                    >
-                      <span className="font-medium">{p.name}</span>
-                      <span className="text-muted">
-                        {p.map || '—'}
-                        {' · '}
-                        {p.online_status}
-                      </span>
-                    </button>
-                  ))}
-              </div>
-            )}
-          </div>
+          <PlayerSearchField
+            className="flex-1"
+            ariaLabel={t('players.actions.admin.pickTarget')}
+            placeholder={allPlayers.length === 0 ? t('players.actions.admin.loadingPlayers') : t('players.actions.admin.pickTarget')}
+            players={allPlayers}
+            onSelect={(p) => setSelectedTeleportTarget(p.id)}
+            onClear={() => setSelectedTeleportTarget(null)}
+          />
           <Button
             size="sm"
             isDisabled={busy || selectedTeleportTarget == null}

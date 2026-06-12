@@ -368,7 +368,8 @@
     "optional": "optional",
     "deleteSelected": "Ausgewählte löschen",
     "clearSelection": "Auswahl aufheben",
-    "noItems": "Noch keine Einträge."
+    "noItems": "Noch keine Einträge.",
+    "beta": "Beta"
   },
   "database": {
     "columnColumn": "Spalte",
@@ -679,7 +680,8 @@
     "storage": "Lager",
     "welcome": "Willkommenspakete",
     "events": "Live-Events",
-    "menu": "Navigation"
+    "menu": "Navigation",
+    "battlepass": "Battlepass"
   },
   "players": {
     "actions": {
@@ -1499,6 +1501,114 @@
     "signals": {
       "level": "Charakterstufe",
       "achievementTag": "Erfolgs-Tag"
+    }
+  },
+  "battlepass": {
+    "title": "Battlepass ({{count}} Stufen)",
+    "subtitle": "Intel-Punkte-Belohnungspfad — {{intel}} Intel gesamt über aktivierte Stufen. Verdiente Belohnungen werden manuell vergeben, während der Spieler offline ist.",
+    "reseed": "Katalog zurücksetzen",
+    "reseedDialog": {
+      "title": "Den Stufenkatalog zurücksetzen?",
+      "intro": "Dies löscht alle Stufendefinitionen und fügt die {{count}} integrierten Standards neu ein:",
+      "resetsIntel": "Intel-Wert-Änderungen werden verworfen",
+      "resetsEnabled": "Aktivierungs-/Deaktivierungsschalter werden zurückgesetzt — alle Standard-Stufen werden wieder aktiviert",
+      "removesCustom": "Stufen, die nicht im Standard-Katalog vorhanden sind, werden entfernt",
+      "keeps": "Claim-Verlauf und Spieler-Basiswerte bleiben erhalten. Claims werden erneut nach Stufenschlüssel zugeordnet, sodass nichts doppelt verdient oder doppelt vergeben wird. Die Spieldatenbank wird nicht berührt."
+    },
+    "grantDialog": {
+      "title": "Battlepass-Intel vergeben?",
+      "body": "Vergibt {{intel}} Intel-Punkte an {{account}} in einer einzigen Aktualisierung und markiert die verdienten Stufen als vergeben. Der Spieler muss offline bleiben, während dies angewendet wird — wenn er sich zuerst einloggt, schlägt die Vergabe fehl und bleibt zur Wiederholung ausstehend.",
+      "confirm": "{{intel}} Intel vergeben"
+    },
+    "reseedSuccess": "Katalog mit {{count}} Stufen neu befüllt.",
+    "failedToLoad": "Battlepass-Daten konnten nicht geladen werden: {{message}}",
+    "updateFailed": "Stufe konnte nicht aktualisiert werden: {{message}}",
+    "toggleEnabled": "Stufe umschalten",
+    "editIntelPrompt": "Intel-Belohnung für \"{{label}}\":",
+    "invalidIntel": "Intel muss eine nicht-negative ganze Zahl sein.",
+    "invalidAccount": "Geben Sie eine gültige Konto-ID ein.",
+    "requirementLevel": "Erreiche Stufe {{level}}",
+    "grantSuccess": "{{intel}} Intel über {{tiers}} Stufen vergeben.",
+    "grantFailed": "Vergabe fehlgeschlagen: {{message}}",
+    "categories": {
+      "level": "Stufe",
+      "story": "Geschichte",
+      "side_quest": "Nebenquest",
+      "faction": "Fraktion",
+      "exploration": "Erkundung",
+      "achievement": "Erfolg"
+    },
+    "status": {
+      "baseline": "Basiswert",
+      "earned": "verdient",
+      "granted": "vergeben"
+    },
+    "catalog": {
+      "title": "Stufenkatalog ({{count}})",
+      "empty": "Keine Stufen im Katalog. Verwende Katalog zurücksetzen, um die Standards zu laden."
+    },
+    "sections": {
+      "pending": "Ausstehend ({{count}})",
+      "progress": "Fortschritt",
+      "catalog": "Katalog",
+      "track": "Pfad"
+    },
+    "editor": {
+      "title": "Stufe bearbeiten",
+      "tierSection": "Stufe",
+      "label": "Bezeichnung",
+      "itemRewards": "Gegenstandsbelohnungen",
+      "saved": "Stufe gespeichert."
+    },
+    "bulk": {
+      "enable": "Aktivieren",
+      "disable": "Deaktivieren",
+      "delete": "Löschen"
+    },
+    "bulkSuccess": "{{count}} Stufen aktualisiert.",
+    "bulkDeleteDialog": {
+      "title": "Ausgewählte Stufen löschen?",
+      "body": "Entfernt {{count}} Stufen aus dem Katalog. Der Claim-Verlauf bleibt erhalten und ein Katalog-Reset stellt Standard-Stufen später wieder her — aber benutzerdefinierte Bezeichnungen, Intel-Werte und Gegenstandsbelohnungen der gelöschten Stufen gehen verloren.",
+      "confirm": "{{count}} Stufen löschen"
+    },
+    "track": {
+      "empty": "Keine aktivierten Stufen zum Anzeigen.",
+      "laneSummary": "{{count}} Stufen · {{intel}} Intel",
+      "tooltip": "{{pct}}% der Spieler haben diese Stufe erreicht ({{count}} von {{total}})."
+    },
+    "columns": {
+      "label": "Stufe",
+      "category": "Kategorie",
+      "requirement": "Anforderung",
+      "intel": "Intel",
+      "rewards": "Gegenstände",
+      "earned": "Verdient",
+      "granted": "Vergeben",
+      "enabled": "Aktiviert"
+    },
+    "pending": {
+      "title": "Ausstehende Vergaben ({{count}})",
+      "accountId": "Konto",
+      "name": "Charakter",
+      "online": "Status",
+      "intel": "Ausstehendes Intel",
+      "onlineState": "Online",
+      "offlineState": "Offline",
+      "grant": "Vergeben",
+      "grantOnlineHint": "Offline erforderlich",
+      "none": "Keine Spieler mit verdienten, nicht vergebenen Belohnungen."
+    },
+    "progress": {
+      "title": "Spielerfortschritt",
+      "hint": "Suche oben nach einem Spieler, um seine Battlepass-Claims anzuzeigen.",
+      "noClaims": "Keine Battlepass-Claims für Konto {{account}}."
+    },
+    "claims": {
+      "tier": "Stufe",
+      "status": "Status",
+      "earnedAt": "Verdient am",
+      "grantedAt": "Vergeben am",
+      "lastError": "Letzter Fehler"
     }
   }
 }

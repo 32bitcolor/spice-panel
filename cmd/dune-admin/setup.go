@@ -111,12 +111,41 @@ func runSetup() {
 
 // ── kubectl setup flow ────────────────────────────────────────────────────────
 
+// sshDefaultHost returns the best default SSH host for the setup wizard.
+// loadedConfig takes priority so existing config.yaml values are honoured,
+// then the SSH_HOST env var, then a hardcoded fallback.
+func sshDefaultHost(cfg appConfig) string {
+	if cfg.SSHHost != "" {
+		return cfg.SSHHost
+	}
+	return envOr("SSH_HOST", "192.168.0.72:22")
+}
+
+// sshDefaultUser returns the best default SSH user for the setup wizard,
+// preferring loadedConfig then SSH_USER env var then "dune".
+func sshDefaultUser(cfg appConfig) string {
+	if cfg.SSHUser != "" {
+		return cfg.SSHUser
+	}
+	return envOr("SSH_USER", "dune")
+}
+
+// sshKeyNotFoundMessage returns an informative error message. When the key
+// path came from config/flags, it shows that path so the user knows what was
+// actually checked; otherwise it lists the auto-detection candidates.
+func sshKeyNotFoundMessage(configuredKeyPath string) string {
+	if configuredKeyPath != "" {
+		return "SSH key not found at configured path: " + configuredKeyPath
+	}
+	return "SSH key not found (checked ~/.dune-admin/sshKey, next to binary, ./sshKey)"
+}
+
 func setupKubectlSSHKey(ask func(string, string) string, ok, fail func(string)) string {
 	// SSH key
 	fmt.Println("Checking for SSH key...")
 	keyPath := resolveKeyPath()
 	if _, err := os.Stat(keyPath); err != nil {
-		fail("SSH key not found (checked ~/.dune-admin/sshKey, next to binary, ./sshKey)")
+		fail(sshKeyNotFoundMessage(sshKeyPath))
 		fmt.Println()
 		sshKeyPath = ask("Path to SSH private key", "")
 		if sshKeyPath == "" {
@@ -143,8 +172,8 @@ func setupKubectlSSHConnection(
 ) *sshExecutor {
 	// SSH connection details
 	fmt.Println("SSH connection:")
-	sshHost = ask("VM host:port", envOr("SSH_HOST", "192.168.0.72:22"))
-	sshUser = ask("SSH user", envOr("SSH_USER", "dune"))
+	sshHost = ask("VM host:port", sshDefaultHost(loadedConfig))
+	sshUser = ask("SSH user", sshDefaultUser(loadedConfig))
 	fmt.Println()
 
 	// Dial

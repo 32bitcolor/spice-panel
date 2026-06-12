@@ -368,7 +368,8 @@
     "optional": "任意",
     "deleteSelected": "選択項目を削除",
     "clearSelection": "選択を解除",
-    "noItems": "アイテムはまだありません。"
+    "noItems": "アイテムはまだありません。",
+    "beta": "ベータ"
   },
   "database": {
     "columnColumn": "カラム",
@@ -679,7 +680,8 @@
     "storage": "ストレージ",
     "welcome": "ウェルカムキット",
     "events": "ライブイベント",
-    "menu": "ナビゲーション"
+    "menu": "ナビゲーション",
+    "battlepass": "バトルパス"
   },
   "players": {
     "actions": {
@@ -1499,6 +1501,114 @@
     "signals": {
       "level": "キャラクターレベル",
       "achievementTag": "実績タグ"
+    }
+  },
+  "battlepass": {
+    "title": "バトルパス（{{count}} ティア）",
+    "subtitle": "インテル・ポイント報酬トラック — 有効なティア全体で合計 {{intel}} インテル。獲得した報酬はプレイヤーがオフライン中に手動で付与されます。",
+    "reseed": "カタログをリセット",
+    "reseedDialog": {
+      "title": "ティアカタログをリセットしますか？",
+      "intro": "これにより、すべてのティア定義が削除され、{{count}} 件の組み込みデフォルトが再挿入されます：",
+      "resetsIntel": "インテル値の編集内容は破棄されます",
+      "resetsEnabled": "有効/無効のトグルがリセットされます — すべてのデフォルトティアが有効に戻ります",
+      "removesCustom": "デフォルトカタログにないティアは削除されます",
+      "keeps": "クレーム履歴とプレイヤーのベースラインは保持されます。クレームはティアキーで再紐付けされるため、再取得や二重付与は発生しません。ゲームデータベースは変更されません。"
+    },
+    "grantDialog": {
+      "title": "バトルパスのインテルを付与しますか？",
+      "body": "{{account}} に {{intel}} インテルポイントを1回のアップデートで付与し、獲得済みティアを付与済みとしてマークします。適用中はプレイヤーがオフラインのままである必要があります — 先にログインした場合、付与は失敗し再試行待ちになります。",
+      "confirm": "{{intel}} インテルを付与"
+    },
+    "reseedSuccess": "カタログが {{count}} ティアで再シードされました。",
+    "failedToLoad": "バトルパスデータの読み込みに失敗しました：{{message}}",
+    "updateFailed": "ティアの更新に失敗しました：{{message}}",
+    "toggleEnabled": "ティアを切り替え",
+    "editIntelPrompt": "「{{label}}」のインテル報酬：",
+    "invalidIntel": "インテルは非負の整数でなければなりません。",
+    "invalidAccount": "有効なアカウントIDを入力してください。",
+    "requirementLevel": "レベル {{level}} に到達",
+    "grantSuccess": "{{tiers}} ティアにわたって {{intel}} インテルを付与しました。",
+    "grantFailed": "付与に失敗しました：{{message}}",
+    "categories": {
+      "level": "レベル",
+      "story": "ストーリー",
+      "side_quest": "サイドクエスト",
+      "faction": "派閥",
+      "exploration": "探索",
+      "achievement": "実績"
+    },
+    "status": {
+      "baseline": "ベースライン",
+      "earned": "獲得済み",
+      "granted": "付与済み"
+    },
+    "catalog": {
+      "title": "ティアカタログ（{{count}}）",
+      "empty": "カタログにティアがありません。カタログをリセットしてデフォルトを読み込んでください。"
+    },
+    "sections": {
+      "pending": "保留中（{{count}}）",
+      "progress": "進捗",
+      "catalog": "カタログ",
+      "track": "トラック"
+    },
+    "editor": {
+      "title": "ティアを編集",
+      "tierSection": "ティア",
+      "label": "ラベル",
+      "itemRewards": "アイテム報酬",
+      "saved": "ティアを保存しました。"
+    },
+    "bulk": {
+      "enable": "有効化",
+      "disable": "無効化",
+      "delete": "削除"
+    },
+    "bulkSuccess": "{{count}} ティアを更新しました。",
+    "bulkDeleteDialog": {
+      "title": "選択したティアを削除しますか？",
+      "body": "カタログから {{count}} ティアを削除します。クレーム履歴は保持され、カタログのリセットにより後でデフォルトティアを復元できます — ただし、削除されたティアのカスタムラベル、インテル値、アイテム報酬は失われます。",
+      "confirm": "{{count}} ティアを削除"
+    },
+    "track": {
+      "empty": "表示する有効なティアがありません。",
+      "laneSummary": "{{count}} ティア · {{intel}} インテル",
+      "tooltip": "このティアに到達したプレイヤーは {{pct}}%（{{total}} 人中 {{count}} 人）です。"
+    },
+    "columns": {
+      "label": "ティア",
+      "category": "カテゴリ",
+      "requirement": "条件",
+      "intel": "インテル",
+      "rewards": "アイテム",
+      "earned": "獲得済み",
+      "granted": "付与済み",
+      "enabled": "有効"
+    },
+    "pending": {
+      "title": "保留中の付与（{{count}}）",
+      "accountId": "アカウント",
+      "name": "キャラクター",
+      "online": "ステータス",
+      "intel": "保留中のインテル",
+      "onlineState": "オンライン",
+      "offlineState": "オフライン",
+      "grant": "付与",
+      "grantOnlineHint": "オフライン必須",
+      "none": "獲得済みで未付与の報酬を持つプレイヤーはいません。"
+    },
+    "progress": {
+      "title": "プレイヤー進捗",
+      "hint": "上でプレイヤーを検索して、バトルパスのクレームを確認してください。",
+      "noClaims": "アカウント {{account}} のバトルパスクレームはありません。"
+    },
+    "claims": {
+      "tier": "ティア",
+      "status": "ステータス",
+      "earnedAt": "獲得日時",
+      "grantedAt": "付与日時",
+      "lastError": "最終エラー"
     }
   }
 }

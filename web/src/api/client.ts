@@ -762,6 +762,64 @@ export interface EventStatus {
   claims: EventClaimRecord[]
 }
 
+export type BattlepassSignal = 'level' | 'journey_node' | 'player_tag'
+export type BattlepassClaimStatus = 'baseline' | 'earned' | 'granted'
+
+export interface BattlepassTier {
+  id: number
+  tier_key: string
+  category: string
+  label: string
+  signal: BattlepassSignal
+  signal_key: string
+  threshold: number
+  intel: number
+  reward_items: string
+  enabled: boolean
+}
+
+export interface BattlepassTierUpdate {
+  label?: string
+  intel: number
+  enabled: boolean
+  reward_items?: string
+}
+
+export interface BattlepassTierCounts {
+  baseline: number
+  earned: number
+  granted: number
+}
+
+export interface BattlepassTiersResponse {
+  tiers: BattlepassTier[]
+  counts: Record<string, BattlepassTierCounts>
+  player_count: number
+}
+
+export interface BattlepassClaim {
+  tier_key: string
+  account_id: number
+  status: BattlepassClaimStatus
+  intel: number
+  earned_at: string
+  granted_at: string
+  attempts: number
+  last_error: string
+}
+
+export interface BattlepassProgress {
+  claims: BattlepassClaim[]
+  pending_intel: number
+}
+
+export interface BattlepassPendingRow {
+  account_id: number
+  name: string
+  online: boolean
+  pending_intel: number
+}
+
 export const api = {
   status: () => req<Status>('GET', '/status'),
   reconnect: () => req<Status>('POST', '/reconnect'),
@@ -1149,5 +1207,16 @@ export const api = {
       req<{ ok: boolean }>('POST', `/events/${id}/enable`, { enabled }),
     status: (id: number) => req<EventStatus>('GET', `/events/${id}/status`),
     reset: (id: number) => req<{ ok: boolean }>('POST', `/events/${id}/reset`),
+  },
+  battlepass: {
+    tiers: () => req<BattlepassTiersResponse>('GET', '/battlepass/tiers'),
+    updateTier: (id: number, body: BattlepassTierUpdate) =>
+      req<BattlepassTier>('PUT', `/battlepass/tiers/${id}`, body),
+    tiersBulk: (ids: number[], action: 'enable' | 'disable' | 'delete') =>
+      req<{ ok: boolean, count: number }>('POST', '/battlepass/tiers/bulk', { ids, action }),
+    progress: (accountId: number) => req<BattlepassProgress>('GET', `/battlepass/progress/${accountId}`),
+    pending: () => req<BattlepassPendingRow[]>('GET', '/battlepass/pending'),
+    reseed: () => req<{ seeded: number }>('POST', '/battlepass/reseed'),
+    grant: (account_id: number) => req<{ granted_intel: number, tiers: number }>('POST', '/battlepass/grant', { account_id }),
   },
 }

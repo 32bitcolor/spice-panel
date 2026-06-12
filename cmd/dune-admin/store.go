@@ -81,6 +81,9 @@ func applyUnifiedSchema(db *sql.DB) error {
 	if err := initEventsSchema(db); err != nil {
 		return fmt.Errorf("unified store: events schema: %w", err)
 	}
+	if err := initBattlepassSchema(db); err != nil {
+		return fmt.Errorf("unified store: battlepass schema: %w", err)
+	}
 	if _, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS meta (
 			key   TEXT PRIMARY KEY,

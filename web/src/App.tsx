@@ -25,6 +25,7 @@ const DirectorTab = React.lazy(() => import('./tabs/DirectorTab').then((m) => ({
 const MarketTab = React.lazy(() => import('./tabs/MarketTab').then((m) => ({ default: m.MarketTab })))
 const WelcomePackageTab = React.lazy(() => import('./tabs/WelcomePackageTab').then((m) => ({ default: m.WelcomePackageTab })))
 const EventsTab = React.lazy(() => import('./tabs/EventsTab').then((m) => ({ default: m.EventsTab })))
+const BattlepassTab = React.lazy(() => import('./tabs/BattlepassTab').then((m) => ({ default: m.BattlepassTab })))
 import { Icon } from './dune-ui'
 import { api } from './api/client'
 import type { UpdateCheckResult } from './api/client'
@@ -46,6 +47,7 @@ const TAB_IDS = [
   'market',
   'welcome',
   'events',
+  'battlepass',
 ] as const
 const DEFAULT_TAB: TabId = 'battlegroup'
 
@@ -71,7 +73,10 @@ const TAB_ICONS: Record<TabId, string> = {
   market: 'store',
   welcome: 'gift',
   events: 'calendar-clock',
+  battlepass: 'medal',
 }
+
+const BETA_TABS = new Set<TabId>(['events', 'battlepass'])
 
 const hasClerk = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
@@ -155,6 +160,7 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
         { key: 'market' as TabId, label: t('nav.market') },
         { key: 'welcome' as TabId, label: t('nav.welcome') },
         { key: 'events' as TabId, label: t('nav.events') },
+        { key: 'battlepass' as TabId, label: t('nav.battlepass') },
       ],
     },
   ]
@@ -325,7 +331,12 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
     return (
       <Sidebar.MenuItem key={key} id={key} href={`/${key}`} isCurrent={pathname === `/${key}`} onAction={() => navigate(`/${key}`)}>
         {icon}
-        <Sidebar.MenuLabel>{label}</Sidebar.MenuLabel>
+        <Sidebar.MenuLabel className="flex items-center">
+          {label}
+          {BETA_TABS.has(key) && (
+            <Chip size="sm" color="accent" variant="soft" className="ml-1 text-[9px] h-4 px-1 min-w-0 shrink-0 self-center">{t('common.beta')}</Chip>
+          )}
+        </Sidebar.MenuLabel>
       </Sidebar.MenuItem>
     )
   }
@@ -476,6 +487,7 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
       {renderTab('market', <MarketTab />)}
       {renderTab('welcome', <WelcomePackageTab section={welcomeSection} />)}
       {renderTab('events', <EventsTab />)}
+      {renderTab('battlepass', <BattlepassTab />)}
     </main>
   )
 

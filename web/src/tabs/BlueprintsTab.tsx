@@ -3,13 +3,9 @@ import { useTranslation } from 'react-i18next'
 import {
   Button,
   Label,
-  ListBox,
-  ListLayout,
   Modal,
-  Select,
   Spinner,
   TextField,
-  Virtualizer,
   toast,
 } from '@heroui/react'
 import { EmptyState } from '@heroui-pro/react'
@@ -17,6 +13,7 @@ import { Icon as IconifyIcon } from '@iconify/react'
 import { api } from '../api/client'
 import type { BlueprintRow, Player } from '../api/client'
 import { DataTable, Dropzone, Icon, PageHeader, type Column } from '../dune-ui'
+import { PlayerSearchField } from '../components/PlayerSearchField'
 import type { BlueprintsTabKey, BlueprintsTabProps, ImportModalProps } from './types'
 
 export const BlueprintsTab: React.FC<BlueprintsTabProps> = ({ isSignedIn = true }) => {
@@ -161,23 +158,16 @@ export const BlueprintsTab: React.FC<BlueprintsTabProps> = ({ isSignedIn = true 
 const ImportModal: React.FC<ImportModalProps> = ({ open, onClose, onSuccess }) => {
   const { t } = useTranslation()
   const [file, setFile] = React.useState<File | null>(null)
-  const [players, setPlayers] = React.useState<Player[]>([])
-  const [selectedPlayerId, setSelectedPlayerId] = React.useState<number | null>(null)
+  const [selectedPlayer, setSelectedPlayer] = React.useState<Player | null>(null)
   const [submitting, setSubmitting] = React.useState(false)
 
   React.useEffect(() => {
     if (!open) return
-    Promise.resolve()
-      .then(() => {
-        setFile(null)
-        setSelectedPlayerId(null)
-      })
-      .then(() => api.players.list())
-      .then(setPlayers)
-      .catch(() => {})
+    Promise.resolve().then(() => {
+      setFile(null)
+      setSelectedPlayer(null)
+    })
   }, [open])
-
-  const selectedPlayer = players.find((p) => p.id === selectedPlayerId) ?? null
 
   const handleSubmit = async () => {
     if (!file) {
@@ -228,41 +218,13 @@ const ImportModal: React.FC<ImportModalProps> = ({ open, onClose, onSuccess }) =
 
             <TextField>
               <Label>{t('blueprints.importModal.playerLabel')}</Label>
-              <Select
-                aria-label={t('blueprints.importModal.playerLabel')}
+              <PlayerSearchField
+                ariaLabel={t('blueprints.importModal.playerLabel')}
                 placeholder={t('blueprints.importModal.playerPlaceholder')}
-                selectedKey={selectedPlayerId !== null ? String(selectedPlayerId) : null}
-                onSelectionChange={(k) => setSelectedPlayerId(k ? Number(k) : null)}
+                onSelect={setSelectedPlayer}
+                onClear={() => setSelectedPlayer(null)}
                 className="w-full"
-              >
-                <Select.Trigger>
-                  <Select.Value />
-                  <Select.Indicator />
-                </Select.Trigger>
-                <Select.Popover className="!w-[320px] !max-w-[90vw]">
-                  <Virtualizer layout={ListLayout} layoutOptions={{ rowHeight: 36 }}>
-                    <ListBox
-                      aria-label={t('blueprints.importModal.playersLabel')}
-                      className="overflow-y-auto"
-                      style={{ height: Math.min(players.length * 36 + 8, 320) }}
-                      items={players.map((p) => ({ id: String(p.id), name: p.name, actorId: p.id }))}
-                    >
-                      {(item: { id: string, name: string, actorId: number }) => (
-                        <ListBox.Item id={item.id} textValue={item.name}>
-                          <span className="flex items-baseline gap-2">
-                            <span>{item.name}</span>
-                            <span className="text-xs text-muted font-mono">
-                              #
-                              {item.actorId}
-                            </span>
-                          </span>
-                          <ListBox.ItemIndicator />
-                        </ListBox.Item>
-                      )}
-                    </ListBox>
-                  </Virtualizer>
-                </Select.Popover>
-              </Select>
+              />
             </TextField>
           </Modal.Body>
           <Modal.Footer>

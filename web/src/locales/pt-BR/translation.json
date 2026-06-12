@@ -370,7 +370,8 @@
     "optional": "opcional",
     "deleteSelected": "Excluir selecionados",
     "clearSelection": "Limpar seleção",
-    "noItems": "Nenhum item ainda."
+    "noItems": "Nenhum item ainda.",
+    "beta": "Beta"
   },
   "database": {
     "columnColumn": "Coluna",
@@ -686,7 +687,8 @@
     "storage": "Armazenamento",
     "welcome": "Kits de boas-vindas",
     "events": "Eventos ao vivo",
-    "menu": "Navegação"
+    "menu": "Navegação",
+    "battlepass": "Passe de batalha"
   },
   "players": {
     "actions": {
@@ -1522,6 +1524,114 @@
     "signals": {
       "level": "Nível do personagem",
       "achievementTag": "Tag de conquista"
+    }
+  },
+  "battlepass": {
+    "title": "Battlepass ({{count}} níveis)",
+    "subtitle": "Trilha de recompensas de Intel — {{intel}} intel total nos níveis ativados. As recompensas ganhas são concedidas manualmente enquanto o jogador está offline.",
+    "reseed": "Redefinir Catálogo",
+    "reseedDialog": {
+      "title": "Redefinir o catálogo de níveis?",
+      "intro": "Isso exclui todas as definições de níveis e reinsere os {{count}} padrões integrados:",
+      "resetsIntel": "Edições de valores de Intel são descartadas",
+      "resetsEnabled": "Os alternadores de ativar/desativar são redefinidos — todos os níveis padrão voltam ativados",
+      "removesCustom": "Níveis que não estão no catálogo padrão são removidos",
+      "keeps": "O histórico de claims e as linhas de base dos jogadores são preservados. Os claims se reconectam pela chave do nível, portanto nada é reganhado ou concedido duas vezes. O banco de dados do jogo não é modificado."
+    },
+    "grantDialog": {
+      "title": "Conceder Intel do Battlepass?",
+      "body": "Concede {{intel}} pontos de Intel a {{account}} em uma única atualização e marca os níveis ganhos como concedidos. O jogador deve permanecer offline durante a aplicação — se ele entrar primeiro, a concessão falha e fica pendente para nova tentativa.",
+      "confirm": "Conceder {{intel}} Intel"
+    },
+    "reseedSuccess": "Catálogo reabastecido com {{count}} níveis.",
+    "failedToLoad": "Falha ao carregar dados do Battlepass: {{message}}",
+    "updateFailed": "Falha ao atualizar nível: {{message}}",
+    "toggleEnabled": "Alternar nível",
+    "editIntelPrompt": "Recompensa de Intel para \"{{label}}\":",
+    "invalidIntel": "Intel deve ser um número inteiro não negativo.",
+    "invalidAccount": "Insira um ID de conta válido.",
+    "requirementLevel": "Alcance o nível {{level}}",
+    "grantSuccess": "{{intel}} Intel concedidos em {{tiers}} níveis.",
+    "grantFailed": "Falha na concessão: {{message}}",
+    "categories": {
+      "level": "Nível",
+      "story": "História",
+      "side_quest": "Missão Secundária",
+      "faction": "Facção",
+      "exploration": "Exploração",
+      "achievement": "Conquista"
+    },
+    "status": {
+      "baseline": "linha base",
+      "earned": "ganho",
+      "granted": "concedido"
+    },
+    "catalog": {
+      "title": "Catálogo de Níveis ({{count}})",
+      "empty": "Nenhum nível no catálogo. Use Redefinir Catálogo para carregar os padrões."
+    },
+    "sections": {
+      "pending": "Pendente ({{count}})",
+      "progress": "Progresso",
+      "catalog": "Catálogo",
+      "track": "Trilha"
+    },
+    "editor": {
+      "title": "Editar Nível",
+      "tierSection": "Nível",
+      "label": "Rótulo",
+      "itemRewards": "Recompensas de Itens",
+      "saved": "Nível salvo."
+    },
+    "bulk": {
+      "enable": "Ativar",
+      "disable": "Desativar",
+      "delete": "Excluir"
+    },
+    "bulkSuccess": "{{count}} níveis atualizados.",
+    "bulkDeleteDialog": {
+      "title": "Excluir os níveis selecionados?",
+      "body": "Remove {{count}} níveis do catálogo. O histórico de claims é mantido e uma Redefinição de Catálogo restaurará os níveis padrão posteriormente — mas os rótulos personalizados, valores de Intel e recompensas de itens dos níveis excluídos serão perdidos.",
+      "confirm": "Excluir {{count}} Níveis"
+    },
+    "track": {
+      "empty": "Nenhum nível ativado para exibir.",
+      "laneSummary": "{{count}} níveis · {{intel}} intel",
+      "tooltip": "{{pct}}% dos jogadores atingiram este nível ({{count}} de {{total}})."
+    },
+    "columns": {
+      "label": "Nível",
+      "category": "Categoria",
+      "requirement": "Requisito",
+      "intel": "Intel",
+      "rewards": "Itens",
+      "earned": "Ganho",
+      "granted": "Concedido",
+      "enabled": "Ativado"
+    },
+    "pending": {
+      "title": "Concessões Pendentes ({{count}})",
+      "accountId": "Conta",
+      "name": "Personagem",
+      "online": "Status",
+      "intel": "Intel Pendente",
+      "onlineState": "Online",
+      "offlineState": "Offline",
+      "grant": "Conceder",
+      "grantOnlineHint": "Offline necessário",
+      "none": "Nenhum jogador com recompensas ganhas não concedidas."
+    },
+    "progress": {
+      "title": "Progresso do Jogador",
+      "hint": "Pesquise um jogador acima para ver seus claims do Battlepass.",
+      "noClaims": "Nenhum claim de Battlepass para a conta {{account}}."
+    },
+    "claims": {
+      "tier": "Nível",
+      "status": "Status",
+      "earnedAt": "Ganho em",
+      "grantedAt": "Concedido em",
+      "lastError": "Último Erro"
     }
   }
 }

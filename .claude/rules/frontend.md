@@ -129,8 +129,12 @@ Use HeroUI's `Checkbox` and `Switch` from `@heroui/react` — never native `<inp
 ```tsx
 import { Checkbox, Switch } from '@heroui/react'
 
-// Toggle (on/off) — use Switch
-<Switch isSelected={enabled} onChange={setEnabled} size="sm">{t('enable')}</Switch>
+// Toggle (on/off) — use Switch. The compound children are REQUIRED:
+// without Switch.Control/Switch.Thumb no visual control renders at all.
+<Switch isSelected={enabled} onChange={setEnabled} size="sm">
+  <Switch.Control><Switch.Thumb /></Switch.Control>
+  <Switch.Content>{t('enable')}</Switch.Content>
+</Switch>
 
 // Checkbox (filter/option) — use Checkbox (no size prop)
 <Checkbox isSelected={isOn} onChange={setOn}>{t('label')}</Checkbox>
