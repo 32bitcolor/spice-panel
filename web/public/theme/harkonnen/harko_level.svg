@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Three stacked sci-fi level chevrons">
+  <defs>
+    <linearGradient id="crimsonSteel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d01018"/>
+      <stop offset="0.48" stop-color="#8f050a"/>
+      <stop offset="1" stop-color="#4f0205"/>
+    </linearGradient>
+    <linearGradient id="edgeRed" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff1b24"/>
+      <stop offset="1" stop-color="#5b0206"/>
+    </linearGradient>
+    <filter id="hardShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="3" stdDeviation="1.2" flood-color="#000000" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+
+  <!-- Transparent background intentionally omitted. -->
+
+  <g filter="url(#hardShadow)" stroke-linejoin="miter" stroke-linecap="butt">
+    <!-- Top chevron -->
+    <path d="M128 20 L225 112 L203 121 L128 55 L53 121 L31 112 Z" fill="#090909"/>
+    <path d="M128 14 L232 110 L207 122 L128 50 L49 122 L24 110 Z" fill="url(#crimsonSteel)" stroke="url(#edgeRed)" stroke-width="2"/>
+    <path d="M128 29 L128 73" stroke="#090909" stroke-width="5"/>
+    <path d="M119 68 L84 103 L111 91 L128 76 Z" fill="#080808"/>
+    <path d="M137 68 L172 103 L145 91 L128 76 Z" fill="#080808"/>
+    <path d="M71 103 L95 70 L87 95 Z" fill="#070707"/>
+    <path d="M185 103 L161 70 L169 95 Z" fill="#070707"/>
+
+    <!-- Middle chevron -->
+    <path d="M128 86 L232 184 L207 196 L128 124 L49 196 L24 184 Z" fill="#090909"/>
+    <path d="M128 80 L239 183 L211 197 L128 119 L45 197 L17 183 Z" fill="url(#crimsonSteel)" stroke="url(#edgeRed)" stroke-width="2"/>
+    <path d="M128 96 L128 140" stroke="#090909" stroke-width="5"/>
+    <path d="M119 135 L84 169 L111 158 L128 143 Z" fill="#080808"/>
+    <path d="M137 135 L172 169 L145 158 L128 143 Z" fill="#080808"/>
+    <path d="M67 170 L96 132 L88 161 Z" fill="#070707"/>
+    <path d="M189 170 L160 132 L168 161 Z" fill="#070707"/>
+
+    <!-- Bottom chevron -->
+    <path d="M128 150 L240 230 L212 242 L128 181 L44 242 L16 230 Z" fill="#090909"/>
+    <path d="M128 143 L247 228 L216 244 L128 177 L40 244 L9 228 Z" fill="url(#crimsonSteel)" stroke="url(#edgeRed)" stroke-width="2"/>
+    <path d="M128 158 L128 203" stroke="#090909" stroke-width="5"/>
+    <path d="M119 198 L84 224 L111 214 L128 206 Z" fill="#080808"/>
+    <path d="M137 198 L172 224 L145 214 L128 206 Z" fill="#080808"/>
+    <path d="M64 225 L96 196 L88 217 Z" fill="#070707"/>
+    <path d="M192 225 L160 196 L168 217 Z" fill="#070707"/>
+  </g>
+</svg>

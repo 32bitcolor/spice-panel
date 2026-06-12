@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Atreides scroll decree icon">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f0d98a"/>
+      <stop offset="0.45" stop-color="#b99a43"/>
+      <stop offset="1" stop-color="#7d6426"/>
+    </linearGradient>
+    <linearGradient id="goldLight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff0b0"/>
+      <stop offset="1" stop-color="#b1913b"/>
+    </linearGradient>
+    <linearGradient id="scrollGreen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6f8460"/>
+      <stop offset="0.28" stop-color="#304c35"/>
+      <stop offset="0.72" stop-color="#23402e"/>
+      <stop offset="1" stop-color="#77906a"/>
+    </linearGradient>
+    <linearGradient id="sage" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#aebd91"/>
+      <stop offset="1" stop-color="#60774e"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#06120b" flood-opacity="0.35"/>
+    </filter>
+    <clipPath id="bodyClip">
+      <path d="M73 43 C92 50 164 50 183 43 L183 202 C160 213 96 213 73 202 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- transparent background intentionally omitted -->
+
+  <g filter="url(#softShadow)">
+    <!-- top command rod -->
+    <rect x="54" y="35" width="148" height="22" rx="11" fill="#1d2f22"/>
+    <rect x="56" y="36" width="144" height="16" rx="8" fill="url(#gold)"/>
+    <rect x="70" y="39" width="116" height="10" rx="5" fill="#263d2b" opacity="0.8"/>
+
+    <!-- left finial -->
+    <g>
+      <path d="M31 46 L54 32 L54 60 Z" fill="url(#goldLight)"/>
+      <rect x="51" y="36" width="13" height="20" rx="3" fill="url(#gold)"/>
+      <path d="M37 46 L54 39 L54 53 Z" fill="#806727" opacity="0.38"/>
+    </g>
+
+    <!-- right curled top roll and finial -->
+    <g>
+      <circle cx="202" cy="46" r="22" fill="url(#gold)"/>
+      <circle cx="202" cy="46" r="15" fill="#17281d"/>
+      <circle cx="202" cy="46" r="8" fill="url(#gold)"/>
+      <rect x="202" y="36" width="17" height="20" rx="3" fill="url(#gold)"/>
+      <path d="M219 32 L244 46 L219 60 Z" fill="url(#goldLight)"/>
+      <path d="M219 39 L237 46 L219 53 Z" fill="#806727" opacity="0.35"/>
+    </g>
+
+    <!-- main scroll parchment -->
+    <path d="M73 43 C92 50 164 50 183 43 L183 184 C184 194 177 202 166 204 C142 210 113 210 90 204 C79 201 72 194 73 184 Z" fill="url(#scrollGreen)" stroke="url(#gold)" stroke-width="5"/>
+    <path d="M81 57 C103 62 153 62 175 57 L175 174 C151 179 105 179 81 174 Z" fill="none" stroke="#94aa78" stroke-width="1.2" opacity="0.35" clip-path="url(#bodyClip)"/>
+    <path d="M91 63 C108 67 148 67 165 63" fill="none" stroke="#cbb76a" stroke-width="2" opacity="0.35"/>
+
+    <!-- lower curl -->
+    <path d="M73 181 C96 192 160 192 183 181 L183 206 C160 219 96 219 73 206 Z" fill="#203928" stroke="url(#gold)" stroke-width="5"/>
+    <path d="M183 181 C211 181 211 218 183 218 C169 218 169 181 183 181 Z" fill="url(#gold)"/>
+    <ellipse cx="184" cy="199" rx="14" ry="18" fill="#13251a"/>
+    <circle cx="184" cy="199" r="7" fill="url(#gold)"/>
+
+    <!-- pointed heraldic arch -->
+    <path d="M74 95 C92 70 111 55 128 45 C145 55 164 70 182 95" fill="none" stroke="url(#goldLight)" stroke-width="5" stroke-linecap="round"/>
+    <path d="M90 101 C103 82 116 71 128 64 C140 71 153 82 166 101" fill="none" stroke="#8aa174" stroke-width="3" opacity="0.45"/>
+
+    <!-- hawk/eagle heraldry -->
+    <g fill="url(#goldLight)">
+      <path d="M128 88 C137 82 149 84 154 91 C147 90 141 91 137 96 C137 108 137 121 137 135 L128 146 L119 135 C119 121 119 108 119 96 C115 94 111 96 108 101 C107 94 115 90 128 88 Z"/>
+      <path d="M118 104 L76 83 L88 109 L116 126 Z"/>
+      <path d="M112 124 L84 114 L92 130 L114 139 Z"/>
+      <path d="M110 140 L91 137 L100 151 L119 154 Z"/>
+      <path d="M138 104 L180 83 L168 109 L140 126 Z"/>
+      <path d="M144 124 L172 114 L164 130 L142 139 Z"/>
+      <path d="M146 140 L165 137 L156 151 L137 154 Z"/>
+    </g>
+    <path d="M122 94 L132 91 L128 97 Z" fill="#223928" opacity="0.85"/>
+
+    <!-- central decree blade -->
+    <path d="M128 145 L138 160 L133 161 L133 178 L128 191 L123 178 L123 161 L118 160 Z" fill="url(#gold)"/>
+    <path d="M118 160 H138 M128 145 V190" stroke="#f4df91" stroke-width="1.4" opacity="0.55"/>
+
+    <!-- protective laurels -->
+    <g>
+      <path d="M115 168 C91 163 73 144 70 120 C83 142 101 153 121 158 Z" fill="url(#sage)" stroke="url(#gold)" stroke-width="2"/>
+      <path d="M111 184 C88 179 73 163 67 141 C83 157 98 166 120 171 Z" fill="url(#sage)" stroke="url(#gold)" stroke-width="2"/>
+      <path d="M141 168 C165 163 183 144 186 120 C173 142 155 153 135 158 Z" fill="url(#sage)" stroke="url(#gold)" stroke-width="2"/>
+      <path d="M145 184 C168 179 183 163 189 141 C173 157 158 166 136 171 Z" fill="url(#sage)" stroke="url(#gold)" stroke-width="2"/>
+    </g>
+
+    <!-- bottom pendant -->
+    <path d="M128 180 L146 202 L128 234 L110 202 Z" fill="url(#gold)"/>
+    <path d="M128 190 L138 203 L128 220 L118 203 Z" fill="#244331"/>
+    <path d="M128 190 L138 203 L128 220 L118 203 Z" fill="none" stroke="#9db184" stroke-width="1.5"/>
+
+    <!-- bevel highlights -->
+    <path d="M77 50 C95 55 161 55 179 50" fill="none" stroke="#d8c477" stroke-width="2" opacity="0.45"/>
+    <path d="M78 184 C101 194 155 194 178 184" fill="none" stroke="#d8c477" stroke-width="2" opacity="0.32"/>
+  </g>
+</svg>

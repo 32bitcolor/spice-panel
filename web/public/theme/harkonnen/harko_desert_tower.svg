@@ -1,0 +1,156 @@
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Harko sci-fi rewards citadel icon">
+  <defs>
+    <linearGradient id="blackMetal" x1="67" y1="22" x2="185" y2="237" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#28292c"></stop>
+      <stop offset="0.42" stop-color="#09090b"></stop>
+      <stop offset="1" stop-color="#17181b"></stop>
+    </linearGradient>
+
+    <linearGradient id="blackMetal2" x1="120" y1="28" x2="154" y2="235" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#191a1d"></stop>
+      <stop offset="0.45" stop-color="#050506"></stop>
+      <stop offset="1" stop-color="#101114"></stop>
+    </linearGradient>
+
+    <linearGradient id="edgeMetal" x1="72" y1="138" x2="174" y2="232" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#414247"></stop>
+      <stop offset="0.45" stop-color="#202125"></stop>
+      <stop offset="1" stop-color="#09090a"></stop>
+    </linearGradient>
+
+    <linearGradient id="redCore" x1="128" y1="54" x2="128" y2="227" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff1d26"></stop>
+      <stop offset="0.52" stop-color="#b80011"></stop>
+      <stop offset="1" stop-color="#550006"></stop>
+    </linearGradient>
+
+    <filter id="redGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="1.15" result="blur"></feGaussianBlur>
+      <feMerge>
+        <feMergeNode in="blur"></feMergeNode>
+        <feMergeNode in="SourceGraphic"></feMergeNode>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Transparent background intentionally omitted -->
+
+  <!-- rear monolithic silhouette -->
+  <path d="M128 9L145 35L151 72L171 102L188 157L225 237H31L68 157L85 102L105 72L111 35L128 9Z" fill="#030304"></path>
+
+  <!-- tall rear blades -->
+  <path d="M86 205L96 76L112 35L119 223H88Z" fill="#090a0c"></path>
+  <path d="M170 205L160 76L144 35L137 223H168Z" fill="#090a0c"></path>
+  <path d="M94 78L111 35L114 97L96 117Z" fill="#242529"></path>
+  <path d="M162 78L145 35L142 97L160 117Z" fill="#242529"></path>
+
+  <!-- tallest split crown -->
+  <path d="M111 224L117 45L128 17L139 45L145 224Z" fill="url(#blackMetal2)"></path>
+  <path d="M118 45L128 17V224H111Z" fill="#111215"></path>
+  <path d="M128 17L138 45L145 224H128Z" fill="#050506"></path>
+
+  <!-- upper center turret -->
+  <path d="M119 76L123 43L128 30L133 43L137 76Z" fill="#0a0a0c"></path>
+  <path d="M122 76H134L132 118H124Z" fill="#111215"></path>
+
+  <!-- main central citadel body -->
+  <path d="M93 229L101 103L116 72H140L155 103L163 229Z" fill="url(#blackMetal)"></path>
+  <path d="M105 229L113 106L123 80H133L143 106L151 229Z" fill="#070708"></path>
+  <path d="M94 229L101 104L116 72L113 229Z" fill="#191a1d"></path>
+  <path d="M162 229L155 104L140 72L143 229Z" fill="#050506"></path>
+
+  <!-- circular reward emblem -->
+  <circle cx="128" cy="88" r="36" fill="#050506"></circle>
+  <circle cx="128" cy="88" r="32" fill="#15161a" stroke="#292a2e" stroke-width="3"></circle>
+  <circle cx="128" cy="88" r="25" fill="url(#redCore)" filter="url(#redGlow)"></circle>
+  <path d="M128 60L155 88L128 116L101 88Z" fill="#080809" stroke="#e31220" stroke-width="2"></path>
+  <path d="M128 55L132 88L128 123L124 88Z" fill="#ff1b26"></path>
+  <path d="M96 88H160" stroke="#bf0713" stroke-width="2"></path>
+  <path d="M117 88H139M128 77V99" stroke="#ff2833" stroke-width="1.5"></path>
+
+  <!-- upper red slit -->
+  <rect x="124" y="44" width="8" height="28" fill="#070708"></rect>
+  <rect x="126" y="48" width="4" height="22" fill="url(#redCore)" filter="url(#redGlow)"></rect>
+
+  <!-- vertical slits below emblem -->
+  <g fill="#ec1420" filter="url(#redGlow)">
+    <rect x="118" y="119" width="4" height="17"></rect>
+    <rect x="126" y="119" width="4" height="17"></rect>
+    <rect x="134" y="119" width="4" height="17"></rect>
+  </g>
+
+  <!-- central front pillars -->
+  <path d="M105 226L108 136L119 121L124 226Z" fill="#202126" stroke="#37383d" stroke-width="1.5"></path>
+  <path d="M151 226L148 136L137 121L132 226Z" fill="#202126" stroke="#37383d" stroke-width="1.5"></path>
+  <path d="M110 136L119 121L121 226H111Z" fill="#34353a" opacity=".85"></path>
+  <path d="M146 136L137 121L135 226H145Z" fill="#34353a" opacity=".55"></path>
+
+  <!-- central red banner -->
+  <path d="M118 138H138V187L128 174L118 187Z" fill="url(#redCore)" filter="url(#redGlow)"></path>
+  <path d="M121 137H135V145H121Z" fill="#ff202b"></path>
+
+  <!-- side massive walls -->
+  <path d="M29 237L62 160L89 128L104 231Z" fill="#070708"></path>
+  <path d="M227 237L194 160L167 128L152 231Z" fill="#070708"></path>
+  <path d="M54 232L78 178L107 153L92 237Z" fill="#151619"></path>
+  <path d="M202 232L178 178L149 153L164 237Z" fill="#151619"></path>
+  <path d="M79 177L107 153L101 186L88 212Z" fill="#2a2b30"></path>
+  <path d="M177 177L149 153L155 186L168 212Z" fill="#2a2b30"></path>
+
+  <!-- diagonal front buttresses -->
+  <path d="M71 240L107 169L123 169L94 240Z" fill="url(#edgeMetal)" stroke="#44454a" stroke-width="1.5"></path>
+  <path d="M185 240L149 169L133 169L162 240Z" fill="url(#edgeMetal)" stroke="#44454a" stroke-width="1.5"></path>
+  <path d="M94 240L119 197H137L162 240Z" fill="#101114" stroke="#34353a" stroke-width="1.5"></path>
+  <path d="M103 240L121 205H135L153 240Z" fill="#060607"></path>
+
+  <!-- bottom red gate -->
+  <path d="M120 205H136V229H120Z" fill="#070708"></path>
+  <rect x="123" y="210" width="10" height="25" fill="url(#redCore)" filter="url(#redGlow)"></rect>
+  <path d="M112 238H144L136 229H120Z" fill="#030304"></path>
+  <path d="M111 234H145M114 229H142M117 224H139" stroke="#28292e" stroke-width="2"></path>
+
+  <!-- side towers -->
+  <path d="M58 219L64 125L70 219Z" fill="#060607"></path>
+  <path d="M198 219L192 125L186 219Z" fill="#060607"></path>
+  <path d="M53 219L62 142H75L82 230H52Z" fill="#121316"></path>
+  <path d="M203 219L194 142H181L174 230H204Z" fill="#121316"></path>
+  <path d="M39 229L45 166L51 229Z" fill="#070708"></path>
+  <path d="M217 229L211 166L205 229Z" fill="#070708"></path>
+
+  <!-- red side banners and vents -->
+  <g fill="#e51220" filter="url(#redGlow)">
+    <path d="M61 158H71V190L66 181L61 190Z"></path>
+    <path d="M195 158H185V190L190 181L195 190Z"></path>
+
+    <rect x="79" y="153" width="5" height="6"></rect>
+    <rect x="89" y="153" width="5" height="6"></rect>
+    <rect x="99" y="153" width="5" height="6"></rect>
+
+    <rect x="152" y="153" width="5" height="6"></rect>
+    <rect x="162" y="153" width="5" height="6"></rect>
+    <rect x="172" y="153" width="5" height="6"></rect>
+
+    <rect x="59" y="207" width="5" height="8"></rect>
+    <rect x="65" y="207" width="5" height="8"></rect>
+    <rect x="192" y="207" width="5" height="8"></rect>
+    <rect x="186" y="207" width="5" height="8"></rect>
+
+    <path d="M63 226L80 190H84L67 226Z"></path>
+    <path d="M193 226L176 190H172L189 226Z"></path>
+    <path d="M83 225L103 210L106 214L91 225Z"></path>
+    <path d="M173 225L153 210L150 214L165 225Z"></path>
+
+    <rect x="44" y="183" width="3" height="14"></rect>
+    <rect x="209" y="183" width="3" height="14"></rect>
+  </g>
+
+  <!-- dark horizontal ledges -->
+  <path d="M71 144H107L103 153H75Z" fill="#050506"></path>
+  <path d="M185 144H149L153 153H181Z" fill="#050506"></path>
+  <path d="M66 161H109L106 167H69Z" fill="#151619"></path>
+  <path d="M190 161H147L150 167H187Z" fill="#151619"></path>
+
+  <!-- black outline cleanup -->
+  <path d="M31 237H225" stroke="#050506" stroke-width="4"></path>
+</svg>

@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none">
+  <title>Sci-fi brutalist four-point rewards star icon</title>
+  <defs>
+    <linearGradient id="blackMetal" x1="48" y1="28" x2="208" y2="228" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#313033"/>
+      <stop offset="0.42" stop-color="#070708"/>
+      <stop offset="1" stop-color="#171518"/>
+    </linearGradient>
+    <linearGradient id="crimsonCore" x1="128" y1="46" x2="128" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#B41122"/>
+      <stop offset="0.48" stop-color="#5F0710"/>
+      <stop offset="1" stop-color="#D0162A"/>
+    </linearGradient>
+    <filter id="hardShadow" x="30" y="22" width="196" height="212" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="5" stdDeviation="3" flood-color="#000000" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+
+  <!-- transparent background intentionally omitted -->
+
+  <g filter="url(#hardShadow)">
+    <!-- outer brutalist compass-star silhouette -->
+    <path d="M128 12L153.5 95.5L244 128L153.5 160.5L128 244L102.5 160.5L12 128L102.5 95.5L128 12Z" fill="url(#blackMetal)"/>
+
+    <!-- hard beveled metal facets -->
+    <path d="M128 12L153.5 95.5L128 78L102.5 95.5L128 12Z" fill="#262428"/>
+    <path d="M244 128L153.5 160.5L174 128L153.5 95.5L244 128Z" fill="#0A090B"/>
+    <path d="M128 244L102.5 160.5L128 178L153.5 160.5L128 244Z" fill="#151317"/>
+    <path d="M12 128L102.5 95.5L82 128L102.5 160.5L12 128Z" fill="#201E22"/>
+
+    <!-- crimson war-insignia star inset -->
+    <path d="M128 45L145.5 105.5L210 128L145.5 150.5L128 211L110.5 150.5L46 128L110.5 105.5L128 45Z" fill="url(#crimsonCore)"/>
+
+    <!-- black armored inner cuts -->
+    <path d="M128 45L139 111L128 101L117 111L128 45Z" fill="#080708"/>
+    <path d="M210 128L145 139L155 128L145 117L210 128Z" fill="#080708"/>
+    <path d="M128 211L117 145L128 155L139 145L128 211Z" fill="#080708"/>
+    <path d="M46 128L111 117L101 128L111 139L46 128Z" fill="#080708"/>
+
+    <!-- central angular reward core -->
+    <path d="M128 82L168 128L128 174L88 128L128 82Z" fill="#0D0B0D"/>
+    <path d="M128 96L154 128L128 160L102 128L128 96Z" fill="#8B0B17"/>
+    <path d="M128 107L143 128L128 149L113 128L128 107Z" fill="#170306"/>
+
+    <!-- militaristic blade ridges -->
+    <path d="M128 20L135 82L128 70L121 82L128 20Z" fill="#4A464C" opacity="0.72"/>
+    <path d="M236 128L174 135L186 128L174 121L236 128Z" fill="#2A252B" opacity="0.72"/>
+    <path d="M128 236L121 174L128 186L135 174L128 236Z" fill="#312C32" opacity="0.72"/>
+    <path d="M20 128L82 121L70 128L82 135L20 128Z" fill="#3B363C" opacity="0.72"/>
+
+    <!-- sharp crimson edge slashes -->
+    <path d="M128 28L132 86L128 76L124 86L128 28Z" fill="#C31327"/>
+    <path d="M228 128L170 132L180 128L170 124L228 128Z" fill="#C31327"/>
+    <path d="M128 228L124 170L128 180L132 170L128 228Z" fill="#C31327"/>
+    <path d="M28 128L86 124L76 128L86 132L28 128Z" fill="#C31327"/>
+  </g>
+</svg>
