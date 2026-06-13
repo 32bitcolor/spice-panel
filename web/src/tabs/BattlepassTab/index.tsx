@@ -33,7 +33,7 @@ const categoryColor = (cat: string): 'accent' | 'warning' | 'success' | 'default
 export const BattlepassTab: React.FC = () => {
   const { t } = useTranslation()
   const { can } = usePermissions()
-  const [section, setSection] = React.useState<Section>(() => (can('battlepass:read') ? 'pending' : 'track'))
+  const [section, setSection] = React.useState<Section>('track')
   const [tiers, setTiers] = React.useState<BattlepassTier[]>([])
   const [counts, setCounts] = React.useState<Record<string, BattlepassTierCounts>>({})
   const [playerCount, setPlayerCount] = React.useState(0)
@@ -284,6 +284,10 @@ export const BattlepassTab: React.FC = () => {
             size="sm"
             aria-label={t('battlepass.title', { count: tiers.length })}
           >
+            <Segment.Item id="track">
+              <Segment.Separator />
+              {t('battlepass.sections.track')}
+            </Segment.Item>
             {can('battlepass:read') && (
               <Segment.Item id="pending">
                 <Segment.Separator />
@@ -302,10 +306,6 @@ export const BattlepassTab: React.FC = () => {
                 {t('battlepass.sections.catalog')}
               </Segment.Item>
             )}
-            <Segment.Item id="track">
-              <Segment.Separator />
-              {t('battlepass.sections.track')}
-            </Segment.Item>
             {can('battlepass:read') && (
               <Segment.Item id="config">
                 <Segment.Separator />
