@@ -1499,7 +1499,17 @@
       "status": "Durum",
       "attempts": "Denemeler",
       "claimedAt": "Talep Zamanı",
-      "lastError": "Son Hata"
+      "lastError": "Son Hata",
+      "nextAttempt": "Sonraki deneme",
+      "grant": "Ver",
+      "actions": "İşlemler",
+      "grantAria": "{{account}} hesabına ödül ver",
+      "statusLabels": {
+        "granted": "Verildi",
+        "pending": "Beklemede",
+        "exhausted": "Tükendi",
+        "failed": "Başarısız"
+      }
     },
     "editor": {
       "createTitle": "Yeni Etkinlik",
@@ -1558,7 +1568,9 @@
     },
     "confirmDeleteTitle": "Delete Event",
     "confirmResetTitle": "Reset Event",
-    "resetConfirmLabel": "Reset"
+    "resetConfirmLabel": "Reset",
+    "grantSuccess": "Ödül verildi.",
+    "grantFailed": "Ödül verilemedi: {{message}}"
   },
   "battlepass": {
     "title": "Battlepass ({{count}} kademesi)",

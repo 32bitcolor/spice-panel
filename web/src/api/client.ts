@@ -782,6 +782,7 @@ export interface EventClaimRecord {
   claimed_at: string
   attempts: number
   last_error: string
+  next_attempt_at: string
   updated_at: string
 }
 
@@ -1339,6 +1340,8 @@ export const api = {
       req<{ ok: boolean }>('POST', `/events/${id}/enable`, { enabled }),
     status: (id: number) => req<EventStatus>('GET', `/events/${id}/status`),
     reset: (id: number) => req<{ ok: boolean }>('POST', `/events/${id}/reset`),
+    grantClaim: (id: number, accountId: number) =>
+      req<{ ok: boolean }>('POST', `/events/${id}/claims/${accountId}/grant`),
     config: () => req<EventsConfig>('GET', '/events/config'),
     saveConfig: (cfg: EventsConfig) => req<EventsConfig>('PUT', '/events/config', cfg),
   },

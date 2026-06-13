@@ -1499,7 +1499,17 @@
       "status": "Status",
       "attempts": "Versuche",
       "claimedAt": "Beansprucht am",
-      "lastError": "Letzter Fehler"
+      "lastError": "Letzter Fehler",
+      "nextAttempt": "Nächster Versuch",
+      "grant": "Gewähren",
+      "actions": "Aktionen",
+      "grantAria": "Belohnung an Konto {{account}} gewähren",
+      "statusLabels": {
+        "granted": "Gewährt",
+        "pending": "Ausstehend",
+        "exhausted": "Erschöpft",
+        "failed": "Fehlgeschlagen"
+      }
     },
     "editor": {
       "createTitle": "Neues Event",
@@ -1558,7 +1568,9 @@
     },
     "confirmDeleteTitle": "Delete Event",
     "confirmResetTitle": "Reset Event",
-    "resetConfirmLabel": "Reset"
+    "resetConfirmLabel": "Reset",
+    "grantSuccess": "Belohnung gewährt.",
+    "grantFailed": "Belohnung konnte nicht gewährt werden: {{message}}"
   },
   "battlepass": {
     "title": "Battlepass ({{count}} Stufen)",

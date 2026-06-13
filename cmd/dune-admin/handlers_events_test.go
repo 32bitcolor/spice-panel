@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -396,6 +398,107 @@ func TestHandleResetEvent_NotFound(t *testing.T) {
 	handleResetEvent(rec, req)
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("want 404, got %d", rec.Code)
+	}
+}
+
+// ── grant claim ────────────────────────────────────────────────────────────────
+
+// grantClaimRequest builds a request with the id/account_id path values set.
+func grantClaimRequest(eventID, accountID string) *http.Request {
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/events/"+eventID+"/claims/"+accountID+"/grant", nil)
+	req.SetPathValue("id", eventID)
+	req.SetPathValue("account_id", accountID)
+	return req
+}
+
+func TestHandleGrantEventClaim_NilStore(t *testing.T) {
+	globalEventStore = nil
+	rec := httptest.NewRecorder()
+	handleGrantEventClaim(rec, grantClaimRequest("1", "101"))
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("want 503, got %d", rec.Code)
+	}
+}
+
+func TestHandleGrantEventClaim_BadEventID(t *testing.T) {
+	setupEventStore(t)
+	rec := httptest.NewRecorder()
+	handleGrantEventClaim(rec, grantClaimRequest("abc", "101"))
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestHandleGrantEventClaim_BadAccountID(t *testing.T) {
+	setupEventStore(t)
+	rec := httptest.NewRecorder()
+	handleGrantEventClaim(rec, grantClaimRequest("1", "xyz"))
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("want 400, got %d", rec.Code)
+	}
+}
+
+func TestHandleGrantEventClaim_EventNotFound(t *testing.T) {
+	setupEventStore(t)
+	rec := httptest.NewRecorder()
+	handleGrantEventClaim(rec, grantClaimRequest("999", "101"))
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("want 404, got %d", rec.Code)
+	}
+}
+
+func TestHandleGrantEventClaim_Success(t *testing.T) {
+	s := setupEventStore(t)
+	// Event with no reward → no grant funcs touch globalDB; only recordGranted runs.
+	def := mustCreateEvent(t, s, "freebie", eventTypeMilestone)
+	if err := s.recordFailed(def.ID, def.Version, 101, "inventory full"); err != nil {
+		t.Fatalf("seed failed claim: %v", err)
+	}
+
+	orig := eventGrantTargetResolver
+	eventGrantTargetResolver = func(_ context.Context, _ int64) (int64, int64, error) {
+		return 201, 301, nil
+	}
+	t.Cleanup(func() { eventGrantTargetResolver = orig })
+
+	rec := httptest.NewRecorder()
+	handleGrantEventClaim(rec, grantClaimRequest(itoa(def.ID), "101"))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+
+	c, err := s.listClaims(def.ID)
+	if err != nil {
+		t.Fatalf("listClaims: %v", err)
+	}
+	if len(c) != 1 || c[0].Status != eventClaimStatusGranted {
+		t.Fatalf("want 1 granted claim, got %+v", c)
+	}
+}
+
+func TestHandleGrantEventClaim_ResolverError(t *testing.T) {
+	s := setupEventStore(t)
+	// Reward present so the resolver is consulted.
+	def, err := s.create(eventDefinition{
+		Name:   "needs_target",
+		Type:   eventTypeMilestone,
+		Config: "{}",
+		Reward: `{"items":[{"template":"Spice","qty":1,"quality":1}]}`,
+	})
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	orig := eventGrantTargetResolver
+	eventGrantTargetResolver = func(_ context.Context, _ int64) (int64, int64, error) {
+		return 0, 0, errors.New("no such player")
+	}
+	t.Cleanup(func() { eventGrantTargetResolver = orig })
+
+	rec := httptest.NewRecorder()
+	handleGrantEventClaim(rec, grantClaimRequest(itoa(def.ID), "101"))
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("want 500, got %d (body: %s)", rec.Code, rec.Body.String())
 	}
 }
 

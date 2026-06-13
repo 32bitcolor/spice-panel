@@ -55,11 +55,40 @@ export const EventsTab: React.FC = () => {
   const CLAIM_COLUMNS: Column<ClaimKey>[] = [
     { key: 'account_id', label: t('events.claims.accountId'), width: 110 },
     { key: 'version', label: t('events.claims.version'), width: 70 },
-    { key: 'status', label: t('events.claims.status'), width: 90 },
+    { key: 'status', label: t('events.claims.status'), width: 110 },
     { key: 'attempts', label: t('events.claims.attempts'), width: 80 },
+    { key: 'next_attempt_at', label: t('events.claims.nextAttempt'), minWidth: 160 },
     { key: 'claimed_at', label: t('events.claims.claimedAt'), minWidth: 160 },
     { key: 'last_error', label: t('events.claims.lastError'), minWidth: 200 },
+    { key: 'actions', label: t('events.claims.actions'), width: 110, sortable: false },
   ]
+
+  const claimStatusColor = (status: string): 'success' | 'warning' | 'danger' => {
+    if (status === 'granted') return 'success'
+    if (status === 'pending') return 'warning'
+    return 'danger' // exhausted or legacy "failed"
+  }
+
+  const claimStatusLabel = (status: string): string => {
+    const labels = t('events.claims.statusLabels', { returnObjects: true }) as Record<string, string>
+    return labels[status] ?? status
+  }
+
+  // pending, exhausted, and legacy "failed" claims can be manually re-granted.
+  const canGrantClaim = (status: string): boolean =>
+    status === 'pending' || status === 'exhausted' || status === 'failed'
+
+  const handleGrantClaim = (claim: EventClaimRecord) => {
+    api.events
+      .grantClaim(claim.event_id, claim.account_id)
+      .then(() => {
+        toast.success(t('events.grantSuccess'))
+        if (selectedEvent) loadStatus(selectedEvent)
+      })
+      .catch((e: unknown) => {
+        toast.danger(t('events.grantFailed', { message: e instanceof Error ? e.message : String(e) }))
+      })
+  }
 
   const loadEvents = React.useCallback(() => {
     Promise.resolve()
@@ -320,16 +349,31 @@ export const EventsTab: React.FC = () => {
                     return <span className="font-mono text-xs text-muted">{c.version}</span>
                   case 'status':
                     return (
-                      <Chip size="sm" variant="soft" color={c.status === 'granted' ? 'success' : 'danger'}>
-                        {c.status}
+                      <Chip size="sm" variant="soft" color={claimStatusColor(c.status)}>
+                        {claimStatusLabel(c.status)}
                       </Chip>
                     )
                   case 'attempts':
                     return <span className="text-muted text-xs">{c.attempts}</span>
+                  case 'next_attempt_at':
+                    return <span className="text-muted text-xs">{c.next_attempt_at || '—'}</span>
                   case 'claimed_at':
                     return <span className="text-muted text-xs">{c.claimed_at || '—'}</span>
                   case 'last_error':
                     return <span className="text-muted text-xs">{c.last_error || '—'}</span>
+                  case 'actions':
+                    return can('events:manage') && canGrantClaim(c.status)
+                      ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onPress={() => handleGrantClaim(c)}
+                            aria-label={t('events.claims.grantAria', { account: c.account_id })}
+                          >
+                            {t('events.claims.grant')}
+                          </Button>
+                        )
+                      : null
                 }
               }}
             />

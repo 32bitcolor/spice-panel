@@ -1522,7 +1522,17 @@
       "status": "Estado",
       "attempts": "Intentos",
       "claimedAt": "Reclamado el",
-      "lastError": "Último error"
+      "lastError": "Último error",
+      "nextAttempt": "Próximo intento",
+      "grant": "Otorgar",
+      "actions": "Acciones",
+      "grantAria": "Otorgar recompensa a la cuenta {{account}}",
+      "statusLabels": {
+        "granted": "Otorgada",
+        "pending": "Pendiente",
+        "exhausted": "Agotada",
+        "failed": "Fallida"
+      }
     },
     "editor": {
       "createTitle": "Nuevo evento",
@@ -1581,7 +1591,9 @@
     },
     "confirmDeleteTitle": "Delete Event",
     "confirmResetTitle": "Reset Event",
-    "resetConfirmLabel": "Reset"
+    "resetConfirmLabel": "Reset",
+    "grantSuccess": "Recompensa otorgada.",
+    "grantFailed": "No se pudo otorgar la recompensa: {{message}}"
   },
   "battlepass": {
     "title": "Battlepass ({{count}} rangos)",

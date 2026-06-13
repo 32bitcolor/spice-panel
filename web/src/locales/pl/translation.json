@@ -1545,7 +1545,17 @@
       "status": "Status",
       "attempts": "Próby",
       "claimedAt": "Odebrano",
-      "lastError": "Ostatni błąd"
+      "lastError": "Ostatni błąd",
+      "nextAttempt": "Następna próba",
+      "grant": "Przyznaj",
+      "actions": "Akcje",
+      "grantAria": "Przyznaj nagrodę kontu {{account}}",
+      "statusLabels": {
+        "granted": "Przyznano",
+        "pending": "Oczekuje",
+        "exhausted": "Wyczerpano",
+        "failed": "Niepowodzenie"
+      }
     },
     "editor": {
       "createTitle": "Nowe wydarzenie",
@@ -1604,7 +1614,9 @@
     },
     "confirmDeleteTitle": "Delete Event",
     "confirmResetTitle": "Reset Event",
-    "resetConfirmLabel": "Reset"
+    "resetConfirmLabel": "Reset",
+    "grantSuccess": "Nagroda przyznana.",
+    "grantFailed": "Nie udało się przyznać nagrody: {{message}}"
   },
   "battlepass": {
     "title": "Battlepass ({{count}} poziomów)",

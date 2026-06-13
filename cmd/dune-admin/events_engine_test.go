@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 )
 
 // ── geometry ──────────────────────────────────────────────────────────────────
@@ -89,6 +90,9 @@ func noopDeps() eventDeps {
 		grantItem:        func(_ context.Context, _ int64, _ string, _, _ int64) error { return nil },
 		grantXP:          func(_ context.Context, _ int64, _ string, _ int32) error { return nil },
 		announce:         func(_, _ string) error { return nil },
+		resolveGrantTargets: func(_ context.Context, _ int64) (int64, int64, error) {
+			return 0, 0, nil
+		},
 	}
 }
 
@@ -585,6 +589,111 @@ func TestReconcileEvent_AlreadySealed_NoReprocess(t *testing.T) {
 	}
 	if grantCount != 0 {
 		t.Fatalf("pre-sealed claim: want 0 re-grants, got %d", grantCount)
+	}
+}
+
+// ── reward-grant retry ────────────────────────────────────────────────────────
+
+// rewardEventDef seeds an event with a single-item reward and returns it.
+func rewardEventDef(t *testing.T, s *eventStore, name string) eventDefinition {
+	t.Helper()
+	d, err := s.create(eventDefinition{
+		Name:   name,
+		Type:   eventTypeMilestone,
+		Config: "{}",
+		Reward: `{"items":[{"template":"Spice","qty":1,"quality":1}]}`,
+	})
+	if err != nil {
+		t.Fatalf("create reward event: %v", err)
+	}
+	return *d
+}
+
+func TestAttemptGrantForClaim_FailThenSucceed(t *testing.T) {
+	store := openMemEventStore(t)
+	def := rewardEventDef(t, store, "retry_me")
+
+	// First failure: marks the claim pending.
+	if err := store.recordFailed(def.ID, def.Version, 101, "inventory full"); err != nil {
+		t.Fatalf("recordFailed: %v", err)
+	}
+
+	grantCalls := 0
+	deps := noopDeps()
+	deps.resolveGrantTargets = func(_ context.Context, _ int64) (int64, int64, error) {
+		return 201, 301, nil
+	}
+	deps.grantItem = func(_ context.Context, actorID int64, _ string, _, _ int64) error {
+		grantCalls++
+		if actorID != 301 {
+			t.Errorf("grantItem actorID = %d, want 301", actorID)
+		}
+		return nil
+	}
+
+	due, err := store.listRetryableClaims(time.Now().Add(eventGrantRetryBackoff + time.Hour))
+	if err != nil {
+		t.Fatalf("listRetryableClaims: %v", err)
+	}
+	if len(due) != 1 {
+		t.Fatalf("want 1 due claim, got %d", len(due))
+	}
+
+	if err := attemptGrantForClaim(context.Background(), deps, store, due[0]); err != nil {
+		t.Fatalf("attemptGrantForClaim: %v", err)
+	}
+	if grantCalls != 1 {
+		t.Errorf("grantItem calls = %d, want 1", grantCalls)
+	}
+
+	c := firstClaim(t, store, def.ID)
+	if c.Status != eventClaimStatusGranted {
+		t.Errorf("status = %q, want granted", c.Status)
+	}
+}
+
+func TestAttemptGrantForClaim_ExhaustsAfterMaxAttempts(t *testing.T) {
+	store := openMemEventStore(t)
+	def := rewardEventDef(t, store, "always_fails")
+
+	deps := noopDeps()
+	deps.resolveGrantTargets = func(_ context.Context, _ int64) (int64, int64, error) {
+		return 201, 301, nil
+	}
+	deps.grantItem = func(_ context.Context, _ int64, _ string, _, _ int64) error {
+		return errors.New("inventory full")
+	}
+
+	// Seed an initial pending claim (attempt 1), then retry until exhausted.
+	if err := store.recordFailed(def.ID, def.Version, 101, "inventory full"); err != nil {
+		t.Fatalf("seed recordFailed: %v", err)
+	}
+	for i := 0; i < eventGrantMaxAttempts; i++ {
+		claim := firstClaim(t, store, def.ID)
+		if claim.Status == eventClaimStatusExhausted {
+			break
+		}
+		// attemptGrantForClaim returns the grant error and records the failure.
+		if err := attemptGrantForClaim(context.Background(), deps, store, claim); err == nil {
+			t.Fatalf("attempt %d: want grant error, got nil", i)
+		}
+	}
+
+	c := firstClaim(t, store, def.ID)
+	if c.Status != eventClaimStatusExhausted {
+		t.Errorf("status = %q, want exhausted after %d attempts", c.Status, eventGrantMaxAttempts)
+	}
+	if c.Attempts != eventGrantMaxAttempts {
+		t.Errorf("attempts = %d, want %d", c.Attempts, eventGrantMaxAttempts)
+	}
+
+	// Once exhausted, it is no longer auto-retryable.
+	due, err := store.listRetryableClaims(time.Now().Add(100 * eventGrantRetryBackoff))
+	if err != nil {
+		t.Fatalf("listRetryableClaims: %v", err)
+	}
+	if len(due) != 0 {
+		t.Errorf("want 0 retryable after exhaustion, got %d", len(due))
 	}
 }
 
