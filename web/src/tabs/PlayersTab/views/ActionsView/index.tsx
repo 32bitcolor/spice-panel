@@ -1,9 +1,8 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from '@heroui/react'
-import { Segment } from '@heroui-pro/react'
 import { useAtom, useSetAtom } from 'jotai'
-import { ConfirmDialog, Panel } from '../../../../dune-ui'
+import { ConfirmDialog, SideNav } from '../../../../dune-ui'
 import { ManageLocationsModal } from '../../modals/ManageLocationsModal'
 import { MapCoordPickerModal } from '../../modals/MapCoordPickerModal'
 import { ACTION_SECTIONS, type ActionSection } from '../../types'
@@ -73,24 +72,13 @@ export const ActionsView: React.FC<ActionsViewProps> = ({ player }) => {
   return (
     <>
       <div className="flex flex-row h-full min-h-0 gap-3">
-        <Panel className="shrink-0 p-2 overflow-hidden">
-          {/* Vertical section nav. The Segment base style is a horizontal inline
-              row; flex-col + stretch stacks the items full-width to match the
-              previous vertical Tabs layout. */}
-          <Segment
-            orientation="vertical"
-            aria-label="Actions sections"
-            selectedKey={section}
-            onSelectionChange={(k) => setSection(k as ActionSection)}
-            className="flex flex-col items-stretch w-44"
-          >
-            {visibleSections.map((s) => (
-              <Segment.Item key={s.key} id={s.key} className="justify-start">
-                {t(s.label as never)}
-              </Segment.Item>
-            ))}
-          </Segment>
-        </Panel>
+        {/* Vertical section nav (HeroUI Pro ListView via SideNav). */}
+        <SideNav
+          items={visibleSections.map((s) => ({ key: s.key, label: t(s.label as never) }))}
+          active={section}
+          onSelect={setSection}
+          width="w-48"
+        />
 
         <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
           {section === 'resources' && <ResourcesSection player={player} />}

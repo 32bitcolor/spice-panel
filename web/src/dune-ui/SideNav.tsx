@@ -32,9 +32,9 @@ export const SideNav = <K extends string>({
   }, [active, items])
 
   return (
-    <div className={`${w} shrink-0 flex flex-col rounded-[var(--radius)] bg-surface border border-border/60 dune-lift overflow-hidden`}>
+    <div className={`${w} shrink-0 flex flex-col rounded-[var(--radius)] bg-surface border border-border/60 overflow-hidden`}>
       {(title || titleAction) && (
-        <div className="flex items-center justify-between px-3 pt-6 pb-3 border-b border-border/60 shrink-0">
+        <div className="flex items-center justify-between p-3 border-b border-border/60 shrink-0">
           {title && <span className="text-xs font-semibold uppercase tracking-widest text-accent">{title}</span>}
           {titleAction}
         </div>
@@ -52,7 +52,7 @@ export const SideNav = <K extends string>({
           variant="secondary"
           virtualized
           rowHeight={ROW_HEIGHT}
-          className="h-full overflow-y-auto overflow-x-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pt-2 pb-24 [scroll-padding-bottom:96px]"
+          className="h-full overflow-y-auto overflow-x-hidden"
           onSelectionChange={(keys) => {
             if (keys === 'all') return
             const k = [...(keys as Set<K>)][0]
@@ -101,10 +101,10 @@ export const SideNav = <K extends string>({
         </ListView>
 
         {/* 96px gradient — matches corner art depth and scroll-padding-bottom */}
-        <div
+        {/* <div
           className="pointer-events-none absolute bottom-0 left-0 right-0 h-24"
           style={{ background: 'linear-gradient(to bottom, transparent, var(--color-surface))' }}
-        />
+        /> */}
       </div>
     </div>
   )
