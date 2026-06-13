@@ -16,6 +16,7 @@ import {
 import {
   groupByCategory, matchesSetting, matchesRawSection,
 } from './utils'
+import { buildGameIni } from './gameIni'
 
 export const ServerSettingsTab: React.FC = () => {
   const { t } = useTranslation()
@@ -98,6 +99,22 @@ export const ServerSettingsTab: React.FC = () => {
   }
 
   const dirtyCount = pending.size
+
+  const downloadGameIni = () => {
+    const text = buildGameIni(items)
+    if (!text) {
+      toast.danger(t('server.downloadGameIniEmpty'))
+      return
+    }
+    const blob = new Blob([text], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'Game.ini'
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success(t('server.downloadGameIniDone'))
+  }
 
   if (loading) {
     return (
@@ -203,6 +220,15 @@ export const ServerSettingsTab: React.FC = () => {
           >
             <Icon name={showAll ? 'eye' : 'eye-off'} className="w-3.5 h-3.5" />
             <span className="ml-1">{showAll ? t('server.showAll') : t('server.showUser')}</span>
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onPress={downloadGameIni}
+            isDisabled={loading || saving}
+          >
+            <Icon name="download" className="w-3.5 h-3.5" />
+            <span className="ml-1">{t('server.downloadGameIni')}</span>
           </Button>
           <Button size="sm" onPress={save} isDisabled={dirtyCount === 0 || saving}>
             {saving
