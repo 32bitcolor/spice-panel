@@ -1138,11 +1138,6 @@
       "recovered": "Wiederhergestellt",
       "refuel": "Auftanken",
       "refuelDone": "{{label}} aufgetankt — Neu einloggen, um im Spiel zu sehen",
-      "repair": "Reparieren",
-      "repairDone": "{{repaired}} Module auf {{label}} repariert — Neu einloggen, um im Spiel zu sehen",
-      "repairNone": "Keine Module auf {{label}} gefunden",
-      "repairNotice": "Fahrzeugreparaturen erfordern einen Serverneustart, um im Spiel wirksam zu werden.",
-      "repairPartial": "{{repaired}} von {{total}} Modulen auf {{label}} repariert ({{skipped}} übersprungen) — Neu einloggen, um im Spiel zu sehen",
       "vehiclesLabel": "Fahrzeuge"
     }
   },

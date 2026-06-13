@@ -1172,11 +1172,6 @@
       "recovered": "Odzyskano",
       "refuel": "Zatankuj",
       "refuelDone": "{{label}} zatankowano — zaloguj się ponownie, aby zobaczyć w grze",
-      "repair": "Napraw",
-      "repairDone": "Naprawiono {{repaired}} modułów w {{label}} — zaloguj się ponownie, aby zobaczyć w grze",
-      "repairNone": "Nie znaleziono modułów w {{label}}",
-      "repairNotice": "Naprawy pojazdów wymagają restartu serwera, aby działały w grze.",
-      "repairPartial": "Naprawiono {{repaired}} z {{total}} modułów w {{label}} ({{skipped}} pominięto) — zaloguj się ponownie, aby zobaczyć w grze",
       "vehiclesLabel": "Pojazdy"
     }
   },

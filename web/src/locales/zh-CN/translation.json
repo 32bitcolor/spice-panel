@@ -1138,11 +1138,6 @@
       "recovered": "已恢复",
       "refuel": "加油",
       "refuelDone": "已为 {{label}} 加油 — 重新登录后在游戏中查看",
-      "repair": "修复",
-      "repairDone": "已修复 {{label}} 上的 {{repaired}} 个模块 — 重新登录后在游戏中查看",
-      "repairNone": "在 {{label}} 上未找到模块",
-      "repairNotice": "载具维修需要重启服务器才能在游戏中生效。",
-      "repairPartial": "已修复 {{label}} 上 {{total}} 个模块中的 {{repaired}} 个（跳过 {{skipped}} 个）— 重新登录后在游戏中查看",
       "vehiclesLabel": "载具"
     }
   },
