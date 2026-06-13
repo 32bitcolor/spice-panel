@@ -79,3 +79,19 @@ export function applyTheme(id: ThemeId): void {
   root.dataset.theme = id
   localStorage.setItem(THEME_KEY, id)
 }
+
+const ANIM_KEY = 'dune_admin_animations'
+
+export function loadAnimations(): boolean {
+  return localStorage.getItem(ANIM_KEY) === 'on'
+}
+
+export function setAnimations(on: boolean): void {
+  if (on) {
+    document.documentElement.dataset.animations = 'on'
+  }
+  else {
+    delete document.documentElement.dataset.animations
+  }
+  localStorage.setItem(ANIM_KEY, on ? 'on' : 'off')
+}

@@ -200,6 +200,8 @@
     "reinstalled": "Reinstalled {{version}}. Server is restarting…",
     "saveApply": "Save & Apply",
     "selectLanguage": "Select language",
+    "disableAnimations": "Disable animations",
+    "enableAnimations": "Enable animations",
     "selectTheme": "Select theme",
     "settings": "Settings",
     "signIn": "Sign In",
