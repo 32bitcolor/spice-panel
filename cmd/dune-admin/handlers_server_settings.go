@@ -778,6 +778,16 @@ func parseK8sINIPath(path string) (ns, pod, inPodPath string, ok bool) {
 	return ns, pod, inPodPath, true
 }
 
+// iniFileReader lets a control plane read a host INI file using its own
+// privileges. AMP's UserGame.ini / UserEngine.ini / UserOverrides.ini are owned
+// by the amp user (often mode 0700), so a plain `cat` from the dune-admin user
+// fails and `sudo cat` (root) isn't granted by the narrow AMP sudoers — leaving
+// the read empty and the Server Settings page showing only defaults (#173). The
+// control plane reads them the same way it writes them (as the amp user).
+type iniFileReader interface {
+	readINIFile(exec Executor, path string) (string, error)
+}
+
 func readINIContent(path string) string {
 	if globalExecutor == nil {
 		return ""
@@ -792,6 +802,14 @@ func readINIContent(path string) string {
 		}
 		return out
 	}
+	// Let the control plane read the file with its own privileges first (AMP
+	// reads amp-owned files as the amp user — see readDirectorConfig). This is
+	// additive: the generic cat fallbacks below still run if it yields nothing.
+	if reader, ok := globalControl.(iniFileReader); ok {
+		if out, err := reader.readINIFile(globalExecutor, path); err == nil && strings.TrimSpace(out) != "" {
+			return out
+		}
+	}
 	// Try plain cat first: when the service runs as the file owner (e.g. AMP
 	// where the service user is amp and owns UserGame.ini), no sudo is needed
 	// and sudo cat may not be in the sudoers at all. Fall back to sudo cat for
@@ -801,6 +819,12 @@ func readINIContent(path string) string {
 		return out
 	}
 	out, _ = globalExecutor.Exec(fmt.Sprintf("sudo cat %s 2>/dev/null", shellQuote(path)))
+	if strings.TrimSpace(out) == "" {
+		// Diagnostic for the field: a path we expected to read came back empty
+		// across every strategy. Helps confirm the #173 read-back failure on the
+		// AMP dev box without changing behaviour.
+		log.Printf("readINIContent: %s unreadable (empty from control-plane read and cat/sudo cat) — settings from this file won't show", path)
+	}
 	return out
 }
 

@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -208,16 +210,95 @@ func handleRMQBroadcastShutdown(w http.ResponseWriter, r *http.Request) {
 	if req.ShutdownType == "" {
 		req.ShutdownType = "Restart"
 	}
+	// A cancel supersedes any pending action; clear it before re-broadcasting.
+	if req.Cancel {
+		cancelBroadcastShutdownExec()
+	}
 	ts := time.Now().Add(time.Duration(req.DelayMinutes) * time.Minute).Unix()
 	if err := rmqServiceBroadcastShutdown(req.ShutdownType, ts, req.Frequency, req.Duration, req.Cancel); err != nil {
 		jsonErr(w, err, 500)
 		return
+	}
+	// The broadcast above only shows the in-game countdown. Arm the actual
+	// control-plane action so the server is genuinely restarted/stopped when the
+	// countdown elapses (#205 — previously nothing happened in game).
+	if !req.Cancel {
+		delay := time.Duration(req.DelayMinutes) * time.Minute
+		scheduleBroadcastShutdownExec(delay, shutdownVerb(req.ShutdownType))
 	}
 	action := "shutdown broadcast sent"
 	if req.Cancel {
 		action = "shutdown broadcast cancelled"
 	}
 	jsonOK(w, map[string]string{"ok": action})
+}
+
+// pending broadcast-shutdown control-plane action. A new broadcast or a cancel
+// supersedes whatever was previously armed. shutdownExecAt is the Unix time the
+// action will fire (0 when nothing is armed) — exposed via /status so the UI can
+// rehydrate the pending state and Cancel button after a browser refresh.
+var (
+	shutdownExecMu    sync.Mutex
+	shutdownExecTimer *time.Timer
+	shutdownExecAt    int64
+)
+
+// shutdownVerb maps a broadcast shutdown type to the control-plane lifecycle
+// command. "Restart" cycles the server; maintenance/update windows stop it.
+func shutdownVerb(shutdownType string) string {
+	if strings.EqualFold(shutdownType, "Restart") {
+		return "restart"
+	}
+	return "stop"
+}
+
+// scheduleBroadcastShutdownExec arms a one-shot timer to run the control-plane
+// action after delay, cancelling any previously-armed action first.
+func scheduleBroadcastShutdownExec(delay time.Duration, verb string) {
+	shutdownExecMu.Lock()
+	defer shutdownExecMu.Unlock()
+	if shutdownExecTimer != nil {
+		shutdownExecTimer.Stop()
+	}
+	shutdownExecAt = time.Now().Add(delay).Unix()
+	shutdownExecTimer = time.AfterFunc(delay, func() {
+		shutdownExecMu.Lock()
+		shutdownExecTimer = nil
+		shutdownExecAt = 0
+		shutdownExecMu.Unlock()
+		fireBroadcastShutdown(context.Background(), verb)
+	})
+}
+
+// cancelBroadcastShutdownExec stops any armed control-plane action.
+func cancelBroadcastShutdownExec() {
+	shutdownExecMu.Lock()
+	defer shutdownExecMu.Unlock()
+	if shutdownExecTimer != nil {
+		shutdownExecTimer.Stop()
+		shutdownExecTimer = nil
+	}
+	shutdownExecAt = 0
+}
+
+// pendingBroadcastShutdown reports whether a broadcast-shutdown action is armed
+// and, if so, the Unix time it fires. Read by /status for UI rehydration.
+func pendingBroadcastShutdown() (at int64, pending bool) {
+	shutdownExecMu.Lock()
+	defer shutdownExecMu.Unlock()
+	return shutdownExecAt, shutdownExecAt > 0
+}
+
+// fireBroadcastShutdown runs the lifecycle command against the control plane.
+// Mirrors fireScheduledRestart: a no-op (logged) when nothing is connected.
+func fireBroadcastShutdown(ctx context.Context, verb string) {
+	if globalControl == nil || globalExecutor == nil {
+		log.Printf("broadcast-shutdown: control plane not connected; %s skipped", verb)
+		return
+	}
+	if _, err := globalControl.ExecCommand(ctx, globalExecutor, verb); err != nil {
+		log.Printf("broadcast-shutdown: %s failed: %v", verb, err)
+	}
 }
 
 // @Summary Send cheat script command via RabbitMQ

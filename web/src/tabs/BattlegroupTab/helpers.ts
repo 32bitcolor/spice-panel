@@ -8,7 +8,10 @@ import type { ChipColor } from './types'
 export const phaseColor = (phase: string): string => {
   switch (phase?.toLowerCase()) {
     case 'running':
-    case 'reconciling': return 'var(--success)'
+    case 'reconciling':
+    case 'ready':
+    case 'connected':
+    case 'healthy': return 'var(--success)'
     case 'starting':
     case 'initializing': return 'var(--warning)'
     case 'stopping':
@@ -48,7 +51,18 @@ export const bgUptimeSeconds = (servers: { ageSeconds?: number }[]): number => {
   return servers.reduce((max, s) => Math.max(max, s.ageSeconds ?? 0), 0)
 }
 
-/** Game is "ready" only when every running server reports ready. */
+// Phases that mean the battlegroup is down or shutting down — readiness is false
+// regardless of (possibly stale) per-server flags.
+const DOWN_PHASES = new Set(['stopped', 'stopping', 'terminating', 'terminated', 'preshutdown'])
+
+/**
+ * Game is "ready" when every server reports ready and the battlegroup isn't in a
+ * down phase. The per-server `ready` flag is authoritative; the battlegroup phase
+ * is only used to exclude down states. The phase is NOT gated to "Running" — a
+ * live battlegroup reports "Healthy", "Running" or "Reconciling" interchangeably,
+ * and gating on "Running" wrongly showed "Not Ready" for the others (#200/#203).
+ */
 export const allServersReady = (phase: string | undefined, servers: { ready: boolean }[]): boolean => {
-  return servers.length > 0 && phase === 'Running' && servers.every((s) => s.ready)
+  const down = !!phase && DOWN_PHASES.has(phase.toLowerCase())
+  return servers.length > 0 && !down && servers.every((s) => s.ready)
 }

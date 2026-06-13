@@ -64,6 +64,7 @@ const DirectorRow: React.FC<{ directorURL: string }> = ({ directorURL }) => {
 export const WebInterfacesCard: React.FC<{ status: Status | null }> = ({ status }) => {
   const { t } = useTranslation()
   const [items, setItems] = useState<WebInterface[]>([])
+  const [discovered, setDiscovered] = useState<WebInterface[]>([])
   const [draft, setDraft] = useState<WebInterface[]>([])
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -74,7 +75,10 @@ export const WebInterfacesCard: React.FC<{ status: Status | null }> = ({ status 
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => api.webInterfaces.get())
-      .then((res) => setItems(res.interfaces ?? []))
+      .then((res) => {
+        setItems(res.interfaces ?? [])
+        setDiscovered(res.discovered ?? [])
+      })
       .catch((e: unknown) =>
         toast.danger(t('serverHealth.ifaceLoadFailed', { message: e instanceof Error ? e.message : String(e) })))
       .finally(() => setLoading(false))
@@ -116,6 +120,12 @@ export const WebInterfacesCard: React.FC<{ status: Status | null }> = ({ status 
       {loading && <div className="py-2 flex justify-center"><Spinner size="sm" color="current" /></div>}
 
       {!loading && director && <DirectorRow directorURL={director} />}
+
+      {/* Control-plane-discovered links (e.g. kubectl director / file browser):
+          read-only, never editable or persisted. */}
+      {!loading && discovered.map((item) => (
+        <InterfaceRow key={`discovered:${item.url}`} item={item} />
+      ))}
 
       {!loading && editing && (
         <div className="flex flex-col gap-2">

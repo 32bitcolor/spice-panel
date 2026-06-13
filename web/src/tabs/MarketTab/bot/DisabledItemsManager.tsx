@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'
 import type { CatalogItem } from '../../../api/client'
 import { usePermissions } from '../../../hooks/usePermissions'
+import { useDebounce } from '../../../hooks/useDebounce'
 import { DataTable, type Column, Icon } from '../../../dune-ui'
 import type { DisabledItemsManagerProps, DisabledRow, RowKey } from './types'
 
@@ -28,8 +29,10 @@ export const DisabledItemsManager: React.FC<DisabledItemsManagerProps> = (
 
   const safeItems = React.useMemo(() => config.disabled_items ?? [], [config.disabled_items])
 
+  // Debounce so filtering the (large) catalog only runs ~300ms after the user
+  // stops typing, not on every keystroke (#201 pop-in).
+  const q = useDebounce(search.trim().toLowerCase(), 300)
   const results = React.useMemo(() => {
-    const q = search.trim().toLowerCase()
     if (!q) return []
     return catalog
       .filter((c) =>
@@ -37,7 +40,7 @@ export const DisabledItemsManager: React.FC<DisabledItemsManagerProps> = (
         && (c.display_name.toLowerCase().includes(q) || c.template_id.toLowerCase().includes(q)),
       )
       .slice(0, 8)
-  }, [search, catalog, safeItems])
+  }, [q, catalog, safeItems])
 
   const disabledRows: DisabledRow[] = React.useMemo(() =>
     safeItems.map((tmpl) => ({

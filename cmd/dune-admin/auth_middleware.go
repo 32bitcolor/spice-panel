@@ -229,7 +229,11 @@ func (s *statusRecorder) WriteHeader(code int) {
 
 // appCSP is the strict policy for the SPA: no inline scripts (the Vite build
 // emits none), inline styles allowed (Tailwind/HeroUI inject them).
-const appCSP = "default-src 'self'; img-src 'self' data: https://cdn.discordapp.com; " +
+// img-src allows any https host so the LiveMap can load tiles/images from
+// external CDNs (cdn.th.gl, the configurable VITE_CDN_BASE_URL host, Discord
+// avatars). This mirrors connect-src, which already allows https:, and avoids a
+// brittle hardcoded host list that would break self-hosters overriding the CDN.
+const appCSP = "default-src 'self'; img-src 'self' data: https:; " +
 	"connect-src 'self' ws: wss: https:; style-src 'self' 'unsafe-inline'; " +
 	"font-src 'self' data:; frame-ancestors 'none'"
 

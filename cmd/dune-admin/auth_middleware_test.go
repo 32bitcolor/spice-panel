@@ -230,4 +230,18 @@ func TestSecurityHeadersMiddleware(t *testing.T) {
 			}
 		}
 	})
+
+	// The LiveMap loads tiles/images from external CDNs (cdn.th.gl, the
+	// configurable VITE_CDN_BASE_URL host). img-src must allow https: or those
+	// images are blocked once auth (and thus CSP) is enabled (#livemap).
+	t.Run("app CSP allows external https images", func(t *testing.T) {
+		enabled := true
+		withAuthTestConfig(t, appConfig{AuthEnabled: &enabled}, nil)
+		w := httptest.NewRecorder()
+		securityHeadersMiddleware(inner).ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/", nil))
+		csp := w.Header().Get("Content-Security-Policy")
+		if !strings.Contains(csp, "img-src 'self' data: https:") {
+			t.Errorf("app CSP must allow https images for map tiles: %q", csp)
+		}
+	})
 }

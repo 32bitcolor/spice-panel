@@ -17,6 +17,7 @@ import {
   groupByCategory, matchesSetting, matchesRawSection,
 } from './utils'
 import { buildGameIni } from './gameIni'
+import { useDebounce } from '../../hooks/useDebounce'
 
 export const ServerSettingsTab: React.FC = () => {
   const { t } = useTranslation()
@@ -55,6 +56,58 @@ export const ServerSettingsTab: React.FC = () => {
   React.useEffect(() => {
     load()
   }, [load])
+
+  // Debounce the query so the expensive filter/group passes below only recompute
+  // ~300ms after the user stops typing, not on every keystroke (#201 pop-in).
+  // These hooks must run before the loading/error early returns below.
+  const q = useDebounce(search.trim().toLowerCase(), 300)
+  const searching = q.length > 0
+
+  // All filtering/grouping is memoized on the debounced query + inputs so a
+  // keystroke that hasn't yet committed doesn't re-run it.
+  const { commonItems, advancedCategories, expertCategories, visibleRawSections, hasResults }
+    = React.useMemo(() => {
+      const visibleItems = showAll
+        ? items
+        : items.filter((item) => item.layers.some((l) => USER_SOURCES.has(l.source)))
+
+      const common = items
+        .filter((item) => COMMON_KEYS.has(`${item.section}|${item.key}`))
+        .filter((item) => matchesSetting(item, q))
+      const advancedItems = visibleItems
+        .filter((item) => !COMMON_KEYS.has(`${item.section}|${item.key}`))
+        .filter((item) => matchesSetting(item, q))
+      const cats = groupByCategory(advancedItems)
+      // Split into the curated gameplay set (Advanced) and the long engine/system
+      // tail (Expert, hidden behind a toggle). Searching reveals everything so a
+      // match in an Expert category isn't silently hidden.
+      const advanced = cats.filter(([cat]) => ADVANCED_CATEGORIES.has(cat))
+      const expert = cats.filter(([cat]) => !ADVANCED_CATEGORIES.has(cat))
+
+      const rawBySection = new Map<string, RawSection[]>()
+      for (const src of SOURCE_PRIORITY) {
+        for (const sec of raw) {
+          if (sec.source !== src) continue
+          const arr = rawBySection.get(sec.section) ?? []
+          arr.push(sec)
+          rawBySection.set(sec.section, arr)
+        }
+      }
+      const visibleRaw = (showAll
+        ? [...rawBySection.values()]
+        : [...rawBySection.values()].filter((secs) =>
+            secs.some((s) => USER_SOURCES.has(s.source)),
+          )
+      ).filter((secs) => matchesRawSection(secs, q))
+
+      return {
+        commonItems: common,
+        advancedCategories: advanced,
+        expertCategories: expert,
+        visibleRawSections: visibleRaw,
+        hasResults: common.length > 0 || cats.length > 0 || visibleRaw.length > 0,
+      }
+    }, [items, raw, q, showAll])
 
   const pendingKey = (item: ServerSetting) => `${item.section}|${item.key}`
 
@@ -143,25 +196,6 @@ export const ServerSettingsTab: React.FC = () => {
     return !v
   })
 
-  const visibleItems = showAll
-    ? items
-    : items.filter((item) => item.layers.some((l) => USER_SOURCES.has(l.source)))
-
-  const q = search.trim().toLowerCase()
-  const searching = q.length > 0
-
-  const commonItems = items
-    .filter((item) => COMMON_KEYS.has(`${item.section}|${item.key}`))
-    .filter((item) => matchesSetting(item, q))
-  const advancedItems = visibleItems
-    .filter((item) => !COMMON_KEYS.has(`${item.section}|${item.key}`))
-    .filter((item) => matchesSetting(item, q))
-  const categories = groupByCategory(advancedItems)
-  // Split into the curated gameplay set (Advanced) and the long engine/system
-  // tail (Expert, hidden behind a toggle). Searching reveals everything so a
-  // match in an Expert category isn't silently hidden.
-  const advancedCategories = categories.filter(([cat]) => ADVANCED_CATEGORIES.has(cat))
-  const expertCategories = categories.filter(([cat]) => !ADVANCED_CATEGORIES.has(cat))
   const ampManaged = (item: ServerSetting) => control === 'amp' && !!item.field_name
 
   const toggleCategory = (cat: string) => {
@@ -172,26 +206,6 @@ export const ServerSettingsTab: React.FC = () => {
       return next
     })
   }
-
-  const rawBySection = new Map<string, RawSection[]>()
-  for (const src of SOURCE_PRIORITY) {
-    for (const sec of raw) {
-      if (sec.source !== src) continue
-      const arr = rawBySection.get(sec.section) ?? []
-      arr.push(sec)
-      rawBySection.set(sec.section, arr)
-    }
-  }
-
-  const visibleRawSections = (showAll
-    ? [...rawBySection.values()]
-    : [...rawBySection.values()].filter((secs) =>
-        secs.some((s) => USER_SOURCES.has(s.source)),
-      )
-  ).filter((secs) => matchesRawSection(secs, q))
-
-  const hasResults
-    = commonItems.length > 0 || categories.length > 0 || visibleRawSections.length > 0
 
   return (
     <div className="flex flex-col h-full gap-3 min-h-0">

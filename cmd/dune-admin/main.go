@@ -23,6 +23,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	_ "time/tzdata" // embed the IANA tz database so time.LoadLocation works on
+	// minimal containers without the OS tzdata package (#204: scheduled restart
+	// rejected valid zones like "Europe/London").
 
 	_ "dune-admin/docs"
 	"gopkg.in/yaml.v3"

@@ -43,6 +43,18 @@ export const BattlegroupTab: React.FC = () => {
   const [shutdownType, setShutdownType] = React.useState('Restart')
   const [shutdownDelay, setShutdownDelay] = React.useState(10)
   const [shutdownBusy, setShutdownBusy] = React.useState(false)
+  // A broadcast arms a pending restart/stop on the backend. The Cancel button
+  // only shows while something is actually pending — not before a broadcast or
+  // after one is cancelled. The backend is authoritative (exposed via /status),
+  // so this rehydrates on a browser refresh and clears itself when the countdown
+  // fires; the optimistic sets below just make the UI feel instant.
+  const [shutdownPending, setShutdownPending] = React.useState(false)
+  React.useEffect(() => {
+    if (typeof connStatus?.shutdown_pending === 'boolean') {
+      const pending = connStatus.shutdown_pending
+      Promise.resolve().then(() => setShutdownPending(pending))
+    }
+  }, [connStatus?.shutdown_pending])
 
   // Restore modal
   const [showRestore, setShowRestore] = React.useState(false)
@@ -318,7 +330,8 @@ export const BattlegroupTab: React.FC = () => {
                       setShutdownBusy(true)
                       try {
                         await api.broadcast.shutdown(shutdownType, shutdownDelay)
-                        toast.success(t('battlegroup.shutdownSent', { delay: shutdownDelay }))
+                        toast.success(t('battlegroup.shutdownSent', { type: shutdownType, delay: shutdownDelay }))
+                        setShutdownPending(true)
                       }
                       catch (e: unknown) {
                         toast.danger(e instanceof Error ? e.message : String(e))
@@ -333,27 +346,32 @@ export const BattlegroupTab: React.FC = () => {
                             <Icon name="triangle-alert" />
                             {' '}
                             {t('battlegroup.broadcastBtn')}
+                            {' '}
+                            {shutdownType}
                           </>
                         )}
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    isDisabled={shutdownBusy}
-                    onPress={async () => {
-                      setShutdownBusy(true)
-                      try {
-                        await api.broadcast.shutdown(shutdownType, 0, true)
-                        toast.success(t('battlegroup.shutdownCancelled'))
-                      }
-                      catch (e: unknown) {
-                        toast.danger(e instanceof Error ? e.message : String(e))
-                      }
-                      finally { setShutdownBusy(false) }
-                    }}
-                  >
-                    {t('common.cancel')}
-                  </Button>
+                  {shutdownPending && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      isDisabled={shutdownBusy}
+                      onPress={async () => {
+                        setShutdownBusy(true)
+                        try {
+                          await api.broadcast.shutdown(shutdownType, 0, true)
+                          toast.success(t('battlegroup.shutdownCancelled'))
+                          setShutdownPending(false)
+                        }
+                        catch (e: unknown) {
+                          toast.danger(e instanceof Error ? e.message : String(e))
+                        }
+                        finally { setShutdownBusy(false) }
+                      }}
+                    >
+                      {t('common.cancel')}
+                    </Button>
+                  )}
                 </div>
               </div>
 

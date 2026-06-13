@@ -295,6 +295,16 @@ export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, on
                       </Button>
                     </div>
 
+                    {/* Quality>0 is a live-state limitation of the game: the item
+                        is written to the DB but only materializes after the player
+                        relogs, and may land outside their free inventory slots (#207). */}
+                    {(quality > 0 || staged.some((s) => s.quality > 0)) && (
+                      <div className="shrink-0 flex items-start gap-2 rounded-[var(--radius)] px-3 py-2 bg-surface border border-warning/40 text-xs text-muted">
+                        <Icon name="triangle-alert" className="text-warning shrink-0 mt-0.5" />
+                        <span>{t('players.give.qualityWarning')}</span>
+                      </div>
+                    )}
+
                     {/* Staged items DataGrid */}
                     {staged.length > 0 && (
                       <DataGrid

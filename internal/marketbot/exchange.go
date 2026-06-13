@@ -323,20 +323,54 @@ func detectExchangeID(
 
 // detectAccessPointID resolves the access point ID for the resolved exchange.
 // The access points table is authoritative (it's what the game uses); existing
-// orders are only a fallback, and 1 is the last resort. Reading from the table
-// rather than scanning orders avoids inheriting a stale/wrong access point that
-// bad historical data may have written.
+// orders are only a fallback. Reading from the table rather than scanning orders
+// avoids inheriting a stale/wrong access point that bad historical data wrote.
+//
+// Returns (0, false) when no access point exists yet — on a fresh server the
+// game hasn't created one until a player opens an exchange terminal. It must NOT
+// fabricate id 1: that row doesn't exist, so NPC order inserts would violate the
+// access_point_id FK and spam errors every tick. The caller skips listing until
+// a real access point appears.
 func detectAccessPointID(
 	fromAccessPoints func() (int64, error),
 	fromOrders func() (int64, error),
-) int64 {
+) (int64, bool) {
 	if id, err := fromAccessPoints(); err == nil {
-		return id
+		return id, true
 	}
 	if id, err := fromOrders(); err == nil {
-		return id
+		return id, true
 	}
-	return 1
+	return 0, false
+}
+
+// ensureAccessPoint (re)resolves the exchange access point. It's called from Init
+// and at the top of each list/buy tick so a bot started against a fresh server
+// (no access point yet) picks one up automatically once the game creates it —
+// no bot restart needed. Returns true once a valid access point is known.
+func (e *Exchange) ensureAccessPoint(ctx context.Context) bool {
+	if e.accessPointID > 0 {
+		return true
+	}
+	id, ok := detectAccessPointID(
+		func() (int64, error) {
+			var id int64
+			return id, e.db.QueryRow(ctx,
+				`SELECT id FROM dune.dune_exchange_accesspoints WHERE exchange_id = $1 ORDER BY id LIMIT 1`,
+				e.exchangeID).Scan(&id)
+		},
+		func() (int64, error) {
+			var id int64
+			return id, e.db.QueryRow(ctx,
+				`SELECT DISTINCT access_point_id FROM dune.dune_exchange_orders WHERE exchange_id = $1 LIMIT 1`,
+				e.exchangeID).Scan(&id)
+		},
+	)
+	if ok {
+		e.accessPointID = id
+		log.Printf("access point id: %d", id)
+	}
+	return ok
 }
 
 func (e *Exchange) Init(ctx context.Context, catalog []CatalogItem) error {
@@ -371,21 +405,10 @@ func (e *Exchange) Init(ctx context.Context, catalog []CatalogItem) error {
 	e.exchangeID = id
 	log.Printf("exchange id: %d", e.exchangeID)
 
-	e.accessPointID = detectAccessPointID(
-		func() (int64, error) {
-			var id int64
-			return id, e.db.QueryRow(ctx,
-				`SELECT id FROM dune.dune_exchange_accesspoints WHERE exchange_id = $1 ORDER BY id LIMIT 1`,
-				e.exchangeID).Scan(&id)
-		},
-		func() (int64, error) {
-			var id int64
-			return id, e.db.QueryRow(ctx,
-				`SELECT DISTINCT access_point_id FROM dune.dune_exchange_orders WHERE exchange_id = $1 LIMIT 1`,
-				e.exchangeID).Scan(&id)
-		},
-	)
-	log.Printf("access point id: %d", e.accessPointID)
+	if !e.ensureAccessPoint(ctx) {
+		log.Printf("access point id: none yet — the game hasn't created an exchange access point; " +
+			"NPC listings are disabled until a player opens an exchange terminal (auto-detected each tick)")
+	}
 
 	if err := e.db.QueryRow(ctx,
 		`SELECT dune.get_exchange_inventory_id($1)`, e.exchangeID).Scan(&e.botInvID); err != nil {
@@ -838,6 +861,10 @@ func sellerPaymentExpiry(_ int64) int64 {
 
 // BuyTick runs the buy-side operations: learn game epoch and purchase player listings.
 func (e *Exchange) BuyTick(ctx context.Context) {
+	// Resolve the access point before buying: the seller-payment log insert uses
+	// it, and it FK-fails if unset. Any player order to buy implies an access
+	// point exists, so this resolves it; with none, buying is a harmless no-op.
+	e.ensureAccessPoint(ctx)
 	e.learnGameEpoch(ctx)
 
 	snap := e.cfg.Snapshot()
@@ -857,6 +884,15 @@ func (e *Exchange) BuyTick(ctx context.Context) {
 // ListTick runs the listing/pruning operations: refresh caches, update prices,
 // prune stale listings, top up depleted stacks, and create new listings.
 func (e *Exchange) ListTick(ctx context.Context, catalog []CatalogItem) {
+	// Without a valid access point every NPC order insert violates the
+	// access_point_id FK, so skip the whole tick rather than spamming errors
+	// (fresh server before any exchange terminal exists). Re-detected here so
+	// listing resumes automatically once the game creates one.
+	if !e.ensureAccessPoint(ctx) {
+		log.Printf("list-tick: skipped — no exchange access point yet (waiting for the game to create one)")
+		return
+	}
+
 	snap := e.cfg.Snapshot()
 
 	e.learnGameEpoch(ctx)

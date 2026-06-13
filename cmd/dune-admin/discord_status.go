@@ -75,7 +75,7 @@ func buildStatusEmbed(data statusEmbedData, now time.Time) *discordgo.MessageEmb
 		Footer: &discordgo.MessageEmbedFooter{
 			Text: "Auto-updated by Dune-Admin",
 		},
-		Fields:    []*discordgo.MessageEmbedField{},
+		Fields: []*discordgo.MessageEmbedField{},
 	}
 
 	// Assemble everything into the Description for precise top-to-bottom layout

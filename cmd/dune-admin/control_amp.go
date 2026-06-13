@@ -710,6 +710,19 @@ func (c *ampControl) gameOverridePath(dir string) string {
 	return d + "/UserOverrides.ini"
 }
 
+// readINIFile reads a host INI file as the amp user so amp-owned UserGame.ini /
+// UserEngine.ini / UserOverrides.ini (which the dune-admin user can't cat and
+// the narrow AMP sudoers won't `sudo cat`) are readable on the Server Settings
+// page (#173). Symmetric with how AMP writes them and reads director_config.ini.
+// Implements iniFileReader.
+func (c *ampControl) readINIFile(exec Executor, path string) (string, error) {
+	out, err := exec.Exec(fmt.Sprintf("sudo -i -u %s cat %s 2>/dev/null", shellQuote(c.ampUser), shellQuote(path)))
+	if err != nil {
+		return "", fmt.Errorf("read ini %s as %s: %w", path, c.ampUser, err)
+	}
+	return out, nil
+}
+
 // defaultINIDir returns the host directory holding the game's stock
 // DefaultGame.ini / DefaultEngine.ini so default discovery needs no
 // configuration under AMP. The game ships them in the extracted game-server

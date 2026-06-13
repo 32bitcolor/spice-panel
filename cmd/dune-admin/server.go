@@ -484,20 +484,23 @@ func handleStatus(w http.ResponseWriter, r *http.Request) {
 	if globalControl != nil {
 		controlName = globalControl.Name()
 	}
+	shutdownAt, shutdownPending := pendingBroadcastShutdown()
 	jsonOK(w, map[string]any{
-		"executor":      executorType,
-		"control":       controlName,
-		"ssh_connected": globalSSH != nil,
-		"db_connected":  globalDB != nil,
-		"pod_ns":        globalPodNS,
-		"pod_ip":        globalPodIP,
-		"ssh_host":      sshHost,
-		"db_host":       dbHost,
-		"version":       AppVersion,
-		"commit":        GitCommit,
-		"build_time":    BuildTime,
-		"director_url":  loadedConfig.DirectorURL,
-		"listen_addr":   loadedConfig.ListenAddr,
+		"executor":         executorType,
+		"control":          controlName,
+		"ssh_connected":    globalSSH != nil,
+		"db_connected":     globalDB != nil,
+		"pod_ns":           globalPodNS,
+		"pod_ip":           globalPodIP,
+		"ssh_host":         sshHost,
+		"db_host":          dbHost,
+		"version":          AppVersion,
+		"commit":           GitCommit,
+		"build_time":       BuildTime,
+		"director_url":     loadedConfig.DirectorURL,
+		"listen_addr":      loadedConfig.ListenAddr,
+		"shutdown_pending": shutdownPending,
+		"shutdown_at":      shutdownAt,
 	})
 }
 

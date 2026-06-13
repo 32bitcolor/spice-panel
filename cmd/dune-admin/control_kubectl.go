@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // kubectlControl implements ControlPlane using kubectl commands.
@@ -32,11 +34,17 @@ func (c *kubectlControl) GetStatus(ctx context.Context, exec Executor) (*Battleg
 	bgName := c.bgName()
 	kctl := kubectlCLI(exec)
 
+	// startTimestamp drives uptime/age; gamePort + per-server fields come from the
+	// battlegroup status (NOT serverstats, which lacks them — verified on a live
+	// k3s cluster, #203).
 	bgOut, _ := exec.Exec(fmt.Sprintf(
-		`%s get battlegroups -n %s -o jsonpath="{.items[0].spec.title}|{.items[0].status.phase}|{.items[0].status.database.phase}" 2>/dev/null`,
+		`%s get battlegroups -n %s -o jsonpath="{.items[0].spec.title}|{.items[0].status.phase}|{.items[0].status.database.phase}|{.items[0].status.startTimestamp}" 2>/dev/null`,
 		kctl, c.namespace))
+	bgParts := strings.SplitN(strings.TrimSpace(bgOut), "|", 4)
 
-	bgParts := strings.SplitN(strings.TrimSpace(bgOut), "|", 3)
+	// partition → gamePort, read from battlegroup status.servers[].
+	portByPartition := c.gamePortsByPartition(exec, kctl)
+	ageSeconds := ageSecondsFromStartTime(safeIdx(bgParts, 3), time.Now())
 
 	ssOut, _ := exec.Exec(fmt.Sprintf(
 		"%s get serverstats -n %s -o jsonpath='{range .items[*]}{.spec.area.map}|{.spec.area.sietch}|{.spec.area.dimension}|{.spec.area.partition}|{.status.runtime.gamePhase}|{.status.runtime.ready}|{.status.runtime.players}{\"\\n\"}{end}' 2>/dev/null",
@@ -55,13 +63,15 @@ func (c *kubectlControl) GetStatus(ctx context.Context, exec Executor) (*Battleg
 		part, _ := strconv.Atoi(p[3])
 		players, _ := strconv.Atoi(p[6])
 		servers = append(servers, ServerRow{
-			Map:       p[0],
-			Sietch:    p[1],
-			Dimension: dim,
-			Partition: part,
-			Phase:     p[4],
-			Ready:     p[5] == "true",
-			Players:   players,
+			Map:        p[0],
+			Sietch:     p[1],
+			Dimension:  dim,
+			Partition:  part,
+			Phase:      p[4],
+			Ready:      p[5] == "true",
+			Players:    players,
+			Port:       portByPartition[part],
+			AgeSeconds: ageSeconds,
 		})
 	}
 	sort.Slice(servers, func(i, j int) bool { return servers[i].Map < servers[j].Map })
@@ -76,6 +86,115 @@ func (c *kubectlControl) GetStatus(ctx context.Context, exec Executor) (*Battleg
 		Database: safeIdx(bgParts, 2),
 		Servers:  servers,
 	}, nil
+}
+
+// discoverWebInterfaces surfaces the director and file-browser URLs straight
+// from the battlegroup status (status.utilities), so operators don't have to
+// configure them by hand on kubectl. Implements webInterfaceDiscoverer.
+func (c *kubectlControl) discoverWebInterfaces(_ context.Context, exec Executor) []webInterface {
+	kctl := kubectlCLI(exec)
+	out, _ := exec.Exec(fmt.Sprintf(
+		`%s get battlegroups -n %s -o jsonpath="{.items[0].status.utilities.director.address}|{.items[0].status.utilities.fileBrowser.address}" 2>/dev/null`,
+		kctl, c.namespace))
+	directorAddr, fileBrowserAddr, _ := strings.Cut(strings.TrimSpace(out), "|")
+	return webInterfacesFromAddresses(vmHostIP(), directorAddr, fileBrowserAddr)
+}
+
+// vmHostIP returns the host portion of the SSH target — the IP the operator uses
+// to reach the game VM. Empty for a local executor (no SSH).
+func vmHostIP() string {
+	if sshHost == "" {
+		return ""
+	}
+	if host, _, err := net.SplitHostPort(sshHost); err == nil {
+		return host
+	}
+	return sshHost
+}
+
+// webInterfacesFromAddresses builds the discovered web-interface links from the
+// raw host:port addresses reported by the battlegroup CRD. Empty addresses are
+// skipped. The game's director and file browser serve over http on node ports
+// (matching director_url's http convention).
+func webInterfacesFromAddresses(vmHost, directorAddr, fileBrowserAddr string) []webInterface {
+	var out []webInterface
+	if url := webInterfaceURL(vmHost, directorAddr); url != "" {
+		out = append(out, webInterface{Label: "Battlegroup Director", URL: url})
+	}
+	if url := webInterfaceURL(vmHost, fileBrowserAddr); url != "" {
+		out = append(out, webInterface{Label: "File Browser", URL: url})
+	}
+	return out
+}
+
+// webInterfaceURL turns a CRD-reported host:port into an operator-reachable URL.
+// The CRD advertises a node IP that is often a public/WAN address the operator
+// can't route to, so the host is rewritten to the VM IP dune-admin connects to
+// (vmHost), keeping the node port. Falls back to the reported host when vmHost
+// is unknown (local executor).
+func webInterfaceURL(vmHost, addr string) string {
+	addr = strings.TrimSpace(addr)
+	if addr == "" {
+		return ""
+	}
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil { // no port component
+		host, port = addr, ""
+	}
+	if vmHost != "" {
+		host = vmHost
+	}
+	if host == "" {
+		return ""
+	}
+	if port != "" {
+		return "http://" + net.JoinHostPort(host, port) + "/"
+	}
+	return "http://" + host + "/"
+}
+
+// gamePortsByPartition reads partition→gamePort from the battlegroup status.
+// Returns an empty map (never nil) when the field is absent so callers can index
+// it freely; a missing port leaves ServerRow.Port at 0 (UI shows "—").
+func (c *kubectlControl) gamePortsByPartition(exec Executor, kctl string) map[int]int {
+	out, _ := exec.Exec(fmt.Sprintf(
+		"%s get battlegroups -n %s -o jsonpath='{range .items[0].status.servers[*]}{.partitionIndex}|{.gamePort}{\"\\n\"}{end}' 2>/dev/null",
+		kctl, c.namespace))
+	ports := map[int]int{}
+	for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
+		if line == "" {
+			continue
+		}
+		p := strings.SplitN(line, "|", 2)
+		if len(p) < 2 {
+			continue
+		}
+		part, err1 := strconv.Atoi(strings.TrimSpace(p[0]))
+		port, err2 := strconv.Atoi(strings.TrimSpace(p[1]))
+		if err1 == nil && err2 == nil {
+			ports[part] = port
+		}
+	}
+	return ports
+}
+
+// ageSecondsFromStartTime parses an RFC3339 start timestamp and returns the
+// elapsed seconds relative to now. Returns 0 for empty/unparseable/future
+// values so a missing field leaves AgeSeconds at 0 (UI shows "—").
+func ageSecondsFromStartTime(ts string, now time.Time) int {
+	ts = strings.TrimSpace(ts)
+	if ts == "" {
+		return 0
+	}
+	start, err := time.Parse(time.RFC3339, ts)
+	if err != nil {
+		return 0
+	}
+	secs := int(now.Sub(start).Seconds())
+	if secs < 0 {
+		return 0
+	}
+	return secs
 }
 
 func (c *kubectlControl) ExecCommand(_ context.Context, exec Executor, cmd string) (string, error) {

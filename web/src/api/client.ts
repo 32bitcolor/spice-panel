@@ -243,6 +243,8 @@ export type Status = {
   build_time?: string
   director_url?: string
   listen_addr?: string
+  shutdown_pending?: boolean // a broadcast restart/stop is armed on the backend
+  shutdown_at?: number // Unix seconds the armed action fires (0 when none)
 }
 export type Player = {
   id: number
@@ -1247,7 +1249,7 @@ export const api = {
       req<MutateResult>('PUT', '/scheduled-backups', body),
   },
   webInterfaces: {
-    get: () => req<{ interfaces: WebInterface[] }>('GET', '/web-interfaces'),
+    get: () => req<{ interfaces: WebInterface[], discovered?: WebInterface[] }>('GET', '/web-interfaces'),
     update: (interfaces: WebInterface[]) => req<MutateResult>('PUT', '/web-interfaces', { interfaces }),
   },
   guilds: {

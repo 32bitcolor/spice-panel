@@ -725,6 +725,12 @@ func writeSetupConfig(ok, fail func(string), cfg appConfig) {
 		fail("Failed to write config: " + err.Error())
 		exitSetup(1)
 	}
+	// Sync the in-memory config with what we just wrote. On a fresh install
+	// loadConfig() found no file, so loadedConfig is still the zero value — and
+	// MarketBotEnabled==nil defaults the embedded bot ON. Without this, the bot
+	// (and other wizard choices) would ignore the operator's answers until the
+	// next restart re-reads the file.
+	loadedConfig = cfg
 	ok("Config written to " + cfgFile)
 	fmt.Println()
 }

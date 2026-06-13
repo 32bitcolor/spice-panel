@@ -4227,6 +4227,23 @@ func xpToLevel(xp int64) int {
 	return lo
 }
 
+// maxIntelPoints is the most intel a character can spend — the cumulative total
+// at the level cap. Granting beyond this (e.g. via battlepass) only accumulates
+// unspendable points (#208), so grants are clamped to this ceiling.
+const maxIntelPoints int64 = 2779
+
+// intelGrantDelta returns how much intel to actually add so that current+delta
+// never exceeds maxIntelPoints and never reduces an existing balance. Mirrors
+// the SQL headroom clamp in cmdAwardIntelCtx and is the unit-tested source of
+// truth for that arithmetic.
+func intelGrantDelta(current, requested int64) int64 {
+	headroom := maxIntelPoints - current
+	if headroom <= 0 || requested <= 0 {
+		return 0
+	}
+	return min(requested, headroom)
+}
+
 // intelAtLevel returns cumulative intel points earned through a given level.
 // Based on IntelPointsRewarded curve in SkillXPPerLevel.json:
 //
@@ -4253,7 +4270,7 @@ func intelAtLevel(level int) int64 {
 	case level <= 125:
 		return 1179 + int64(level-85)*40
 	default:
-		return 2779
+		return maxIntelPoints
 	}
 }
 
@@ -4514,15 +4531,25 @@ func cmdAwardIntelCtx(ctx context.Context, pool *pgxpool.Pool, playerID, amount 
 	if err := checkPlayerOfflinePool(ctx, pool, playerID); err != nil {
 		return err
 	}
+	// Clamp to maxIntelPoints headroom so a grant never pushes the balance above
+	// the spendable cap (#208). delta = current + min(max(amount,0),
+	// max(cap-current,0)) — never reduces an existing balance, never exceeds cap.
+	// Mirrors intelGrantDelta (unit-tested).
 	res, err := pool.Exec(ctx, `
 		UPDATE dune.actors
 		SET properties = jsonb_set(
 			properties,
 			'{TechKnowledgePlayerComponent,m_TechKnowledgePoints}',
-			to_jsonb((properties->'TechKnowledgePlayerComponent'->>'m_TechKnowledgePoints')::bigint + $2)
+			to_jsonb(
+				(properties->'TechKnowledgePlayerComponent'->>'m_TechKnowledgePoints')::bigint
+				+ LEAST(
+					GREATEST($2::bigint, 0),
+					GREATEST($3::bigint - (properties->'TechKnowledgePlayerComponent'->>'m_TechKnowledgePoints')::bigint, 0)
+				)
+			)
 		)
 		WHERE id = $1
-		  AND properties ? 'TechKnowledgePlayerComponent'`, playerID, amount)
+		  AND properties ? 'TechKnowledgePlayerComponent'`, playerID, amount, maxIntelPoints)
 	if err != nil {
 		return fmt.Errorf("award intel: %w", err)
 	}

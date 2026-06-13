@@ -45,23 +45,7 @@ func prettyRegionName(region string) string {
 	region = strings.TrimSpace(region)
 	region = strings.TrimPrefix(region, "Map_")
 	region = strings.TrimPrefix(region, "SH_")
-
-	// Strip trailing _0, _1, etc.
-	if idx := strings.LastIndexByte(region, '_'); idx != -1 {
-		hasDigit := false
-		onlyDigits := true
-		for i := idx + 1; i < len(region); i++ {
-			if region[i] >= '0' && region[i] <= '9' {
-				hasDigit = true
-			} else {
-				onlyDigits = false
-				break
-			}
-		}
-		if hasDigit && onlyDigits {
-			region = region[:idx]
-		}
-	}
+	region = stripTrailingNumericSuffix(region)
 
 	// Hardcoded region aliases
 	switch strings.ToLower(region) {
@@ -87,6 +71,21 @@ func prettyRegionName(region string) string {
 		b.WriteRune(r)
 	}
 	return b.String()
+}
+
+// stripTrailingNumericSuffix removes a trailing "_<digits>" segment (e.g. "_0",
+// "_12") from a region key, leaving keys like "Survival" or "HaggaBasin" intact.
+func stripTrailingNumericSuffix(region string) string {
+	idx := strings.LastIndexByte(region, '_')
+	if idx == -1 || idx == len(region)-1 {
+		return region
+	}
+	for i := idx + 1; i < len(region); i++ {
+		if region[i] < '0' || region[i] > '9' {
+			return region
+		}
+	}
+	return region[:idx]
 }
 
 // renderRegionAnnouncement substitutes {player} and {region} in template. The

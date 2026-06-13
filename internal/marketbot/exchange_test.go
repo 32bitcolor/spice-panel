@@ -728,6 +728,7 @@ func TestDetectAccessPointID(t *testing.T) {
 		fromAccessPoints func() (int64, error)
 		fromOrders       func() (int64, error)
 		want             int64
+		wantOK           bool
 	}{
 		{
 			// Authoritative table wins, even if stale orders reference a
@@ -736,25 +737,33 @@ func TestDetectAccessPointID(t *testing.T) {
 			fromAccessPoints: func() (int64, error) { return 2, nil },
 			fromOrders:       func() (int64, error) { panic("should not be called") },
 			want:             2,
+			wantOK:           true,
 		},
 		{
 			name:             "falls back to existing orders",
 			fromAccessPoints: func() (int64, error) { return 0, errNoRows },
 			fromOrders:       func() (int64, error) { return 5, nil },
 			want:             5,
+			wantOK:           true,
 		},
 		{
-			name:             "defaults to 1 when nothing found",
+			// Fresh server: no access points and no orders. Must NOT fabricate
+			// id 1 — that id doesn't exist, so NPC order inserts would violate
+			// the access_point_id FK (#fresh-install seeding). Returns (0,false)
+			// so the caller skips listing until the game creates one.
+			name:             "no access point yet → (0,false)",
 			fromAccessPoints: func() (int64, error) { return 0, errNoRows },
 			fromOrders:       func() (int64, error) { return 0, errNoRows },
-			want:             1,
+			want:             0,
+			wantOK:           false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := detectAccessPointID(tt.fromAccessPoints, tt.fromOrders); got != tt.want {
-				t.Errorf("got %d want %d", got, tt.want)
+			got, ok := detectAccessPointID(tt.fromAccessPoints, tt.fromOrders)
+			if got != tt.want || ok != tt.wantOK {
+				t.Errorf("got (%d,%v) want (%d,%v)", got, ok, tt.want, tt.wantOK)
 			}
 		})
 	}

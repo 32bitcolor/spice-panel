@@ -1,18 +1,45 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 )
+
+// webInterfaceDiscoverer is an optional control-plane capability: derive web
+// interface links (director, file browser, …) from live infrastructure state so
+// they don't have to be configured by hand. kubectl reads them from the
+// battlegroup status; planes that can't discover simply don't implement it.
+type webInterfaceDiscoverer interface {
+	discoverWebInterfaces(ctx context.Context, exec Executor) []webInterface
+}
+
+// discoveredWebInterfaces returns control-plane-derived links, or nil when the
+// active plane can't discover them or nothing is connected.
+func discoveredWebInterfaces(ctx context.Context) []webInterface {
+	if globalControl == nil || globalExecutor == nil {
+		return nil
+	}
+	d, ok := globalControl.(webInterfaceDiscoverer)
+	if !ok {
+		return nil
+	}
+	return d.discoverWebInterfaces(ctx, globalExecutor)
+}
 
 // @Summary List configured web interfaces
 // @Tags web-interfaces
 // @Produce json
 // @Success 200 {object} map[string]interface{}
 // @Router /api/v1/web-interfaces [get]
-func handleGetWebInterfaces(w http.ResponseWriter, _ *http.Request) {
-	jsonOK(w, map[string]any{"interfaces": getWebInterfaces()})
+func handleGetWebInterfaces(w http.ResponseWriter, r *http.Request) {
+	// interfaces are operator-defined (editable, persisted); discovered are
+	// control-plane-derived (read-only) and never written back.
+	jsonOK(w, map[string]any{
+		"interfaces": getWebInterfaces(),
+		"discovered": discoveredWebInterfaces(r.Context()),
+	})
 }
 
 // @Summary Replace the configured web interfaces
