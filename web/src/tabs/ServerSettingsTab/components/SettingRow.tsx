@@ -59,64 +59,68 @@ export const SettingRow: React.FC<SettingRowProps> = ({
       </div>
 
       <div className="flex items-center gap-1.5 shrink-0">
-        {item.type === 'bool'
-          ? (
-              <Select selectedKey={display} onSelectionChange={(k) => onChange(String(k))} className="w-32" aria-label={item.label}>
-                <Select.Trigger className="h-7 text-xs">
-                  <Select.Value />
-                  <Select.Indicator />
-                </Select.Trigger>
-                <Select.Popover>
-                  <ListBox>
-                    <ListBox.Item id="True" textValue="True">
-                      True
-                      <ListBox.ItemIndicator />
-                    </ListBox.Item>
-                    <ListBox.Item id="False" textValue="False">
-                      False
-                      <ListBox.ItemIndicator />
-                    </ListBox.Item>
-                  </ListBox>
-                </Select.Popover>
-              </Select>
-            )
-          : item.type === 'string'
+        <div className="w-40">
+          {item.type === 'bool'
             ? (
-                <FieldInput
-                  ariaLabel={item.label}
-                  value={display}
-                  onChange={onChange}
-                  className="w-40 font-mono"
-                />
+                <Select selectedKey={display} onSelectionChange={(k) => onChange(String(k))} className="w-full" aria-label={item.label}>
+                  <Select.Trigger className="h-7 text-xs">
+                    <Select.Value />
+                    <Select.Indicator />
+                  </Select.Trigger>
+                  <Select.Popover>
+                    <ListBox>
+                      <ListBox.Item id="True" textValue="True">
+                        True
+                        <ListBox.ItemIndicator />
+                      </ListBox.Item>
+                      <ListBox.Item id="False" textValue="False">
+                        False
+                        <ListBox.ItemIndicator />
+                      </ListBox.Item>
+                    </ListBox>
+                  </Select.Popover>
+                </Select>
               )
-            : (
-                <NumberInput
-                  ariaLabel={item.key}
-                  step={item.type === 'float' ? 0.01 : 1}
-                  value={Number(display) || 0}
-                  onChange={(v: number) => onChange(String(v))}
-                  showButtons={false}
-                  className="w-32"
-                  formatOptions={item.type === 'float' ? { minimumFractionDigits: 1 } : undefined}
-                />
-              )}
-        {USER_SOURCES.has(item.source) && (
-          <Tooltip>
-            <Tooltip.Trigger>
-              <Button
-                isIconOnly
-                variant="ghost"
-                size="sm"
-                className="text-muted/50 hover:text-danger"
-                onPress={onDelete}
-                aria-label={t('server.removeFrom', { file: SOURCE_FILE[item.source] })}
-              >
-                <Icon name="trash-2" className="w-3.5 h-3.5" />
-              </Button>
-            </Tooltip.Trigger>
-            <Tooltip.Content>{t('server.removeFrom', { file: SOURCE_FILE[item.source] })}</Tooltip.Content>
-          </Tooltip>
-        )}
+            : item.type === 'string'
+              ? (
+                  <FieldInput
+                    ariaLabel={item.label}
+                    value={display}
+                    onChange={onChange}
+                    className="w-full font-mono"
+                  />
+                )
+              : (
+                  <NumberInput
+                    ariaLabel={item.key}
+                    step={item.type === 'float' ? 0.01 : 1}
+                    value={Number(display) || 0}
+                    onChange={(v: number) => onChange(String(v))}
+                    showButtons={false}
+                    className="w-full"
+                    formatOptions={item.type === 'float' ? { minimumFractionDigits: 1 } : undefined}
+                  />
+                )}
+        </div>
+        <div className="w-8 flex justify-center shrink-0">
+          {USER_SOURCES.has(item.source) && (
+            <Tooltip>
+              <Tooltip.Trigger>
+                <Button
+                  isIconOnly
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted/50 hover:text-danger"
+                  onPress={onDelete}
+                  aria-label={t('server.removeFrom', { file: SOURCE_FILE[item.source] })}
+                >
+                  <Icon name="trash-2" className="w-3.5 h-3.5" />
+                </Button>
+              </Tooltip.Trigger>
+              <Tooltip.Content>{t('server.removeFrom', { file: SOURCE_FILE[item.source] })}</Tooltip.Content>
+            </Tooltip>
+          )}
+        </div>
       </div>
     </div>
   )
