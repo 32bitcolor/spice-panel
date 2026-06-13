@@ -208,7 +208,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ open, onClose, onSuccess }) =
   return (
     <Modal.Backdrop variant="blur" className="bg-linear-to-t from-(--background)/85 via-(--background)/40 to-transparent" isOpen={open} onOpenChange={(v) => !v && onClose()}>
       <Modal.Container>
-        <Modal.Dialog className="p-10">
+        <Modal.Dialog className="p-10 !overflow-visible">
           <Modal.CloseTrigger />
           <Modal.Header>
             <Modal.Heading className="text-accent">{t('blueprints.importModal.title')}</Modal.Heading>

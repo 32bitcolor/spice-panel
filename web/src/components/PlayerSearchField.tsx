@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { SearchField, toast } from '@heroui/react'
 import { api } from '../api/client'
@@ -31,6 +32,13 @@ export interface PlayerSearchFieldProps {
  * Debounced player search with a capped suggestion dropdown. The canonical
  * "select a player" control — renders at most `resultLimit` rows so the full
  * roster never hits the DOM.
+ *
+ * When mounted inside a modal ([role="dialog"] ancestor), the dropdown is
+ * portaled into the dialog element so it stays within the modal's DOM tree
+ * (preventing outside-click dismiss). Position:fixed coords are made
+ * dialog-relative to cancel any CSS transform the modal animation applies.
+ * The host modal must have overflow:visible so the dropdown can extend past
+ * the dialog boundary.
  */
 export const PlayerSearchField: React.FC<PlayerSearchFieldProps> = ({
   onSelect,
@@ -38,7 +46,7 @@ export const PlayerSearchField: React.FC<PlayerSearchFieldProps> = ({
   placeholder,
   className,
   players,
-  resultLimit = 10,
+  resultLimit = 3,
   filter,
   clearOnSelect = false,
   onClear,
@@ -49,6 +57,19 @@ export const PlayerSearchField: React.FC<PlayerSearchFieldProps> = ({
   const [loaded, setLoaded] = React.useState<Player[] | null>(null)
   const [loading, setLoading] = React.useState(false)
   const debouncedQuery = useDebounce(query)
+  const wrapRef = React.useRef<HTMLDivElement>(null)
+  // The nearest [role="dialog"] ancestor (if any) and the resolved portal
+  // target. Set once on mount — the modal is already open when
+  // PlayerSearchField mounts inside it.
+  const [portalTarget, setPortalTarget] = React.useState<HTMLElement | null>(null)
+  const [dialogEl, setDialogEl] = React.useState<HTMLElement | null>(null)
+  const [dropdownStyle, setDropdownStyle] = React.useState<React.CSSProperties | null>(null)
+
+  React.useEffect(() => {
+    const dialog = wrapRef.current?.closest<HTMLElement>('[role="dialog"]') ?? null
+    setDialogEl(dialog)
+    setPortalTarget(dialog ?? document.body)
+  }, [])
 
   const roster = React.useMemo(() => players ?? loaded ?? [], [players, loaded])
 
@@ -79,8 +100,42 @@ export const PlayerSearchField: React.FC<PlayerSearchFieldProps> = ({
     onSelect(p)
   }
 
+  const showDropdown = open && matches.length > 0
+
+  // Compute where to render the portaled dropdown. When inside a dialog the
+  // dropdown is portaled into that dialog element — position:fixed coords are
+  // made relative to the dialog rect so they survive any CSS transform the
+  // modal entrance animation may have applied. Without a dialog ancestor
+  // (standalone use) we fall back to body-portal with plain viewport coords.
+  React.useEffect(() => {
+    if (!showDropdown) return
+    const DROPDOWN_MAX_H = 288 // max-h-72
+
+    const update = () => {
+      if (!wrapRef.current) return
+      const wr = wrapRef.current.getBoundingClientRect()
+      const dr = dialogEl?.getBoundingClientRect()
+      setDropdownStyle({
+        position: 'fixed' as const,
+        top: wr.bottom - (dr?.top ?? 0) + 4,
+        left: wr.left - (dr?.left ?? 0),
+        width: wr.width,
+        maxHeight: DROPDOWN_MAX_H,
+        zIndex: 9999,
+      })
+    }
+    update()
+    window.addEventListener('scroll', update, true)
+    window.addEventListener('resize', update)
+    return () => {
+      window.removeEventListener('scroll', update, true)
+      window.removeEventListener('resize', update)
+    }
+  }, [showDropdown, dialogEl])
+
   return (
     <div
+      ref={wrapRef}
       className={`relative ${className ?? ''}`}
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false)
@@ -112,8 +167,11 @@ export const PlayerSearchField: React.FC<PlayerSearchFieldProps> = ({
           <SearchField.ClearButton />
         </SearchField.Group>
       </SearchField>
-      {open && matches.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 rounded-[var(--radius)] border border-border bg-surface overflow-y-auto max-h-72 shadow-lg">
+      {showDropdown && dropdownStyle && portalTarget && createPortal(
+        <div
+          style={dropdownStyle}
+          className="rounded-[var(--radius)] border border-border bg-surface overflow-y-auto shadow-lg"
+        >
           {matches.map((p) => (
             <button
               key={p.account_id}
@@ -133,7 +191,11 @@ export const PlayerSearchField: React.FC<PlayerSearchFieldProps> = ({
               </span>
             </button>
           ))}
-        </div>
+          <div className="px-3 py-1 text-[10px] text-muted border-t border-border select-none">
+            {t('playerSearch.hint', { limit: resultLimit })}
+          </div>
+        </div>,
+        portalTarget,
       )}
     </div>
   )

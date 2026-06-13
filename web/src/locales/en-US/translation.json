@@ -1502,7 +1502,9 @@
   "playerSearch": {
     "placeholder": "Search players…",
     "loading": "Loading players…",
-    "loadFailed": "Failed to load players: {{message}}"
+    "loadFailed": "Failed to load players: {{message}}",
+    "noResults": "No players found",
+    "hint": "top {{limit}} · type to filter"
   },
   "battlepass": {
     "title": "Battlepass ({{count}} tiers)",
