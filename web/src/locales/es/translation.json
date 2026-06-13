@@ -1601,7 +1601,11 @@
       "pollSeconds": "Poll Interval (s)",
       "jitterSeconds": "Jitter (s)",
       "scheduleHint": "How often to check this event. Jitter adds randomness to avoid thundering herd.",
-      "templatePreview": "Preview:"
+      "templatePreview": "Preview:",
+      "config": "Configuración",
+      "factionScrip": "Vales de facción",
+      "rewards": "Recompensas",
+      "solari": "Solari"
     },
     "signals": {
       "level": "Nivel de personaje",
@@ -1863,5 +1867,10 @@
     "cascadeHint": "Cada usuario conectado hereda la fila Predeterminado; los Invitados y cada rol de Discord se suman. Un permiso ausente se deniega.",
     "inherited": "(heredado)",
     "resetDefaults": "Restablecer"
+  },
+  "playerSearch": {
+    "placeholder": "Buscar jugadores…",
+    "loadFailed": "Error al cargar jugadores: {{message}}",
+    "loading": "Cargando jugadores…"
   }
 }

@@ -1624,7 +1624,11 @@
       "pollSeconds": "Poll Interval (s)",
       "jitterSeconds": "Jitter (s)",
       "scheduleHint": "How often to check this event. Jitter adds randomness to avoid thundering herd.",
-      "templatePreview": "Preview:"
+      "templatePreview": "Preview:",
+      "config": "Конфигурация",
+      "factionScrip": "Скрип фракции",
+      "rewards": "Награды",
+      "solari": "Солари"
     },
     "signals": {
       "level": "Уровень персонажа",
@@ -1886,5 +1890,10 @@
     "cascadeHint": "Каждый вошедший пользователь наследует строку «По умолчанию»; гости и каждая роль Discord добавляются к ней. Отсутствие права означает запрет.",
     "inherited": "(наследуется)",
     "resetDefaults": "Сбросить к стандартным"
+  },
+  "playerSearch": {
+    "placeholder": "Поиск игроков…",
+    "loadFailed": "Не удалось загрузить игроков: {{message}}",
+    "loading": "Загрузка игроков…"
   }
 }

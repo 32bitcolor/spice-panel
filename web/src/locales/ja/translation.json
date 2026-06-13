@@ -1578,7 +1578,11 @@
       "pollSeconds": "Poll Interval (s)",
       "jitterSeconds": "Jitter (s)",
       "scheduleHint": "How often to check this event. Jitter adds randomness to avoid thundering herd.",
-      "templatePreview": "Preview:"
+      "templatePreview": "Preview:",
+      "config": "設定",
+      "factionScrip": "ファクションスクリップ",
+      "rewards": "報酬",
+      "solari": "ソラリ"
     },
     "signals": {
       "level": "キャラクターレベル",
@@ -1840,5 +1844,10 @@
     "cascadeHint": "サインイン済みの全ユーザーは「デフォルト」行を継承し、ゲストと各 Discord ロールがそれに追加されます。権限がなければ拒否されます。",
     "inherited": "（継承）",
     "resetDefaults": "デフォルトに戻す"
+  },
+  "playerSearch": {
+    "placeholder": "プレイヤーを検索…",
+    "loadFailed": "プレイヤーの読み込みに失敗しました: {{message}}",
+    "loading": "プレイヤーを読み込み中…"
   }
 }

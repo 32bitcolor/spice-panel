@@ -1578,7 +1578,11 @@
       "pollSeconds": "Poll Interval (s)",
       "jitterSeconds": "Jitter (s)",
       "scheduleHint": "How often to check this event. Jitter adds randomness to avoid thundering herd.",
-      "templatePreview": "Preview:"
+      "templatePreview": "Preview:",
+      "config": "配置",
+      "factionScrip": "派系凭证",
+      "rewards": "奖励",
+      "solari": "索拉里"
     },
     "signals": {
       "level": "角色等级",
@@ -1840,5 +1844,10 @@
     "cascadeHint": "每个已登录用户都继承“默认”行；访客和每个 Discord 角色在其基础上叠加。缺少授权即被拒绝。",
     "inherited": "（继承）",
     "resetDefaults": "重置为默认"
+  },
+  "playerSearch": {
+    "placeholder": "搜索玩家…",
+    "loadFailed": "加载玩家失败：{{message}}",
+    "loading": "正在加载玩家…"
   }
 }

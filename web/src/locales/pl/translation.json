@@ -1624,7 +1624,11 @@
       "pollSeconds": "Poll Interval (s)",
       "jitterSeconds": "Jitter (s)",
       "scheduleHint": "How often to check this event. Jitter adds randomness to avoid thundering herd.",
-      "templatePreview": "Preview:"
+      "templatePreview": "Preview:",
+      "config": "Konfiguracja",
+      "factionScrip": "Bony frakcji",
+      "rewards": "Nagrody",
+      "solari": "Solari"
     },
     "signals": {
       "level": "Poziom postaci",
@@ -1886,5 +1890,10 @@
     "cascadeHint": "Każdy zalogowany użytkownik dziedziczy wiersz Domyślny; Goście i każda rola Discord dodają się do niego. Brak uprawnienia oznacza odmowę.",
     "inherited": "(dziedziczone)",
     "resetDefaults": "Przywróć domyślne"
+  },
+  "playerSearch": {
+    "placeholder": "Szukaj graczy…",
+    "loadFailed": "Nie udało się załadować graczy: {{message}}",
+    "loading": "Ładowanie graczy…"
   }
 }

@@ -1578,7 +1578,11 @@
       "pollSeconds": "Poll Interval (s)",
       "jitterSeconds": "Jitter (s)",
       "scheduleHint": "How often to check this event. Jitter adds randomness to avoid thundering herd.",
-      "templatePreview": "Preview:"
+      "templatePreview": "Preview:",
+      "config": "Konfiguration",
+      "factionScrip": "Fraktions-Scrip",
+      "rewards": "Belohnungen",
+      "solari": "Solari"
     },
     "signals": {
       "level": "Charakterstufe",
@@ -1840,5 +1844,10 @@
     "cascadeHint": "Jeder angemeldete Benutzer erbt die Standard-Zeile; Gäste und jede Discord-Rolle ergänzen sie. Eine fehlende Berechtigung wird verweigert.",
     "inherited": "(geerbt)",
     "resetDefaults": "Auf Standard zurücksetzen"
+  },
+  "playerSearch": {
+    "placeholder": "Spieler suchen…",
+    "loadFailed": "Spieler konnten nicht geladen werden: {{message}}",
+    "loading": "Spieler werden geladen…"
   }
 }

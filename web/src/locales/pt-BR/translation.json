@@ -1601,7 +1601,11 @@
       "pollSeconds": "Poll Interval (s)",
       "jitterSeconds": "Jitter (s)",
       "scheduleHint": "How often to check this event. Jitter adds randomness to avoid thundering herd.",
-      "templatePreview": "Preview:"
+      "templatePreview": "Preview:",
+      "config": "Configuração",
+      "factionScrip": "Cédula de facção",
+      "rewards": "Recompensas",
+      "solari": "Solari"
     },
     "signals": {
       "level": "Nível do personagem",
@@ -1863,5 +1867,10 @@
     "cascadeHint": "Todo usuário conectado herda a linha Padrão; Convidados e cada cargo do Discord somam-se a ela. Uma permissão ausente é negada.",
     "inherited": "(herdado)",
     "resetDefaults": "Restaurar padrões"
+  },
+  "playerSearch": {
+    "placeholder": "Buscar jogadores…",
+    "loadFailed": "Falha ao carregar jogadores: {{message}}",
+    "loading": "Carregando jogadores…"
   }
 }

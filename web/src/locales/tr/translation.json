@@ -1578,7 +1578,11 @@
       "pollSeconds": "Poll Interval (s)",
       "jitterSeconds": "Jitter (s)",
       "scheduleHint": "How often to check this event. Jitter adds randomness to avoid thundering herd.",
-      "templatePreview": "Preview:"
+      "templatePreview": "Preview:",
+      "config": "Yapılandırma",
+      "factionScrip": "Fraksiyon Fişi",
+      "rewards": "Ödüller",
+      "solari": "Solari"
     },
     "signals": {
       "level": "Karakter Seviyesi",
@@ -1840,5 +1844,10 @@
     "cascadeHint": "Her oturum açmış kullanıcı Varsayılan satırı devralır; Misafirler ve her Discord rolü buna eklenir. Eksik bir izin reddedilir.",
     "inherited": "(devralındı)",
     "resetDefaults": "Varsayılana sıfırla"
+  },
+  "playerSearch": {
+    "placeholder": "Oyuncu ara…",
+    "loadFailed": "Oyuncular yüklenemedi: {{message}}",
+    "loading": "Oyuncular yükleniyor…"
   }
 }
