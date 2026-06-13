@@ -271,16 +271,63 @@ func applyEventOutcomes(ctx context.Context, deps eventDeps, store *eventStore, 
 	return nil
 }
 
+func sliceRewardSpec(reward *rewardSpec, lastErr string) *rewardSpec {
+	if reward == nil {
+		return nil
+	}
+	if lastErr == "" || strings.HasPrefix(lastErr, "grant currency:") {
+		return reward
+	}
+
+	rem := &rewardSpec{}
+
+	itemFailedIdx := -1
+	for i, item := range reward.Items {
+		prefix := fmt.Sprintf("grant item %q:", item.Template)
+		if strings.HasPrefix(lastErr, prefix) {
+			itemFailedIdx = i
+			break
+		}
+	}
+
+	if itemFailedIdx != -1 {
+		rem.Items = reward.Items[itemFailedIdx:]
+		rem.XP = reward.XP
+		return rem
+	}
+
+	xpFailedIdx := -1
+	for i, xp := range reward.XP {
+		prefix := fmt.Sprintf("grant xp track %q:", xp.Track)
+		if strings.HasPrefix(lastErr, prefix) {
+			xpFailedIdx = i
+			break
+		}
+	}
+
+	if xpFailedIdx != -1 {
+		rem.XP = reward.XP[xpFailedIdx:]
+		return rem
+	}
+
+	return reward
+}
+
 // applyOneOutcome applies a single outcome: checks the claim ledger, grants the
 // reward, optionally announces, then records the claim.
 func applyOneOutcome(ctx context.Context, deps eventDeps, store *eventStore, def eventDefinition, o eventOutcome, announce bool) {
-	claimed, err := store.claimExists(def.ID, def.Version, o.AccountID)
+	status, lastErr, exists, err := store.getClaimStatus(def.ID, def.Version, o.AccountID)
 	if err != nil {
-		log.Printf("events: claimExists %d/%d/%d: %v", def.ID, def.Version, o.AccountID, err)
+		log.Printf("events: getClaimStatus %d/%d/%d: %v", def.ID, def.Version, o.AccountID, err)
 		return
 	}
-	if claimed {
-		return
+	if exists {
+		if status == "granted" {
+			return
+		}
+		if status == "failed" {
+			o.RewardSpec = sliceRewardSpec(o.RewardSpec, lastErr)
+		}
 	}
 	if o.RewardSpec != nil {
 		if err := grantEventReward(ctx, deps, o.RewardSpec, o.ControllerID, o.ActorID); err != nil {

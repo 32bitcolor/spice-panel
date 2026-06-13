@@ -451,9 +451,9 @@ func TestApplyEventOutcomes_AnnounceFalse_NoAnnounce(t *testing.T) {
 	}
 
 	// But the claim IS recorded so a later live tick doesn't re-fire
-	exists, err := store.claimExists(def.ID, def.Version, 101)
+	_, _, exists, err := store.getClaimStatus(def.ID, def.Version, 101)
 	if err != nil {
-		t.Fatalf("claimExists: %v", err)
+		t.Fatalf("getClaimStatus: %v", err)
 	}
 	if !exists {
 		t.Fatal("want claim recorded after silent backfill")
@@ -491,9 +491,9 @@ func TestReconcileEvent_SilentBackfill_NoAward(t *testing.T) {
 	}
 
 	// Claim is sealed
-	exists, err := store.claimExists(def.ID, def.Version, 101)
+	_, _, exists, err := store.getClaimStatus(def.ID, def.Version, 101)
 	if err != nil {
-		t.Fatalf("claimExists: %v", err)
+		t.Fatalf("getClaimStatus: %v", err)
 	}
 	if !exists {
 		t.Fatal("want claim sealed by reconcile")
@@ -585,6 +585,133 @@ func TestReconcileEvent_AlreadySealed_NoReprocess(t *testing.T) {
 	}
 	if grantCount != 0 {
 		t.Fatalf("pre-sealed claim: want 0 re-grants, got %d", grantCount)
+	}
+}
+
+func TestSliceRewardSpec(t *testing.T) {
+	reward := &rewardSpec{
+		Currency: 100,
+		Items: []rewardItem{
+			{Template: "ItemA", Qty: 1},
+			{Template: "ItemB", Qty: 2},
+		},
+		XP: []rewardXP{
+			{Track: "TrackA", Amount: 50},
+		},
+	}
+
+	tests := []struct {
+		name    string
+		lastErr string
+		want    *rewardSpec
+	}{
+		{"nil reward", "", nil},
+		{"empty error", "", reward},
+		{"currency error", "grant currency: some error", reward},
+		{"item A error", "grant item \"ItemA\": inventory full", &rewardSpec{
+			Items: []rewardItem{{Template: "ItemA", Qty: 1}, {Template: "ItemB", Qty: 2}},
+			XP:    []rewardXP{{Track: "TrackA", Amount: 50}},
+		}},
+		{"item B error", "grant item \"ItemB\": inventory full", &rewardSpec{
+			Items: []rewardItem{{Template: "ItemB", Qty: 2}},
+			XP:    []rewardXP{{Track: "TrackA", Amount: 50}},
+		}},
+		{"xp error", "grant xp track \"TrackA\": generic error", &rewardSpec{
+			XP: []rewardXP{{Track: "TrackA", Amount: 50}},
+		}},
+		{"unknown error", "some random db error", reward},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var input *rewardSpec
+			if tt.name != "nil reward" {
+				input = reward
+			}
+			got := sliceRewardSpec(input, tt.lastErr)
+			if tt.want == nil {
+				if got != nil {
+					t.Fatalf("want nil, got %+v", got)
+				}
+				return
+			}
+			if got == nil {
+				t.Fatalf("want %+v, got nil", tt.want)
+			}
+			if got.Currency != tt.want.Currency || len(got.Items) != len(tt.want.Items) || len(got.XP) != len(tt.want.XP) {
+				t.Fatalf("slice mismatch: want %+v, got %+v", tt.want, got)
+			}
+		})
+	}
+}
+
+func TestApplyEventOutcomes_RetryPartialClaim(t *testing.T) {
+	t.Parallel()
+	store := openMemEventStore(t)
+	def := mustCreateEvent(t, store, "partial_retry", eventTypeZoneRace)
+
+	var grantCurrencyCount int
+	var grantedItems []string
+
+	deps := noopDeps()
+	deps.grantCurrency = func(_ context.Context, _, _ int64) error {
+		grantCurrencyCount++
+		return nil
+	}
+	deps.grantItem = func(_ context.Context, _ int64, tmpl string, _, _ int64) error {
+		if tmpl == "ItemFail" {
+			return errors.New("inventory full")
+		}
+		grantedItems = append(grantedItems, tmpl)
+		return nil
+	}
+
+	reward := &rewardSpec{
+		Currency: 100,
+		Items: []rewardItem{
+			{Template: "ItemOK"},
+			{Template: "ItemFail"},
+			{Template: "ItemSkipped"},
+		},
+	}
+
+	outcomes := []eventOutcome{
+		{AccountID: 101, PlayerName: "Alice", RewardSpec: reward},
+	}
+
+	// First tick: succeeds up to ItemFail, then aborts.
+	if err := applyEventOutcomes(context.Background(), deps, store, def, outcomes, true); err != nil {
+		t.Fatalf("apply tick 1: %v", err)
+	}
+
+	if grantCurrencyCount != 1 {
+		t.Fatalf("want 1 currency grant, got %d", grantCurrencyCount)
+	}
+	if len(grantedItems) != 1 || grantedItems[0] != "ItemOK" {
+		t.Fatalf("want [ItemOK], got %v", grantedItems)
+	}
+
+	// Now fix the issue so ItemFail succeeds
+	deps.grantItem = func(_ context.Context, _ int64, tmpl string, _, _ int64) error {
+		grantedItems = append(grantedItems, tmpl)
+		return nil
+	}
+
+	// Second tick: should resume from ItemFail
+	if err := applyEventOutcomes(context.Background(), deps, store, def, outcomes, true); err != nil {
+		t.Fatalf("apply tick 2: %v", err)
+	}
+
+	// Currency should NOT be granted again
+	if grantCurrencyCount != 1 {
+		t.Fatalf("want 1 currency grant after retry, got %d", grantCurrencyCount)
+	}
+	// ItemOK should NOT be granted again, but ItemFail and ItemSkipped should be
+	if len(grantedItems) != 3 {
+		t.Fatalf("want 3 items total granted, got %v", grantedItems)
+	}
+	if grantedItems[1] != "ItemFail" || grantedItems[2] != "ItemSkipped" {
+		t.Fatalf("want ItemFail then ItemSkipped, got %v", grantedItems[1:])
 	}
 }
 

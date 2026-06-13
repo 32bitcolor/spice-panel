@@ -261,18 +261,17 @@ func (s *eventStore) listClaims(eventID int64) ([]eventClaimRecord, error) {
 	return out, rows.Err()
 }
 
-func (s *eventStore) claimExists(eventID int64, version int, accountID int64) (bool, error) {
-	var one int
-	err := s.db.QueryRow(
-		`SELECT 1 FROM event_award_claims WHERE event_id = ? AND version = ? AND account_id = ? LIMIT 1`,
-		eventID, version, accountID).Scan(&one)
+func (s *eventStore) getClaimStatus(eventID int64, version int, accountID int64) (status string, lastError string, exists bool, err error) {
+	err = s.db.QueryRow(
+		`SELECT status, last_error FROM event_award_claims WHERE event_id = ? AND version = ? AND account_id = ? LIMIT 1`,
+		eventID, version, accountID).Scan(&status, &lastError)
 	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil
+		return "", "", false, nil
 	}
 	if err != nil {
-		return false, fmt.Errorf("claim exists: %w", err)
+		return "", "", false, fmt.Errorf("get claim status: %w", err)
 	}
-	return true, nil
+	return status, lastError, true, nil
 }
 
 func (s *eventStore) recordGranted(eventID int64, version int, accountID int64) error {
