@@ -1408,6 +1408,41 @@ func ownedKeySet(managed map[string]map[string]string) map[string]map[string]boo
 	return owned
 }
 
+// deletedKeySet returns the (section → set-of-keys) for updates where value=""
+// so they can be stripped from the pre-marker region even after applyManagedUpdates
+// removes them from the managed block (#212).
+func deletedKeySet(updates map[string]map[string]string) map[string]map[string]bool {
+	out := map[string]map[string]bool{}
+	for sec, kvs := range updates {
+		for k, v := range kvs {
+			if v == "" {
+				if out[sec] == nil {
+					out[sec] = map[string]bool{}
+				}
+				out[sec][k] = true
+			}
+		}
+	}
+	return out
+}
+
+// mergeKeySets combines two (section → set-of-keys) maps into one.
+func mergeKeySets(a, b map[string]map[string]bool) map[string]map[string]bool {
+	out := make(map[string]map[string]bool, len(a)+len(b))
+	for sec, keys := range a {
+		out[sec] = keys
+	}
+	for sec, keys := range b {
+		if out[sec] == nil {
+			out[sec] = map[string]bool{}
+		}
+		for k := range keys {
+			out[sec][k] = true
+		}
+	}
+	return out
+}
+
 // applyDuneAdminUpdates rewrites an INI file's dune-admin managed region with
 // the incoming updates merged in. Hand-edited content above the BEGIN marker
 // is preserved exactly EXCEPT for keys dune-admin now owns — those are stripped
@@ -1423,15 +1458,21 @@ func applyDuneAdminUpdates(content string, updates map[string]map[string]string)
 	if err != nil {
 		return "", err
 	}
+	// Capture deleted keys BEFORE applying updates so we can strip them from
+	// the pre-marker region too. After applyManagedUpdates they are gone from
+	// managed and would be missed by ownedKeySet (#212).
+	deletedKeys := deletedKeySet(updates)
 	applyManagedUpdates(managed, updates)
 	block := renderDuneAdminBlock(managed)
+	// Build the full strip set: keys dune-admin still owns + keys just deleted.
+	stripSet := mergeKeySets(ownedKeySet(managed), deletedKeys)
 	if block == "" {
-		// No managed keys left — return just the hand-edited prefix.
-		return stripEmptySections(preMarker), nil
+		// No managed keys left — strip deleted keys then return the prefix.
+		return stripEmptySections(stripKeysFromContent(preMarker, stripSet)), nil
 	}
-	// Remove pre-marker copies of keys dune-admin now owns to prevent
-	// duplicates. Hand-edited keys dune-admin doesn't own stay untouched.
-	preMarker = stripKeysFromContent(preMarker, ownedKeySet(managed))
+	// Remove pre-marker copies of owned and deleted keys to prevent duplicates
+	// and ensure deleted keys don't survive as stale pre-marker entries.
+	preMarker = stripKeysFromContent(preMarker, stripSet)
 	// Drop any section headers whose bodies became empty after dedup.
 	preMarker = stripEmptySections(preMarker)
 	// Ensure exactly one blank line between hand-edited content and the marker.

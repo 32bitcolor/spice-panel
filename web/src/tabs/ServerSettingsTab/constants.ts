@@ -112,7 +112,7 @@ const LAYER_STYLE: Record<string, { cls: string }> = {
 
 const SOURCE_PRIORITY = ['defaultGame', 'defaultEngine', 'userEngine', 'userGame', 'userGameOverrides', 'amp'] as const
 
-const USER_SOURCES = new Set(['userGame', 'userEngine', 'userGameOverrides', 'amp'])
+const USER_SOURCES = new Set(['userGameOverrides', 'amp'])
 
 export {
   CATEGORY_ORDER, CATEGORY_ICONS, CATEGORY_LABELS, ADVANCED_CATEGORIES, COMMON_KEYS,

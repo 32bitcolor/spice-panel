@@ -119,3 +119,51 @@ func TestHandleUpdateServerSettings_AMPNonCuratedGoesToINI(t *testing.T) {
 		t.Error("non-curated setting should be written to an INI file")
 	}
 }
+
+// TestApplyDuneAdminUpdates_DeleteRemovesPreMarkerKey verifies that clearing a
+// key (value="") also strips any copy of that key that lives above the dune-admin
+// managed block in the hand-edited region. Without this, the pre-marker copy wins
+// via UE5 last-key-wins and the delete appears to have no effect (#212).
+func TestApplyDuneAdminUpdates_DeleteRemovesPreMarkerKey(t *testing.T) {
+	t.Parallel()
+
+	// Simulate a UserEngine.ini that has Port set above the marker (hand-edited
+	// or written by a previous tool), with no dune-admin managed block yet.
+	content := "[URL]\nPort=7777\n"
+
+	updates := map[string]map[string]string{
+		"URL": {"Port": ""},
+	}
+
+	got, err := applyDuneAdminUpdates(content, updates)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if strings.Contains(got, "Port=7777") {
+		t.Errorf("pre-marker Port=7777 should have been stripped on delete, got:\n%s", got)
+	}
+}
+
+// TestApplyDuneAdminUpdates_DeleteRemovesBothRegions verifies that clearing a key
+// that appears both above the marker and inside the managed block removes it from
+// both places, leaving no stale copy (#212).
+func TestApplyDuneAdminUpdates_DeleteRemovesBothRegions(t *testing.T) {
+	t.Parallel()
+
+	content := "[URL]\nPort=7777\n\n" +
+		"; >>>>> dune-admin managed section BEGIN — do not hand-edit between these markers >>>>>\n" +
+		"[URL]\nPort=8080\n" +
+		"; <<<<< dune-admin managed section END <<<<<"
+
+	updates := map[string]map[string]string{
+		"URL": {"Port": ""},
+	}
+
+	got, err := applyDuneAdminUpdates(content, updates)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if strings.Contains(got, "Port=") {
+		t.Errorf("Port should be absent from both regions after delete, got:\n%s", got)
+	}
+}
