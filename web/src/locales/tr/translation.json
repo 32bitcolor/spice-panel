@@ -1138,11 +1138,6 @@
       "recovered": "Kurtarıldı",
       "refuel": "Yakıt Doldur",
       "refuelDone": "{{label}} yakıt deposu dolduruldu — oyun içinde görmek için yeniden giriş yapın",
-      "repair": "Onar",
-      "repairDone": "{{label}} üzerindeki {{repaired}} modül onarıldı — oyun içinde görmek için yeniden giriş yapın",
-      "repairNone": "{{label}} üzerinde modül bulunamadı",
-      "repairNotice": "Araç onarımlarının oyunda etkili olması için sunucu yeniden başlatılmalıdır.",
-      "repairPartial": "{{label}} üzerindeki {{total}} modülün {{repaired}} tanesi onarıldı ({{skipped}} atlandı) — oyun içinde görmek için yeniden giriş yapın",
       "vehiclesLabel": "Araçlar"
     }
   },
@@ -1499,7 +1494,17 @@
       "status": "Durum",
       "attempts": "Denemeler",
       "claimedAt": "Talep Zamanı",
-      "lastError": "Son Hata"
+      "lastError": "Son Hata",
+      "nextAttempt": "Sonraki deneme",
+      "grant": "Ver",
+      "actions": "İşlemler",
+      "grantAria": "{{account}} hesabına ödül ver",
+      "statusLabels": {
+        "granted": "Verildi",
+        "pending": "Beklemede",
+        "exhausted": "Tükendi",
+        "failed": "Başarısız"
+      }
     },
     "editor": {
       "createTitle": "Yeni Etkinlik",
@@ -1558,7 +1563,9 @@
     },
     "confirmDeleteTitle": "Delete Event",
     "confirmResetTitle": "Reset Event",
-    "resetConfirmLabel": "Reset"
+    "resetConfirmLabel": "Reset",
+    "grantSuccess": "Ödül verildi.",
+    "grantFailed": "Ödül verilemedi: {{message}}"
   },
   "battlepass": {
     "title": "Battlepass ({{count}} kademesi)",

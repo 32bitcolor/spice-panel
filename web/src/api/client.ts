@@ -782,6 +782,7 @@ export interface EventClaimRecord {
   claimed_at: string
   attempts: number
   last_error: string
+  next_attempt_at: string
   updated_at: string
 }
 
@@ -1092,8 +1093,6 @@ export const api = {
     repairItem: (id: number) => req<MutateResult>('POST', '/players/repair-item', { id }),
     repairGear: (player_id: number) =>
       req<{ repaired: number, scanned: number }>('POST', '/players/repair-gear', { player_id }),
-    repairVehicle: (vehicle_id: number, player_id: number) =>
-      req<{ repaired: number, skipped: number, total: number }>('POST', '/players/repair-vehicle', { vehicle_id, player_id }),
     refuelVehicle: (vehicle_id: number, player_id: number) =>
       req<MutateResult>('POST', '/players/refuel-vehicle', { vehicle_id, player_id }),
     partitions: () => req<TeleportLocation[]>('GET', '/players/partitions'),
@@ -1339,6 +1338,8 @@ export const api = {
       req<{ ok: boolean }>('POST', `/events/${id}/enable`, { enabled }),
     status: (id: number) => req<EventStatus>('GET', `/events/${id}/status`),
     reset: (id: number) => req<{ ok: boolean }>('POST', `/events/${id}/reset`),
+    grantClaim: (id: number, accountId: number) =>
+      req<{ ok: boolean }>('POST', `/events/${id}/claims/${accountId}/grant`),
     config: () => req<EventsConfig>('GET', '/events/config'),
     saveConfig: (cfg: EventsConfig) => req<EventsConfig>('PUT', '/events/config', cfg),
   },

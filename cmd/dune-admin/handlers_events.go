@@ -204,6 +204,54 @@ func handleResetEvent(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, map[string]bool{"ok": true})
 }
 
+// ── manual reward-grant ─────────────────────────────────────────────────────────
+
+// eventGrantTargetResolver resolves (controllerID, actorID) for an account so a
+// manual grant can deliver the reward to an offline player. It is a package var
+// so handler tests can inject a stub without a live DB.
+var eventGrantTargetResolver = productionResolveGrantTargets
+
+// handleGrantEventClaim force-retries a single reward grant for one account,
+// ignoring backoff and attempt limits. Used to deliver rewards that previously
+// failed (e.g. inventory full) once the player has cleared space.
+func handleGrantEventClaim(w http.ResponseWriter, r *http.Request) {
+	if globalEventStore == nil {
+		jsonErr(w, fmt.Errorf("events store not available"), http.StatusServiceUnavailable)
+		return
+	}
+	eventID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		jsonErr(w, fmt.Errorf("invalid id"), http.StatusBadRequest)
+		return
+	}
+	accountID, err := strconv.ParseInt(r.PathValue("account_id"), 10, 64)
+	if err != nil {
+		jsonErr(w, fmt.Errorf("invalid account_id"), http.StatusBadRequest)
+		return
+	}
+
+	def, err := globalEventStore.get(eventID)
+	if err != nil {
+		if errors.Is(err, errNotFound) {
+			jsonErr(w, fmt.Errorf("event not found"), http.StatusNotFound)
+			return
+		}
+		log.Printf("handleGrantEventClaim get: %v", err)
+		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
+		return
+	}
+
+	deps := productionEventDeps()
+	deps.resolveGrantTargets = eventGrantTargetResolver
+	claim := eventClaimRecord{EventID: def.ID, Version: def.Version, AccountID: accountID}
+	if err := attemptGrantForClaim(r.Context(), deps, globalEventStore, claim); err != nil {
+		log.Printf("handleGrantEventClaim grant %d/%d/%d: %v", def.ID, def.Version, accountID, err)
+		jsonErr(w, fmt.Errorf("grant failed: %w", err), http.StatusInternalServerError)
+		return
+	}
+	jsonOK(w, map[string]bool{"ok": true})
+}
+
 // ── validation ────────────────────────────────────────────────────────────────
 
 func isValidEventType(t eventType) bool {

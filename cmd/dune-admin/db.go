@@ -5188,144 +5188,6 @@ func cmdRepairPlayerGear(playerID int64) Cmd {
 	}
 }
 
-func validateRepairVehicleInput(playerID int64) error {
-	if globalDB == nil {
-		return fmt.Errorf("not connected")
-	}
-	if playerID == 0 {
-		return fmt.Errorf("player ID required")
-	}
-	return nil
-}
-
-type vehicleModule struct {
-	id                int64
-	maxDurability     pgtype.Text
-	currentDurability pgtype.Text
-	decayedDurability pgtype.Text
-}
-
-func loadVehicleModules(ctx context.Context, vehicleID int64) ([]vehicleModule, error) {
-	rows, err := globalDB.Query(ctx, `
-			SELECT id,
-			       (stats->'FVehicleModuleDurabilityStats'->1->>'MaxDurability'),
-			       (stats->'FVehicleModuleDurabilityStats'->1->>'CurrentDurability'),
-			       (stats->'FVehicleModuleDurabilityStats'->1->>'DecayedMaxDurability')
-			FROM dune.vehicle_modules
-			WHERE vehicle_id = $1::bigint`, vehicleID)
-	if err != nil {
-		return nil, fmt.Errorf("scan modules: %w", err)
-	}
-	defer rows.Close()
-
-	var modules []vehicleModule
-	for rows.Next() {
-		var module vehicleModule
-		if err := rows.Scan(&module.id, &module.maxDurability, &module.currentDurability, &module.decayedDurability); err != nil {
-			return nil, fmt.Errorf("scan module: %w", err)
-		}
-		modules = append(modules, module)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return modules, nil
-}
-
-type vehicleRepairSummary struct {
-	repaired int
-	skipped  int
-	total    int
-	err      error
-}
-
-// vehicleModuleRepairTarget derives the repair target from the module's own
-// in-row MaxDurability — the authoritative 100% ceiling. ok=false means the
-// module has no usable in-row MaxDurability and must be skipped: the PAK catalog
-// is NOT a fallback (it under-reports transport-ornithopter modules by ~half).
-// The target never lowers an existing higher value.
-func vehicleModuleRepairTarget(module vehicleModule) (float64, bool) {
-	maxDur := parseDurabilityText(module.maxDurability)
-	if !module.maxDurability.Valid || maxDur <= 0 {
-		return 0, false
-	}
-	target := maxDur
-	if current := parseDurabilityText(module.currentDurability); current > target {
-		target = current
-	}
-	if decayed := parseDurabilityText(module.decayedDurability); decayed > target {
-		target = decayed
-	}
-	return target, true
-}
-
-// vehicleModuleAtTarget reports whether the module already sits at the target
-// on both the current and decayed ceilings, so no write is needed.
-func vehicleModuleAtTarget(module vehicleModule, target float64) bool {
-	current := parseDurabilityText(module.currentDurability)
-	decayed := parseDurabilityText(module.decayedDurability)
-	return math.Abs(current-target) < 0.01 && math.Abs(decayed-target) < 0.01
-}
-
-func runVehicleModuleRepairs(
-	modules []vehicleModule,
-	update func(module vehicleModule, target float64) error,
-) vehicleRepairSummary {
-	summary := vehicleRepairSummary{total: len(modules)}
-	for _, module := range modules {
-		target, ok := vehicleModuleRepairTarget(module)
-		if !ok {
-			summary.skipped++
-			continue
-		}
-		if vehicleModuleAtTarget(module, target) {
-			continue // already at full — no write needed
-		}
-		if err := update(module, target); err != nil {
-			summary.err = fmt.Errorf("repair module %d: %w", module.id, err)
-			return summary
-		}
-		summary.repaired++
-	}
-	return summary
-}
-
-func updateVehicleModuleDurability(ctx context.Context, moduleID int64, target float64) error {
-	_, err := globalDB.Exec(ctx, `
-				UPDATE dune.vehicle_modules
-				SET stats = jsonb_set(
-					jsonb_set(stats,
-						'{FVehicleModuleDurabilityStats,1,CurrentDurability}',
-						to_jsonb($2::float8), true),
-					'{FVehicleModuleDurabilityStats,1,DecayedMaxDurability}',
-					to_jsonb($2::float8), true)
-				WHERE id = $1::bigint`, moduleID, target)
-	return err
-}
-
-func cmdRepairVehicle(playerID, vehicleID int64) Cmd {
-	return func() Msg {
-		if err := validateRepairVehicleInput(playerID); err != nil {
-			return msgRepairVehicle{err: err}
-		}
-		ctx := context.Background()
-		if err := checkPlayerOffline(ctx, playerID); err != nil {
-			return msgRepairVehicle{err: err}
-		}
-
-		modules, err := loadVehicleModules(ctx, vehicleID)
-		if err != nil {
-			return msgRepairVehicle{err: err}
-		}
-
-		summary := runVehicleModuleRepairs(modules, func(module vehicleModule, target float64) error {
-			// Both fields must be written — Current-only is clamped to surviving Decayed on reload.
-			return updateVehicleModuleDurability(ctx, module.id, target)
-		})
-		return msgRepairVehicle(summary)
-	}
-}
-
 func cmdRefuelVehicle(playerID, vehicleID int64) Cmd {
 	return func() Msg {
 		if globalDB == nil {
@@ -6509,6 +6371,25 @@ func cmdFetchEventPlayers(ctx context.Context, pool *pgxpool.Pool) ([]eventPlaye
 		out = append(out, p)
 	}
 	return out, rows.Err()
+}
+
+// cmdFetchEventGrantTargets returns the player_controller_id and player_pawn_id
+// for a single account, regardless of online status. Reward-grant retries must
+// work for offline players, so — unlike cmdFetchEventPlayers — this query does
+// NOT filter on online_status.
+func cmdFetchEventGrantTargets(ctx context.Context, pool *pgxpool.Pool, accountID int64) (controllerID, actorID int64, err error) {
+	row := pool.QueryRow(ctx, `
+		SELECT COALESCE(ps.player_controller_id, 0),
+		       COALESCE(ps.player_pawn_id, 0)
+		FROM dune.player_state ps
+		WHERE ps.account_id = $1`, accountID)
+	if scanErr := row.Scan(&controllerID, &actorID); scanErr != nil {
+		if errors.Is(scanErr, pgx.ErrNoRows) {
+			return 0, 0, errNotFound
+		}
+		return 0, 0, fmt.Errorf("fetch event grant targets %d: %w", accountID, scanErr)
+	}
+	return controllerID, actorID, nil
 }
 
 // cmdFetchOnlinePositions returns a map of account_id → position for all

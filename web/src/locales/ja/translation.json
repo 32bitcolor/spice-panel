@@ -1138,11 +1138,6 @@
       "recovered": "回収済み",
       "refuel": "給油",
       "refuelDone": "{{label}} に給油しました — ゲーム内で確認するには再ログインしてください",
-      "repair": "修理",
-      "repairDone": "{{label}} の {{repaired}} 個のモジュールを修理しました — ゲーム内で確認するには再ログインしてください",
-      "repairNone": "{{label}} にモジュールが見つかりません",
-      "repairNotice": "乗り物の修理をゲーム内で反映するにはサーバーの再起動が必要です。",
-      "repairPartial": "{{label}} の {{total}} 個のモジュールのうち {{repaired}} 個を修理しました（{{skipped}} 個をスキップ）— ゲーム内で確認するには再ログインしてください",
       "vehiclesLabel": "乗り物"
     }
   },
@@ -1499,7 +1494,17 @@
       "status": "ステータス",
       "attempts": "試行回数",
       "claimedAt": "受領日時",
-      "lastError": "最終エラー"
+      "lastError": "最終エラー",
+      "nextAttempt": "次回試行",
+      "grant": "付与",
+      "actions": "操作",
+      "grantAria": "アカウント {{account}} に報酬を付与",
+      "statusLabels": {
+        "granted": "付与済み",
+        "pending": "保留中",
+        "exhausted": "上限到達",
+        "failed": "失敗"
+      }
     },
     "editor": {
       "createTitle": "新しいイベント",
@@ -1558,7 +1563,9 @@
     },
     "confirmDeleteTitle": "Delete Event",
     "confirmResetTitle": "Reset Event",
-    "resetConfirmLabel": "Reset"
+    "resetConfirmLabel": "Reset",
+    "grantSuccess": "報酬を付与しました。",
+    "grantFailed": "報酬の付与に失敗しました: {{message}}"
   },
   "battlepass": {
     "title": "バトルパス（{{count}} ティア）",

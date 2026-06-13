@@ -91,6 +91,9 @@ type eventDeps struct {
 	grantItem            func(ctx context.Context, actorID int64, template string, qty, quality int64) error
 	grantXP              func(ctx context.Context, actorID int64, track string, amount int32) error
 	announce             func(channelID, message string) error
+	// resolveGrantTargets returns (controllerID, actorID) for an account without
+	// requiring the player to be online — used by reward-grant retries.
+	resolveGrantTargets func(ctx context.Context, accountID int64) (controllerID, actorID int64, err error)
 }
 
 // globalEventStore is set once at startup, guarded in every handler.
@@ -322,12 +325,14 @@ func applyOneOutcome(ctx context.Context, deps eventDeps, store *eventStore, def
 		return
 	}
 	if exists {
-		if status == "granted" {
+		// granted is terminal; exhausted is manual-grant-only — both block auto delivery.
+		if status == eventClaimStatusGranted || status == eventClaimStatusExhausted {
 			return
 		}
-		if status == "failed" {
-			o.RewardSpec = sliceRewardSpec(o.RewardSpec, lastErr)
-		}
+		// pending (or a legacy "failed" row) is mid-retry: resume only the
+		// components that haven't been granted yet, so a partial failure doesn't
+		// re-deliver currency/items that already landed.
+		o.RewardSpec = sliceRewardSpec(o.RewardSpec, lastErr)
 	}
 	if o.RewardSpec != nil {
 		if err := grantEventReward(ctx, deps, o.RewardSpec, o.ControllerID, o.ActorID); err != nil {
@@ -504,6 +509,94 @@ func processOneEvent(ctx context.Context, deps eventDeps, store *eventStore, def
 	}
 }
 
+// ── reward-grant retry loop ────────────────────────────────────────────────────
+
+// eventRetryInterval is how often the retry loop scans for due pending claims.
+// Coarse on purpose: backoff is measured in days, so a 1-minute tick is plenty.
+const eventRetryInterval = time.Minute
+
+// attemptGrantForClaim re-delivers a single claim's reward. It resolves the
+// event's reward spec and the player's current grant targets, attempts the
+// grant, and records success or failure on the claim ledger. Returns an error
+// only when the grant itself fails (callers may surface that to a user).
+func attemptGrantForClaim(ctx context.Context, deps eventDeps, store *eventStore, claim eventClaimRecord) error {
+	def, err := store.get(claim.EventID)
+	if err != nil {
+		return fmt.Errorf("load event %d: %w", claim.EventID, err)
+	}
+
+	reward, err := parseRewardSpec(def.Reward)
+	if err != nil {
+		return fmt.Errorf("parse reward %d: %w", def.ID, err)
+	}
+
+	if reward != nil {
+		// Resume only the un-granted remainder so a scheduled retry of a partial
+		// failure doesn't re-deliver components that already landed.
+		reward = sliceRewardSpec(reward, claim.LastError)
+		controllerID, actorID, terr := deps.resolveGrantTargets(ctx, claim.AccountID)
+		if terr != nil {
+			recordErr := fmt.Errorf("resolve grant targets: %w", terr)
+			_ = store.recordFailed(claim.EventID, claim.Version, claim.AccountID, recordErr.Error())
+			return recordErr
+		}
+		if grantErr := grantEventReward(ctx, deps, reward, controllerID, actorID); grantErr != nil {
+			_ = store.recordFailed(claim.EventID, claim.Version, claim.AccountID, grantErr.Error())
+			return grantErr
+		}
+	}
+
+	if err := store.recordGranted(claim.EventID, claim.Version, claim.AccountID); err != nil {
+		return fmt.Errorf("record granted %d/%d/%d: %w", claim.EventID, claim.Version, claim.AccountID, err)
+	}
+	return nil
+}
+
+// parseRewardSpec parses an event's reward JSON. An empty string yields a nil
+// spec (nothing to grant) with no error.
+func parseRewardSpec(rewardJSON string) (*rewardSpec, error) {
+	if rewardJSON == "" {
+		return nil, nil
+	}
+	var rs rewardSpec
+	if err := json.Unmarshal([]byte(rewardJSON), &rs); err != nil {
+		return nil, err
+	}
+	return &rs, nil
+}
+
+// runEventRetryLoop periodically retries pending reward grants whose backoff
+// window has elapsed. It is ctx-cancellable and a no-op when the store is nil.
+func runEventRetryLoop(ctx context.Context, deps eventDeps, store *eventStore) {
+	if store == nil {
+		return
+	}
+	ticker := time.NewTicker(eventRetryInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case now := <-ticker.C:
+			processRetryTick(ctx, deps, store, now)
+		}
+	}
+}
+
+// processRetryTick attempts every claim that is currently due for retry.
+func processRetryTick(ctx context.Context, deps eventDeps, store *eventStore, now time.Time) {
+	claims, err := store.listRetryableClaims(now)
+	if err != nil {
+		log.Printf("events: list retryable claims: %v", err)
+		return
+	}
+	for _, claim := range claims {
+		if err := attemptGrantForClaim(ctx, deps, store, claim); err != nil {
+			log.Printf("events: retry grant %d/%d/%d: %v", claim.EventID, claim.Version, claim.AccountID, err)
+		}
+	}
+}
+
 // applyEventEngine stops any running events engine goroutine, then starts a
 // new one if events_enabled is true. Safe to call from config save handlers.
 func applyEventEngine(cfg appConfig) {
@@ -531,7 +624,8 @@ func applyEventEngine(cfg appConfig) {
 	ctx, cancel := context.WithCancel(context.Background())
 	globalEventsCancel = cancel
 	go runEventEngine(ctx, deps, globalEventStore)
-	log.Printf("events: engine started (per-event scheduling)")
+	go runEventRetryLoop(ctx, deps, globalEventStore)
+	log.Printf("events: engine started (per-event scheduling + reward-grant retries)")
 }
 
 // stopEventEngine cancels the running events engine goroutine if any.
@@ -611,7 +705,16 @@ func productionEventDeps() eventDeps {
 		announce: func(channelID, message string) error {
 			return postDiscordAnnouncement(channelID, message)
 		},
+		resolveGrantTargets: productionResolveGrantTargets,
 	}
+}
+
+// productionResolveGrantTargets resolves grant targets against the live DB.
+func productionResolveGrantTargets(ctx context.Context, accountID int64) (int64, int64, error) {
+	if globalDB == nil {
+		return 0, 0, fmt.Errorf("database not connected")
+	}
+	return cmdFetchEventGrantTargets(ctx, globalDB, accountID)
 }
 
 // eventsEnabled returns the effective events-enabled flag (default off).

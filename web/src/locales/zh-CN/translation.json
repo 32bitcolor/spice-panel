@@ -1138,11 +1138,6 @@
       "recovered": "已恢复",
       "refuel": "加油",
       "refuelDone": "已为 {{label}} 加油 — 重新登录后在游戏中查看",
-      "repair": "修复",
-      "repairDone": "已修复 {{label}} 上的 {{repaired}} 个模块 — 重新登录后在游戏中查看",
-      "repairNone": "在 {{label}} 上未找到模块",
-      "repairNotice": "载具维修需要重启服务器才能在游戏中生效。",
-      "repairPartial": "已修复 {{label}} 上 {{total}} 个模块中的 {{repaired}} 个（跳过 {{skipped}} 个）— 重新登录后在游戏中查看",
       "vehiclesLabel": "载具"
     }
   },
@@ -1499,7 +1494,17 @@
       "status": "状态",
       "attempts": "尝试次数",
       "claimedAt": "领取时间",
-      "lastError": "最近错误"
+      "lastError": "最近错误",
+      "nextAttempt": "下次尝试",
+      "grant": "发放",
+      "actions": "操作",
+      "grantAria": "向账户 {{account}} 发放奖励",
+      "statusLabels": {
+        "granted": "已发放",
+        "pending": "待处理",
+        "exhausted": "已用尽",
+        "failed": "失败"
+      }
     },
     "editor": {
       "createTitle": "新建活动",
@@ -1558,7 +1563,9 @@
     },
     "confirmDeleteTitle": "Delete Event",
     "confirmResetTitle": "Reset Event",
-    "resetConfirmLabel": "Reset"
+    "resetConfirmLabel": "Reset",
+    "grantSuccess": "奖励已发放。",
+    "grantFailed": "发放奖励失败：{{message}}"
   },
   "battlepass": {
     "title": "战令（{{count}} 阶）",

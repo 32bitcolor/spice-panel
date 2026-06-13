@@ -206,7 +206,6 @@ func buildMux() *http.ServeMux {
 	handleAPI(mux, "GET /api/v1/players/{id}/vehicles", capPlayersRead, handleGetPlayerVehicles)
 	handleAPI(mux, "POST /api/v1/players/repair-item", capPlayersWrite, handleRepairItem)
 	handleAPI(mux, "POST /api/v1/players/repair-gear", capPlayersWrite, handleRepairPlayerGear)
-	handleAPI(mux, "POST /api/v1/players/repair-vehicle", capPlayersWrite, handleRepairVehicle)
 	handleAPI(mux, "POST /api/v1/players/refuel-vehicle", capPlayersWrite, handleRefuelVehicle)
 	handleAPI(mux, "GET /api/v1/players/partitions", capPlayersRead, handleGetPartitions)
 	handleAPI(mux, "POST /api/v1/players/teleport", capPlayersWrite, handleTeleportPlayer)
@@ -331,6 +330,7 @@ func buildMux() *http.ServeMux {
 	handleAPI(mux, "POST /api/v1/events/{id}/enable", capEventsManage, handleSetEventEnabled)
 	handleAPI(mux, "GET /api/v1/events/{id}/status", capEventsRead, handleGetEventStatus)
 	handleAPI(mux, "POST /api/v1/events/{id}/reset", capEventsManage, handleResetEvent)
+	handleAPI(mux, "POST /api/v1/events/{id}/claims/{account_id}/grant", capEventsManage, handleGrantEventClaim)
 
 	// ── battlepass (intel-point reward track) ─────────────────────────────────
 	handleAPI(mux, "GET /api/v1/battlepass/tiers", capBattlepassTrack, handleListBattlepassTiers)

@@ -1172,11 +1172,6 @@
       "recovered": "Odzyskano",
       "refuel": "Zatankuj",
       "refuelDone": "{{label}} zatankowano — zaloguj się ponownie, aby zobaczyć w grze",
-      "repair": "Napraw",
-      "repairDone": "Naprawiono {{repaired}} modułów w {{label}} — zaloguj się ponownie, aby zobaczyć w grze",
-      "repairNone": "Nie znaleziono modułów w {{label}}",
-      "repairNotice": "Naprawy pojazdów wymagają restartu serwera, aby działały w grze.",
-      "repairPartial": "Naprawiono {{repaired}} z {{total}} modułów w {{label}} ({{skipped}} pominięto) — zaloguj się ponownie, aby zobaczyć w grze",
       "vehiclesLabel": "Pojazdy"
     }
   },
@@ -1545,7 +1540,17 @@
       "status": "Status",
       "attempts": "Próby",
       "claimedAt": "Odebrano",
-      "lastError": "Ostatni błąd"
+      "lastError": "Ostatni błąd",
+      "nextAttempt": "Następna próba",
+      "grant": "Przyznaj",
+      "actions": "Akcje",
+      "grantAria": "Przyznaj nagrodę kontu {{account}}",
+      "statusLabels": {
+        "granted": "Przyznano",
+        "pending": "Oczekuje",
+        "exhausted": "Wyczerpano",
+        "failed": "Niepowodzenie"
+      }
     },
     "editor": {
       "createTitle": "Nowe wydarzenie",
@@ -1604,7 +1609,9 @@
     },
     "confirmDeleteTitle": "Delete Event",
     "confirmResetTitle": "Reset Event",
-    "resetConfirmLabel": "Reset"
+    "resetConfirmLabel": "Reset",
+    "grantSuccess": "Nagroda przyznana.",
+    "grantFailed": "Nie udało się przyznać nagrody: {{message}}"
   },
   "battlepass": {
     "title": "Battlepass ({{count}} poziomów)",

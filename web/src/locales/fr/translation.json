@@ -1155,11 +1155,6 @@
       "recovered": "Récupéré",
       "refuel": "Ravitailler",
       "refuelDone": "{{label}} ravitaillé — reconnectez-vous pour voir en jeu",
-      "repair": "Réparer",
-      "repairDone": "{{repaired}} modules réparés sur {{label}} — reconnectez-vous pour voir en jeu",
-      "repairNone": "Aucun module trouvé sur {{label}}",
-      "repairNotice": "Les réparations de véhicules nécessitent un redémarrage du serveur pour prendre effet en jeu.",
-      "repairPartial": "{{repaired}} sur {{total}} modules réparés sur {{label}} ({{skipped}} ignorés) — reconnectez-vous pour voir en jeu",
       "vehiclesLabel": "Véhicules"
     }
   },
@@ -1522,7 +1517,17 @@
       "status": "État",
       "attempts": "Tentatives",
       "claimedAt": "Réclamé le",
-      "lastError": "Dernière erreur"
+      "lastError": "Dernière erreur",
+      "nextAttempt": "Prochaine tentative",
+      "grant": "Accorder",
+      "actions": "Actions",
+      "grantAria": "Accorder la récompense au compte {{account}}",
+      "statusLabels": {
+        "granted": "Accordée",
+        "pending": "En attente",
+        "exhausted": "Épuisée",
+        "failed": "Échouée"
+      }
     },
     "editor": {
       "createTitle": "Nouvel événement",
@@ -1581,7 +1586,9 @@
     },
     "confirmDeleteTitle": "Delete Event",
     "confirmResetTitle": "Reset Event",
-    "resetConfirmLabel": "Reset"
+    "resetConfirmLabel": "Reset",
+    "grantSuccess": "Récompense accordée.",
+    "grantFailed": "Échec de l'attribution de la récompense : {{message}}"
   },
   "battlepass": {
     "title": "Battlepass ({{count}} paliers)",
