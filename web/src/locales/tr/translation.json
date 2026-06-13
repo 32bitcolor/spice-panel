@@ -1455,7 +1455,19 @@
       "title": "Günün Mesajı"
     },
     "runConfirmTitle": "Karşılama paketi şimdi verilsin mi?",
-    "runConfirmBody": "Bu, {{versions}} paket(ler)ini uygun tüm çevrimiçi oyunculara hemen verir. Devam edilsin mi?"
+    "runConfirmBody": "Bu, {{versions}} paket(ler)ini uygun tüm çevrimiçi oyunculara hemen verir. Devam edilsin mi?",
+    "region": {
+      "title": "Bölgeye Giriş/Çıkış Duyurusu",
+      "intro": "Oyun içinde bölge sohbet kanalı bulunmadığından, dune-admin birisi bir bölgeye girdiğinde veya çıktığında bu bildirimi o bölgedeki tüm oyunculara fısıldar. Oyuncu adı için {player}, bölge adı için {region} kullanın.",
+      "joinEnabledLabel": "Bir oyuncu bölgeye girdiğinde duyur",
+      "joinEnabledHint": "Bir oyuncu geldiği anda o bölgede zaten bulunan herkese fısıldanır.",
+      "joinTemplateLabel": "Giriş mesajı",
+      "joinTemplatePlaceholder": "{player}, {region} bölgesine geldi.",
+      "leaveEnabledLabel": "Bir oyuncu bölgeden ayrıldığında duyur",
+      "leaveEnabledHint": "Bir oyuncu ayrıldığı anda o bölgede hâlâ bulunan herkese fısıldanır.",
+      "leaveTemplateLabel": "Ayrılma mesajı",
+      "leaveTemplatePlaceholder": "{player}, {region} bölgesinden ayrıldı."
+    }
   },
   "events": {
     "title": "Etkinlikler ({{count}})",

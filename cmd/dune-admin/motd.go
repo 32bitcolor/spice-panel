@@ -1,10 +1,6 @@
 package main
 
-import (
-	"context"
-	"log"
-	"strings"
-)
+import "strings"
 
 // ── Message of the Day (#163/#167/#135) ─────────────────────────────────────
 // A configurable in-game message whispered to a player every time they join the
@@ -53,18 +49,8 @@ func motdWhispersForJoins(joins []welcomeAccount, enabled bool, message, sourceP
 	return out
 }
 
-// welcomePresence is the join-detection state for the MOTD feature. Touched only
-// by the single welcome-scanner goroutine, so it needs no synchronisation.
+// welcomePresence is the join/leave-detection state shared by the MOTD and
+// region-broadcast features. Touched only by the single welcome-scanner
+// goroutine, so it needs no synchronisation. Observed once per tick in
+// runPresenceWhispers (welcome_package.go) so both features see one diff.
 var welcomePresence = newPresenceTracker()
-
-// runMOTDOnJoin observes the current online set, then whispers the configured
-// MOTD to each newly-joined player. Called from the scanner tick with the
-// online snapshot already fetched (shared with the package scan).
-func runMOTDOnJoin(ctx context.Context, rt welcomePackageRuntime, online []welcomeAccount) {
-	joins := welcomePresence.observe(online)
-	for _, m := range motdWhispersForJoins(joins, rt.motdEnabled, rt.motdMessage, rt.motdSourcePlayer) {
-		if err := sendWelcomeWhisper(ctx, m.accountID, m.sourcePlayer, m.message); err != nil {
-			log.Printf("motd: whisper to account %d failed: %v", m.accountID, err)
-		}
-	}
-}

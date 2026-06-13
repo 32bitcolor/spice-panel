@@ -1455,7 +1455,19 @@
       "title": "今日のメッセージ"
     },
     "runConfirmTitle": "ウェルカムパッケージを今すぐ付与しますか？",
-    "runConfirmBody": "対象のオンラインプレイヤー全員にパッケージ {{versions}} を今すぐ付与します。続行しますか？"
+    "runConfirmBody": "対象のオンラインプレイヤー全員にパッケージ {{versions}} を今すぐ付与します。続行しますか？",
+    "region": {
+      "title": "リージョン入退場アナウンス",
+      "intro": "ゲーム内にリージョンチャットチャンネルが存在しないため、dune-admin はプレイヤーが同じリージョンに入退場した際、そのリージョンにいる全プレイヤーへこの通知をささやきます。プレイヤー名には {player}、リージョン名には {region} を使用します。",
+      "joinEnabledLabel": "プレイヤーがリージョンに入ったときに通知する",
+      "joinEnabledHint": "プレイヤーが到着した瞬間、そのリージョンに既にいる全員へささやかれます。",
+      "joinTemplateLabel": "入場メッセージ",
+      "joinTemplatePlaceholder": "{player} が {region} に到着しました。",
+      "leaveEnabledLabel": "プレイヤーがリージョンを去ったときに通知する",
+      "leaveEnabledHint": "プレイヤーが去った瞬間、そのリージョンに残っている全員へささやかれます。",
+      "leaveTemplateLabel": "退場メッセージ",
+      "leaveTemplatePlaceholder": "{player} が {region} を去りました。"
+    }
   },
   "events": {
     "title": "イベント ({{count}})",

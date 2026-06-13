@@ -1494,7 +1494,8 @@ func listWelcomeOnlineAccounts(ctx context.Context) ([]welcomeAccount, error) {
 	}
 	rows, err := globalDB.Query(ctx, `
 		SELECT ps.account_id, ps.player_pawn_id,
-		       COALESCE(ac."user", ''), COALESCE(ps.character_name, '')
+		       COALESCE(ac."user", ''), COALESCE(ps.character_name, ''),
+		       COALESCE(a.map, '')
 		FROM dune.player_state ps
 		JOIN dune.actors a ON a.id = ps.player_pawn_id
 		JOIN dune.accounts ac ON ac.id = a.owner_account_id
@@ -1507,7 +1508,7 @@ func listWelcomeOnlineAccounts(ctx context.Context) ([]welcomeAccount, error) {
 	out := make([]welcomeAccount, 0)
 	for rows.Next() {
 		var acc welcomeAccount
-		if err := rows.Scan(&acc.AccountID, &acc.PawnID, &acc.FlsID, &acc.CharacterName); err != nil {
+		if err := rows.Scan(&acc.AccountID, &acc.PawnID, &acc.FlsID, &acc.CharacterName, &acc.Region); err != nil {
 			return nil, fmt.Errorf("scan welcome account: %w", err)
 		}
 		out = append(out, acc)

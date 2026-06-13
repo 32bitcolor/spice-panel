@@ -17,6 +17,10 @@ export const ConfigView: React.FC<ConfigViewProps> = ({
   motdEnabled, setMotdEnabled,
   motdMessage, setMotdMessage,
   motdSourcePlayer, setMotdSourcePlayer,
+  regionJoinEnabled, setRegionJoinEnabled,
+  regionLeaveEnabled, setRegionLeaveEnabled,
+  regionJoinTemplate, setRegionJoinTemplate,
+  regionLeaveTemplate, setRegionLeaveTemplate,
   save, saving,
   runNow, running,
   load, loading,
@@ -170,6 +174,56 @@ export const ConfigView: React.FC<ConfigViewProps> = ({
                 onChange={(e) => setMotdSourcePlayer(e.target.value)}
               />
             </div>
+          </div>
+        </Panel>
+
+        {/* Region join/leave broadcast panel */}
+        <Panel>
+          <SectionLabel>{t('welcome.region.title')}</SectionLabel>
+          <p className="text-xs text-muted mt-1 mb-3">
+            {t('welcome.region.intro')}
+          </p>
+
+          {/* Join half */}
+          <Switch isSelected={regionJoinEnabled} onChange={setRegionJoinEnabled} size="sm">
+            <Switch.Control><Switch.Thumb /></Switch.Control>
+            <Switch.Content>{t('welcome.region.joinEnabledLabel')}</Switch.Content>
+          </Switch>
+          <p className="text-xs text-muted mt-1 mb-2">
+            {t('welcome.region.joinEnabledHint')}
+          </p>
+          <div className="flex flex-col gap-1 mb-4">
+            <span className="text-xs text-muted">{t('welcome.region.joinTemplateLabel')}</span>
+            <TextArea
+              aria-label={t('welcome.region.joinTemplateLabel')}
+              fullWidth
+              rows={2}
+              placeholder={t('welcome.region.joinTemplatePlaceholder')}
+              value={regionJoinTemplate}
+              disabled={!regionJoinEnabled}
+              onChange={(e) => setRegionJoinTemplate(e.target.value)}
+            />
+          </div>
+
+          {/* Leave half */}
+          <Switch isSelected={regionLeaveEnabled} onChange={setRegionLeaveEnabled} size="sm">
+            <Switch.Control><Switch.Thumb /></Switch.Control>
+            <Switch.Content>{t('welcome.region.leaveEnabledLabel')}</Switch.Content>
+          </Switch>
+          <p className="text-xs text-muted mt-1 mb-2">
+            {t('welcome.region.leaveEnabledHint')}
+          </p>
+          <div className="flex flex-col gap-1">
+            <span className="text-xs text-muted">{t('welcome.region.leaveTemplateLabel')}</span>
+            <TextArea
+              aria-label={t('welcome.region.leaveTemplateLabel')}
+              fullWidth
+              rows={2}
+              placeholder={t('welcome.region.leaveTemplatePlaceholder')}
+              value={regionLeaveTemplate}
+              disabled={!regionLeaveEnabled}
+              onChange={(e) => setRegionLeaveTemplate(e.target.value)}
+            />
           </div>
         </Panel>
       </div>

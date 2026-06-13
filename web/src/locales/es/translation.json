@@ -1478,7 +1478,19 @@
       "title": "Mensaje del día"
     },
     "runConfirmTitle": "¿Otorgar paquete de bienvenida ahora?",
-    "runConfirmBody": "Esto otorga el/los paquete(s) {{versions}} a todos los jugadores en línea elegibles ahora mismo. ¿Continuar?"
+    "runConfirmBody": "Esto otorga el/los paquete(s) {{versions}} a todos los jugadores en línea elegibles ahora mismo. ¿Continuar?",
+    "region": {
+      "title": "Anuncio de entrada/salida de región",
+      "intro": "No existe un canal de chat de región en el juego, por lo que dune-admin susurra este aviso a cada jugador que se encuentre en la misma región cuando alguien entra o sale de ella. Usa {player} para el nombre del jugador y {region} para el nombre de la región.",
+      "joinEnabledLabel": "Anunciar cuando un jugador entra en una región",
+      "joinEnabledHint": "Se susurra a todos los que ya están en esa región en cuanto llega un jugador.",
+      "joinTemplateLabel": "Mensaje de entrada",
+      "joinTemplatePlaceholder": "{player} ha llegado a {region}.",
+      "leaveEnabledLabel": "Anunciar cuando un jugador sale de una región",
+      "leaveEnabledHint": "Se susurra a todos los que siguen en esa región en cuanto un jugador se marcha.",
+      "leaveTemplateLabel": "Mensaje de salida",
+      "leaveTemplatePlaceholder": "{player} ha salido de {region}."
+    }
   },
   "events": {
     "title": "Eventos ({{count}})",

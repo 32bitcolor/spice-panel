@@ -42,6 +42,10 @@ type welcomeAccount struct {
 	PawnID        int64 // actor id consumed by the give-items path
 	FlsID         string
 	CharacterName string
+	// Region is the player's current map/zone (dune.actors.map). Used by the
+	// region join/leave broadcast (#167) to target everyone in the same region.
+	// Empty when unknown.
+	Region string
 }
 
 // welcomeScanDeps are injected so the scan loop is unit-testable without a DB.
@@ -178,6 +182,13 @@ type welcomePackageRuntime struct {
 	motdEnabled      bool
 	motdMessage      string
 	motdSourcePlayer string
+	// Region join/leave broadcast (#167): whispers a notice to everyone online in
+	// a region when a player joins/leaves it (no region chat channel exists, so
+	// this reuses the GM-whisper path). Independent of the MOTD whisper.
+	regionJoinEnabled   bool
+	regionLeaveEnabled  bool
+	regionJoinTemplate  string
+	regionLeaveTemplate string
 }
 
 // welcomeMessageOptions carries the optional whisper config passed to
@@ -194,6 +205,22 @@ type motdOptions struct {
 	enabled      bool
 	message      string
 	sourcePlayer string
+}
+
+// regionBroadcastOptions carries the region join/leave broadcast config.
+type regionBroadcastOptions struct {
+	joinEnabled   bool
+	leaveEnabled  bool
+	joinTemplate  string
+	leaveTemplate string
+}
+
+// welcomeExtraOptions bundles the optional MOTD and region-broadcast config
+// passed to buildWelcomeRuntime as a trailing variadic so existing callers
+// (which pass nothing) are unaffected.
+type welcomeExtraOptions struct {
+	motd   motdOptions
+	region regionBroadcastOptions
 }
 
 // activePackages returns all packages whose version is in activeVersions.
@@ -246,7 +273,7 @@ func getWelcomeRuntime() welcomePackageRuntime {
 // buildWelcomeRuntime normalizes raw config (version default, interval clamp)
 // into a runtime value. Shared by startup and the config API so both apply the
 // same defaults.
-func buildWelcomeRuntime(enabled bool, activeVersions []string, scanSecs int, packages []welcomePackage, msg welcomeMessageOptions, motd ...motdOptions) welcomePackageRuntime {
+func buildWelcomeRuntime(enabled bool, activeVersions []string, scanSecs int, packages []welcomePackage, msg welcomeMessageOptions, opts ...welcomeExtraOptions) welcomePackageRuntime {
 	if packages == nil {
 		packages = []welcomePackage{}
 	}
@@ -274,10 +301,14 @@ func buildWelcomeRuntime(enabled bool, activeVersions []string, scanSecs int, pa
 		welcomeMessage:             msg.message,
 		welcomeWhisperSourcePlayer: msg.sourcePlayer,
 	}
-	if len(motd) > 0 {
-		rt.motdEnabled = motd[0].enabled
-		rt.motdMessage = motd[0].message
-		rt.motdSourcePlayer = motd[0].sourcePlayer
+	if len(opts) > 0 {
+		rt.motdEnabled = opts[0].motd.enabled
+		rt.motdMessage = opts[0].motd.message
+		rt.motdSourcePlayer = opts[0].motd.sourcePlayer
+		rt.regionJoinEnabled = opts[0].region.joinEnabled
+		rt.regionLeaveEnabled = opts[0].region.leaveEnabled
+		rt.regionJoinTemplate = opts[0].region.joinTemplate
+		rt.regionLeaveTemplate = opts[0].region.leaveTemplate
 	}
 	return rt
 }
@@ -309,19 +340,23 @@ func runWelcomePackageScanner(ctx context.Context) {
 func welcomePackageScanTick(ctx context.Context) {
 	rt := getWelcomeRuntime()
 	motdActive := rt.motdEnabled && strings.TrimSpace(rt.motdMessage) != ""
+	regionActive := regionBroadcastActive(rt)
+	presenceActive := motdActive || regionActive
 	pkgActive := rt.enabled && welcomeStoreDB != nil && len(rt.activePackages()) > 0
 
-	// Keep the join-detection baseline fresh only while MOTD is active. When it
-	// is off, reset so re-enabling starts from a clean baseline (no MOTD to
-	// players who were already online when the operator flipped it on).
-	if !motdActive {
+	// Keep the join/leave-detection baseline fresh only while a presence-driven
+	// feature (MOTD or region broadcast) is active. When both are off, reset so
+	// re-enabling starts from a clean baseline (no message to players who were
+	// already online when the operator flipped it on).
+	if !presenceActive {
 		welcomePresence.reset()
 	}
-	if !motdActive && !pkgActive {
+	if !presenceActive && !pkgActive {
 		return
 	}
 
-	// MOTD and package grants both consume the current online set — fetch once.
+	// MOTD, region broadcast, and package grants all consume the current online
+	// set — fetch once.
 	online, err := listWelcomeOnlineAccounts(ctx)
 	if err != nil {
 		log.Printf("welcome: list online accounts: %v", err)
@@ -330,8 +365,39 @@ func welcomePackageScanTick(ctx context.Context) {
 	if pkgActive {
 		runWelcomePackageGrants(ctx, rt, online)
 	}
+	if presenceActive {
+		runPresenceWhispers(ctx, rt, online, motdActive, regionActive)
+	}
+}
+
+// regionBroadcastActive reports whether at least one half (join or leave) of the
+// region broadcast is enabled with a non-blank template.
+func regionBroadcastActive(rt welcomePackageRuntime) bool {
+	joinOn := rt.regionJoinEnabled && strings.TrimSpace(rt.regionJoinTemplate) != ""
+	leaveOn := rt.regionLeaveEnabled && strings.TrimSpace(rt.regionLeaveTemplate) != ""
+	return joinOn || leaveOn
+}
+
+// runPresenceWhispers diffs the online set once and dispatches both the MOTD
+// (private whisper to the joining player) and the region broadcast (whisper to
+// everyone in the joined/left region). Both consume the same join/leave events so
+// the tracker is observed exactly once per tick.
+func runPresenceWhispers(ctx context.Context, rt welcomePackageRuntime, online []welcomeAccount, motdActive, regionActive bool) {
+	joins, leaves := welcomePresence.observeJoinsLeaves(online)
 	if motdActive {
-		runMOTDOnJoin(ctx, rt, online)
+		for _, m := range motdWhispersForJoins(joins, rt.motdEnabled, rt.motdMessage, rt.motdSourcePlayer) {
+			if err := sendWelcomeWhisper(ctx, m.accountID, m.sourcePlayer, m.message); err != nil {
+				log.Printf("motd: whisper to account %d failed: %v", m.accountID, err)
+			}
+		}
+	}
+	if regionActive {
+		runRegionBroadcastOnJoinLeave(ctx, joins, leaves, online, regionBroadcastConfig{
+			joinEnabled:   rt.regionJoinEnabled,
+			leaveEnabled:  rt.regionLeaveEnabled,
+			joinTemplate:  rt.regionJoinTemplate,
+			leaveTemplate: rt.regionLeaveTemplate,
+		}, sendWelcomeWhisper)
 	}
 }
 

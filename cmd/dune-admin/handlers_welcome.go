@@ -27,6 +27,10 @@ type welcomeConfigResponse struct {
 	MotdEnabled                bool             `json:"motd_enabled"`
 	MotdMessage                string           `json:"motd_message"`
 	MotdSourcePlayer           string           `json:"motd_source_player"`
+	RegionJoinEnabled          bool             `json:"region_join_enabled"`
+	RegionLeaveEnabled         bool             `json:"region_leave_enabled"`
+	RegionJoinTemplate         string           `json:"region_join_template"`
+	RegionLeaveTemplate        string           `json:"region_leave_template"`
 }
 
 func currentWelcomeConfig() welcomeConfigResponse {
@@ -55,6 +59,10 @@ func currentWelcomeConfig() welcomeConfigResponse {
 		MotdEnabled:                rt.motdEnabled,
 		MotdMessage:                rt.motdMessage,
 		MotdSourcePlayer:           rt.motdSourcePlayer,
+		RegionJoinEnabled:          rt.regionJoinEnabled,
+		RegionLeaveEnabled:         rt.regionLeaveEnabled,
+		RegionJoinTemplate:         rt.regionJoinTemplate,
+		RegionLeaveTemplate:        rt.regionLeaveTemplate,
 	}
 }
 
@@ -94,10 +102,18 @@ func applyWelcomeConfigFromStore() error {
 		enabled:      row.WelcomeMessageEnabled,
 		message:      row.WelcomeMessage,
 		sourcePlayer: row.WelcomeWhisperSourcePlayer,
-	}, motdOptions{
-		enabled:      row.MotdEnabled,
-		message:      row.MotdMessage,
-		sourcePlayer: row.MotdSourcePlayer,
+	}, welcomeExtraOptions{
+		motd: motdOptions{
+			enabled:      row.MotdEnabled,
+			message:      row.MotdMessage,
+			sourcePlayer: row.MotdSourcePlayer,
+		},
+		region: regionBroadcastOptions{
+			joinEnabled:   row.RegionJoinEnabled,
+			leaveEnabled:  row.RegionLeaveEnabled,
+			joinTemplate:  row.RegionJoinTemplate,
+			leaveTemplate: row.RegionLeaveTemplate,
+		},
 	}))
 	return nil
 }
@@ -178,10 +194,18 @@ func handlePutWelcomeConfig(w http.ResponseWriter, r *http.Request) {
 		enabled:      req.WelcomeMessageEnabled,
 		message:      req.WelcomeMessage,
 		sourcePlayer: req.WelcomeWhisperSourcePlayer,
-	}, motdOptions{
-		enabled:      req.MotdEnabled,
-		message:      req.MotdMessage,
-		sourcePlayer: req.MotdSourcePlayer,
+	}, welcomeExtraOptions{
+		motd: motdOptions{
+			enabled:      req.MotdEnabled,
+			message:      req.MotdMessage,
+			sourcePlayer: req.MotdSourcePlayer,
+		},
+		region: regionBroadcastOptions{
+			joinEnabled:   req.RegionJoinEnabled,
+			leaveEnabled:  req.RegionLeaveEnabled,
+			joinTemplate:  req.RegionJoinTemplate,
+			leaveTemplate: req.RegionLeaveTemplate,
+		},
 	})
 
 	if req.Enabled {
@@ -209,6 +233,10 @@ func handlePutWelcomeConfig(w http.ResponseWriter, r *http.Request) {
 			MotdEnabled:                rt.motdEnabled,
 			MotdMessage:                rt.motdMessage,
 			MotdSourcePlayer:           rt.motdSourcePlayer,
+			RegionJoinEnabled:          rt.regionJoinEnabled,
+			RegionLeaveEnabled:         rt.regionLeaveEnabled,
+			RegionJoinTemplate:         rt.regionJoinTemplate,
+			RegionLeaveTemplate:        rt.regionLeaveTemplate,
 		}
 		if err := welcomeStoreDB.saveConfig(row); err != nil {
 			log.Printf("handlePutWelcomeConfig: save to store: %v", err)

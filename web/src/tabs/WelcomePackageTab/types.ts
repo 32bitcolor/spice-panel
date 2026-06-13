@@ -38,6 +38,15 @@ export interface WelcomeSharedProps {
   setMotdMessage: (v: string) => void
   motdSourcePlayer: string
   setMotdSourcePlayer: (v: string) => void
+  // Region join/leave broadcast (whisper to everyone in the joined/left region)
+  regionJoinEnabled: boolean
+  setRegionJoinEnabled: (v: boolean) => void
+  regionLeaveEnabled: boolean
+  setRegionLeaveEnabled: (v: boolean) => void
+  regionJoinTemplate: string
+  setRegionJoinTemplate: (v: string) => void
+  regionLeaveTemplate: string
+  setRegionLeaveTemplate: (v: string) => void
   // actions
   save: () => Promise<void>
   runNow: () => Promise<void>

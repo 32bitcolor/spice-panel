@@ -43,7 +43,7 @@ func TestBuildWelcomeRuntimeWithMotd(t *testing.T) {
 	t.Parallel()
 	rt := buildWelcomeRuntime(
 		false, nil, 30, nil, welcomeMessageOptions{},
-		motdOptions{enabled: true, message: "Welcome back, {player}!", sourcePlayer: "gm-1"},
+		welcomeExtraOptions{motd: motdOptions{enabled: true, message: "Welcome back, {player}!", sourcePlayer: "gm-1"}},
 	)
 	if !rt.motdEnabled {
 		t.Fatal("want motdEnabled=true")

@@ -1478,7 +1478,19 @@
       "title": "Message du jour"
     },
     "runConfirmTitle": "Attribuer le pack de bienvenue maintenant ?",
-    "runConfirmBody": "Ceci attribue le(s) pack(s) {{versions}} à tous les joueurs en ligne éligibles immédiatement. Continuer ?"
+    "runConfirmBody": "Ceci attribue le(s) pack(s) {{versions}} à tous les joueurs en ligne éligibles immédiatement. Continuer ?",
+    "region": {
+      "title": "Annonce d'arrivée/départ de région",
+      "intro": "Il n'existe pas de canal de discussion régional dans le jeu, dune-admin chuchote donc cet avis à chaque joueur présent dans la même région lorsqu'un joueur y entre ou la quitte. Utilisez {player} pour le nom du joueur et {region} pour le nom de la région.",
+      "joinEnabledLabel": "Annoncer lorsqu'un joueur entre dans une région",
+      "joinEnabledHint": "Chuchoté à tous ceux déjà présents dans la région dès qu'un joueur arrive.",
+      "joinTemplateLabel": "Message d'arrivée",
+      "joinTemplatePlaceholder": "{player} est arrivé à {region}.",
+      "leaveEnabledLabel": "Annoncer lorsqu'un joueur quitte une région",
+      "leaveEnabledHint": "Chuchoté à tous ceux encore présents dans la région dès qu'un joueur part.",
+      "leaveTemplateLabel": "Message de départ",
+      "leaveTemplatePlaceholder": "{player} a quitté {region}."
+    }
   },
   "events": {
     "title": "Événements ({{count}})",
