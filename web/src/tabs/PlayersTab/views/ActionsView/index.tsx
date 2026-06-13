@@ -8,6 +8,7 @@ import { ManageLocationsModal } from '../../modals/ManageLocationsModal'
 import { MapCoordPickerModal } from '../../modals/MapCoordPickerModal'
 import { ACTION_SECTIONS, type ActionSection } from '../../types'
 import { api } from '../../../../api/client'
+import { usePermissions } from '../../../../hooks/usePermissions'
 import {
   playerAtom, partitionsAtom, allPlayersAtom, charXPCurrentAtom, confirmAtom,
 } from './store'
@@ -24,7 +25,15 @@ import type { ActionsViewProps } from './types'
 
 export const ActionsView: React.FC<ActionsViewProps> = ({ player }) => {
   const { t } = useTranslation()
-  const [section, setSection] = React.useState<ActionSection>('resources')
+  const { can } = usePermissions()
+  const canPlayersWrite = can('players:write')
+  // Without players:write only the read-only History section and the Admin
+  // section (which itself gates its panels, leaving only the export) remain.
+  const visibleSections = ACTION_SECTIONS.filter(
+    (s) => canPlayersWrite || s.key === 'admin' || s.key === 'history',
+  )
+  const defaultSection: ActionSection = canPlayersWrite ? 'resources' : 'admin'
+  const [section, setSection] = React.useState<ActionSection>(defaultSection)
 
   const setPlayerAtom = useSetAtom(playerAtom(player.id))
   const setPartitions = useSetAtom(partitionsAtom(player.id))
@@ -43,8 +52,8 @@ export const ActionsView: React.FC<ActionsViewProps> = ({ player }) => {
   }, [player, setPlayerAtom])
 
   React.useEffect(() => {
-    Promise.resolve().then(() => setSection('resources'))
-  }, [player.id])
+    Promise.resolve().then(() => setSection(defaultSection))
+  }, [player.id, defaultSection])
 
   React.useEffect(() => {
     Promise.resolve()
@@ -75,7 +84,7 @@ export const ActionsView: React.FC<ActionsViewProps> = ({ player }) => {
             onSelectionChange={(k) => setSection(k as ActionSection)}
             className="flex flex-col items-stretch w-44"
           >
-            {ACTION_SECTIONS.map((s) => (
+            {visibleSections.map((s) => (
               <Segment.Item key={s.key} id={s.key} className="justify-start">
                 {t(s.label as never)}
               </Segment.Item>

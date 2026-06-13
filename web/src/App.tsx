@@ -10,6 +10,7 @@ import { SettingsConfigForm } from './components/SettingsConfigForm'
 import { LanguageSelector } from './components/LanguageSelector'
 import { ThemeSelector } from './components/ThemeSelector'
 import { HelpMenu } from './components/HelpMenu'
+import { UserMenu } from './components/UserMenu'
 const BattlegroupTab = React.lazy(() => import('./tabs/BattlegroupTab').then((m) => ({ default: m.BattlegroupTab })))
 const LiveMapTab = React.lazy(() => import('./tabs/LiveMapTab').then((m) => ({ default: m.LiveMapTab })))
 const PlayersTab = React.lazy(() => import('./tabs/PlayersTab').then((m) => ({ default: m.PlayersTab })))
@@ -26,7 +27,11 @@ const MarketTab = React.lazy(() => import('./tabs/MarketTab').then((m) => ({ def
 const WelcomePackageTab = React.lazy(() => import('./tabs/WelcomePackageTab').then((m) => ({ default: m.WelcomePackageTab })))
 const EventsTab = React.lazy(() => import('./tabs/EventsTab').then((m) => ({ default: m.EventsTab })))
 const BattlepassTab = React.lazy(() => import('./tabs/BattlepassTab').then((m) => ({ default: m.BattlepassTab })))
+const PermissionsTab = React.lazy(() => import('./tabs/PermissionsTab').then((m) => ({ default: m.PermissionsTab })))
 import { Icon } from './dune-ui'
+import { AuthContext } from './auth/context'
+import { LoginPage } from './auth/LoginPage'
+import { usePermissions } from './hooks/usePermissions'
 import { api } from './api/client'
 import type { UpdateCheckResult } from './api/client'
 import type { TabId, DbSection, WelcomeSection, AppCoreProps, ConnectionBadgeProps } from './types'
@@ -48,6 +53,7 @@ const TAB_IDS = [
   'welcome',
   'events',
   'battlepass',
+  'permissions',
 ] as const
 const DEFAULT_TAB: TabId = 'battlegroup'
 
@@ -74,6 +80,30 @@ const TAB_ICONS: Record<TabId, string> = {
   welcome: 'gift',
   events: 'calendar-clock',
   battlepass: 'medal',
+  permissions: 'lock',
+}
+
+// Read-level capability required to see each tab when backend auth is on.
+// 'owner' is special: only owners (guild owner, configured owners, local
+// account) see the Permissions tab.
+const TAB_CAPABILITIES: Record<TabId, string> = {
+  battlegroup: 'server:read',
+  logs: 'logs:read',
+  database: 'database:read',
+  server: 'config:read',
+  director: 'config:read',
+  players: 'players:read',
+  livemap: 'world:read',
+  storage: 'world:read',
+  bases: 'world:read',
+  guilds: 'players:read',
+  landsraad: 'players:read',
+  blueprints: 'world:read',
+  market: 'market:read',
+  welcome: 'welcome:read',
+  events: 'events:read',
+  battlepass: 'battlepass:track',
+  permissions: 'owner',
 }
 
 const BETA_TABS = new Set<TabId>(['events', 'battlepass'])
@@ -86,6 +116,27 @@ const AppWithAuth: React.FC = () => {
 }
 
 export const App: React.FC = () => {
+  const auth = React.useContext(AuthContext)
+
+  // Backend auth gate (self-host login). Independent of Clerk, which only
+  // exists on the hosted CDN deploy. When auth is disabled (default) this
+  // renders exactly the pre-auth app.
+  if (auth.loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        <Spinner />
+      </div>
+    )
+  }
+  if (auth.enabled && !auth.session) {
+    return (
+      <>
+        <Toast.Provider />
+        <LoginPage />
+      </>
+    )
+  }
+
   return hasClerk ? <AppWithAuth /> : <AppCore isSignedIn={true} />
 }
 
@@ -95,6 +146,15 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
   const navigate = useNavigate()
   const { t, i18n } = useTranslation()
   const [reconnecting, setReconnecting] = React.useState(false)
+  const { can, isOwner, enabled: authEnabled } = usePermissions()
+
+  // Whether a tab is visible for the current session. All-true when backend
+  // auth is disabled.
+  const canSeeTab = React.useCallback((key: TabId) => {
+    const cap = TAB_CAPABILITIES[key]
+    if (cap === 'owner') return authEnabled && (isOwner || can('auth:manage'))
+    return can(cap)
+  }, [authEnabled, isOwner, can])
 
   const DB_SECTIONS: { key: DbSection, label: string, icon: string }[] = [
     { key: 'backups', label: t('database.sections.backups'), icon: 'archive' },
@@ -140,6 +200,7 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
         { key: 'database' as TabId, label: t('nav.database') },
         { key: 'server' as TabId, label: t('nav.server') },
         { key: 'director' as TabId, label: t('nav.director') },
+        { key: 'permissions' as TabId, label: t('nav.permissions') },
       ],
     },
     {
@@ -175,12 +236,18 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
   const [formSaving, setFormSaving] = React.useState(false)
   const formSaveRef = React.useRef<(() => Promise<void>) | null>(null)
 
+  // Nav groups filtered to what the session may see; empty groups disappear.
+  const visibleNavGroups = NAV_GROUPS
+    .map((g) => ({ ...g, items: g.items.filter((i) => canSeeTab(i.key)) }))
+    .filter((g) => g.items.length > 0)
+  const firstVisibleTab = visibleNavGroups[0]?.items[0]?.key ?? DEFAULT_TAB
+
   React.useEffect(() => {
     const seg = location.pathname.replace(/^\//, '').split('/')[0]
-    if (!seg || !(TAB_IDS as readonly string[]).includes(seg)) {
-      navigate(`/${DEFAULT_TAB}`, { replace: true })
+    if (!seg || !(TAB_IDS as readonly string[]).includes(seg) || !canSeeTab(seg as TabId)) {
+      navigate(`/${firstVisibleTab}`, { replace: true })
     }
-  }, [location.pathname, navigate])
+  }, [location.pathname, navigate, canSeeTab, firstVisibleTab])
 
   const currentTab = currentTabFromPath(location.pathname)
   const pathname = location.pathname
@@ -365,7 +432,7 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
       </Sidebar.Header>
       <Sidebar.Content>
         <Sidebar.Menu aria-label={t('nav.menu')}>
-          {NAV_GROUPS.map((group) => (
+          {visibleNavGroups.map((group) => (
             <Sidebar.MenuSection key={group.title}>
               <Sidebar.MenuHeader>{group.title}</Sidebar.MenuHeader>
               {group.items.map((item) => menuItem(item.key))}
@@ -418,7 +485,7 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
         <Navbar.Content>
           {status?.executor === 'ssh' && <ConnectionBadge label="SSH" connected={status.ssh_connected} />}
           <ConnectionBadge label="DB" connected={status?.db_connected ?? false} />
-          {status && !status.db_connected && (
+          {can('server:control') && status && !status.db_connected && (
             <Button
               size="sm"
               variant="outline"
@@ -439,17 +506,21 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
           <ThemeSelector />
           <LanguageSelector />
 
-          <Button
-            size="sm"
-            variant="outline"
-            aria-label={t('app.configureBackend')}
-            onPress={() => setShowBackendConfig((v) => !v)}
-            className={showBackendConfig ? 'text-accent border-accent' : ''}
-          >
-            <Icon name="settings" />
-            {' '}
-            {t('app.settings')}
-          </Button>
+          {can('config:read') && (
+            <Button
+              size="sm"
+              variant="outline"
+              aria-label={t('app.configureBackend')}
+              onPress={() => setShowBackendConfig((v) => !v)}
+              className={showBackendConfig ? 'text-accent border-accent' : ''}
+            >
+              <Icon name="settings" />
+              {' '}
+              {t('app.settings')}
+            </Button>
+          )}
+
+          <UserMenu />
 
           {hasClerk && (
             <>
@@ -488,6 +559,7 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
       {renderTab('welcome', <WelcomePackageTab section={welcomeSection} />)}
       {renderTab('events', <EventsTab />)}
       {renderTab('battlepass', <BattlepassTab />)}
+      {canSeeTab('permissions') && renderTab('permissions', <PermissionsTab />)}
     </main>
   )
 
@@ -562,7 +634,7 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
                     )
                   : t('app.checkUpdates')}
               </Button>
-              {updateInfo && !updateInfo.needs_update && (
+              {can('server:control') && updateInfo && !updateInfo.needs_update && (
                 <Button
                   size="sm"
                   variant="ghost"
@@ -572,7 +644,7 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
                   {updateApplying ? <Spinner size="sm" color="current" /> : t('app.reinstall')}
                 </Button>
               )}
-              {updateInfo?.needs_update && (
+              {can('server:control') && updateInfo?.needs_update && (
                 <Button size="sm" onPress={() => applyUpdate()} isDisabled={updateApplying}>
                   {updateApplying
                     ? <Spinner size="sm" color="current" />
@@ -663,16 +735,18 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
               >
                 {t('common.cancel')}
               </Button>
-              <Button
-                size="sm"
-                onPress={() => {
-                  setShowUpdateModal(false)
-                  void applyUpdate()
-                }}
-                isDisabled={updateApplying}
-              >
-                {updateApplying ? <Spinner size="sm" color="current" /> : t('app.updateNow')}
-              </Button>
+              {can('server:control') && (
+                <Button
+                  size="sm"
+                  onPress={() => {
+                    setShowUpdateModal(false)
+                    void applyUpdate()
+                  }}
+                  isDisabled={updateApplying}
+                >
+                  {updateApplying ? <Spinner size="sm" color="current" /> : t('app.updateNow')}
+                </Button>
+              )}
             </Modal.Footer>
           </Modal.Dialog>
         </Modal.Container>

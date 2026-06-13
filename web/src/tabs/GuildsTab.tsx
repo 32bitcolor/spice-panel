@@ -6,6 +6,7 @@ import { Icon as IconifyIcon } from '@iconify/react'
 import { api } from '../api/client'
 import type { GuildSummary, GuildDetail } from '../api/client'
 import { DataTable, Icon, PageHeader, SectionLabel, type Column } from '../dune-ui'
+import { usePermissions } from '../hooks/usePermissions'
 import type { GuildsTabKey, GuildsTabProps } from './types'
 
 // Faction names are the stable dune.factions enum (Atreides/Harkonnen/None/
@@ -22,6 +23,8 @@ const ROLE_MEMBER = 50
 
 export const GuildsTab: React.FC<GuildsTabProps> = ({ isSignedIn = true }) => {
   const { t } = useTranslation()
+  const { can } = usePermissions()
+  const canManage = isSignedIn && can('players:write')
   const [guilds, setGuilds] = React.useState<GuildSummary[]>([])
   const [loading, setLoading] = React.useState(false)
   const [detail, setDetail] = React.useState<GuildDetail | null>(null)
@@ -166,7 +169,7 @@ export const GuildsTab: React.FC<GuildsTabProps> = ({ isSignedIn = true }) => {
                 <Button size="sm" variant="outline" className="w-full" onPress={() => openDetail(g.guild_id)}>
                   <Icon name="users" />
                   {' '}
-                  {isSignedIn ? t('guilds.manage') : t('guilds.view')}
+                  {canManage ? t('guilds.manage') : t('guilds.view')}
                 </Button>
               )
           }
@@ -195,7 +198,7 @@ export const GuildsTab: React.FC<GuildsTabProps> = ({ isSignedIn = true }) => {
               )}
               {!detailLoading && detail && (
                 <>
-                  {isSignedIn
+                  {canManage
                     ? (
                         <div className="flex flex-col gap-3">
                           <SectionLabel>{t('guilds.editGuild')}</SectionLabel>
@@ -248,7 +251,7 @@ export const GuildsTab: React.FC<GuildsTabProps> = ({ isSignedIn = true }) => {
                                 <Chip size="sm" variant="soft" color={m.role_id === ROLE_ADMIN ? 'accent' : 'default'}>
                                   {roleLabel(m.role_id)}
                                 </Chip>
-                                {isSignedIn && m.role_id !== ROLE_ADMIN && (
+                                {canManage && m.role_id !== ROLE_ADMIN && (
                                   <Button
                                     size="sm"
                                     variant="outline"

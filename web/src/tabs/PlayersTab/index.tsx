@@ -6,6 +6,7 @@ import { api } from '../../api/client'
 import type { Player } from '../../api/client'
 import { Icon, SideNav } from '../../dune-ui'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh'
+import { usePermissions } from '../../hooks/usePermissions'
 import { DiscordBadge } from './components/DiscordBadge'
 import { PlayerDetailPanel } from './components/PlayerDetailPanel'
 import { ServerDashboard } from './components/ServerDashboard'
@@ -22,14 +23,22 @@ const OVERVIEW_KEY = '__overview__'
 
 export const PlayersTab: React.FC = () => {
   const { t } = useTranslation()
+  const { can } = usePermissions()
+  const canPlayersWrite = can('players:write')
+  const canExportData = can('data:export')
 
-  const DETAIL_TABS: { key: DetailTab, label: string }[] = [
+  const ALL_DETAIL_TABS: { key: DetailTab, label: string }[] = [
     { key: 'overview', label: t('players.tabs.overview') },
     { key: 'inventory', label: t('players.tabs.inventory') },
     { key: 'vehicles', label: t('players.tabs.vehicles') },
     { key: 'give', label: t('players.tabs.give') },
     { key: 'actions', label: t('players.tabs.actions') },
   ]
+  const DETAIL_TABS = ALL_DETAIL_TABS.filter((tab) => {
+    if (tab.key === 'give') return canPlayersWrite
+    if (tab.key === 'actions') return canPlayersWrite || canExportData
+    return true
+  })
 
   const [players, setPlayers] = React.useState<Player[]>([])
   const [loading, setLoading] = React.useState(false)
@@ -191,12 +200,12 @@ export const PlayersTab: React.FC = () => {
                       <VehiclesView player={selected} />
                     </div>
                   )}
-                  {activeTab === 'give' && (
+                  {activeTab === 'give' && canPlayersWrite && (
                     <div className="h-full flex flex-col pt-4 pb-4">
                       <GiveItemsView player={selected} />
                     </div>
                   )}
-                  {activeTab === 'actions' && (
+                  {activeTab === 'actions' && (canPlayersWrite || canExportData) && (
                     <div className="h-full flex flex-col pr-3">
                       <ActionsView player={selected} />
                     </div>

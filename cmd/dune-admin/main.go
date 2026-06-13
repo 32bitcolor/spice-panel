@@ -1,8 +1,12 @@
 // @title dune-admin API
 // @version 1.0
 // @description Admin panel API for a Dune Awakening private server.
+// @description When auth_enabled is set, all /api/v1 endpoints (except /api/v1/auth/*) require the session cookie issued by /api/v1/auth/login or the Discord OAuth flow.
 // @host localhost:8080
 // @BasePath /
+// @securityDefinitions.apikey CookieAuth
+// @in cookie
+// @name dune_admin_session
 
 package main
 
@@ -62,6 +66,7 @@ func resolveAppVersion(ldflagsVersion, workDir string) string {
 
 var (
 	setupMode       bool
+	setPasswordMode bool
 	cleanMarketMode bool
 	updateMode      bool
 	reinstallMode   bool
@@ -222,6 +227,39 @@ type appConfig struct {
 	// EventsEnabled starts the background polling engine. Per-event poll_seconds
 	// and jitter_seconds are configured on each event definition.
 	EventsEnabled *bool `yaml:"events_enabled" json:"events_enabled"`
+
+	// ── Dashboard authentication ──────────────────────────────────────────
+	// AuthEnabled turns on login enforcement for the dashboard + API.
+	// Pointer so "unset" (default-off) is distinguishable from explicit false.
+	// When off, behavior is identical to releases without auth.
+	AuthEnabled *bool `yaml:"auth_enabled" json:"auth_enabled"`
+	// Local username/password login. The hash is bcrypt; set it via
+	// `dune-admin --set-password` or the config UI (which sends the plaintext
+	// in auth_local_password_new and never stores it).
+	AuthLocalUsername     string `yaml:"auth_local_username"      json:"auth_local_username"`
+	AuthLocalPasswordHash string `yaml:"auth_local_password_hash" json:"auth_local_password_hash"`
+	// AuthLocalPasswordNew is a write-only API field: when present in a saved
+	// config it is bcrypt-hashed into AuthLocalPasswordHash and discarded.
+	AuthLocalPasswordNew string `yaml:"-" json:"auth_local_password_new,omitempty"`
+	// Discord OAuth2 login (BYOA). Reuses discord_bot_token + discord_guild_id
+	// for the membership/role lookup after the OAuth exchange.
+	AuthDiscordEnabled      *bool  `yaml:"auth_discord_enabled"       json:"auth_discord_enabled"`
+	AuthDiscordClientID     string `yaml:"auth_discord_client_id"     json:"auth_discord_client_id"`
+	AuthDiscordClientSecret string `yaml:"auth_discord_client_secret" json:"auth_discord_client_secret"`
+	// AuthDiscordRedirectURL overrides the OAuth redirect; empty derives
+	// scheme://host/api/v1/auth/discord/callback from each request.
+	AuthDiscordRedirectURL string `yaml:"auth_discord_redirect_url" json:"auth_discord_redirect_url"`
+	// Owners get full capabilities regardless of the permissions matrix.
+	// The guild owner (via Discord API) and the local account are always
+	// owners; these comma-separated lists add more.
+	AuthOwnerDiscordIDs string `yaml:"auth_owner_discord_ids" json:"auth_owner_discord_ids"`
+	AuthOwnerRoleIDs    string `yaml:"auth_owner_role_ids"    json:"auth_owner_role_ids"`
+	AuthSessionTTLHours int    `yaml:"auth_session_ttl_hours" json:"auth_session_ttl_hours"`
+	// AuthGuestEnabled allows anyone to start a read-only "guest" session
+	// from the login page — no credentials, default read-only capabilities.
+	AuthGuestEnabled *bool `yaml:"auth_guest_enabled" json:"auth_guest_enabled"`
+	// AuthCookieSameSite: "" → Lax; "none" for cross-origin CDN setups (TLS only).
+	AuthCookieSameSite string `yaml:"auth_cookie_samesite" json:"auth_cookie_samesite"`
 
 	// ── Battlepass ─────────────────────────────────────────────────────────
 	// BattlepassEnabled starts the tier-evaluation loop (default off).
@@ -437,6 +475,7 @@ func init() {
 	flag.StringVar(&backupDir, "backup-dir", envOr("BACKUP_DIR", ""), "Backup directory path")
 	flag.StringVar(&serverIniDir, "ini-dir", envOr("SERVER_INI_DIR", ""), "Directory containing UserGame.ini / UserOverrides.ini")
 	flag.BoolVar(&setupMode, "setup", false, "Interactive setup wizard — writes ~/.dune-admin/config.yaml")
+	flag.BoolVar(&setPasswordMode, "set-password", false, "Set the local dashboard login username/password, then exit (auth lockout recovery)")
 	flag.BoolVar(&cleanMarketMode, "clean-market", false, "Delete all bot listings (Revy), then exit")
 	flag.StringVar(&sqlQuery, "sql", "", "Run a SQL query and print results to stdout, then exit")
 	flag.StringVar(&renderK8SOut, "render-k8s", "", "Render k8s manifest with values from loaded config (path or '-' for stdout)")
@@ -630,6 +669,9 @@ func runImmediateModes() (handled bool, err error) {
 	if setupMode {
 		runSetup()
 		return true, nil
+	}
+	if setPasswordMode {
+		return true, runSetPasswordMode()
 	}
 	if reinstallMode {
 		runSelfUpdate(true)

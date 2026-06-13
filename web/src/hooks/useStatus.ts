@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { api } from '../api/client'
+import { ApiError, api } from '../api/client'
 import type { Status } from '../api/client'
 import type { ConnState, StatusResult } from './types'
 
@@ -18,7 +18,15 @@ export const useStatus = (): StatusResult => {
         setStatus(s)
         setState('connected')
       }
-      catch {
+      catch (e) {
+        // A 401/403 means the backend IS reachable but auth/permissions block
+        // the status read — render the app shell (tabs gate themselves), never
+        // the "can't reach backend" screen, which would trap the user.
+        if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
+          everConnected = true
+          setState('connected')
+          return
+        }
         // Only surface the hard "can't reach backend" screen if we've NEVER
         // connected. A transient blip after a successful connect keeps the last
         // status — the header's DB/SSH badges already reflect dependency health.

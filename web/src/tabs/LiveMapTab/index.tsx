@@ -10,6 +10,7 @@ import type { MapMarker, Player } from '../../api/client'
 import { ConfirmDialog, Icon, PageHeader } from '../../dune-ui'
 import { PlayerSearchField } from '../../components/PlayerSearchField'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh'
+import { usePermissions } from '../../hooks/usePermissions'
 import { InvalidateOnActive } from './components/InvalidateOnActive'
 import { MapClickCapture } from './components/MapClickCapture'
 import { SpawnCanvasLayer } from './components/SpawnCanvasLayer'
@@ -28,6 +29,8 @@ import type { SpawnEntry, SpawnFile, CalibPoint, MapCfg, Bounds } from './types'
 
 export const LiveMapTab: React.FC = () => {
   const { t } = useTranslation()
+  const { can } = usePermissions()
+  const canPlayersWrite = can('players:write')
   const [mapKey, setMapKey] = React.useState<string>('HaggaBasin')
   const [markers, setMarkers] = React.useState<MapMarker[]>([])
   const [loading, setLoading] = React.useState(false)
@@ -302,18 +305,20 @@ export const LiveMapTab: React.FC = () => {
           <Icon name="home" />
         </Button>
 
-        <Button
-          size="sm"
-          variant={teleportMode ? 'primary' : 'outline'}
-          onPress={() => {
-            setTeleportMode((v) => !v)
-            setTeleportDest(null)
-          }}
-        >
-          <Icon name="navigation" />
-          {' '}
-          {t('liveMap.teleportMode')}
-        </Button>
+        {canPlayersWrite && (
+          <Button
+            size="sm"
+            variant={teleportMode ? 'primary' : 'outline'}
+            onPress={() => {
+              setTeleportMode((v) => !v)
+              setTeleportDest(null)
+            }}
+          >
+            <Icon name="navigation" />
+            {' '}
+            {t('liveMap.teleportMode')}
+          </Button>
+        )}
         <Button size="sm" variant={calibrating ? 'primary' : 'outline'} onPress={() => setCalibrating((v) => !v)}>
           <Icon name="crosshair" />
           {' '}
@@ -359,7 +364,7 @@ export const LiveMapTab: React.FC = () => {
         {updatedLabel !== '' && <span className="ml-auto">{t('liveMap.updated', { time: updatedLabel })}</span>}
       </div>
 
-      {teleportMode && (
+      {canPlayersWrite && teleportMode && (
         <div className="shrink-0 rounded-[var(--radius)] border border-accent/40 bg-surface px-3 py-2 text-xs flex flex-wrap items-center gap-3">
           <div className="text-accent font-medium">
             <Icon name="navigation" className="size-3 inline mr-1" />
@@ -469,7 +474,7 @@ export const LiveMapTab: React.FC = () => {
                           key={`${m.type}-${m.id}`}
                           position={center}
                           icon={isSelected ? selectedIcon : icon}
-                          draggable={isPlayer}
+                          draggable={canPlayersWrite && isPlayer}
                           eventHandlers={{
                             click: () => {
                               if (m.fls_id) {
@@ -505,7 +510,7 @@ export const LiveMapTab: React.FC = () => {
                               {', '}
                               {Math.round(m.y)}
                             </div>
-                            {isPlayer && <div className="text-xs text-accent mt-0.5">Drag to teleport</div>}
+                            {canPlayersWrite && isPlayer && <div className="text-xs text-accent mt-0.5">Drag to teleport</div>}
                           </Tooltip>
                         </Marker>
                       )

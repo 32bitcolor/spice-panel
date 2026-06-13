@@ -15,6 +15,449 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/auth/discord/callback": {
+            "get": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Discord OAuth2 callback",
+                "responses": {
+                    "302": {
+                        "description": "Found"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/discord/login": {
+            "get": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Start Discord OAuth2 login",
+                "responses": {
+                    "302": {
+                        "description": "Found"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/guest": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Start a read-only guest session",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/login": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Local username/password login",
+                "parameters": [
+                    {
+                        "description": "Login credentials",
+                        "name": "credentials",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.loginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/logout": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Log out (clear session cookie)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/permissions": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Get the role→capability permissions matrix (owner only)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/main.permissionsResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Replace the permissions matrix (owner only)",
+                "parameters": [
+                    {
+                        "description": "New role→capability matrix",
+                        "name": "matrix",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.permissionsUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/status": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Auth status: enabled flag, login methods, current session",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/main.authStatusResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/users": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "List local dashboard users (owner / auth:manage)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/main.authUserRecord"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/users/{username}": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Create or update a local dashboard user (owner / auth:manage)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Username",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "User settings",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.authUserUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Delete a local dashboard user (owner / auth:manage)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Username",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/bases": {
             "get": {
                 "produces": [
@@ -660,12 +1103,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "players"
+                    "chat"
                 ],
-                "summary": "Send whisper message to a player via RabbitMQ (experimental)",
+                "summary": "Send a whisper to a player from the GM/Server persona",
                 "parameters": [
                     {
-                        "description": "Target FLS ID, target name, sender name, message, and optional impersonated FLS ID",
+                        "description": "Recipient account id and message",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -695,6 +1138,15 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1027,6 +1479,743 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/db-backups": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "db-backups"
+                ],
+                "summary": "List database backups",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "db-backups"
+                ],
+                "summary": "Take a database backup now",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "501": {
+                        "description": "Not Implemented",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "db-backups"
+                ],
+                "summary": "Delete a database backup",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "backup filename",
+                        "name": "file",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/api/v1/db-backups/download": {
+            "get": {
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "db-backups"
+                ],
+                "summary": "Download a database backup",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "backup filename",
+                        "name": "file",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/api/v1/db-backups/restore": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "db-backups"
+                ],
+                "summary": "Restore the database from a backup (DESTRUCTIVE — battlegroup must be stopped)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/director-config": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "director"
+                ],
+                "summary": "Read the Battlegroup Director config (AMP only)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "501": {
+                        "description": "Not Implemented",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "director"
+                ],
+                "summary": "Update the Battlegroup Director config (AMP only)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "501": {
+                        "description": "Not Implemented",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/discord/members/search": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "discord"
+                ],
+                "summary": "Search Discord guild members by name prefix",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Name prefix to search",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/main.discordMemberRow"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/guilds": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "guilds"
+                ],
+                "summary": "List all guilds with member count + faction name",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/main.guildSummary"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/guilds/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "guilds"
+                ],
+                "summary": "Get one guild with its members and pending invites",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Guild ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/main.guildDetail"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "guilds"
+                ],
+                "summary": "Edit a guild's name and/or description",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Guild ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/main.guildDetail"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/guilds/{id}/members/{pid}/role": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "guilds"
+                ],
+                "summary": "Set a guild member's role (50 = member, 100 = admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Guild ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Member player (actor) ID",
+                        "name": "pid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/landsraad": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "landsraad"
+                ],
+                "summary": "Landsraad overview — latest term, decree catalogue, and task board",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/main.landsraadOverview"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/locations": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "locations"
+                ],
+                "summary": "List all saved teleport/spawn locations",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/main.teleportLocation"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "locations"
+                ],
+                "summary": "Rename an existing location",
+                "parameters": [
+                    {
+                        "description": "old_name, new_name",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/main.teleportLocation"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "locations"
+                ],
+                "summary": "Add or update a named teleport/spawn location",
+                "parameters": [
+                    {
+                        "description": "name, x, y, z",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/main.teleportLocation"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "locations"
+                ],
+                "summary": "Delete a named location",
+                "parameters": [
+                    {
+                        "description": "name",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/main.teleportLocation"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/logs/cheats": {
             "get": {
                 "produces": [
@@ -1115,6 +2304,64 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/map/markers": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "map"
+                ],
+                "summary": "Live Map markers for a map",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Map key (HaggaBasin | DeepDesert)",
+                        "name": "map",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/main.mapMarker"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
@@ -2252,6 +3499,51 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/players/faction-trends": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "players"
+                ],
+                "summary": "Faction-growth time series (Solaris or avg level per faction)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "solaris (default) | level",
+                        "name": "metric",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/main.factionTrends"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/players/factions": {
             "get": {
                 "produces": [
@@ -2294,7 +3586,7 @@ const docTemplate = `{
                 "tags": [
                     "players"
                 ],
-                "summary": "Send fill-water command via RabbitMQ",
+                "summary": "Send fill-water command via RabbitMQ (player must be online)",
                 "parameters": [
                     {
                         "description": "Player FLS ID and optional water amount",
@@ -2318,6 +3610,15 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Player must be online",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -4109,6 +5410,43 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/players/summary": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "players"
+                ],
+                "summary": "Server-wide player summary dashboard",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/main.serverSummary"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/players/teleport": {
             "post": {
                 "consumes": [
@@ -4151,6 +5489,58 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/players/teleport-coords": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "players"
+                ],
+                "summary": "Teleport a player to arbitrary XYZ coordinates",
+                "parameters": [
+                    {
+                        "description": "fls_id, x, y, z, partition_id (optional)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -4977,6 +6367,141 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/scheduled-backups": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "scheduled-backups"
+                ],
+                "summary": "Get the scheduled-backup config + next backup time",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "scheduled-backups"
+                ],
+                "summary": "Update the scheduled-backup config",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/scheduled-restarts": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "scheduled-restarts"
+                ],
+                "summary": "Get the scheduled-restart config + next restart time",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "scheduled-restarts"
+                ],
+                "summary": "Update the scheduled-restart config",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/scheduled-restarts/skip-next": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "scheduled-restarts"
+                ],
+                "summary": "Skip the next scheduled restart (without disabling the schedule)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/server-settings": {
             "get": {
                 "produces": [
@@ -5508,13 +7033,342 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/v1/web-interfaces": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "web-interfaces"
+                ],
+                "summary": "List configured web interfaces",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "web-interfaces"
+                ],
+                "summary": "Replace the configured web interfaces",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/welcome-package/config": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "welcome-package"
+                ],
+                "summary": "Get welcome-package config",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/main.welcomeConfigResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "welcome-package"
+                ],
+                "summary": "Update welcome-package config (applies live + persists)",
+                "parameters": [
+                    {
+                        "description": "config",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.welcomeConfigResponse"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/main.welcomeConfigResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/welcome-package/grants": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "welcome-package"
+                ],
+                "summary": "List welcome-package grant ledger rows",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "max rows (default 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/main.welcomeGrantRecord"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/welcome-package/retry": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "welcome-package"
+                ],
+                "summary": "Retry a failed welcome-package grant (clears the ledger row)",
+                "parameters": [
+                    {
+                        "description": "fls_id, package_version, account_id",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/welcome-package/revoke": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "welcome-package"
+                ],
+                "summary": "Revoke a welcome-package grant (clears the ledger row so the same package can be granted again)",
+                "parameters": [
+                    {
+                        "description": "fls_id, package_version, account_id",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/welcome-package/run": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "welcome-package"
+                ],
+                "summary": "Run a welcome-package scan now (one-off, regardless of enabled)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "main.activityPoint": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "day": {
+                    "type": "string"
+                }
+            }
+        },
         "main.appConfig": {
             "type": "object",
             "properties": {
+                "amp_api_pass": {
+                    "type": "string"
+                },
+                "amp_api_port": {
+                    "type": "integer"
+                },
+                "amp_api_user": {
+                    "description": "AMP Web API credentials — let dune-admin manage server settings under AMP\nby writing them through AMP's own config API (Core/SetConfig), so they\nsurvive AMP regenerating the game INIs. The API is the instance ADS,\nreached in-container at 127.0.0.1:\u003camp_api_port\u003e (default 8081).",
+                    "type": "string"
+                },
+                "amp_backup_dir": {
+                    "type": "string"
+                },
                 "amp_container": {
+                    "type": "string"
+                },
+                "amp_container_runtime": {
+                    "description": "AmpContainerRuntime selects the container CLI used for in-container ops\n(logs/INI/rabbitmqctl) when AmpUseContainer is true: \"podman\" (default)\nor \"docker\". Empty → podman, so existing installs are unaffected.",
                     "type": "string"
                 },
                 "amp_data_root": {
@@ -5527,15 +7381,85 @@ const docTemplate = `{
                 "amp_log_path": {
                     "type": "string"
                 },
+                "amp_pg_bin": {
+                    "description": "DB backup tooling (#150). AmpPgBin/AmpPgLib locate the in-container PG17\npg_dump/pg_restore + their shared libs; empty → validated AMP defaults.\nAmpBackupDir is the host dir for dumps; empty → \u003cconfigDir\u003e/db-backups.",
+                    "type": "string"
+                },
+                "amp_pg_lib": {
+                    "type": "string"
+                },
                 "amp_use_container": {
                     "type": "boolean"
                 },
                 "amp_user": {
                     "type": "string"
                 },
+                "auth_cookie_samesite": {
+                    "description": "AuthCookieSameSite: \"\" → Lax; \"none\" for cross-origin CDN setups (TLS only).",
+                    "type": "string"
+                },
+                "auth_discord_client_id": {
+                    "type": "string"
+                },
+                "auth_discord_client_secret": {
+                    "type": "string"
+                },
+                "auth_discord_enabled": {
+                    "description": "Discord OAuth2 login (BYOA). Reuses discord_bot_token + discord_guild_id\nfor the membership/role lookup after the OAuth exchange.",
+                    "type": "boolean"
+                },
+                "auth_discord_redirect_url": {
+                    "description": "AuthDiscordRedirectURL overrides the OAuth redirect; empty derives\nscheme://host/api/v1/auth/discord/callback from each request.",
+                    "type": "string"
+                },
+                "auth_enabled": {
+                    "description": "── Dashboard authentication ──────────────────────────────────────────\nAuthEnabled turns on login enforcement for the dashboard + API.\nPointer so \"unset\" (default-off) is distinguishable from explicit false.\nWhen off, behavior is identical to releases without auth.",
+                    "type": "boolean"
+                },
+                "auth_guest_enabled": {
+                    "description": "AuthGuestEnabled allows anyone to start a read-only \"guest\" session\nfrom the login page — no credentials, default read-only capabilities.",
+                    "type": "boolean"
+                },
+                "auth_local_password_hash": {
+                    "type": "string"
+                },
+                "auth_local_password_new": {
+                    "description": "AuthLocalPasswordNew is a write-only API field: when present in a saved\nconfig it is bcrypt-hashed into AuthLocalPasswordHash and discarded.",
+                    "type": "string"
+                },
+                "auth_local_username": {
+                    "description": "Local username/password login. The hash is bcrypt; set it via\n` + "`" + `dune-admin --set-password` + "`" + ` or the config UI (which sends the plaintext\nin auth_local_password_new and never stores it).",
+                    "type": "string"
+                },
+                "auth_owner_discord_ids": {
+                    "description": "Owners get full capabilities regardless of the permissions matrix.\nThe guild owner (via Discord API) and the local account are always\nowners; these comma-separated lists add more.",
+                    "type": "string"
+                },
+                "auth_owner_role_ids": {
+                    "type": "string"
+                },
+                "auth_session_ttl_hours": {
+                    "type": "integer"
+                },
                 "backup_dir": {
                     "description": "Backups — optional path accessed via the executor.",
                     "type": "string"
+                },
+                "battlepass_award_past": {
+                    "type": "boolean"
+                },
+                "battlepass_enabled": {
+                    "description": "── Battlepass ─────────────────────────────────────────────────────────\nBattlepassEnabled starts the tier-evaluation loop (default off).\nBattlepassAwardPast rewards pre-existing progress on first evaluation;\ndefault off — old progress is baselined and only new unlocks earn intel.\nIMPORTANT: set award_past=true on the FIRST scan for an account — if\nan account is first scanned with award_past=false, its tiers are written\nas \"baseline\" permanently and flipping award_past later has no effect.\nTo repopulate Pending after changing modes, clear the battlepass_* tables\nin dune-admin.db (or delete the whole file to reset all stores).\nBattlepassScanPaceMs is the inter-player delay (ms) during evaluation;\n0 disables pacing; negative → default 75ms; max 5000ms.\nBattlepassScanStartDelayMs is the delay (ms) before the boot scan so the\nserver and DB pool finish warming; 0 is immediate; negative → 3000ms.",
+                    "type": "boolean"
+                },
+                "battlepass_poll_seconds": {
+                    "type": "integer"
+                },
+                "battlepass_scan_pace_ms": {
+                    "type": "integer"
+                },
+                "battlepass_scan_start_delay_ms": {
+                    "type": "integer"
                 },
                 "broker_admin_addr": {
                     "type": "string"
@@ -5608,6 +7532,29 @@ const docTemplate = `{
                 "director_url": {
                     "type": "string"
                 },
+                "discord_announce_channel_id": {
+                    "type": "string"
+                },
+                "discord_bot_enabled": {
+                    "description": "── Discord bot ────────────────────────────────────────────────────────\nDiscordBotEnabled starts the embedded Discord gateway bot. Pointer so we\ncan distinguish \"unset\" (default-off) from \"explicitly false\".",
+                    "type": "boolean"
+                },
+                "discord_bot_token": {
+                    "type": "string"
+                },
+                "discord_guild_id": {
+                    "type": "string"
+                },
+                "discord_roles_admin": {
+                    "type": "string"
+                },
+                "discord_roles_economy": {
+                    "type": "string"
+                },
+                "discord_roles_viewer": {
+                    "description": "Comma-separated Discord role IDs for each capability tier.",
+                    "type": "string"
+                },
                 "docker_broker_admin": {
                     "type": "string"
                 },
@@ -5620,6 +7567,10 @@ const docTemplate = `{
                 "docker_gameserver": {
                     "description": "docker-specific — container names",
                     "type": "string"
+                },
+                "events_enabled": {
+                    "description": "── Live events engine ─────────────────────────────────────────────────\nEventsEnabled starts the background polling engine. Per-event poll_seconds\nand jitter_seconds are configured on each event definition.",
+                    "type": "boolean"
                 },
                 "listen_addr": {
                     "type": "string"
@@ -5671,6 +7622,123 @@ const docTemplate = `{
                 },
                 "ssh_user": {
                     "type": "string"
+                },
+                "welcome_package_active_version": {
+                    "type": "string"
+                },
+                "welcome_package_enabled": {
+                    "description": "── Welcome package ────────────────────────────────────────────────────\nAuto-grants a configured item package to every player once, on first\nlogin. Defaults OFF — it mutates every player's inventory, so it must be\nexplicitly opted into. Bump the version to re-issue to everyone.",
+                    "type": "boolean"
+                },
+                "welcome_package_items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.welcomePackageItem"
+                    }
+                },
+                "welcome_package_scan_interval_secs": {
+                    "type": "integer"
+                },
+                "welcome_package_version": {
+                    "description": "Legacy pre-library fields, migrated into WelcomePackages on load.",
+                    "type": "string"
+                },
+                "welcome_packages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.welcomePackage"
+                    }
+                }
+            }
+        },
+        "main.authSessionInfo": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string"
+                },
+                "capabilities": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "method": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "owner": {
+                    "type": "boolean"
+                },
+                "sub": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.authStatusResponse": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "methods": {
+                    "type": "object",
+                    "properties": {
+                        "discord": {
+                            "type": "boolean"
+                        },
+                        "guest": {
+                            "type": "boolean"
+                        },
+                        "local": {
+                            "type": "boolean"
+                        }
+                    }
+                },
+                "session": {
+                    "$ref": "#/definitions/main.authSessionInfo"
+                }
+            }
+        },
+        "main.authUserRecord": {
+            "type": "object",
+            "properties": {
+                "capabilities": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.authUserUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "capabilities": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "password": {
+                    "type": "string"
                 }
             }
         },
@@ -5688,6 +7756,17 @@ const docTemplate = `{
                 },
                 "size_bytes": {
                     "type": "integer"
+                }
+            }
+        },
+        "main.capabilityInfo": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
                 }
             }
         },
@@ -5719,6 +7798,34 @@ const docTemplate = `{
                 },
                 "player_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "main.discordMemberRow": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.discordRoleRow": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },
@@ -5759,6 +7866,61 @@ const docTemplate = `{
                 },
                 "scrips": {
                     "type": "integer"
+                }
+            }
+        },
+        "main.factionStat": {
+            "type": "object",
+            "properties": {
+                "avg_level": {
+                    "type": "number"
+                },
+                "faction": {
+                    "type": "string"
+                },
+                "players": {
+                    "type": "integer"
+                },
+                "scrip": {
+                    "type": "integer"
+                },
+                "solaris": {
+                    "type": "integer"
+                }
+            }
+        },
+        "main.factionTrendPoint": {
+            "type": "object",
+            "properties": {
+                "day": {
+                    "type": "string"
+                },
+                "values": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "number",
+                        "format": "float64"
+                    }
+                }
+            }
+        },
+        "main.factionTrends": {
+            "type": "object",
+            "properties": {
+                "factions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "metric": {
+                    "type": "string"
+                },
+                "points": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.factionTrendPoint"
+                    }
                 }
             }
         },
@@ -5819,6 +7981,98 @@ const docTemplate = `{
                 }
             }
         },
+        "main.guildDetail": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "faction_id": {
+                    "type": "integer"
+                },
+                "faction_name": {
+                    "type": "string"
+                },
+                "guild_id": {
+                    "type": "integer"
+                },
+                "invites": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.guildInvite"
+                    }
+                },
+                "member_count": {
+                    "type": "integer"
+                },
+                "members": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.guildMember"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.guildInvite": {
+            "type": "object",
+            "properties": {
+                "character_name": {
+                    "type": "string"
+                },
+                "invite_id": {
+                    "type": "integer"
+                },
+                "player_id": {
+                    "type": "integer"
+                },
+                "sender_name": {
+                    "type": "string"
+                },
+                "sender_player_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "main.guildMember": {
+            "type": "object",
+            "properties": {
+                "character_name": {
+                    "type": "string"
+                },
+                "player_id": {
+                    "type": "integer"
+                },
+                "role_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "main.guildSummary": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "faction_id": {
+                    "type": "integer"
+                },
+                "faction_name": {
+                    "type": "string"
+                },
+                "guild_id": {
+                    "type": "integer"
+                },
+                "member_count": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "main.itemInfo": {
             "type": "object",
             "properties": {
@@ -5845,6 +8099,109 @@ const docTemplate = `{
                 }
             }
         },
+        "main.labeledCount": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "label": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.landsraadDecree": {
+            "type": "object",
+            "properties": {
+                "disabled": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "weight": {
+                    "type": "number"
+                }
+            }
+        },
+        "main.landsraadOverview": {
+            "type": "object",
+            "properties": {
+                "decrees": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.landsraadDecree"
+                    }
+                },
+                "tasks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.landsraadTask"
+                    }
+                },
+                "term": {
+                    "$ref": "#/definitions/main.landsraadTerm"
+                }
+            }
+        },
+        "main.landsraadTask": {
+            "type": "object",
+            "properties": {
+                "board_index": {
+                    "type": "integer"
+                },
+                "completed": {
+                    "type": "boolean"
+                },
+                "goal_amount": {
+                    "type": "integer"
+                },
+                "house": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "sysselraad": {
+                    "type": "boolean"
+                },
+                "winning_faction": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.landsraadTerm": {
+            "type": "object",
+            "properties": {
+                "active_decree": {
+                    "type": "string"
+                },
+                "elected_decree": {
+                    "type": "string"
+                },
+                "end_time": {
+                    "type": "string"
+                },
+                "reigning_faction": {
+                    "type": "string"
+                },
+                "start_time": {
+                    "type": "string"
+                },
+                "term_id": {
+                    "type": "integer"
+                },
+                "test_term": {
+                    "type": "boolean"
+                },
+                "winning_faction": {
+                    "type": "string"
+                }
+            }
+        },
         "main.logPod": {
             "type": "object",
             "properties": {
@@ -5853,6 +8210,102 @@ const docTemplate = `{
                 },
                 "namespace": {
                     "type": "string"
+                }
+            }
+        },
+        "main.loginRequest": {
+            "type": "object",
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.mapMarker": {
+            "type": "object",
+            "properties": {
+                "class": {
+                    "type": "string"
+                },
+                "fls_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "map": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "online_status": {
+                    "type": "string"
+                },
+                "partition_id": {
+                    "type": "integer"
+                },
+                "type": {
+                    "description": "\"player\" | \"vehicle\" | \"base\"",
+                    "type": "string"
+                },
+                "x": {
+                    "type": "number"
+                },
+                "y": {
+                    "type": "number"
+                },
+                "z": {
+                    "type": "number"
+                }
+            }
+        },
+        "main.permissionsResponse": {
+            "type": "object",
+            "properties": {
+                "capabilities": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.capabilityInfo"
+                    }
+                },
+                "defaults": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "guild_roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.discordRoleRow"
+                    }
+                },
+                "matrix": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "main.permissionsUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "matrix": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
                 }
             }
         },
@@ -5867,6 +8320,12 @@ const docTemplate = `{
                 },
                 "controller_id": {
                     "type": "integer"
+                },
+                "discord_avatar": {
+                    "type": "string"
+                },
+                "discord_user_id": {
+                    "type": "string"
                 },
                 "faction_id": {
                     "type": "integer"
@@ -5885,6 +8344,50 @@ const docTemplate = `{
                 },
                 "online_status": {
                     "type": "string"
+                }
+            }
+        },
+        "main.serverSummary": {
+            "type": "object",
+            "properties": {
+                "activity_trend": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.activityPoint"
+                    }
+                },
+                "avg_char_level": {
+                    "type": "number"
+                },
+                "by_faction": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.factionStat"
+                    }
+                },
+                "by_map": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.labeledCount"
+                    }
+                },
+                "online_players": {
+                    "type": "integer"
+                },
+                "total_players": {
+                    "type": "integer"
+                },
+                "total_playtime_secs": {
+                    "type": "integer"
+                },
+                "total_scrip": {
+                    "type": "integer"
+                },
+                "total_solaris": {
+                    "type": "integer"
+                },
+                "trend_days": {
+                    "type": "integer"
                 }
             }
         },
@@ -5986,6 +8489,118 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "main.welcomeConfigResponse": {
+            "type": "object",
+            "properties": {
+                "active_version": {
+                    "type": "string"
+                },
+                "active_versions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "motd_enabled": {
+                    "type": "boolean"
+                },
+                "motd_message": {
+                    "type": "string"
+                },
+                "motd_source_player": {
+                    "type": "string"
+                },
+                "packages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.welcomePackage"
+                    }
+                },
+                "scan_interval_secs": {
+                    "type": "integer"
+                },
+                "welcome_message": {
+                    "type": "string"
+                },
+                "welcome_message_enabled": {
+                    "type": "boolean"
+                },
+                "welcome_whisper_source_player": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.welcomeGrantRecord": {
+            "type": "object",
+            "properties": {
+                "account_id": {
+                    "type": "integer"
+                },
+                "attempts": {
+                    "type": "integer"
+                },
+                "character_name": {
+                    "type": "string"
+                },
+                "fls_id": {
+                    "type": "string"
+                },
+                "granted_at": {
+                    "type": "string"
+                },
+                "last_error": {
+                    "type": "string"
+                },
+                "package_version": {
+                    "type": "string"
+                },
+                "status": {
+                    "description": "\"granted\" | \"failed\"",
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.welcomePackage": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.welcomePackageItem"
+                    }
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.welcomePackageItem": {
+            "type": "object",
+            "properties": {
+                "qty": {
+                    "type": "integer"
+                },
+                "quality": {
+                    "type": "integer"
+                },
+                "template": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "CookieAuth": {
+            "type": "apiKey",
+            "name": "dune_admin_session",
+            "in": "cookie"
         }
     }
 }`
@@ -5997,7 +8612,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "dune-admin API",
-	Description:      "Admin panel API for a Dune Awakening private server.",
+	Description:      "Admin panel API for a Dune Awakening private server.\nWhen auth_enabled is set, all /api/v1 endpoints (except /api/v1/auth/*) require the session cookie issued by /api/v1/auth/login or the Discord OAuth flow.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

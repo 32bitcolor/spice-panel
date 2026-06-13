@@ -6,14 +6,17 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'
 import type { VehicleRow } from '../../../api/client'
 import { DataTable, Icon, LoadingState, SectionLabel, type Column } from '../../../dune-ui'
+import { usePermissions } from '../../../hooks/usePermissions'
 import type { VehicleKey, VehiclesViewProps } from './types'
 
 export const VehiclesView: React.FC<VehiclesViewProps> = ({ player }) => {
   const { t } = useTranslation()
+  const { can } = usePermissions()
+  const canPlayersWrite = can('players:write')
   const [vehicles, setVehicles] = React.useState<VehicleRow[]>([])
   const [loading, setLoading] = React.useState(false)
 
-  const VEHICLE_COLUMNS: Column<VehicleKey>[] = [
+  const ALL_VEHICLE_COLUMNS: Column<VehicleKey>[] = [
     { key: 'class', label: t('players.vehicles.columns.class'), isRowHeader: true },
     { key: 'location', label: t('players.vehicles.columns.location') },
     { key: 'chassis', label: t('players.vehicles.columns.chassis') },
@@ -21,6 +24,7 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({ player }) => {
     { key: 'type', label: t('players.vehicles.columns.type'), sortable: false },
     { key: 'actions', label: ' ', sortable: false },
   ]
+  const VEHICLE_COLUMNS = ALL_VEHICLE_COLUMNS.filter((c) => canPlayersWrite || c.key !== 'actions')
 
   React.useEffect(() => {
     Promise.resolve()

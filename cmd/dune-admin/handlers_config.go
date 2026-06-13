@@ -53,6 +53,12 @@ func maskSecrets(cfg *appConfig) {
 	if cfg.DiscordBotToken != "" {
 		cfg.DiscordBotToken = masked
 	}
+	if cfg.AuthDiscordClientSecret != "" {
+		cfg.AuthDiscordClientSecret = masked
+	}
+	if cfg.AuthLocalPasswordHash != "" {
+		cfg.AuthLocalPasswordHash = masked
+	}
 }
 
 // preserveMaskedSecrets restores real secret values when the client sent back
@@ -68,7 +74,9 @@ func preserveMaskedSecrets(
 		cfg.BrokerJWTSecret == masked ||
 		cfg.MarketBotRemoteToken == masked ||
 		cfg.AmpAPIPass == masked ||
-		cfg.DiscordBotToken == masked
+		cfg.DiscordBotToken == masked ||
+		cfg.AuthDiscordClientSecret == masked ||
+		cfg.AuthLocalPasswordHash == masked
 
 	if !needsRestore {
 		return
@@ -100,6 +108,12 @@ func preserveMaskedSecrets(
 	}
 	if cfg.DiscordBotToken == masked {
 		cfg.DiscordBotToken = old.DiscordBotToken
+	}
+	if cfg.AuthDiscordClientSecret == masked {
+		cfg.AuthDiscordClientSecret = old.AuthDiscordClientSecret
+	}
+	if cfg.AuthLocalPasswordHash == masked {
+		cfg.AuthLocalPasswordHash = old.AuthLocalPasswordHash
 	}
 }
 
@@ -162,12 +176,26 @@ func handleSaveConfig(w http.ResponseWriter, r *http.Request) {
 
 	preserveMaskedSecrets(&cfg, os.ReadFile, configPath())
 
+	if err := applyNewLocalPassword(&cfg); err != nil {
+		jsonErr(w, err, 500)
+		return
+	}
+
 	if err := writeConfigFile(cfg); err != nil {
 		jsonErr(w, err, 500)
 		return
 	}
 
+	// Capture the auth-enabled state before applyConfig overwrites loadedConfig,
+	// so we can force a clean slate when it is toggled.
+	wasAuthEnabled := authEnabled(loadedConfig)
+
 	applyConfig(cfg)
+
+	// Re-initialize auth state so enabling auth (or adding Discord login)
+	// via the UI takes effect without a process restart. Disabling auth is
+	// honored immediately too — the middleware checks loadedConfig per request.
+	initAuthRuntime(cfg)
 
 	// Stop the running bot (if any) before closing the DB pool.
 	// A running bot holds a reference to globalDB; if we close the pool first
@@ -190,7 +218,21 @@ func handleSaveConfig(w http.ResponseWriter, r *http.Request) {
 	// Discord connects outbound (no dependency on globalDB) so restart it last
 	// to pick up any token/guild/role changes without requiring a process restart.
 	applyDiscordConfig(cfg)
+
+	// When auth is toggled on or off, drop the caller's session cookie so the
+	// SPA re-evaluates from a clean slate (login page when enabling, normal app
+	// when disabling) rather than acting on a stale session.
+	clearSessionOnAuthToggle(w, r, wasAuthEnabled, authEnabled(cfg))
+
 	handleStatus(w, r)
+}
+
+// clearSessionOnAuthToggle expires the session cookie when the auth-enabled
+// flag changes state during a config save. No-op when the flag is unchanged.
+func clearSessionOnAuthToggle(w http.ResponseWriter, r *http.Request, wasEnabled, nowEnabled bool) {
+	if wasEnabled != nowEnabled {
+		clearSessionCookie(w, r)
+	}
 }
 
 // buildCurrentConfig constructs an appConfig from the current global vars.

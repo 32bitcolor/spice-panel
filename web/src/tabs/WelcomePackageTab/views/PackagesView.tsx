@@ -4,6 +4,7 @@ import type { Selection } from '@heroui/react'
 import type { DataGridColumn } from '@heroui-pro/react'
 import { DataGrid } from '@heroui-pro/react'
 import { useTranslation } from 'react-i18next'
+import { usePermissions } from '../../../hooks/usePermissions'
 import { ActionBar, Icon, NumberInput, PageHeader } from '../../../dune-ui'
 import type { WelcomePackage } from '../../../api/client'
 import { DiffStatus } from '../components/DiffStatus'
@@ -21,6 +22,7 @@ export const PackagesView: React.FC<PackagesViewProps> = ({
   configDiff,
 }) => {
   const { t } = useTranslation()
+  const { can } = usePermissions()
 
   const [selected, setSelected] = React.useState(() => packages[0]?.version ?? '')
   const [newName, setNewName] = React.useState('')
@@ -163,15 +165,19 @@ export const PackagesView: React.FC<PackagesViewProps> = ({
       header: '',
       width: 52,
       cell: (item) => (
-        <Button
-          size="sm"
-          variant="danger-soft"
-          isIconOnly
-          onPress={() => removeItem(item._key)}
-          aria-label={t('welcome.removeItem')}
-        >
-          <Icon name="trash" />
-        </Button>
+        can('welcome:manage')
+          ? (
+              <Button
+                size="sm"
+                variant="danger-soft"
+                isIconOnly
+                onPress={() => removeItem(item._key)}
+                aria-label={t('welcome.removeItem')}
+              >
+                <Icon name="trash" />
+              </Button>
+            )
+          : null
       ),
     },
   ]
@@ -235,35 +241,37 @@ export const PackagesView: React.FC<PackagesViewProps> = ({
               </Select.Popover>
             </Select>
           </div>
-          {selected && (
+          {can('welcome:manage') && selected && (
             <Button size="sm" variant="ghost" onPress={() => deleteVersion(selected)}>
               <Icon name="trash-2" />
             </Button>
           )}
         </div>
 
-        <div className="flex items-end gap-2">
-          <div className="flex flex-col gap-0.5">
-            <label className="text-xs text-muted">{t('welcome.newVersionLabel')}</label>
-            <Input
-              aria-label={t('welcome.newVersionLabel')}
-              className="w-36"
-              placeholder={t('welcome.newVersionPlaceholder')}
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') addVersion() }}
-            />
+        {can('welcome:manage') && (
+          <div className="flex items-end gap-2">
+            <div className="flex flex-col gap-0.5">
+              <label className="text-xs text-muted">{t('welcome.newVersionLabel')}</label>
+              <Input
+                aria-label={t('welcome.newVersionLabel')}
+                className="w-36"
+                placeholder={t('welcome.newVersionPlaceholder')}
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') addVersion() }}
+              />
+            </div>
+            <Button size="sm" variant="outline" onPress={addVersion}>
+              <Icon name="plus" />
+              {' '}
+              {t('welcome.addVersion')}
+            </Button>
           </div>
-          <Button size="sm" variant="outline" onPress={addVersion}>
-            <Icon name="plus" />
-            {' '}
-            {t('welcome.addVersion')}
-          </Button>
-        </div>
+        )}
       </div>
 
       {/* Add-item row */}
-      {selected && (
+      {can('welcome:manage') && selected && (
         <div className="flex items-center gap-2 pb-3 shrink-0">
           <div className="relative flex-1">
             <SearchField
@@ -334,22 +342,24 @@ export const PackagesView: React.FC<PackagesViewProps> = ({
             )}
 
       {/* Save button + diff status */}
-      <div className="pt-3 shrink-0 flex items-center gap-3">
-        <Button size="sm" variant="secondary" onPress={save} isDisabled={saving}>
-          {saving
-            ? <Spinner size="sm" color="current" />
-            : (
-                <>
-                  <Icon name="save" />
-                  {' '}
-                  {t('welcome.saveConfig')}
-                </>
-              )}
-        </Button>
-        <DiffStatus diff={configDiff} />
-      </div>
+      {can('welcome:manage') && (
+        <div className="pt-3 shrink-0 flex items-center gap-3">
+          <Button size="sm" variant="secondary" onPress={save} isDisabled={saving}>
+            {saving
+              ? <Spinner size="sm" color="current" />
+              : (
+                  <>
+                    <Icon name="save" />
+                    {' '}
+                    {t('welcome.saveConfig')}
+                  </>
+                )}
+          </Button>
+          <DiffStatus diff={configDiff} />
+        </div>
+      )}
 
-      <ActionBar aria-label={t('welcome.sections.packages')} isOpen={selectionCount > 0}>
+      <ActionBar aria-label={t('welcome.sections.packages')} isOpen={can('welcome:manage') && selectionCount > 0}>
         <ActionBar.Prefix>
           <Chip size="sm" className="shrink-0 tabular-nums">{selectionCount}</Chip>
         </ActionBar.Prefix>

@@ -5,6 +5,7 @@ import { api } from '../api/client'
 import type { ScheduledRestarts, RestartRule } from '../api/client'
 import { Panel, SectionLabel, Icon, NumberInput, TimeInput } from '../dune-ui'
 import { TimezoneSelect } from './TimezoneSelect'
+import { usePermissions } from '../hooks/usePermissions'
 
 const DOW = [0, 1, 2, 3, 4, 5, 6] // Sun..Sat
 
@@ -13,6 +14,7 @@ const DOW = [0, 1, 2, 3, 4, 5, 6] // Sun..Sat
 // Health page (#149); lives on the Battlegroup tab until that lands.
 export const ScheduledRestartsCard: React.FC = () => {
   const { t, i18n } = useTranslation()
+  const { can } = usePermissions()
   const [data, setData] = React.useState<ScheduledRestarts | null>(null)
   const [enabled, setEnabled] = React.useState(false)
   const [timezone, setTimezone] = React.useState('')
@@ -80,10 +82,12 @@ export const ScheduledRestartsCard: React.FC = () => {
     <Panel>
       <div className="flex items-center justify-between mb-2">
         <SectionLabel>{t('restarts.title')}</SectionLabel>
-        <Switch isSelected={enabled} onChange={setEnabled} size="sm" className="text-xs text-muted">
-          <Switch.Control><Switch.Thumb /></Switch.Control>
-          <Switch.Content>{t('restarts.enable')}</Switch.Content>
-        </Switch>
+        {can('restarts:manage') && (
+          <Switch isSelected={enabled} onChange={setEnabled} size="sm" className="text-xs text-muted">
+            <Switch.Control><Switch.Thumb /></Switch.Control>
+            <Switch.Content>{t('restarts.enable')}</Switch.Content>
+          </Switch>
+        )}
       </div>
 
       {loading
@@ -117,44 +121,52 @@ export const ScheduledRestartsCard: React.FC = () => {
                     ))}
                   </ToggleButtonGroup>
                   <TimeInput value={rule.time} onChange={(v) => setRuleTime(i, v)} ariaLabel="time" />
-                  <Button size="sm" variant="ghost" isIconOnly aria-label={t('restarts.removeRule')} onPress={() => removeRule(i)}>
-                    <Icon name="trash" />
-                  </Button>
+                  {can('restarts:manage') && (
+                    <Button size="sm" variant="ghost" isIconOnly aria-label={t('restarts.removeRule')} onPress={() => removeRule(i)}>
+                      <Icon name="trash" />
+                    </Button>
+                  )}
                 </div>
               ))}
 
-              <Button size="sm" variant="outline" className="mb-3" onPress={addRule}>
-                <Icon name="plus" />
-                {' '}
-                {t('restarts.addRule')}
-              </Button>
-
-              <div className="flex items-center gap-4 mb-3 text-sm flex-wrap">
-                <label className="flex items-center gap-2">
-                  {t('restarts.warnMinutes')}
-                  <NumberInput
-                    value={warn}
-                    onChange={(v) => setWarn(v || 10)}
-                    min={1}
-                    ariaLabel={t('restarts.warnMinutes')}
-                    className="w-16"
-                    showButtons={false}
-                  />
-                </label>
-                <label className="flex items-center gap-2 flex-1 min-w-[160px]">
-                  {t('restarts.timezone')}
-                  <TimezoneSelect value={timezone} onChange={setTimezone} className="flex-1" />
-                </label>
-              </div>
-
-              <div className="flex gap-2">
-                <Button size="sm" onPress={save} isDisabled={saving}>
-                  {saving ? <Spinner size="sm" color="current" /> : t('restarts.save')}
+              {can('restarts:manage') && (
+                <Button size="sm" variant="outline" className="mb-3" onPress={addRule}>
+                  <Icon name="plus" />
+                  {' '}
+                  {t('restarts.addRule')}
                 </Button>
-                <Button size="sm" variant="outline" onPress={skip} isDisabled={!enabled || !data?.next_restart}>
-                  {t('restarts.skipNext')}
-                </Button>
-              </div>
+              )}
+
+              {can('restarts:manage') && (
+                <div className="flex items-center gap-4 mb-3 text-sm flex-wrap">
+                  <label className="flex items-center gap-2">
+                    {t('restarts.warnMinutes')}
+                    <NumberInput
+                      value={warn}
+                      onChange={(v) => setWarn(v || 10)}
+                      min={1}
+                      ariaLabel={t('restarts.warnMinutes')}
+                      className="w-16"
+                      showButtons={false}
+                    />
+                  </label>
+                  <label className="flex items-center gap-2 flex-1 min-w-[160px]">
+                    {t('restarts.timezone')}
+                    <TimezoneSelect value={timezone} onChange={setTimezone} className="flex-1" />
+                  </label>
+                </div>
+              )}
+
+              {can('restarts:manage') && (
+                <div className="flex gap-2">
+                  <Button size="sm" onPress={save} isDisabled={saving}>
+                    {saving ? <Spinner size="sm" color="current" /> : t('restarts.save')}
+                  </Button>
+                  <Button size="sm" variant="outline" onPress={skip} isDisabled={!enabled || !data?.next_restart}>
+                    {t('restarts.skipNext')}
+                  </Button>
+                </div>
+              )}
             </>
           )}
     </Panel>

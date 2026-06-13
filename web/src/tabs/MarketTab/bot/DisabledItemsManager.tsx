@@ -3,6 +3,7 @@ import { Button, SearchField, Spinner, toast } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'
 import type { CatalogItem } from '../../../api/client'
+import { usePermissions } from '../../../hooks/usePermissions'
 import { DataTable, type Column, Icon } from '../../../dune-ui'
 import type { DisabledItemsManagerProps, DisabledRow, RowKey } from './types'
 
@@ -10,6 +11,7 @@ export const DisabledItemsManager: React.FC<DisabledItemsManagerProps> = (
   { config, onSaved }: DisabledItemsManagerProps,
 ) => {
   const { t } = useTranslation()
+  const { can } = usePermissions()
   const [catalog, setCatalog] = React.useState<CatalogItem[]>([])
   const [search, setSearch] = React.useState('')
   const [saving, setSaving] = React.useState(false)
@@ -72,49 +74,53 @@ export const DisabledItemsManager: React.FC<DisabledItemsManagerProps> = (
   return (
     <div className="flex flex-col gap-4">
       {/* Search + add row */}
-      <div className="flex gap-2 items-end">
-        <div className="flex flex-col gap-0.5 flex-1">
-          <label className="text-xs text-muted">{t('market.bot.disabledItems.searchLabel')}</label>
-          <SearchField
-            aria-label={t('market.bot.disabledItems.searchAriaLabel')}
-            value={search}
-            onChange={setSearch}
-            className="w-full"
-          >
-            <SearchField.Group>
-              <SearchField.SearchIcon />
-              <SearchField.Input placeholder={t('market.bot.disabledItems.searchPlaceholder')} />
-              <SearchField.ClearButton />
-            </SearchField.Group>
-          </SearchField>
-        </div>
-        {saving && <Spinner size="sm" color="current" className="mb-2" />}
-      </div>
-
-      {/* Search results */}
-      {results.length > 0 && (
-        <div className="flex flex-col border border-border rounded overflow-hidden">
-          {results.map((item) => (
-            <div
-              key={item.template_id}
-              className="flex items-center gap-3 px-3 py-2 bg-surface hover:bg-surface/70 border-b border-border/40 last:border-0 transition-colors"
-            >
-              <div className="flex flex-col flex-1 min-w-0">
-                <span className="text-sm text-foreground truncate">{item.display_name}</span>
-                <span className="text-xs text-muted font-mono truncate">{item.template_id}</span>
-              </div>
-              <Button size="sm" variant="outline" onPress={() => add(item.template_id)}>
-                <Icon name="plus" />
-                {' '}
-                {t('common.add')}
-              </Button>
+      {can('market-bot:manage') && (
+        <>
+          <div className="flex gap-2 items-end">
+            <div className="flex flex-col gap-0.5 flex-1">
+              <label className="text-xs text-muted">{t('market.bot.disabledItems.searchLabel')}</label>
+              <SearchField
+                aria-label={t('market.bot.disabledItems.searchAriaLabel')}
+                value={search}
+                onChange={setSearch}
+                className="w-full"
+              >
+                <SearchField.Group>
+                  <SearchField.SearchIcon />
+                  <SearchField.Input placeholder={t('market.bot.disabledItems.searchPlaceholder')} />
+                  <SearchField.ClearButton />
+                </SearchField.Group>
+              </SearchField>
             </div>
-          ))}
-        </div>
-      )}
+            {saving && <Spinner size="sm" color="current" className="mb-2" />}
+          </div>
 
-      {search.trim() && results.length === 0 && (
-        <p className="text-xs text-muted">{t('market.bot.disabledItems.noMatchingItems')}</p>
+          {/* Search results */}
+          {results.length > 0 && (
+            <div className="flex flex-col border border-border rounded overflow-hidden">
+              {results.map((item) => (
+                <div
+                  key={item.template_id}
+                  className="flex items-center gap-3 px-3 py-2 bg-surface hover:bg-surface/70 border-b border-border/40 last:border-0 transition-colors"
+                >
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <span className="text-sm text-foreground truncate">{item.display_name}</span>
+                    <span className="text-xs text-muted font-mono truncate">{item.template_id}</span>
+                  </div>
+                  <Button size="sm" variant="outline" onPress={() => add(item.template_id)}>
+                    <Icon name="plus" />
+                    {' '}
+                    {t('common.add')}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {search.trim() && results.length === 0 && (
+            <p className="text-xs text-muted">{t('market.bot.disabledItems.noMatchingItems')}</p>
+          )}
+        </>
       )}
 
       {/* Disabled list */}
@@ -144,11 +150,13 @@ export const DisabledItemsManager: React.FC<DisabledItemsManagerProps> = (
                     case 'template_id':
                       return <span className="font-mono text-xs text-muted">{r.template_id}</span>
                     case 'actions':
-                      return (
-                        <Button size="sm" variant="danger-soft" onPress={() => remove(r.template_id)}>
-                          {t('common.remove')}
-                        </Button>
-                      )
+                      return can('market-bot:manage')
+                        ? (
+                            <Button size="sm" variant="danger-soft" onPress={() => remove(r.template_id)}>
+                              {t('common.remove')}
+                            </Button>
+                          )
+                        : null
                   }
                 }}
               />

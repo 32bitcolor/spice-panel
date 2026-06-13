@@ -7,6 +7,7 @@ import { api } from '../../../api/client'
 import type { DBBackupFile, ScheduledBackups, BackupRule } from '../../../api/client'
 import { Panel, SectionLabel, PageHeader, Icon, ConfirmDialog, NumberInput, TimeInput } from '../../../dune-ui'
 import { TimezoneSelect } from '../../../components/TimezoneSelect'
+import { usePermissions } from '../../../hooks/usePermissions'
 
 const DOW = [0, 1, 2, 3, 4, 5, 6] // Sun..Sat
 
@@ -20,6 +21,7 @@ const fmtSize = (b: number): string => {
 // ── Backup schedule card (self-contained, mirrors ScheduledRestartsCard) ──────
 const ScheduleCard: React.FC = () => {
   const { t, i18n } = useTranslation()
+  const { can } = usePermissions()
   const [data, setData] = React.useState<ScheduledBackups | null>(null)
   const [enabled, setEnabled] = React.useState(false)
   const [timezone, setTimezone] = React.useState('')
@@ -76,10 +78,12 @@ const ScheduleCard: React.FC = () => {
     <Panel>
       <div className="flex items-center justify-between mb-1">
         <SectionLabel>{t('backups.schedule.title')}</SectionLabel>
-        <Switch isSelected={enabled} onChange={setEnabled} size="sm" className="text-xs text-muted">
-          <Switch.Control><Switch.Thumb /></Switch.Control>
-          <Switch.Content>{t('backups.schedule.enable')}</Switch.Content>
-        </Switch>
+        {can('backups:manage') && (
+          <Switch isSelected={enabled} onChange={setEnabled} size="sm" className="text-xs text-muted">
+            <Switch.Control><Switch.Thumb /></Switch.Control>
+            <Switch.Content>{t('backups.schedule.enable')}</Switch.Content>
+          </Switch>
+        )}
       </div>
       <p className="text-xs text-muted mb-2">{t('backups.schedule.desc')}</p>
 
@@ -114,46 +118,54 @@ const ScheduleCard: React.FC = () => {
                     ))}
                   </ToggleButtonGroup>
                   <TimeInput value={rule.time} onChange={(v) => setRuleTime(i, v)} ariaLabel="time" />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    isIconOnly
-                    aria-label={t('backups.schedule.removeRule')}
-                    onPress={() => removeRule(i)}
-                  >
-                    <Icon name="trash" />
-                  </Button>
+                  {can('backups:manage') && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      isIconOnly
+                      aria-label={t('backups.schedule.removeRule')}
+                      onPress={() => removeRule(i)}
+                    >
+                      <Icon name="trash" />
+                    </Button>
+                  )}
                 </div>
               ))}
 
-              <Button size="sm" variant="outline" className="mb-3" onPress={addRule}>
-                <Icon name="plus" />
-                {' '}
-                {t('backups.schedule.addRule')}
-              </Button>
+              {can('backups:manage') && (
+                <Button size="sm" variant="outline" className="mb-3" onPress={addRule}>
+                  <Icon name="plus" />
+                  {' '}
+                  {t('backups.schedule.addRule')}
+                </Button>
+              )}
 
-              <div className="flex items-center gap-4 mb-3 text-sm flex-wrap">
-                <label className="flex items-center gap-2">
-                  {t('backups.schedule.keepN')}
-                  <NumberInput
-                    value={keepN}
-                    onChange={setKeepN}
-                    min={0}
-                    ariaLabel={t('backups.schedule.keepN')}
-                    className="w-20"
-                    showButtons={false}
-                  />
-                  <span className="text-xs text-muted">{t('backups.schedule.keepHint')}</span>
-                </label>
-                <label className="flex items-center gap-2 flex-1 min-w-[160px]">
-                  {t('backups.schedule.timezone')}
-                  <TimezoneSelect value={timezone} onChange={setTimezone} className="flex-1" />
-                </label>
-              </div>
+              {can('backups:manage') && (
+                <div className="flex items-center gap-4 mb-3 text-sm flex-wrap">
+                  <label className="flex items-center gap-2">
+                    {t('backups.schedule.keepN')}
+                    <NumberInput
+                      value={keepN}
+                      onChange={setKeepN}
+                      min={0}
+                      ariaLabel={t('backups.schedule.keepN')}
+                      className="w-20"
+                      showButtons={false}
+                    />
+                    <span className="text-xs text-muted">{t('backups.schedule.keepHint')}</span>
+                  </label>
+                  <label className="flex items-center gap-2 flex-1 min-w-[160px]">
+                    {t('backups.schedule.timezone')}
+                    <TimezoneSelect value={timezone} onChange={setTimezone} className="flex-1" />
+                  </label>
+                </div>
+              )}
 
-              <Button size="sm" onPress={save} isDisabled={saving}>
-                {saving ? <Spinner size="sm" color="current" /> : t('backups.schedule.save')}
-              </Button>
+              {can('backups:manage') && (
+                <Button size="sm" onPress={save} isDisabled={saving}>
+                  {saving ? <Spinner size="sm" color="current" /> : t('backups.schedule.save')}
+                </Button>
+              )}
             </>
           )}
     </Panel>
@@ -163,6 +175,7 @@ const ScheduleCard: React.FC = () => {
 // ── Backups view ─────────────────────────────────────────────────────────────
 export const BackupsView: React.FC = () => {
   const { t } = useTranslation()
+  const { can } = usePermissions()
   const [backups, setBackups] = React.useState<DBBackupFile[]>([])
   const [loading, setLoading] = React.useState(true)
   const [taking, setTaking] = React.useState(false)
@@ -234,88 +247,98 @@ export const BackupsView: React.FC = () => {
 
       <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-3 pr-1">
         {/* Take Backup */}
-        <Panel>
-          <SectionLabel>{t('backups.take.title')}</SectionLabel>
-          <p className="text-xs text-muted">{t('backups.take.desc')}</p>
-          <div>
-            <Button size="sm" onPress={take} isDisabled={taking}>
-              {taking
-                ? <Spinner size="sm" color="current" />
-                : (
-                    <>
-                      <Icon name="database-backup" />
-                      {' '}
-                      {t('backups.take.btn')}
-                    </>
-                  )}
-            </Button>
-          </div>
-        </Panel>
+        {can('backups:manage') && (
+          <Panel>
+            <SectionLabel>{t('backups.take.title')}</SectionLabel>
+            <p className="text-xs text-muted">{t('backups.take.desc')}</p>
+            <div>
+              <Button size="sm" onPress={take} isDisabled={taking}>
+                {taking
+                  ? <Spinner size="sm" color="current" />
+                  : (
+                      <>
+                        <Icon name="database-backup" />
+                        {' '}
+                        {t('backups.take.btn')}
+                      </>
+                    )}
+              </Button>
+            </div>
+          </Panel>
+        )}
 
         <ScheduleCard />
 
         {/* Recent backups */}
-        <Panel>
-          <SectionLabel>{t('backups.recent.title')}</SectionLabel>
-          {loading
-            ? <div className="py-3 flex justify-center"><Spinner size="sm" color="current" /></div>
-            : backups.length === 0
-              ? (
-                  <EmptyState size="sm">
-                    <EmptyState.Header>
-                      <EmptyState.Media variant="icon">
-                        <IconifyIcon icon="gravity-ui:document" className="size-5" />
-                      </EmptyState.Media>
-                      <EmptyState.Title>{t('backups.recent.empty')}</EmptyState.Title>
-                    </EmptyState.Header>
-                  </EmptyState>
-                )
-              : (
-                  <div className="flex flex-col gap-1">
-                    <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 px-2 text-xs uppercase tracking-wide text-muted">
-                      <span>{t('backups.col.name')}</span>
-                      <span className="text-right">{t('backups.col.size')}</span>
-                      <span>{t('backups.col.modified')}</span>
-                      <span />
-                    </div>
-                    {backups.map((b) => (
-                      <div
-                        key={b.name}
-                        className="grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center px-2 py-1.5 rounded bg-surface border border-border/40"
-                      >
-                        <span className="font-mono text-sm truncate" title={b.name}>{b.name}</span>
-                        <span className="text-sm text-muted text-right tabular-nums">{fmtSize(b.size_bytes)}</span>
-                        <span className="text-sm text-muted">{new Date(b.modified).toLocaleString()}</span>
-                        <div className="flex items-center gap-1">
-                          <a href={api.dbBackups.downloadUrl(b.name)} download>
-                            <Button size="sm" variant="ghost" isIconOnly aria-label={t('backups.download')}>
-                              <Icon name="download" />
-                            </Button>
-                          </a>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            isDisabled={busy}
-                            onPress={() => setRestoreTarget(b.name)}
-                          >
-                            {t('backups.restoreLabel')}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            isIconOnly
-                            aria-label={t('backups.deleteLabel')}
-                            isDisabled={busy}
-                            onPress={() => setDeleteTarget(b.name)}
-                          >
-                            <Icon name="trash-2" />
-                          </Button>
-                        </div>
+        {can('backups:read') && (
+          <Panel>
+            <SectionLabel>{t('backups.recent.title')}</SectionLabel>
+            {loading
+              ? <div className="py-3 flex justify-center"><Spinner size="sm" color="current" /></div>
+              : backups.length === 0
+                ? (
+                    <EmptyState size="sm">
+                      <EmptyState.Header>
+                        <EmptyState.Media variant="icon">
+                          <IconifyIcon icon="gravity-ui:document" className="size-5" />
+                        </EmptyState.Media>
+                        <EmptyState.Title>{t('backups.recent.empty')}</EmptyState.Title>
+                      </EmptyState.Header>
+                    </EmptyState>
+                  )
+                : (
+                    <div className="flex flex-col gap-1">
+                      <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 px-2 text-xs uppercase tracking-wide text-muted">
+                        <span>{t('backups.col.name')}</span>
+                        <span className="text-right">{t('backups.col.size')}</span>
+                        <span>{t('backups.col.modified')}</span>
+                        <span />
                       </div>
-                    ))}
-                  </div>
-                )}
-        </Panel>
+                      {backups.map((b) => (
+                        <div
+                          key={b.name}
+                          className="grid grid-cols-[1fr_auto_auto_auto] gap-3 items-center px-2 py-1.5 rounded bg-surface border border-border/40"
+                        >
+                          <span className="font-mono text-sm truncate" title={b.name}>{b.name}</span>
+                          <span className="text-sm text-muted text-right tabular-nums">{fmtSize(b.size_bytes)}</span>
+                          <span className="text-sm text-muted">{new Date(b.modified).toLocaleString()}</span>
+                          <div className="flex items-center gap-1">
+                            {can('backups:read') && (
+                              <a href={api.dbBackups.downloadUrl(b.name)} download>
+                                <Button size="sm" variant="ghost" isIconOnly aria-label={t('backups.download')}>
+                                  <Icon name="download" />
+                                </Button>
+                              </a>
+                            )}
+                            {can('backups:manage') && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                isDisabled={busy}
+                                onPress={() => setRestoreTarget(b.name)}
+                              >
+                                {t('backups.restoreLabel')}
+                              </Button>
+                            )}
+                            {can('backups:manage') && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                isIconOnly
+                                aria-label={t('backups.deleteLabel')}
+                                isDisabled={busy}
+                                onPress={() => setDeleteTarget(b.name)}
+                              >
+                                <Icon name="trash-2" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+          </Panel>
+        )}
       </div>
 
       <ConfirmDialog

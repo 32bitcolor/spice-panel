@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from '@heroui/react'
 import { api } from '../../../api/client'
 import type { BattlepassConfig } from '../../../api/client'
+import { usePermissions } from '../../../hooks/usePermissions'
 import { Icon, NumberInput, PageHeader, Panel, SectionLabel } from '../../../dune-ui'
 
 const DEFAULTS: BattlepassConfig = {
@@ -16,6 +17,7 @@ const DEFAULTS: BattlepassConfig = {
 
 export const ConfigView: React.FC = () => {
   const { t } = useTranslation()
+  const { can } = usePermissions()
   const [cfg, setCfg] = React.useState<BattlepassConfig>(DEFAULTS)
   const [loading, setLoading] = React.useState(false)
   const [saving, setSaving] = React.useState(false)
@@ -139,19 +141,21 @@ export const ConfigView: React.FC = () => {
         </Panel>
       </div>
 
-      <div className="flex items-center gap-3 shrink-0">
-        <Button size="sm" variant="secondary" onPress={save} isDisabled={saving || loading}>
-          {saving
-            ? <Spinner size="sm" color="current" />
-            : (
-                <>
-                  <Icon name="save" />
-                  {' '}
-                  {t('battlepass.config.save')}
-                </>
-              )}
-        </Button>
-      </div>
+      {can('battlepass:manage') && (
+        <div className="flex items-center gap-3 shrink-0">
+          <Button size="sm" variant="secondary" onPress={save} isDisabled={saving || loading}>
+            {saving
+              ? <Spinner size="sm" color="current" />
+              : (
+                  <>
+                    <Icon name="save" />
+                    {' '}
+                    {t('battlepass.config.save')}
+                  </>
+                )}
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

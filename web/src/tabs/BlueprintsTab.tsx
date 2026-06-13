@@ -13,11 +13,15 @@ import { Icon as IconifyIcon } from '@iconify/react'
 import { api } from '../api/client'
 import type { BlueprintRow, Player } from '../api/client'
 import { DataTable, Dropzone, Icon, PageHeader, type Column } from '../dune-ui'
+import { usePermissions } from '../hooks/usePermissions'
 import { PlayerSearchField } from '../components/PlayerSearchField'
 import type { BlueprintsTabKey, BlueprintsTabProps, ImportModalProps } from './types'
 
 export const BlueprintsTab: React.FC<BlueprintsTabProps> = ({ isSignedIn = true }) => {
   const { t } = useTranslation()
+  const { can } = usePermissions()
+  const canWorldWrite = can('world:write')
+  const canExportData = can('data:export')
   const [blueprints, setBlueprints] = React.useState<BlueprintRow[]>([])
   const [loading, setLoading] = React.useState(false)
   const [showImport, setShowImport] = React.useState(false)
@@ -78,17 +82,19 @@ export const BlueprintsTab: React.FC<BlueprintsTabProps> = ({ isSignedIn = true 
                 </>
               )}
         </Button>
-        <Button size="sm" onPress={() => setShowImport(true)} isDisabled={!isSignedIn}>
-          <Icon name="upload" />
-          {' '}
-          {t('blueprints.importBlueprint')}
-        </Button>
+        {canWorldWrite && (
+          <Button size="sm" onPress={() => setShowImport(true)} isDisabled={!isSignedIn}>
+            <Icon name="upload" />
+            {' '}
+            {t('blueprints.importBlueprint')}
+          </Button>
+        )}
       </PageHeader>
 
       <DataTable<BlueprintRow, BlueprintsTabKey>
         aria-label={t('blueprints.ariaLabel')}
         className="min-h-0 max-h-full"
-        columns={COLUMNS}
+        columns={canExportData ? COLUMNS : COLUMNS.filter((c) => c.key !== 'actions')}
         rows={blueprints}
         loading={loading}
         rowId={(b) => String(b.id)}
@@ -143,14 +149,16 @@ export const BlueprintsTab: React.FC<BlueprintsTabProps> = ({ isSignedIn = true 
         }}
       />
 
-      <ImportModal
-        open={showImport}
-        onClose={() => setShowImport(false)}
-        onSuccess={() => {
-          setShowImport(false)
-          load()
-        }}
-      />
+      {canWorldWrite && (
+        <ImportModal
+          open={showImport}
+          onClose={() => setShowImport(false)}
+          onSuccess={() => {
+            setShowImport(false)
+            load()
+          }}
+        />
+      )}
     </div>
   )
 }

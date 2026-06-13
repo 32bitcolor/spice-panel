@@ -130,6 +130,60 @@ Config is loaded in this order (first match wins per field):
 
 Provider-specific fields (`docker_gameserver`, `amp_instance`, `cmd_start`, etc.) have no env var equivalents and are set via the wizard or `config.yaml` directly. See the provider guides for the full list.
 
+### Dashboard authentication
+
+Off by default — without it, **anyone who can reach the dashboard port has full control of your
+game server**. If you expose dune-admin over a public domain or IP, enable it:
+
+```yaml
+auth_enabled: true
+
+# Method 1 — local username/password (set the hash with: dune-admin --set-password)
+auth_local_username: admin
+auth_local_password_hash: "$2a$10$..."   # bcrypt; never store the plaintext
+
+# Method 2 — Discord OAuth (bring your own Discord application)
+auth_discord_enabled: true
+auth_discord_client_id: "your-app-client-id"
+auth_discord_client_secret: "your-app-client-secret"
+# Reuses discord_bot_token + discord_guild_id for membership/role lookup.
+# Add scheme://host/api/v1/auth/discord/callback as a redirect in the Discord app.
+
+# Owners always get full access: the guild owner, the local account, plus:
+auth_owner_discord_ids: ""        # comma-separated Discord user IDs
+auth_owner_role_ids: ""           # comma-separated Discord role IDs
+auth_session_ttl_hours: 24
+```
+
+```yaml
+auth_guest_enabled: false         # optional: anonymous read-only guest sessions
+```
+
+How it works:
+
+- All login methods (local, Discord, guest) issue a signed `HttpOnly` session cookie; no
+  credentials are stored in the browser. Local and Discord login can be enabled together.
+- Discord users must be members of `discord_guild_id`. Their roles map to ~28 fine-grained
+  **capabilities** (e.g. `players:write`, `broadcast:send`, `battlepass:manage`) via the
+  **Permissions** tab; the matrix persists to `~/.dune-admin/permissions.yaml`. The special
+  **Guests** and **Default member** rows extend what anonymous guests / unmapped members get.
+- Additional **local users** (username/password, no Discord) live in `dune-admin.db` and are
+  managed from the Permissions tab with per-user capability assignments.
+- The Permissions tab is editable by owners and anyone granted `auth:manage`.
+- Every session starts from a minimal floor: player/world/market read access, server status,
+  and the battlepass track. Everything else — events, welcome kits, bot status, schedules,
+  exports, config, database, logs, backups — requires an explicit grant.
+- Role changes in Discord are picked up within 15 minutes; kicked members lose access on the
+  same schedule.
+- Every authenticated mutation is recorded in `~/.dune-admin/audit.log` (JSON lines).
+- Locked out (Discord misconfigured, password lost)? Run `dune-admin --set-password` on the
+  host — it works offline and writes straight to `config.yaml`.
+- The login endpoint is rate-limited (5/min per IP) and security headers (CSP, X-Frame-Options,
+  HSTS behind TLS) are emitted while auth is enabled.
+
+TLS is still your reverse proxy's job (Caddy, nginx, Cloudflare Tunnel) — dune-admin marks
+cookies `Secure` automatically when it sees `X-Forwarded-Proto: https`.
+
 ### Market bot
 
 dune-admin runs the market bot **embedded**, an in-process goroutine that shares the main DB pool. Enable in `config.yaml`:

@@ -5,12 +5,14 @@ import type { Selection } from '@heroui/react'
 import { EmptyState } from '@heroui-pro/react'
 import { api } from '../../api/client'
 import type { EventDefinition, EventClaimRecord, EventsConfig } from '../../api/client'
+import { usePermissions } from '../../hooks/usePermissions'
 import { ActionBar, ConfirmDialog, DataTable, Icon, PageHeader, Panel, SectionLabel, type Column } from '../../dune-ui'
 import { EventEditorModal } from './modals/EventEditorModal'
 import type { ListKey, ClaimKey } from './types'
 
 export const EventsTab: React.FC = () => {
   const { t } = useTranslation()
+  const { can } = usePermissions()
   const [events, setEvents] = React.useState<EventDefinition[]>([])
   const [loading, setLoading] = React.useState(false)
   const [selectedEvent, setSelectedEvent] = React.useState<EventDefinition | null>(null)
@@ -173,25 +175,29 @@ export const EventsTab: React.FC = () => {
     <>
       <div className="flex flex-col h-full gap-3 min-h-0">
         <PageHeader title={t('events.title', { count: events.length })} subtitle={t('events.subtitle')}>
-          <Switch
-            isSelected={cfg.events_enabled ?? false}
-            onChange={toggleEnabled}
-            isDisabled={cfgSaving}
-            size="sm"
-          >
-            <Switch.Control><Switch.Thumb /></Switch.Control>
-            <Switch.Content>{t('events.config.enabled')}</Switch.Content>
-          </Switch>
+          {can('events:manage') && (
+            <Switch
+              isSelected={cfg.events_enabled ?? false}
+              onChange={toggleEnabled}
+              isDisabled={cfgSaving}
+              size="sm"
+            >
+              <Switch.Control><Switch.Thumb /></Switch.Control>
+              <Switch.Content>{t('events.config.enabled')}</Switch.Content>
+            </Switch>
+          )}
           <Button size="sm" variant="ghost" onPress={loadEvents} isDisabled={loading}>
             <Icon name="refresh-cw" />
             {' '}
             {t('common.refresh')}
           </Button>
-          <Button size="sm" variant="primary" onPress={openCreate}>
-            <Icon name="plus" />
-            {' '}
-            {t('events.create')}
-          </Button>
+          {can('events:manage') && (
+            <Button size="sm" variant="primary" onPress={openCreate}>
+              <Icon name="plus" />
+              {' '}
+              {t('events.create')}
+            </Button>
+          )}
         </PageHeader>
 
         <DataTable<EventDefinition, ListKey>
@@ -235,29 +241,37 @@ export const EventsTab: React.FC = () => {
                   </Chip>
                 )
               case 'enabled':
-                return (
-                  <Switch
-                    size="sm"
-                    isSelected={ev.enabled}
-                    onChange={() => handleToggleEnabled(ev)}
-                    aria-label={t('events.toggleEnabled')}
-                  >
-                    <Switch.Control><Switch.Thumb /></Switch.Control>
-                  </Switch>
-                )
+                return can('events:manage')
+                  ? (
+                      <Switch
+                        size="sm"
+                        isSelected={ev.enabled}
+                        onChange={() => handleToggleEnabled(ev)}
+                        aria-label={t('events.toggleEnabled')}
+                      >
+                        <Switch.Control><Switch.Thumb /></Switch.Control>
+                      </Switch>
+                    )
+                  : (
+                      <span className="text-muted text-xs">
+                        {ev.enabled ? <Icon name="check" /> : '—'}
+                      </span>
+                    )
               case 'version':
                 return <span className="text-muted font-mono text-xs">{ev.version}</span>
               case 'actions':
-                return (
-                  <div className="flex gap-1">
-                    <Button size="sm" variant="ghost" onPress={() => openEdit(ev)} aria-label={t('common.edit') as string}>
-                      <Icon name="pencil" />
-                    </Button>
-                    <Button size="sm" variant="danger-soft" onPress={() => handleDelete(ev)} aria-label={t('common.delete') as string}>
-                      <Icon name="trash-2" />
-                    </Button>
-                  </div>
-                )
+                return can('events:manage')
+                  ? (
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="ghost" onPress={() => openEdit(ev)} aria-label={t('common.edit') as string}>
+                          <Icon name="pencil" />
+                        </Button>
+                        <Button size="sm" variant="danger-soft" onPress={() => handleDelete(ev)} aria-label={t('common.delete') as string}>
+                          <Icon name="trash-2" />
+                        </Button>
+                      </div>
+                    )
+                  : null
             }
           }}
         />
@@ -272,9 +286,11 @@ export const EventsTab: React.FC = () => {
                 <Button size="sm" variant="ghost" onPress={() => loadStatus(selectedEvent)} isDisabled={claimsLoading}>
                   <Icon name="refresh-cw" />
                 </Button>
-                <Button size="sm" variant="outline" onPress={() => handleReset(selectedEvent)}>
-                  {t('events.status.reset')}
-                </Button>
+                {can('events:manage') && (
+                  <Button size="sm" variant="outline" onPress={() => handleReset(selectedEvent)}>
+                    {t('events.status.reset')}
+                  </Button>
+                )}
                 <Button size="sm" variant="ghost" onPress={() => setSelectedEvent(null)}>
                   <Icon name="x" />
                 </Button>
@@ -345,7 +361,7 @@ export const EventsTab: React.FC = () => {
         onCancel={() => setResetTarget(null)}
       />
 
-      <ActionBar aria-label={t('events.ariaLabel')} isOpen={selectionCount > 0}>
+      <ActionBar aria-label={t('events.ariaLabel')} isOpen={can('events:manage') && selectionCount > 0}>
         <ActionBar.Prefix>
           <Chip size="sm" className="shrink-0 tabular-nums">{selectionCount}</Chip>
         </ActionBar.Prefix>

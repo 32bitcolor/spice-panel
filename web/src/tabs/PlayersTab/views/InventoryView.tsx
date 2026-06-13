@@ -7,21 +7,25 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'
 import type { InventoryItem } from '../../../api/client'
 import { ActionBar, DataTable, Icon, LoadingState, SectionLabel, type Column } from '../../../dune-ui'
+import { usePermissions } from '../../../hooks/usePermissions'
 import type { InventoryViewProps, ItemKey } from './types'
 
 export const InventoryView: React.FC<InventoryViewProps> = ({ player }) => {
   const { t } = useTranslation()
+  const { can } = usePermissions()
+  const canPlayersWrite = can('players:write')
   const [items, setItems] = React.useState<InventoryItem[]>([])
   const [loading, setLoading] = React.useState(false)
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set())
 
-  const ITEM_COLUMNS: Column<ItemKey>[] = [
+  const ALL_ITEM_COLUMNS: Column<ItemKey>[] = [
     { key: 'template', label: t('players.inventory.columns.template'), isRowHeader: true },
     { key: 'stack', label: t('players.inventory.columns.stack') },
     { key: 'quality', label: t('players.inventory.columns.quality') },
     { key: 'durability', label: t('players.inventory.columns.durability') },
     { key: 'actions', label: ' ', sortable: false },
   ]
+  const ITEM_COLUMNS = ALL_ITEM_COLUMNS.filter((c) => canPlayersWrite || c.key !== 'actions')
 
   React.useEffect(() => {
     Promise.resolve()
@@ -118,7 +122,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ player }) => {
     <div className="flex flex-col h-full gap-3 min-h-0">
       <div className="shrink-0 min-h-8 flex items-center justify-between">
         <SectionLabel>{t('players.inventory.itemsLabel')}</SectionLabel>
-        <Button size="sm" variant="ghost" onPress={handleRepairAllGear}>{t('players.inventory.repairGear')}</Button>
+        {canPlayersWrite && (
+          <Button size="sm" variant="ghost" onPress={handleRepairAllGear}>{t('players.inventory.repairGear')}</Button>
+        )}
       </div>
       <div className="shrink-0 rounded-[var(--radius)] px-4 py-2 text-xs font-medium bg-danger/10 border border-danger/40 text-danger flex items-center gap-2 -mt-1">
         <Icon name="triangle-alert" />
@@ -131,7 +137,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ player }) => {
         rows={items}
         rowId={(i) => String(i.id)}
         initialSort={{ column: 'template', direction: 'ascending' }}
-        selectionMode="multiple"
+        selectionMode={canPlayersWrite ? 'multiple' : undefined}
         selectedKeys={selectedKeys}
         onSelectionChange={setSelectedKeys}
         sortValue={(i, k) => {
@@ -181,24 +187,26 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ player }) => {
           }
         }}
       />
-      <ActionBar isOpen={selectionCount > 0}>
-        <ActionBar.Prefix>
-          <span className="text-sm text-muted">
-            {selectionCount}
-          </span>
-        </ActionBar.Prefix>
-        <ActionBar.Content>
-          <Button size="sm" variant="danger-soft" onPress={handleBulkDelete}>
-            <Icon name="trash" />
-            {t('players.inventory.deleteSelected')}
-          </Button>
-        </ActionBar.Content>
-        <ActionBar.Suffix>
-          <Button size="sm" variant="ghost" onPress={() => setSelectedKeys(new Set())}>
-            {t('common.clear')}
-          </Button>
-        </ActionBar.Suffix>
-      </ActionBar>
+      {canPlayersWrite && (
+        <ActionBar isOpen={selectionCount > 0}>
+          <ActionBar.Prefix>
+            <span className="text-sm text-muted">
+              {selectionCount}
+            </span>
+          </ActionBar.Prefix>
+          <ActionBar.Content>
+            <Button size="sm" variant="danger-soft" onPress={handleBulkDelete}>
+              <Icon name="trash" />
+              {t('players.inventory.deleteSelected')}
+            </Button>
+          </ActionBar.Content>
+          <ActionBar.Suffix>
+            <Button size="sm" variant="ghost" onPress={() => setSelectedKeys(new Set())}>
+              {t('common.clear')}
+            </Button>
+          </ActionBar.Suffix>
+        </ActionBar>
+      )}
     </div>
   )
 }

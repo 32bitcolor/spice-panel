@@ -517,16 +517,39 @@ func cmdListDiscordRoles(guildID string, fetchRoles guildRolesFetchFn) ([]discor
 
 // handleGetDiscordRoles is the HTTP handler registered in server.go.
 // Returns the guild's role list so the settings UI can show a role picker.
+// Prefers the running gateway bot session, but falls back to a REST-only
+// session built from discord_bot_token — listing roles requires the token,
+// not the event bot (discord_bot_enabled), so role pickers work either way.
 func handleGetDiscordRoles(w http.ResponseWriter, _ *http.Request) {
-	sess, guildID := getDiscordState()
+	fetch, guildID := discordRolesFetcher()
 	handleGetDiscordRolesInner(w, guildID, func(gID string) ([]discordRoleRow, error) {
-		if sess == nil {
+		if fetch == nil {
 			return nil, errDiscordNotConnected
 		}
-		return cmdListDiscordRoles(gID, func(id string) ([]*discordgo.Role, error) {
-			return sess.GuildRoles(id)
-		})
+		return cmdListDiscordRoles(gID, fetch)
 	})
+}
+
+// discordRolesFetcher returns a GuildRoles call bound to the best available
+// session: the live gateway bot when running, otherwise a REST-only session
+// from the configured bot token. Nil when neither is available.
+func discordRolesFetcher() (guildRolesFetchFn, string) {
+	if sess, guildID := getDiscordState(); sess != nil {
+		return func(id string) ([]*discordgo.Role, error) {
+			return sess.GuildRoles(id)
+		}, guildID
+	}
+	cfg := loadedConfig
+	if cfg.DiscordBotToken == "" || cfg.DiscordGuildID == "" {
+		return nil, ""
+	}
+	sess, err := discordgo.New("Bot " + cfg.DiscordBotToken)
+	if err != nil {
+		return nil, ""
+	}
+	return func(id string) ([]*discordgo.Role, error) {
+		return sess.GuildRoles(id)
+	}, cfg.DiscordGuildID
 }
 
 func handleGetDiscordRolesInner(w http.ResponseWriter, guildID string, fetch roleFetcherFn) {

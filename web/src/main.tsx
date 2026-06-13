@@ -5,6 +5,7 @@ import './index.css'
 import './i18n'
 import { applyTheme, loadTheme } from './theme'
 import { App } from './App.tsx'
+import { AuthProvider } from './auth/AuthContext'
 import { ClerkProvider } from '@clerk/react'
 import { dark } from '@clerk/themes'
 
@@ -34,15 +35,17 @@ const clerkAppearance = {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <HashRouter>
-      {publishableKey
-        ? (
-            <ClerkProvider publishableKey={publishableKey} afterSignOutUrl="/" appearance={clerkAppearance}>
+      <AuthProvider>
+        {publishableKey
+          ? (
+              <ClerkProvider publishableKey={publishableKey} afterSignOutUrl="/" appearance={clerkAppearance}>
+                <App />
+              </ClerkProvider>
+            )
+          : (
               <App />
-            </ClerkProvider>
-          )
-        : (
-            <App />
-          )}
+            )}
+      </AuthProvider>
     </HashRouter>
   </StrictMode>,
 )

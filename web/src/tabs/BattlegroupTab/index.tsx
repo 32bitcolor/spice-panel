@@ -7,6 +7,7 @@ import type { BackupFile } from '../../api/client'
 import { NumberInput, PageHeader, SectionDivider, Icon } from '../../dune-ui'
 import { ScheduledRestartsCard } from '../../components/ScheduledRestartsCard'
 import { useStatus } from '../../hooks/useStatus'
+import { usePermissions } from '../../hooks/usePermissions'
 
 import { ACTIONS, INIT_WARN_MS, type ActionDef, type DetailedStatus } from './types'
 import { ServersTable } from './ServersTable'
@@ -21,6 +22,7 @@ const POLL_MS = 30_000
 
 export const BattlegroupTab: React.FC = () => {
   const { t } = useTranslation()
+  const { can } = usePermissions()
   const { status: connStatus } = useStatus()
   const [status, setStatus] = React.useState<DetailedStatus | null>(null)
   const [statusLoading, setStatusLoading] = React.useState(false)
@@ -179,165 +181,177 @@ export const BattlegroupTab: React.FC = () => {
         </HealthCard>
 
         {/* ── Server Control ───────────────────────────────────────────── */}
-        <SectionDivider title={t('battlegroup.serverControl')} />
-        <div className="flex flex-wrap gap-2 shrink-0">
-          {ACTIONS.map((action) => (
-            <Button
-              key={action.cmd}
-              variant={action.danger ? 'danger-soft' : 'outline'}
-              onPress={() => setConfirmCmd(action)}
-              isDisabled={runningCmd !== null}
-              size="sm"
-            >
-              {t(`battlegroup.actions.${action.cmd}` as never)}
-            </Button>
-          ))}
-          <Button variant="danger-soft" size="sm" isDisabled={runningCmd !== null} onPress={openRestore}>
-            {t('battlegroup.restoreLabel')}
-          </Button>
-        </div>
+        {(can('server:control') || can('backups:manage')) && (
+          <>
+            <SectionDivider title={t('battlegroup.serverControl')} />
+            <div className="flex flex-wrap gap-2 shrink-0">
+              {ACTIONS
+                .filter((action) => (action.cmd === 'backup' ? can('backups:manage') : can('server:control')))
+                .map((action) => (
+                  <Button
+                    key={action.cmd}
+                    variant={action.danger ? 'danger-soft' : 'outline'}
+                    onPress={() => setConfirmCmd(action)}
+                    isDisabled={runningCmd !== null}
+                    size="sm"
+                  >
+                    {t(`battlegroup.actions.${action.cmd}` as never)}
+                  </Button>
+                ))}
+              {can('backups:manage') && (
+                <Button variant="danger-soft" size="sm" isDisabled={runningCmd !== null} onPress={openRestore}>
+                  {t('battlegroup.restoreLabel')}
+                </Button>
+              )}
+            </div>
+          </>
+        )}
 
         {/* ── Broadcasts ──────────────────────────────────────────────── */}
-        <SectionDivider title={t('battlegroup.broadcasts')} />
-        <div className="flex flex-wrap gap-3 shrink-0">
+        {can('broadcast:send') && (
+          <>
+            <SectionDivider title={t('battlegroup.broadcasts')} />
+            <div className="flex flex-wrap gap-3 shrink-0">
 
-          {/* Generic broadcast */}
-          <div className="dune-lift flex flex-col gap-2 flex-1 min-w-64 rounded-[var(--radius)] border border-border bg-surface p-8">
-            <div className="text-xs font-semibold uppercase tracking-widest text-accent">{t('battlegroup.genericMessage')}</div>
-            <TextField aria-label={t('battlegroup.titlePlaceholder')}>
-              <Input placeholder={t('battlegroup.titlePlaceholder')} value={broadcastTitle} onChange={(e) => setBroadcastTitle(e.target.value)} />
-            </TextField>
-            <TextField aria-label={t('battlegroup.bodyPlaceholder')}>
-              <Input placeholder={t('battlegroup.bodyPlaceholder')} value={broadcastBody} onChange={(e) => setBroadcastBody(e.target.value)} />
-            </TextField>
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-muted shrink-0">{t('battlegroup.durationLabel')}</label>
-              <NumberInput
-                ariaLabel={t('battlegroup.durationLabel')}
-                min={5}
-                max={300}
-                value={broadcastDuration}
-                onChange={setBroadcastDuration}
-                showButtons={false}
-                className="w-24"
-              />
-              <div className="flex-1" />
-              <Button
-                size="sm"
-                isDisabled={broadcastBusy || !broadcastTitle}
-                onPress={async () => {
-                  setBroadcastBusy(true)
-                  try {
-                    await api.broadcast.send([{ Key: 'en', Title: broadcastTitle, Body: broadcastBody }], broadcastDuration)
-                    toast.success(t('battlegroup.broadcastSent'))
-                    setBroadcastTitle('')
-                    setBroadcastBody('')
-                  }
-                  catch (e: unknown) {
-                    toast.danger(e instanceof Error ? e.message : String(e))
-                  }
-                  finally { setBroadcastBusy(false) }
-                }}
-              >
-                {broadcastBusy
-                  ? <Spinner size="sm" color="current" />
-                  : (
-                      <>
-                        <Icon name="megaphone" />
-                        {' '}
-                        {t('common.send')}
-                      </>
-                    )}
-              </Button>
-            </div>
-          </div>
+              {/* Generic broadcast */}
+              <div className="dune-lift flex flex-col gap-2 flex-1 min-w-64 rounded-[var(--radius)] border border-border bg-surface p-8">
+                <div className="text-xs font-semibold uppercase tracking-widest text-accent">{t('battlegroup.genericMessage')}</div>
+                <TextField aria-label={t('battlegroup.titlePlaceholder')}>
+                  <Input placeholder={t('battlegroup.titlePlaceholder')} value={broadcastTitle} onChange={(e) => setBroadcastTitle(e.target.value)} />
+                </TextField>
+                <TextField aria-label={t('battlegroup.bodyPlaceholder')}>
+                  <Input placeholder={t('battlegroup.bodyPlaceholder')} value={broadcastBody} onChange={(e) => setBroadcastBody(e.target.value)} />
+                </TextField>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-muted shrink-0">{t('battlegroup.durationLabel')}</label>
+                  <NumberInput
+                    ariaLabel={t('battlegroup.durationLabel')}
+                    min={5}
+                    max={300}
+                    value={broadcastDuration}
+                    onChange={setBroadcastDuration}
+                    showButtons={false}
+                    className="w-24"
+                  />
+                  <div className="flex-1" />
+                  <Button
+                    size="sm"
+                    isDisabled={broadcastBusy || !broadcastTitle}
+                    onPress={async () => {
+                      setBroadcastBusy(true)
+                      try {
+                        await api.broadcast.send([{ Key: 'en', Title: broadcastTitle, Body: broadcastBody }], broadcastDuration)
+                        toast.success(t('battlegroup.broadcastSent'))
+                        setBroadcastTitle('')
+                        setBroadcastBody('')
+                      }
+                      catch (e: unknown) {
+                        toast.danger(e instanceof Error ? e.message : String(e))
+                      }
+                      finally { setBroadcastBusy(false) }
+                    }}
+                  >
+                    {broadcastBusy
+                      ? <Spinner size="sm" color="current" />
+                      : (
+                          <>
+                            <Icon name="megaphone" />
+                            {' '}
+                            {t('common.send')}
+                          </>
+                        )}
+                  </Button>
+                </div>
+              </div>
 
-          {/* Shutdown broadcast */}
-          <div className="dune-lift flex flex-col gap-2 flex-1 min-w-64 rounded-[var(--radius)] border border-border bg-surface p-8">
-            <div className="text-xs font-semibold uppercase tracking-widest text-accent">{t('battlegroup.shutdownBroadcast')}</div>
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-muted shrink-0">{t('battlegroup.shutdownType')}</label>
-              <Select selectedKey={shutdownType} onSelectionChange={(k) => setShutdownType(String(k))} className="flex-1" aria-label={t('battlegroup.shutdownTypeLabel')}>
-                <Select.Trigger>
-                  <Select.Value />
-                  <Select.Indicator />
-                </Select.Trigger>
-                <Select.Popover>
-                  <ListBox>
-                    {['Restart', 'Maintenance', 'Update'].map((t) => (
-                      <ListBox.Item key={t} id={t} textValue={t}>
-                        {t}
-                        <ListBox.ItemIndicator />
-                      </ListBox.Item>
-                    ))}
-                  </ListBox>
-                </Select.Popover>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-muted shrink-0">{t('battlegroup.shutdownDelay')}</label>
-              <NumberInput
-                ariaLabel={t('battlegroup.shutdownDelayLabel')}
-                min={1}
-                max={120}
-                value={shutdownDelay}
-                onChange={setShutdownDelay}
-                showButtons={false}
-                className="w-24"
-              />
-            </div>
-            <div className="flex gap-2 mt-auto">
-              <Button
-                size="sm"
-                variant="danger-soft"
-                isDisabled={shutdownBusy}
-                onPress={async () => {
-                  setShutdownBusy(true)
-                  try {
-                    await api.broadcast.shutdown(shutdownType, shutdownDelay)
-                    toast.success(t('battlegroup.shutdownSent', { delay: shutdownDelay }))
-                  }
-                  catch (e: unknown) {
-                    toast.danger(e instanceof Error ? e.message : String(e))
-                  }
-                  finally { setShutdownBusy(false) }
-                }}
-              >
-                {shutdownBusy
-                  ? <Spinner size="sm" color="current" />
-                  : (
-                      <>
-                        <Icon name="triangle-alert" />
-                        {' '}
-                        {t('battlegroup.broadcastBtn')}
-                      </>
-                    )}
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                isDisabled={shutdownBusy}
-                onPress={async () => {
-                  setShutdownBusy(true)
-                  try {
-                    await api.broadcast.shutdown(shutdownType, 0, true)
-                    toast.success(t('battlegroup.shutdownCancelled'))
-                  }
-                  catch (e: unknown) {
-                    toast.danger(e instanceof Error ? e.message : String(e))
-                  }
-                  finally { setShutdownBusy(false) }
-                }}
-              >
-                {t('common.cancel')}
-              </Button>
-            </div>
-          </div>
+              {/* Shutdown broadcast */}
+              <div className="dune-lift flex flex-col gap-2 flex-1 min-w-64 rounded-[var(--radius)] border border-border bg-surface p-8">
+                <div className="text-xs font-semibold uppercase tracking-widest text-accent">{t('battlegroup.shutdownBroadcast')}</div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-muted shrink-0">{t('battlegroup.shutdownType')}</label>
+                  <Select selectedKey={shutdownType} onSelectionChange={(k) => setShutdownType(String(k))} className="flex-1" aria-label={t('battlegroup.shutdownTypeLabel')}>
+                    <Select.Trigger>
+                      <Select.Value />
+                      <Select.Indicator />
+                    </Select.Trigger>
+                    <Select.Popover>
+                      <ListBox>
+                        {['Restart', 'Maintenance', 'Update'].map((t) => (
+                          <ListBox.Item key={t} id={t} textValue={t}>
+                            {t}
+                            <ListBox.ItemIndicator />
+                          </ListBox.Item>
+                        ))}
+                      </ListBox>
+                    </Select.Popover>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-muted shrink-0">{t('battlegroup.shutdownDelay')}</label>
+                  <NumberInput
+                    ariaLabel={t('battlegroup.shutdownDelayLabel')}
+                    min={1}
+                    max={120}
+                    value={shutdownDelay}
+                    onChange={setShutdownDelay}
+                    showButtons={false}
+                    className="w-24"
+                  />
+                </div>
+                <div className="flex gap-2 mt-auto">
+                  <Button
+                    size="sm"
+                    variant="danger-soft"
+                    isDisabled={shutdownBusy}
+                    onPress={async () => {
+                      setShutdownBusy(true)
+                      try {
+                        await api.broadcast.shutdown(shutdownType, shutdownDelay)
+                        toast.success(t('battlegroup.shutdownSent', { delay: shutdownDelay }))
+                      }
+                      catch (e: unknown) {
+                        toast.danger(e instanceof Error ? e.message : String(e))
+                      }
+                      finally { setShutdownBusy(false) }
+                    }}
+                  >
+                    {shutdownBusy
+                      ? <Spinner size="sm" color="current" />
+                      : (
+                          <>
+                            <Icon name="triangle-alert" />
+                            {' '}
+                            {t('battlegroup.broadcastBtn')}
+                          </>
+                        )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    isDisabled={shutdownBusy}
+                    onPress={async () => {
+                      setShutdownBusy(true)
+                      try {
+                        await api.broadcast.shutdown(shutdownType, 0, true)
+                        toast.success(t('battlegroup.shutdownCancelled'))
+                      }
+                      catch (e: unknown) {
+                        toast.danger(e instanceof Error ? e.message : String(e))
+                      }
+                      finally { setShutdownBusy(false) }
+                    }}
+                  >
+                    {t('common.cancel')}
+                  </Button>
+                </div>
+              </div>
 
-        </div>
+            </div>
+          </>
+        )}
 
         {/* ── Scheduled Restarts (#145) ──────────────────────────────── */}
-        <ScheduledRestartsCard />
+        {can('restarts:read') && <ScheduledRestartsCard />}
 
       </div>
 

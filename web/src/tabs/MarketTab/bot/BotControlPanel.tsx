@@ -4,6 +4,7 @@ import { Segment } from '@heroui-pro/react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'
 import type { BotStatus, BotConfig } from '../../../api/client'
+import { usePermissions } from '../../../hooks/usePermissions'
 import { Icon } from '../../../dune-ui'
 import { BotStatusCard } from './BotStatusCard'
 import { BotActions } from './BotActions'
@@ -15,6 +16,7 @@ import type { BotControlPanelProps, ConfigEditorHandle, ConfigFooterProps, BotSe
 
 export const BotControlPanel: React.FC<BotControlPanelProps> = ({ open, onClose }: BotControlPanelProps) => {
   const { t } = useTranslation()
+  const { can } = usePermissions()
   const [status, setStatus] = React.useState<BotStatus | null>(null)
   const [config, setConfig] = React.useState<BotConfig | null>(null)
   const [statusLoading, setStatusLoading] = React.useState(false)
@@ -71,7 +73,7 @@ export const BotControlPanel: React.FC<BotControlPanelProps> = ({ open, onClose 
                 ? (
                     <div className="flex flex-wrap items-center gap-4 justify-between pb-2 border-b border-border shrink-0">
                       <BotStatusCard status={status} />
-                      <BotActions status={status} onRefresh={loadStatus} />
+                      {can('market-bot:manage') && <BotActions status={status} onRefresh={loadStatus} />}
                     </div>
                   )
                 : statusLoading
@@ -142,10 +144,10 @@ export const BotControlPanel: React.FC<BotControlPanelProps> = ({ open, onClose 
             </div>
           </Modal.Body>
 
-          {activeTab === 'config' && config && !configLoading && (
+          {can('market-bot:manage') && activeTab === 'config' && config && !configLoading && (
             <ConfigFooter editorRef={editorRef} initialEnabled={config.enabled} onReload={loadConfig} />
           )}
-          {activeTab === 'server' && (
+          {can('market-bot:manage') && activeTab === 'server' && (
             <ServerConfigFooter configRef={serverConfigRef} />
           )}
         </Modal.Dialog>

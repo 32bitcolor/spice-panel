@@ -3,6 +3,7 @@ import { Button, Spinner } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../api/client'
 import type { MarketItem } from '../../api/client'
+import { usePermissions } from '../../hooks/usePermissions'
 import { Icon, LoadingState, PageHeader } from '../../dune-ui'
 import { MarketSidebar } from './MarketSidebar'
 import { MarketSearch } from './MarketSearch'
@@ -17,6 +18,7 @@ const DEFAULT_FILTERS: MarketFilters = { search: '', category: '', owner: '' }
 
 export const MarketTab: React.FC = () => {
   const { t } = useTranslation()
+  const { can } = usePermissions()
   const [items, setItems] = React.useState<MarketItem[]>([])
   const [categories, setCategories] = React.useState<string[]>([])
   const categoriesRef = React.useRef<string[]>([])
@@ -81,19 +83,21 @@ export const MarketTab: React.FC = () => {
   return (
     <div className="flex flex-col h-full gap-3 min-h-0">
       <PageHeader title={t('market.title')} subtitle={t('market.subtitle')}>
-        {botConfigured
-          ? (
-              <Button size="sm" variant="ghost" onPress={() => setBotOpen(true)}>
-                <Icon name="bot" />
-                {' '}
-                {t('market.botControl')}
-              </Button>
-            )
-          : (
-              <span className="hidden text-xs text-muted sm:inline">
-                {t('market.noBotConnected')}
-              </span>
-            )}
+        {can('market-bot:read') && (
+          botConfigured
+            ? (
+                <Button size="sm" variant="ghost" onPress={() => setBotOpen(true)}>
+                  <Icon name="bot" />
+                  {' '}
+                  {t('market.botControl')}
+                </Button>
+              )
+            : (
+                <span className="hidden text-xs text-muted sm:inline">
+                  {t('market.noBotConnected')}
+                </span>
+              )
+        )}
         <ViewToggle view={view} onChange={setView} />
         <Button size="sm" variant="ghost" onPress={load} isDisabled={loading}>
           {loading
@@ -139,7 +143,7 @@ export const MarketTab: React.FC = () => {
       </div>
 
       <ItemDetail item={selected} onClose={() => setSelected(null)} />
-      <BotControlPanel open={botOpen} onClose={() => setBotOpen(false)} />
+      {can('market-bot:read') && <BotControlPanel open={botOpen} onClose={() => setBotOpen(false)} />}
     </div>
   )
 }

@@ -25,6 +25,7 @@ func initUnifiedStoreOnce() func() {
 		return func() {}
 	}
 	globalStore = db
+	authUsersDB = newAuthUserStore(db)
 	if err := migrateLegacyStores(db, defaultLegacySources()); err != nil {
 		fmt.Fprintf(os.Stderr, "unified store: migration warning: %v\n", err)
 	}
@@ -83,6 +84,9 @@ func applyUnifiedSchema(db *sql.DB) error {
 	}
 	if err := initBattlepassSchema(db); err != nil {
 		return fmt.Errorf("unified store: battlepass schema: %w", err)
+	}
+	if err := initAuthUsersSchema(db); err != nil {
+		return fmt.Errorf("unified store: auth users schema: %w", err)
 	}
 	if _, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS meta (

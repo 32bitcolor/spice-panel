@@ -17,6 +17,7 @@ export type TabId
     | 'welcome'
     | 'events'
     | 'battlepass'
+    | 'permissions'
 
 export type DbSection = 'backups' | 'tables' | 'describe' | 'sample' | 'search' | 'sql'
 export type WelcomeSection = 'config' | 'packages' | 'grants'

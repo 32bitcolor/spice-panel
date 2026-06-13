@@ -9,6 +9,7 @@ import { Icon as IconifyIcon } from '@iconify/react'
 import { api } from '../../api/client'
 import type { InventoryItem } from '../../api/client'
 import { ActionBar, DataTable, Icon, LoadingState, PageHeader, SideNav, type Column } from '../../dune-ui'
+import { usePermissions } from '../../hooks/usePermissions'
 import { AddItemsModal } from './components/AddItemsModal'
 import type { Container, ItemKey } from './types'
 
@@ -25,8 +26,10 @@ const shortClass = (cls: string): string => {
 
 export const StorageTab: React.FC = () => {
   const { t } = useTranslation()
+  const { can } = usePermissions()
+  const canWorldWrite = can('world:write')
 
-  const ITEM_COLUMNS: Column<ItemKey>[] = [
+  const ALL_ITEM_COLUMNS: Column<ItemKey>[] = [
     { key: 'id', label: t('storage.columns.id'), width: 100 },
     { key: 'template', label: t('storage.columns.template'), minWidth: 240 },
     { key: 'stack_size', label: t('storage.columns.stack'), width: 100 },
@@ -34,6 +37,7 @@ export const StorageTab: React.FC = () => {
     { key: 'durability', label: t('storage.columns.durability'), width: 130 },
     { key: 'actions', label: '', width: 52, sortable: false },
   ]
+  const ITEM_COLUMNS = ALL_ITEM_COLUMNS.filter((c) => canWorldWrite || c.key !== 'actions')
 
   const [containers, setContainers] = React.useState<Container[]>([])
   const [loading, setLoading] = React.useState(false)
@@ -204,11 +208,13 @@ export const StorageTab: React.FC = () => {
                             </>
                           )}
                     </Button>
-                    <Button size="sm" onPress={() => setShowAdd(true)}>
-                      <Icon name="plus" />
-                      {' '}
-                      {t('storage.addItems')}
-                    </Button>
+                    {canWorldWrite && (
+                      <Button size="sm" onPress={() => setShowAdd(true)}>
+                        <Icon name="plus" />
+                        {' '}
+                        {t('storage.addItems')}
+                      </Button>
+                    )}
                   </PageHeader>
 
                   {itemsLoading
@@ -223,7 +229,7 @@ export const StorageTab: React.FC = () => {
                             columns={ITEM_COLUMNS}
                             rows={items}
                             rowId={(i) => String(i.id)}
-                            selectionMode="multiple"
+                            selectionMode={canWorldWrite ? 'multiple' : undefined}
                             selectedKeys={selectedKeys}
                             onSelectionChange={setSelectedKeys}
                             initialSort={{ column: 'id', direction: 'ascending' }}
@@ -270,24 +276,26 @@ export const StorageTab: React.FC = () => {
                               }
                             }}
                           />
-                          <ActionBar isOpen={selectionCount > 0}>
-                            <ActionBar.Prefix>
-                              <span className="text-sm text-muted">
-                                {selectionCount}
-                              </span>
-                            </ActionBar.Prefix>
-                            <ActionBar.Content>
-                              <Button size="sm" variant="danger-soft" onPress={handleBulkDelete}>
-                                <Icon name="trash" />
-                                {t('players.inventory.deleteSelected')}
-                              </Button>
-                            </ActionBar.Content>
-                            <ActionBar.Suffix>
-                              <Button size="sm" variant="ghost" onPress={() => setSelectedKeys(new Set())}>
-                                {t('common.clear')}
-                              </Button>
-                            </ActionBar.Suffix>
-                          </ActionBar>
+                          {canWorldWrite && (
+                            <ActionBar isOpen={selectionCount > 0}>
+                              <ActionBar.Prefix>
+                                <span className="text-sm text-muted">
+                                  {selectionCount}
+                                </span>
+                              </ActionBar.Prefix>
+                              <ActionBar.Content>
+                                <Button size="sm" variant="danger-soft" onPress={handleBulkDelete}>
+                                  <Icon name="trash" />
+                                  {t('players.inventory.deleteSelected')}
+                                </Button>
+                              </ActionBar.Content>
+                              <ActionBar.Suffix>
+                                <Button size="sm" variant="ghost" onPress={() => setSelectedKeys(new Set())}>
+                                  {t('common.clear')}
+                                </Button>
+                              </ActionBar.Suffix>
+                            </ActionBar>
+                          )}
                         </>
                       )}
                 </>
@@ -295,7 +303,7 @@ export const StorageTab: React.FC = () => {
         </div>
       </div>
 
-      {selected && (
+      {canWorldWrite && selected && (
         <AddItemsModal
           container={selected}
           open={showAdd}

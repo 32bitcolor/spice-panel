@@ -5,6 +5,7 @@ import type { Selection } from '@heroui/react'
 import { EmptyState, Segment } from '@heroui-pro/react'
 import { api } from '../../api/client'
 import type { BattlepassCatalogExport, BattlepassPendingRow, BattlepassTier, BattlepassTierCounts } from '../../api/client'
+import { usePermissions } from '../../hooks/usePermissions'
 import { ActionBar, ConfirmDialog, DataTable, FieldSelect, Icon, NumberInput, PageHeader, Panel, SectionLabel, type Column } from '../../dune-ui'
 import { TierEditorModal } from './modals/TierEditorModal'
 import { RewardIcon } from './RewardIcons'
@@ -31,7 +32,8 @@ const categoryColor = (cat: string): 'accent' | 'warning' | 'success' | 'default
 
 export const BattlepassTab: React.FC = () => {
   const { t } = useTranslation()
-  const [section, setSection] = React.useState<Section>('pending')
+  const { can } = usePermissions()
+  const [section, setSection] = React.useState<Section>(() => (can('battlepass:read') ? 'pending' : 'track'))
   const [tiers, setTiers] = React.useState<BattlepassTier[]>([])
   const [counts, setCounts] = React.useState<Record<string, BattlepassTierCounts>>({})
   const [playerCount, setPlayerCount] = React.useState(0)
@@ -282,26 +284,34 @@ export const BattlepassTab: React.FC = () => {
             size="sm"
             aria-label={t('battlepass.title', { count: tiers.length })}
           >
-            <Segment.Item id="pending">
-              <Segment.Separator />
-              {t('battlepass.sections.pending', { count: pending.length })}
-            </Segment.Item>
-            <Segment.Item id="progress">
-              <Segment.Separator />
-              {t('battlepass.sections.progress')}
-            </Segment.Item>
-            <Segment.Item id="catalog">
-              <Segment.Separator />
-              {t('battlepass.sections.catalog')}
-            </Segment.Item>
+            {can('battlepass:read') && (
+              <Segment.Item id="pending">
+                <Segment.Separator />
+                {t('battlepass.sections.pending', { count: pending.length })}
+              </Segment.Item>
+            )}
+            {can('battlepass:read') && (
+              <Segment.Item id="progress">
+                <Segment.Separator />
+                {t('battlepass.sections.progress')}
+              </Segment.Item>
+            )}
+            {can('battlepass:read') && (
+              <Segment.Item id="catalog">
+                <Segment.Separator />
+                {t('battlepass.sections.catalog')}
+              </Segment.Item>
+            )}
             <Segment.Item id="track">
               <Segment.Separator />
               {t('battlepass.sections.track')}
             </Segment.Item>
-            <Segment.Item id="config">
-              <Segment.Separator />
-              {t('battlepass.sections.config')}
-            </Segment.Item>
+            {can('battlepass:read') && (
+              <Segment.Item id="config">
+                <Segment.Separator />
+                {t('battlepass.sections.config')}
+              </Segment.Item>
+            )}
           </Segment>
           <Button size="sm" variant="ghost" onPress={refresh} isDisabled={loading || pendingLoading}>
             <Icon name="refresh-cw" />
@@ -310,7 +320,7 @@ export const BattlepassTab: React.FC = () => {
           </Button>
         </PageHeader>
 
-        {section === 'pending' && (
+        {can('battlepass:read') && section === 'pending' && (
           <div className="flex flex-col min-h-0 flex-1">
             <DataTable<BattlepassPendingRow, PendingKey>
               selectionMode="multiple"
@@ -362,27 +372,29 @@ export const BattlepassTab: React.FC = () => {
                         )
                       : <span className="text-muted">—</span>
                   case 'actions':
-                    return (
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        onPress={() => setGrantTarget(p)}
-                        isDisabled={p.online || granting === grantKey}
-                      >
-                        <Icon name="gift" />
-                        {' '}
-                        {p.online ? t('battlepass.pending.grantOnlineHint') : t('battlepass.pending.grant')}
-                      </Button>
-                    )
+                    return can('battlepass:manage')
+                      ? (
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            onPress={() => setGrantTarget(p)}
+                            isDisabled={p.online || granting === grantKey}
+                          >
+                            <Icon name="gift" />
+                            {' '}
+                            {p.online ? t('battlepass.pending.grantOnlineHint') : t('battlepass.pending.grant')}
+                          </Button>
+                        )
+                      : null
                 }
               }}
             />
           </div>
         )}
 
-        {section === 'progress' && <ProgressView />}
+        {can('battlepass:read') && section === 'progress' && <ProgressView />}
 
-        {section === 'catalog' && (
+        {can('battlepass:read') && section === 'catalog' && (
           <div className="flex flex-col min-h-0 flex-1">
             <div className="flex items-center gap-2 mb-3">
               <SectionLabel>{t('battlepass.catalog.title', { count: visibleTiers.length })}</SectionLabel>
@@ -395,33 +407,41 @@ export const BattlepassTab: React.FC = () => {
                 options={[CATEGORY_ALL, ...CATEGORY_ORDER]}
                 className="w-44"
               />
-              <Button size="sm" variant="ghost" onPress={() => setCreateOpen(true)}>
-                <Icon name="plus" />
-                {' '}
-                {t('battlepass.catalog.newTier')}
-              </Button>
-              <Button size="sm" variant="ghost" onPress={handleExport}>
-                <Icon name="download" />
-                {' '}
-                {t('battlepass.catalog.export')}
-              </Button>
-              <Button size="sm" variant="ghost" onPress={() => importInputRef.current?.click()}>
-                <Icon name="upload" />
-                {' '}
-                {t('battlepass.catalog.import')}
-              </Button>
-              <input
-                ref={importInputRef}
-                type="file"
-                accept=".json"
-                className="hidden"
-                onChange={handleImportFile}
-              />
-              <Button size="sm" variant="danger" className="ml-auto" onPress={() => setReseedOpen(true)}>
-                <Icon name="rotate-ccw" />
-                {' '}
-                {t('battlepass.reseed')}
-              </Button>
+              {can('battlepass:manage') && (
+                <Button size="sm" variant="ghost" onPress={() => setCreateOpen(true)}>
+                  <Icon name="plus" />
+                  {' '}
+                  {t('battlepass.catalog.newTier')}
+                </Button>
+              )}
+              {can('data:export') && (
+                <Button size="sm" variant="ghost" onPress={handleExport}>
+                  <Icon name="download" />
+                  {' '}
+                  {t('battlepass.catalog.export')}
+                </Button>
+              )}
+              {can('battlepass:manage') && (
+                <>
+                  <Button size="sm" variant="ghost" onPress={() => importInputRef.current?.click()}>
+                    <Icon name="upload" />
+                    {' '}
+                    {t('battlepass.catalog.import')}
+                  </Button>
+                  <input
+                    ref={importInputRef}
+                    type="file"
+                    accept=".json"
+                    className="hidden"
+                    onChange={handleImportFile}
+                  />
+                  <Button size="sm" variant="danger" className="ml-auto" onPress={() => setReseedOpen(true)}>
+                    <Icon name="rotate-ccw" />
+                    {' '}
+                    {t('battlepass.reseed')}
+                  </Button>
+                </>
+              )}
             </div>
             <div className="flex-1 min-h-0">
               <DataTable<BattlepassTier, TierKey>
@@ -468,18 +488,20 @@ export const BattlepassTab: React.FC = () => {
                     case 'requirement':
                       return <span className="font-mono text-xs text-muted">{requirementText(tier)}</span>
                     case 'intel':
-                      return (
-                        <NumberInput
-                          ariaLabel={t('battlepass.columns.intel')}
-                          min={0}
-                          value={tier.intel}
-                          onChange={(v) => {
-                            if (v !== tier.intel) saveTier(tier, v, tier.enabled)
-                          }}
-                          showButtons={false}
-                          className="w-24"
-                        />
-                      )
+                      return can('battlepass:manage')
+                        ? (
+                            <NumberInput
+                              ariaLabel={t('battlepass.columns.intel')}
+                              min={0}
+                              value={tier.intel}
+                              onChange={(v) => {
+                                if (v !== tier.intel) saveTier(tier, v, tier.enabled)
+                              }}
+                              showButtons={false}
+                              className="w-24"
+                            />
+                          )
+                        : <span className="font-mono tabular-nums">{tier.intel}</span>
                     case 'rewards': {
                       const n = rewardItemCount(tier)
                       return n > 0
@@ -497,28 +519,36 @@ export const BattlepassTab: React.FC = () => {
                     case 'granted':
                       return <span className="text-muted tabular-nums">{counts[tier.tier_key]?.granted ?? 0}</span>
                     case 'enabled':
-                      return (
-                        <Switch
-                          size="sm"
-                          isSelected={tier.enabled}
-                          onChange={() => saveTier(tier, tier.intel, !tier.enabled)}
-                          aria-label={t('battlepass.toggleEnabled')}
-                        >
-                          <Switch.Control><Switch.Thumb /></Switch.Control>
-                        </Switch>
-                      )
+                      return can('battlepass:manage')
+                        ? (
+                            <Switch
+                              size="sm"
+                              isSelected={tier.enabled}
+                              onChange={() => saveTier(tier, tier.intel, !tier.enabled)}
+                              aria-label={t('battlepass.toggleEnabled')}
+                            >
+                              <Switch.Control><Switch.Thumb /></Switch.Control>
+                            </Switch>
+                          )
+                        : (
+                            <span className="text-muted text-xs">
+                              {tier.enabled ? <Icon name="check" /> : '—'}
+                            </span>
+                          )
                     case 'actions':
-                      return (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          isIconOnly
-                          onPress={() => setEditorTier(tier)}
-                          aria-label={t('common.edit') as string}
-                        >
-                          <Icon name="pencil" />
-                        </Button>
-                      )
+                      return can('battlepass:manage')
+                        ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              isIconOnly
+                              onPress={() => setEditorTier(tier)}
+                              aria-label={t('common.edit') as string}
+                            >
+                              <Icon name="pencil" />
+                            </Button>
+                          )
+                        : null
                   }
                 }}
               />
@@ -532,7 +562,7 @@ export const BattlepassTab: React.FC = () => {
           </Panel>
         )}
 
-        {section === 'config' && (
+        {can('battlepass:read') && section === 'config' && (
           <Panel className="flex flex-col min-h-0 flex-1">
             <ConfigView />
           </Panel>
@@ -620,7 +650,7 @@ export const BattlepassTab: React.FC = () => {
         />
       </div>
 
-      <ActionBar aria-label={t('battlepass.pending.title', { count: pending.length })} isOpen={section === 'pending' && pendingSelectionCount > 0}>
+      <ActionBar aria-label={t('battlepass.pending.title', { count: pending.length })} isOpen={can('battlepass:manage') && section === 'pending' && pendingSelectionCount > 0}>
         <ActionBar.Prefix>
           <Chip size="sm" className="shrink-0 tabular-nums">{pendingSelectionCount}</Chip>
         </ActionBar.Prefix>
@@ -645,7 +675,7 @@ export const BattlepassTab: React.FC = () => {
         </ActionBar.Suffix>
       </ActionBar>
 
-      <ActionBar aria-label={t('battlepass.catalog.title', { count: visibleTiers.length })} isOpen={section === 'catalog' && selectionCount > 0}>
+      <ActionBar aria-label={t('battlepass.catalog.title', { count: visibleTiers.length })} isOpen={can('battlepass:manage') && section === 'catalog' && selectionCount > 0}>
         <ActionBar.Prefix>
           <Chip size="sm" className="shrink-0 tabular-nums">{selectionCount}</Chip>
         </ActionBar.Prefix>

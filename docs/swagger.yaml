@@ -1,8 +1,34 @@
 basePath: /
 definitions:
+  main.activityPoint:
+    properties:
+      count:
+        type: integer
+      day:
+        type: string
+    type: object
   main.appConfig:
     properties:
+      amp_api_pass:
+        type: string
+      amp_api_port:
+        type: integer
+      amp_api_user:
+        description: |-
+          AMP Web API credentials — let dune-admin manage server settings under AMP
+          by writing them through AMP's own config API (Core/SetConfig), so they
+          survive AMP regenerating the game INIs. The API is the instance ADS,
+          reached in-container at 127.0.0.1:<amp_api_port> (default 8081).
+        type: string
+      amp_backup_dir:
+        type: string
       amp_container:
+        type: string
+      amp_container_runtime:
+        description: |-
+          AmpContainerRuntime selects the container CLI used for in-container ops
+          (logs/INI/rabbitmqctl) when AmpUseContainer is true: "podman" (default)
+          or "docker". Empty → podman, so existing installs are unaffected.
         type: string
       amp_data_root:
         type: string
@@ -12,13 +38,98 @@ definitions:
         type: string
       amp_log_path:
         type: string
+      amp_pg_bin:
+        description: |-
+          DB backup tooling (#150). AmpPgBin/AmpPgLib locate the in-container PG17
+          pg_dump/pg_restore + their shared libs; empty → validated AMP defaults.
+          AmpBackupDir is the host dir for dumps; empty → <configDir>/db-backups.
+        type: string
+      amp_pg_lib:
+        type: string
       amp_use_container:
         type: boolean
       amp_user:
         type: string
+      auth_cookie_samesite:
+        description: 'AuthCookieSameSite: "" → Lax; "none" for cross-origin CDN setups
+          (TLS only).'
+        type: string
+      auth_discord_client_id:
+        type: string
+      auth_discord_client_secret:
+        type: string
+      auth_discord_enabled:
+        description: |-
+          Discord OAuth2 login (BYOA). Reuses discord_bot_token + discord_guild_id
+          for the membership/role lookup after the OAuth exchange.
+        type: boolean
+      auth_discord_redirect_url:
+        description: |-
+          AuthDiscordRedirectURL overrides the OAuth redirect; empty derives
+          scheme://host/api/v1/auth/discord/callback from each request.
+        type: string
+      auth_enabled:
+        description: |-
+          ── Dashboard authentication ──────────────────────────────────────────
+          AuthEnabled turns on login enforcement for the dashboard + API.
+          Pointer so "unset" (default-off) is distinguishable from explicit false.
+          When off, behavior is identical to releases without auth.
+        type: boolean
+      auth_guest_enabled:
+        description: |-
+          AuthGuestEnabled allows anyone to start a read-only "guest" session
+          from the login page — no credentials, default read-only capabilities.
+        type: boolean
+      auth_local_password_hash:
+        type: string
+      auth_local_password_new:
+        description: |-
+          AuthLocalPasswordNew is a write-only API field: when present in a saved
+          config it is bcrypt-hashed into AuthLocalPasswordHash and discarded.
+        type: string
+      auth_local_username:
+        description: |-
+          Local username/password login. The hash is bcrypt; set it via
+          `dune-admin --set-password` or the config UI (which sends the plaintext
+          in auth_local_password_new and never stores it).
+        type: string
+      auth_owner_discord_ids:
+        description: |-
+          Owners get full capabilities regardless of the permissions matrix.
+          The guild owner (via Discord API) and the local account are always
+          owners; these comma-separated lists add more.
+        type: string
+      auth_owner_role_ids:
+        type: string
+      auth_session_ttl_hours:
+        type: integer
       backup_dir:
         description: Backups — optional path accessed via the executor.
         type: string
+      battlepass_award_past:
+        type: boolean
+      battlepass_enabled:
+        description: |-
+          ── Battlepass ─────────────────────────────────────────────────────────
+          BattlepassEnabled starts the tier-evaluation loop (default off).
+          BattlepassAwardPast rewards pre-existing progress on first evaluation;
+          default off — old progress is baselined and only new unlocks earn intel.
+          IMPORTANT: set award_past=true on the FIRST scan for an account — if
+          an account is first scanned with award_past=false, its tiers are written
+          as "baseline" permanently and flipping award_past later has no effect.
+          To repopulate Pending after changing modes, clear the battlepass_* tables
+          in dune-admin.db (or delete the whole file to reset all stores).
+          BattlepassScanPaceMs is the inter-player delay (ms) during evaluation;
+          0 disables pacing; negative → default 75ms; max 5000ms.
+          BattlepassScanStartDelayMs is the delay (ms) before the boot scan so the
+          server and DB pool finish warming; 0 is immediate; negative → 3000ms.
+        type: boolean
+      battlepass_poll_seconds:
+        type: integer
+      battlepass_scan_pace_ms:
+        type: integer
+      battlepass_scan_start_delay_ms:
+        type: integer
       broker_admin_addr:
         type: string
       broker_exec_prefix:
@@ -77,6 +188,25 @@ definitions:
         type: string
       director_url:
         type: string
+      discord_announce_channel_id:
+        type: string
+      discord_bot_enabled:
+        description: |-
+          ── Discord bot ────────────────────────────────────────────────────────
+          DiscordBotEnabled starts the embedded Discord gateway bot. Pointer so we
+          can distinguish "unset" (default-off) from "explicitly false".
+        type: boolean
+      discord_bot_token:
+        type: string
+      discord_guild_id:
+        type: string
+      discord_roles_admin:
+        type: string
+      discord_roles_economy:
+        type: string
+      discord_roles_viewer:
+        description: Comma-separated Discord role IDs for each capability tier.
+        type: string
       docker_broker_admin:
         type: string
       docker_broker_game:
@@ -86,6 +216,12 @@ definitions:
       docker_gameserver:
         description: docker-specific — container names
         type: string
+      events_enabled:
+        description: |-
+          ── Live events engine ─────────────────────────────────────────────────
+          EventsEnabled starts the background polling engine. Per-event poll_seconds
+          and jitter_seconds are configured on each event definition.
+        type: boolean
       listen_addr:
         type: string
       market_bot_buy_interval:
@@ -126,6 +262,87 @@ definitions:
         type: string
       ssh_user:
         type: string
+      welcome_package_active_version:
+        type: string
+      welcome_package_enabled:
+        description: |-
+          ── Welcome package ────────────────────────────────────────────────────
+          Auto-grants a configured item package to every player once, on first
+          login. Defaults OFF — it mutates every player's inventory, so it must be
+          explicitly opted into. Bump the version to re-issue to everyone.
+        type: boolean
+      welcome_package_items:
+        items:
+          $ref: '#/definitions/main.welcomePackageItem'
+        type: array
+      welcome_package_scan_interval_secs:
+        type: integer
+      welcome_package_version:
+        description: Legacy pre-library fields, migrated into WelcomePackages on load.
+        type: string
+      welcome_packages:
+        items:
+          $ref: '#/definitions/main.welcomePackage'
+        type: array
+    type: object
+  main.authSessionInfo:
+    properties:
+      avatar:
+        type: string
+      capabilities:
+        items:
+          type: string
+        type: array
+      method:
+        type: string
+      name:
+        type: string
+      owner:
+        type: boolean
+      sub:
+        type: string
+    type: object
+  main.authStatusResponse:
+    properties:
+      enabled:
+        type: boolean
+      methods:
+        properties:
+          discord:
+            type: boolean
+          guest:
+            type: boolean
+          local:
+            type: boolean
+        type: object
+      session:
+        $ref: '#/definitions/main.authSessionInfo'
+    type: object
+  main.authUserRecord:
+    properties:
+      capabilities:
+        items:
+          type: string
+        type: array
+      created_at:
+        type: string
+      enabled:
+        type: boolean
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+  main.authUserUpdateRequest:
+    properties:
+      capabilities:
+        items:
+          type: string
+        type: array
+      enabled:
+        type: boolean
+      password:
+        type: string
     type: object
   main.backupFile:
     properties:
@@ -137,6 +354,13 @@ definitions:
         type: string
       size_bytes:
         type: integer
+    type: object
+  main.capabilityInfo:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
     type: object
   main.cheatEntry:
     properties:
@@ -157,6 +381,24 @@ definitions:
         type: integer
       player_id:
         type: integer
+    type: object
+  main.discordMemberRow:
+    properties:
+      avatar:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      username:
+        type: string
+    type: object
+  main.discordRoleRow:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
     type: object
   main.dungeonRecord:
     properties:
@@ -183,6 +425,42 @@ definitions:
         type: integer
       scrips:
         type: integer
+    type: object
+  main.factionStat:
+    properties:
+      avg_level:
+        type: number
+      faction:
+        type: string
+      players:
+        type: integer
+      scrip:
+        type: integer
+      solaris:
+        type: integer
+    type: object
+  main.factionTrendPoint:
+    properties:
+      day:
+        type: string
+      values:
+        additionalProperties:
+          format: float64
+          type: number
+        type: object
+    type: object
+  main.factionTrends:
+    properties:
+      factions:
+        items:
+          type: string
+        type: array
+      metric:
+        type: string
+      points:
+        items:
+          $ref: '#/definitions/main.factionTrendPoint'
+        type: array
     type: object
   main.gameEvent:
     properties:
@@ -221,6 +499,66 @@ definitions:
       player_id:
         type: integer
     type: object
+  main.guildDetail:
+    properties:
+      description:
+        type: string
+      faction_id:
+        type: integer
+      faction_name:
+        type: string
+      guild_id:
+        type: integer
+      invites:
+        items:
+          $ref: '#/definitions/main.guildInvite'
+        type: array
+      member_count:
+        type: integer
+      members:
+        items:
+          $ref: '#/definitions/main.guildMember'
+        type: array
+      name:
+        type: string
+    type: object
+  main.guildInvite:
+    properties:
+      character_name:
+        type: string
+      invite_id:
+        type: integer
+      player_id:
+        type: integer
+      sender_name:
+        type: string
+      sender_player_id:
+        type: integer
+    type: object
+  main.guildMember:
+    properties:
+      character_name:
+        type: string
+      player_id:
+        type: integer
+      role_id:
+        type: integer
+    type: object
+  main.guildSummary:
+    properties:
+      description:
+        type: string
+      faction_id:
+        type: integer
+      faction_name:
+        type: string
+      guild_id:
+        type: integer
+      member_count:
+        type: integer
+      name:
+        type: string
+    type: object
   main.itemInfo:
     properties:
       durability:
@@ -238,12 +576,142 @@ definitions:
       template_id:
         type: string
     type: object
+  main.labeledCount:
+    properties:
+      count:
+        type: integer
+      label:
+        type: string
+    type: object
+  main.landsraadDecree:
+    properties:
+      disabled:
+        type: boolean
+      id:
+        type: integer
+      name:
+        type: string
+      weight:
+        type: number
+    type: object
+  main.landsraadOverview:
+    properties:
+      decrees:
+        items:
+          $ref: '#/definitions/main.landsraadDecree'
+        type: array
+      tasks:
+        items:
+          $ref: '#/definitions/main.landsraadTask'
+        type: array
+      term:
+        $ref: '#/definitions/main.landsraadTerm'
+    type: object
+  main.landsraadTask:
+    properties:
+      board_index:
+        type: integer
+      completed:
+        type: boolean
+      goal_amount:
+        type: integer
+      house:
+        type: string
+      id:
+        type: integer
+      sysselraad:
+        type: boolean
+      winning_faction:
+        type: string
+    type: object
+  main.landsraadTerm:
+    properties:
+      active_decree:
+        type: string
+      elected_decree:
+        type: string
+      end_time:
+        type: string
+      reigning_faction:
+        type: string
+      start_time:
+        type: string
+      term_id:
+        type: integer
+      test_term:
+        type: boolean
+      winning_faction:
+        type: string
+    type: object
   main.logPod:
     properties:
       name:
         type: string
       namespace:
         type: string
+    type: object
+  main.loginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  main.mapMarker:
+    properties:
+      class:
+        type: string
+      fls_id:
+        type: string
+      id:
+        type: integer
+      map:
+        type: string
+      name:
+        type: string
+      online_status:
+        type: string
+      partition_id:
+        type: integer
+      type:
+        description: '"player" | "vehicle" | "base"'
+        type: string
+      x:
+        type: number
+      "y":
+        type: number
+      z:
+        type: number
+    type: object
+  main.permissionsResponse:
+    properties:
+      capabilities:
+        items:
+          $ref: '#/definitions/main.capabilityInfo'
+        type: array
+      defaults:
+        items:
+          type: string
+        type: array
+      guild_roles:
+        items:
+          $ref: '#/definitions/main.discordRoleRow'
+        type: array
+      matrix:
+        additionalProperties:
+          items:
+            type: string
+          type: array
+        type: object
+    type: object
+  main.permissionsUpdateRequest:
+    properties:
+      matrix:
+        additionalProperties:
+          items:
+            type: string
+          type: array
+        type: object
     type: object
   main.playerInfo:
     properties:
@@ -253,6 +721,10 @@ definitions:
         type: string
       controller_id:
         type: integer
+      discord_avatar:
+        type: string
+      discord_user_id:
+        type: string
       faction_id:
         type: integer
       fls_id:
@@ -265,6 +737,35 @@ definitions:
         type: string
       online_status:
         type: string
+    type: object
+  main.serverSummary:
+    properties:
+      activity_trend:
+        items:
+          $ref: '#/definitions/main.activityPoint'
+        type: array
+      avg_char_level:
+        type: number
+      by_faction:
+        items:
+          $ref: '#/definitions/main.factionStat'
+        type: array
+      by_map:
+        items:
+          $ref: '#/definitions/main.labeledCount'
+        type: array
+      online_players:
+        type: integer
+      total_players:
+        type: integer
+      total_playtime_secs:
+        type: integer
+      total_scrip:
+        type: integer
+      total_solaris:
+        type: integer
+      trend_days:
+        type: integer
     type: object
   main.specTrack:
     properties:
@@ -330,13 +831,372 @@ definitions:
       vehicle_name:
         type: string
     type: object
+  main.welcomeConfigResponse:
+    properties:
+      active_version:
+        type: string
+      active_versions:
+        items:
+          type: string
+        type: array
+      enabled:
+        type: boolean
+      motd_enabled:
+        type: boolean
+      motd_message:
+        type: string
+      motd_source_player:
+        type: string
+      packages:
+        items:
+          $ref: '#/definitions/main.welcomePackage'
+        type: array
+      scan_interval_secs:
+        type: integer
+      welcome_message:
+        type: string
+      welcome_message_enabled:
+        type: boolean
+      welcome_whisper_source_player:
+        type: string
+    type: object
+  main.welcomeGrantRecord:
+    properties:
+      account_id:
+        type: integer
+      attempts:
+        type: integer
+      character_name:
+        type: string
+      fls_id:
+        type: string
+      granted_at:
+        type: string
+      last_error:
+        type: string
+      package_version:
+        type: string
+      status:
+        description: '"granted" | "failed"'
+        type: string
+      updated_at:
+        type: string
+    type: object
+  main.welcomePackage:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/main.welcomePackageItem'
+        type: array
+      version:
+        type: string
+    type: object
+  main.welcomePackageItem:
+    properties:
+      qty:
+        type: integer
+      quality:
+        type: integer
+      template:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
-  description: Admin panel API for a Dune Awakening private server.
+  description: |-
+    Admin panel API for a Dune Awakening private server.
+    When auth_enabled is set, all /api/v1 endpoints (except /api/v1/auth/*) require the session cookie issued by /api/v1/auth/login or the Discord OAuth flow.
   title: dune-admin API
   version: "1.0"
 paths:
+  /api/v1/auth/discord/callback:
+    get:
+      responses:
+        "302":
+          description: Found
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "502":
+          description: Bad Gateway
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Discord OAuth2 callback
+      tags:
+      - auth
+  /api/v1/auth/discord/login:
+    get:
+      responses:
+        "302":
+          description: Found
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Start Discord OAuth2 login
+      tags:
+      - auth
+  /api/v1/auth/guest:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Start a read-only guest session
+      tags:
+      - auth
+  /api/v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Login credentials
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/main.loginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "429":
+          description: Too Many Requests
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Local username/password login
+      tags:
+      - auth
+  /api/v1/auth/logout:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Log out (clear session cookie)
+      tags:
+      - auth
+  /api/v1/auth/permissions:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.permissionsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get the role→capability permissions matrix (owner only)
+      tags:
+      - auth
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: New role→capability matrix
+        in: body
+        name: matrix
+        required: true
+        schema:
+          $ref: '#/definitions/main.permissionsUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Replace the permissions matrix (owner only)
+      tags:
+      - auth
+  /api/v1/auth/status:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.authStatusResponse'
+      summary: 'Auth status: enabled flag, login methods, current session'
+      tags:
+      - auth
+  /api/v1/auth/users:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.authUserRecord'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List local dashboard users (owner / auth:manage)
+      tags:
+      - auth
+  /api/v1/auth/users/{username}:
+    delete:
+      parameters:
+      - description: Username
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a local dashboard user (owner / auth:manage)
+      tags:
+      - auth
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Username
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: User settings
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/main.authUserUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create or update a local dashboard user (owner / auth:manage)
+      tags:
+      - auth
   /api/v1/bases:
     get:
       produces:
@@ -757,8 +1617,7 @@ paths:
       consumes:
       - application/json
       parameters:
-      - description: Target FLS ID, target name, sender name, message, and optional
-          impersonated FLS ID
+      - description: Recipient account id and message
         in: body
         name: body
         required: true
@@ -785,9 +1644,15 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Send whisper message to a player via RabbitMQ (experimental)
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Send a whisper to a player from the GM/Server persona
       tags:
-      - players
+      - chat
   /api/v1/config:
     get:
       produces:
@@ -999,6 +1864,491 @@ paths:
       summary: List all tables in the dune schema
       tags:
       - database
+  /api/v1/db-backups:
+    delete:
+      parameters:
+      - description: backup filename
+        in: query
+        name: file
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Delete a database backup
+      tags:
+      - db-backups
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List database backups
+      tags:
+      - db-backups
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "501":
+          description: Not Implemented
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Take a database backup now
+      tags:
+      - db-backups
+  /api/v1/db-backups/download:
+    get:
+      parameters:
+      - description: backup filename
+        in: query
+        name: file
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses: {}
+      summary: Download a database backup
+      tags:
+      - db-backups
+  /api/v1/db-backups/restore:
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Restore the database from a backup (DESTRUCTIVE — battlegroup must
+        be stopped)
+      tags:
+      - db-backups
+  /api/v1/director-config:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "501":
+          description: Not Implemented
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Read the Battlegroup Director config (AMP only)
+      tags:
+      - director
+    put:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "501":
+          description: Not Implemented
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update the Battlegroup Director config (AMP only)
+      tags:
+      - director
+  /api/v1/discord/members/search:
+    get:
+      parameters:
+      - description: Name prefix to search
+        in: query
+        name: q
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.discordMemberRow'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Search Discord guild members by name prefix
+      tags:
+      - discord
+  /api/v1/guilds:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.guildSummary'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List all guilds with member count + faction name
+      tags:
+      - guilds
+  /api/v1/guilds/{id}:
+    get:
+      parameters:
+      - description: Guild ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.guildDetail'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get one guild with its members and pending invites
+      tags:
+      - guilds
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Guild ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.guildDetail'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Edit a guild's name and/or description
+      tags:
+      - guilds
+  /api/v1/guilds/{id}/members/{pid}/role:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Guild ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Member player (actor) ID
+        in: path
+        name: pid
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Set a guild member's role (50 = member, 100 = admin)
+      tags:
+      - guilds
+  /api/v1/landsraad:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.landsraadOverview'
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Landsraad overview — latest term, decree catalogue, and task board
+      tags:
+      - landsraad
+  /api/v1/locations:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: name
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.teleportLocation'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a named location
+      tags:
+      - locations
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.teleportLocation'
+            type: array
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List all saved teleport/spawn locations
+      tags:
+      - locations
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: name, x, y, z
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.teleportLocation'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Add or update a named teleport/spawn location
+      tags:
+      - locations
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: old_name, new_name
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.teleportLocation'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Rename an existing location
+      tags:
+      - locations
   /api/v1/logs/cheats:
     get:
       produces:
@@ -1064,6 +2414,44 @@ paths:
       summary: Stream log via WebSocket
       tags:
       - logs
+  /api/v1/map/markers:
+    get:
+      parameters:
+      - description: Map key (HaggaBasin | DeepDesert)
+        in: query
+        name: map
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.mapMarker'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Live Map markers for a map
+      tags:
+      - map
   /api/v1/market-bot/cleanup:
     post:
       produces:
@@ -2179,6 +3567,35 @@ paths:
       summary: Dismiss the returning-player award for an account
       tags:
       - players
+  /api/v1/players/faction-trends:
+    get:
+      parameters:
+      - description: solaris (default) | level
+        in: query
+        name: metric
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.factionTrends'
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Faction-growth time series (Solaris or avg level per faction)
+      tags:
+      - players
   /api/v1/players/factions:
     get:
       produces:
@@ -2225,13 +3642,19 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "422":
+          description: Player must be online
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Send fill-water command via RabbitMQ
+      summary: Send fill-water command via RabbitMQ (player must be online)
       tags:
       - players
   /api/v1/players/give-currency:
@@ -3384,6 +4807,30 @@ paths:
       summary: List specialization tracks for all players
       tags:
       - players
+  /api/v1/players/summary:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.serverSummary'
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Server-wide player summary dashboard
+      tags:
+      - players
   /api/v1/players/teleport:
     post:
       consumes:
@@ -3422,6 +4869,40 @@ paths:
               type: string
             type: object
       summary: Teleport a player to a named partition location
+      tags:
+      - players
+  /api/v1/players/teleport-coords:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: fls_id, x, y, z, partition_id (optional)
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Teleport a player to arbitrary XYZ coordinates
       tags:
       - players
   /api/v1/players/teleport-to-player:
@@ -3567,6 +5048,94 @@ paths:
       summary: Tear down and re-establish all backend connections
       tags:
       - status
+  /api/v1/scheduled-backups:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get the scheduled-backup config + next backup time
+      tags:
+      - scheduled-backups
+    put:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update the scheduled-backup config
+      tags:
+      - scheduled-backups
+  /api/v1/scheduled-restarts:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get the scheduled-restart config + next restart time
+      tags:
+      - scheduled-restarts
+    put:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update the scheduled-restart config
+      tags:
+      - scheduled-restarts
+  /api/v1/scheduled-restarts/skip-next:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Skip the next scheduled restart (without disabling the schedule)
+      tags:
+      - scheduled-restarts
   /api/v1/server-settings:
     get:
       produces:
@@ -3916,4 +5485,206 @@ paths:
       summary: Send vehicle spawn command via RabbitMQ
       tags:
       - vehicles
+  /api/v1/web-interfaces:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List configured web interfaces
+      tags:
+      - web-interfaces
+    put:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Replace the configured web interfaces
+      tags:
+      - web-interfaces
+  /api/v1/welcome-package/config:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.welcomeConfigResponse'
+      summary: Get welcome-package config
+      tags:
+      - welcome-package
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: config
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.welcomeConfigResponse'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.welcomeConfigResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update welcome-package config (applies live + persists)
+      tags:
+      - welcome-package
+  /api/v1/welcome-package/grants:
+    get:
+      parameters:
+      - description: max rows (default 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.welcomeGrantRecord'
+            type: array
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List welcome-package grant ledger rows
+      tags:
+      - welcome-package
+  /api/v1/welcome-package/retry:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: fls_id, package_version, account_id
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Retry a failed welcome-package grant (clears the ledger row)
+      tags:
+      - welcome-package
+  /api/v1/welcome-package/revoke:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: fls_id, package_version, account_id
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Revoke a welcome-package grant (clears the ledger row so the same package
+        can be granted again)
+      tags:
+      - welcome-package
+  /api/v1/welcome-package/run:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Run a welcome-package scan now (one-off, regardless of enabled)
+      tags:
+      - welcome-package
+securityDefinitions:
+  CookieAuth:
+    in: cookie
+    name: dune_admin_session
+    type: apiKey
 swagger: "2.0"

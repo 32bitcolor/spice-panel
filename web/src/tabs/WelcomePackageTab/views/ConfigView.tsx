@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { Button, Input, ListBox, Spinner, Switch, TextArea } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
+import { usePermissions } from '../../../hooks/usePermissions'
 import { ConfirmDialog, Icon, NumberInput, PageHeader, Panel, SectionLabel } from '../../../dune-ui'
 import { DiffStatus } from '../components/DiffStatus'
 import type { ConfigViewProps } from './types'
@@ -22,6 +23,7 @@ export const ConfigView: React.FC<ConfigViewProps> = ({
   configDiff,
 }) => {
   const { t } = useTranslation()
+  const { can } = usePermissions()
   const [confirmRun, setConfirmRun] = React.useState(false)
 
   return (
@@ -173,31 +175,33 @@ export const ConfigView: React.FC<ConfigViewProps> = ({
       </div>
 
       {/* Action bar — fixed at bottom */}
-      <div className="flex items-center gap-3 shrink-0">
-        <Button size="sm" variant="secondary" onPress={save} isDisabled={saving}>
-          {saving
-            ? <Spinner size="sm" color="current" />
-            : (
-                <>
-                  <Icon name="save" />
-                  {' '}
-                  {t('welcome.saveConfig')}
-                </>
-              )}
-        </Button>
-        <Button size="sm" variant="outline" onPress={() => setConfirmRun(true)} isDisabled={running}>
-          {running
-            ? <Spinner size="sm" color="current" />
-            : (
-                <>
-                  <Icon name="play" />
-                  {' '}
-                  {t('welcome.runNow')}
-                </>
-              )}
-        </Button>
-        <DiffStatus diff={configDiff} />
-      </div>
+      {can('welcome:manage') && (
+        <div className="flex items-center gap-3 shrink-0">
+          <Button size="sm" variant="secondary" onPress={save} isDisabled={saving}>
+            {saving
+              ? <Spinner size="sm" color="current" />
+              : (
+                  <>
+                    <Icon name="save" />
+                    {' '}
+                    {t('welcome.saveConfig')}
+                  </>
+                )}
+          </Button>
+          <Button size="sm" variant="outline" onPress={() => setConfirmRun(true)} isDisabled={running}>
+            {running
+              ? <Spinner size="sm" color="current" />
+              : (
+                  <>
+                    <Icon name="play" />
+                    {' '}
+                    {t('welcome.runNow')}
+                  </>
+                )}
+          </Button>
+          <DiffStatus diff={configDiff} />
+        </div>
+      )}
 
       {/* Confirm exactly which package(s) will be granted before running, so an
           accidentally-selected version isn't granted by surprise (#162). */}

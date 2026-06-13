@@ -31,7 +31,7 @@ export interface ConfigFooterProps {
   onReload: () => void
 }
 
-export type StringAppConfigKey = { [K in keyof AppConfig]: AppConfig[K] extends string ? K : never }[keyof AppConfig]
+export type StringAppConfigKey = { [K in keyof AppConfig]-?: AppConfig[K] extends string ? K : never }[keyof AppConfig]
 
 export interface BotServerConfigHandle {
   save: () => Promise<void>

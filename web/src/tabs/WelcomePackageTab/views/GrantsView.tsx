@@ -3,6 +3,7 @@ import { Button, Spinner } from '@heroui/react'
 import { EmptyState } from '@heroui-pro/react'
 import { Icon as IconifyIcon } from '@iconify/react'
 import { useTranslation } from 'react-i18next'
+import { usePermissions } from '../../../hooks/usePermissions'
 import { DataTable, Icon, PageHeader, type Column } from '../../../dune-ui'
 import type { WelcomeGrantRecord } from '../../../api/client'
 import type { GrantKey, GrantsViewProps } from './types'
@@ -15,6 +16,7 @@ const fmtTime = (s: string): string => {
 
 export const GrantsView: React.FC<GrantsViewProps> = ({ grants, retry, revoke, load, loading }) => {
   const { t } = useTranslation()
+  const { can } = usePermissions()
 
   const GRANT_COLUMNS: Column<GrantKey>[] = [
     { key: 'character', label: t('welcome.columns.character'), minWidth: 130 },
@@ -96,6 +98,7 @@ export const GrantsView: React.FC<GrantsViewProps> = ({ grants, retry, revoke, l
                 ? <span className="text-danger text-xs">{g.last_error}</span>
                 : <span className="text-muted">—</span>
             case 'actions':
+              if (!can('welcome:manage')) return null
               return g.status === 'failed'
                 ? (
                     <Button size="sm" variant="outline" className="w-full" onPress={() => retry(g)}>

@@ -5,10 +5,13 @@ import { EmptyState } from '@heroui-pro/react'
 import { api, ApiError } from '../api/client'
 import type { BaseRow } from '../api/client'
 import { DataTable, Icon, PageHeader, type Column } from '../dune-ui'
+import { usePermissions } from '../hooks/usePermissions'
 import type { BasesTabKey, BasesTabProps } from './types'
 
 export const BasesTab: React.FC<BasesTabProps> = ({ isSignedIn = true }) => {
   const { t } = useTranslation()
+  const { can } = usePermissions()
+  const canExportData = can('data:export')
   const [bases, setBases] = React.useState<BaseRow[]>([])
   const [loading, setLoading] = React.useState(false)
   const [unsupported, setUnsupported] = React.useState(false)
@@ -92,7 +95,7 @@ export const BasesTab: React.FC<BasesTabProps> = ({ isSignedIn = true }) => {
             <DataTable<BaseRow, BasesTabKey>
               aria-label={t('bases.ariaLabel')}
               className="min-h-0 max-h-full"
-              columns={COLUMNS}
+              columns={canExportData ? COLUMNS : COLUMNS.filter((c) => c.key !== 'actions')}
               rows={bases}
               loading={loading}
               rowId={(b) => String(b.id)}

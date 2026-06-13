@@ -61,6 +61,16 @@ export class ApiError extends Error {
   }
 }
 
+// Fired on any 401 so the AuthProvider can drop the stale session and show
+// the login page without every caller handling it.
+export const AUTH_EXPIRED_EVENT = 'dune-auth-expired'
+
+function notifyAuthExpired() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT))
+  }
+}
+
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
   const token = await window.Clerk?.session?.getToken()
   const headers: Record<string, string> = {}
@@ -70,8 +80,10 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
+    credentials: 'include',
   })
   if (!res.ok) {
+    if (res.status === 401 && path !== '/auth/login') notifyAuthExpired()
     const err = await res.json().catch(() => ({ error: res.statusText }))
     throw new ApiError(res.status, err.error ?? res.statusText)
   }
@@ -194,6 +206,20 @@ export type AppConfig = {
   discord_roles_economy: string
   discord_roles_admin: string
   discord_announce_channel_id: string
+  // Dashboard authentication
+  auth_enabled: boolean
+  auth_local_username: string
+  auth_local_password_hash: string // masked when non-empty
+  auth_local_password_new?: string // write-only: plaintext hashed server-side
+  auth_discord_enabled: boolean
+  auth_discord_client_id: string
+  auth_discord_client_secret: string // masked when non-empty
+  auth_discord_redirect_url: string
+  auth_owner_discord_ids: string
+  auth_owner_role_ids: string
+  auth_session_ttl_hours: number
+  auth_cookie_samesite: string
+  auth_guest_enabled: boolean
   // Advanced
   listen_addr: string
   scrip_currency: number
@@ -859,6 +885,71 @@ export interface BattlepassConfig {
   battlepass_scan_start_delay_ms: number
 }
 
+// ── dashboard authentication ────────────────────────────────────────────────
+
+export type AuthSessionInfo = {
+  sub: string
+  name: string
+  method: 'local' | 'discord' | 'guest'
+  avatar?: string
+  owner: boolean
+  capabilities: string[] | null
+}
+
+export type AuthStatus = {
+  enabled: boolean
+  methods: { local: boolean, discord: boolean, guest: boolean }
+  session: AuthSessionInfo | null
+}
+
+export type DiscordMember = {
+  id: string
+  name: string
+  username: string
+  avatar?: string
+}
+
+export type PermissionsCapability = {
+  id: string
+  description: string
+}
+
+export type PermissionsData = {
+  matrix: Record<string, string[]>
+  capabilities: PermissionsCapability[]
+  guild_roles: { id: string, name: string }[]
+  seed_defaults: string[]
+}
+
+export type AuthLocalUser = {
+  username: string
+  capabilities: string[]
+  enabled: boolean
+  created_at: string
+  updated_at: string
+}
+
+export const authApi = {
+  status: () => req<AuthStatus>('GET', '/auth/status'),
+  login: (username: string, password: string) =>
+    req<{ status: string }>('POST', '/auth/login', { username, password }),
+  logout: () => req<{ status: string }>('POST', '/auth/logout'),
+  guest: () => req<{ status: string }>('POST', '/auth/guest'),
+  discordLoginUrl: () => `${apiBase}/auth/discord/login`,
+  permissions: {
+    get: () => req<PermissionsData>('GET', '/auth/permissions'),
+    save: (matrix: Record<string, string[]>) =>
+      req<{ status: string }>('PUT', '/auth/permissions', { matrix }),
+  },
+  users: {
+    list: () => req<AuthLocalUser[]>('GET', '/auth/users'),
+    save: (username: string, body: { password?: string, capabilities: string[], enabled: boolean }) =>
+      req<{ status: string }>('PUT', `/auth/users/${encodeURIComponent(username)}`, body),
+    remove: (username: string) =>
+      req<{ status: string }>('DELETE', `/auth/users/${encodeURIComponent(username)}`),
+  },
+}
+
 export const api = {
   status: () => req<Status>('GET', '/status'),
   reconnect: () => req<Status>('POST', '/reconnect'),
@@ -891,7 +982,7 @@ export const api = {
       const token = await window.Clerk?.session?.getToken()
       const headers: Record<string, string> = {}
       if (token) headers['Authorization'] = `Bearer ${token}`
-      const res = await fetch(`${apiBase}/battlegroup/backup-files/upload`, { method: 'POST', headers, body: form })
+      const res = await fetch(`${apiBase}/battlegroup/backup-files/upload`, { method: 'POST', headers, body: form, credentials: 'include' })
       if (!res.ok) {
         const e = await res.json().catch(() => ({ error: res.statusText }))
         throw new ApiError(res.status, e.error)
@@ -941,7 +1032,7 @@ export const api = {
       const token = await window.Clerk?.session?.getToken()
       const headers: Record<string, string> = {}
       if (token) headers['Authorization'] = `Bearer ${token}`
-      const res = await fetch(`${apiBase}/players/${account_id}/export`, { headers })
+      const res = await fetch(`${apiBase}/players/${account_id}/export`, { headers, credentials: 'include' })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: res.statusText }))
         throw new ApiError(res.status, err.error ?? res.statusText)
@@ -1111,7 +1202,7 @@ export const api = {
       const fd = new FormData()
       fd.append('file', file)
       fd.append('player_id', String(player_id))
-      return fetch(`${apiBase}/blueprints/import`, { method: 'POST', headers, body: fd })
+      return fetch(`${apiBase}/blueprints/import`, { method: 'POST', headers, body: fd, credentials: 'include' })
         .then((r) => r.json())
     },
   },
@@ -1201,6 +1292,8 @@ export const api = {
 
   discord: {
     roles: () => req<{ id: string, name: string }[]>('GET', '/discord/roles'),
+    membersSearch: (q: string) =>
+      req<DiscordMember[]>('GET', `/discord/members/search?q=${encodeURIComponent(q)}`),
   },
 
   update: {
