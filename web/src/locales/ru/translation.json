@@ -1540,7 +1540,17 @@
       "status": "Статус",
       "attempts": "Попытки",
       "claimedAt": "Получено",
-      "lastError": "Последняя ошибка"
+      "lastError": "Последняя ошибка",
+      "nextAttempt": "Следующая попытка",
+      "grant": "Выдать",
+      "actions": "Действия",
+      "grantAria": "Выдать награду аккаунту {{account}}",
+      "statusLabels": {
+        "granted": "Выдано",
+        "pending": "В ожидании",
+        "exhausted": "Исчерпано",
+        "failed": "Ошибка"
+      }
     },
     "editor": {
       "createTitle": "Новое событие",
@@ -1599,7 +1609,9 @@
     },
     "confirmDeleteTitle": "Delete Event",
     "confirmResetTitle": "Reset Event",
-    "resetConfirmLabel": "Reset"
+    "resetConfirmLabel": "Reset",
+    "grantSuccess": "Награда выдана.",
+    "grantFailed": "Не удалось выдать награду: {{message}}"
   },
   "battlepass": {
     "title": "Battlepass ({{count}} уровней)",

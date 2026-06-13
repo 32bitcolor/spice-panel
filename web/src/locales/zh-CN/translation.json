@@ -1494,7 +1494,17 @@
       "status": "状态",
       "attempts": "尝试次数",
       "claimedAt": "领取时间",
-      "lastError": "最近错误"
+      "lastError": "最近错误",
+      "nextAttempt": "下次尝试",
+      "grant": "发放",
+      "actions": "操作",
+      "grantAria": "向账户 {{account}} 发放奖励",
+      "statusLabels": {
+        "granted": "已发放",
+        "pending": "待处理",
+        "exhausted": "已用尽",
+        "failed": "失败"
+      }
     },
     "editor": {
       "createTitle": "新建活动",
@@ -1553,7 +1563,9 @@
     },
     "confirmDeleteTitle": "Delete Event",
     "confirmResetTitle": "Reset Event",
-    "resetConfirmLabel": "Reset"
+    "resetConfirmLabel": "Reset",
+    "grantSuccess": "奖励已发放。",
+    "grantFailed": "发放奖励失败：{{message}}"
   },
   "battlepass": {
     "title": "战令（{{count}} 阶）",

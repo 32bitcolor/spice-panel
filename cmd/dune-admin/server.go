@@ -330,6 +330,7 @@ func buildMux() *http.ServeMux {
 	handleAPI(mux, "POST /api/v1/events/{id}/enable", capEventsManage, handleSetEventEnabled)
 	handleAPI(mux, "GET /api/v1/events/{id}/status", capEventsRead, handleGetEventStatus)
 	handleAPI(mux, "POST /api/v1/events/{id}/reset", capEventsManage, handleResetEvent)
+	handleAPI(mux, "POST /api/v1/events/{id}/claims/{account_id}/grant", capEventsManage, handleGrantEventClaim)
 
 	// ── battlepass (intel-point reward track) ─────────────────────────────────
 	handleAPI(mux, "GET /api/v1/battlepass/tiers", capBattlepassTrack, handleListBattlepassTiers)

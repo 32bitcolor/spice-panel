@@ -1667,7 +1667,17 @@
       "status": "Status",
       "attempts": "Attempts",
       "claimedAt": "Claimed At",
-      "lastError": "Last Error"
+      "lastError": "Last Error",
+      "nextAttempt": "Next Attempt",
+      "grant": "Grant",
+      "actions": "Actions",
+      "grantAria": "Grant reward to account {{account}}",
+      "statusLabels": {
+        "granted": "Granted",
+        "pending": "Pending",
+        "exhausted": "Exhausted",
+        "failed": "Failed"
+      }
     },
     "editor": {
       "createTitle": "New Event",
@@ -1723,7 +1733,9 @@
       "saved": "Settings saved.",
       "saveFailed": "Failed to save settings: {{message}}",
       "failedToLoad": "Failed to load settings: {{message}}"
-    }
+    },
+    "grantSuccess": "Reward granted.",
+    "grantFailed": "Failed to grant reward: {{message}}"
   },
   "auth": {
     "signInSubtitle": "Sign in to manage your server",

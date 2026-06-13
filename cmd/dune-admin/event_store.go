@@ -37,15 +37,38 @@ type eventDefinition struct {
 
 // eventClaimRecord is one row from event_award_claims.
 type eventClaimRecord struct {
-	EventID   int64  `json:"event_id"`
-	Version   int    `json:"version"`
-	AccountID int64  `json:"account_id"`
-	Status    string `json:"status"`
-	ClaimedAt string `json:"claimed_at"`
-	Attempts  int    `json:"attempts"`
-	LastError string `json:"last_error"`
-	UpdatedAt string `json:"updated_at"`
+	EventID       int64  `json:"event_id"`
+	Version       int    `json:"version"`
+	AccountID     int64  `json:"account_id"`
+	Status        string `json:"status"`
+	ClaimedAt     string `json:"claimed_at"`
+	Attempts      int    `json:"attempts"`
+	LastError     string `json:"last_error"`
+	NextAttemptAt string `json:"next_attempt_at"`
+	UpdatedAt     string `json:"updated_at"`
 }
+
+// Claim grant lifecycle statuses.
+//   - granted:   terminal success.
+//   - pending:   grant failed but is still retryable; next_attempt_at holds the
+//     earliest time the retry loop may try again (now+24h after each failure).
+//   - exhausted: all eventGrantMaxAttempts have been used; only a manual Grant
+//     action can deliver the reward.
+//
+// The UI also accepts the legacy "failed" status for claims written before this
+// migration.
+const (
+	eventClaimStatusGranted   = "granted"
+	eventClaimStatusPending   = "pending"
+	eventClaimStatusExhausted = "exhausted"
+
+	// eventGrantMaxAttempts is the number of grant attempts allowed before a
+	// claim becomes exhausted (manual-only).
+	eventGrantMaxAttempts = 3
+
+	// eventGrantRetryBackoff is the delay added before the next automatic retry.
+	eventGrantRetryBackoff = 24 * time.Hour
+)
 
 const eventsStoreSchema = `
 CREATE TABLE IF NOT EXISTS event_definitions (
@@ -67,11 +90,12 @@ CREATE TABLE IF NOT EXISTS event_award_claims (
 	event_id    INTEGER NOT NULL,
 	version     INTEGER NOT NULL,
 	account_id  INTEGER NOT NULL,
-	status      TEXT    NOT NULL,
-	claimed_at  TEXT    NOT NULL DEFAULT '',
-	attempts    INTEGER NOT NULL DEFAULT 1,
-	last_error  TEXT    NOT NULL DEFAULT '',
-	updated_at  TEXT    NOT NULL,
+	status          TEXT    NOT NULL,
+	claimed_at      TEXT    NOT NULL DEFAULT '',
+	attempts        INTEGER NOT NULL DEFAULT 1,
+	last_error      TEXT    NOT NULL DEFAULT '',
+	next_attempt_at TEXT    NOT NULL DEFAULT '',
+	updated_at      TEXT    NOT NULL,
 	PRIMARY KEY (event_id, version, account_id)
 );`
 
@@ -85,9 +109,10 @@ func initEventsSchema(db *sql.DB) error {
 	for _, stmt := range []string{
 		"ALTER TABLE event_definitions ADD COLUMN poll_seconds   INTEGER NOT NULL DEFAULT 7",
 		"ALTER TABLE event_definitions ADD COLUMN jitter_seconds INTEGER NOT NULL DEFAULT 3",
+		"ALTER TABLE event_award_claims ADD COLUMN next_attempt_at TEXT NOT NULL DEFAULT ''",
 	} {
 		if _, err := db.Exec(stmt); err != nil && !strings.Contains(err.Error(), "duplicate column") {
-			return fmt.Errorf("migrate event_definitions: %w", err)
+			return fmt.Errorf("migrate events tables: %w", err)
 		}
 	}
 	return nil
@@ -242,7 +267,8 @@ func (s *eventStore) delete(id int64) error {
 
 func (s *eventStore) listClaims(eventID int64) ([]eventClaimRecord, error) {
 	rows, err := s.db.Query(`
-		SELECT event_id, version, account_id, status, claimed_at, attempts, last_error, updated_at
+		SELECT event_id, version, account_id, status, claimed_at, attempts,
+		       last_error, next_attempt_at, updated_at
 		FROM event_award_claims WHERE event_id = ? ORDER BY updated_at DESC`, eventID)
 	if err != nil {
 		return nil, fmt.Errorf("list event claims %d: %w", eventID, err)
@@ -253,7 +279,7 @@ func (s *eventStore) listClaims(eventID int64) ([]eventClaimRecord, error) {
 	for rows.Next() {
 		var c eventClaimRecord
 		if err := rows.Scan(&c.EventID, &c.Version, &c.AccountID, &c.Status,
-			&c.ClaimedAt, &c.Attempts, &c.LastError, &c.UpdatedAt); err != nil {
+			&c.ClaimedAt, &c.Attempts, &c.LastError, &c.NextAttemptAt, &c.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan claim: %w", err)
 		}
 		out = append(out, c)
@@ -261,11 +287,17 @@ func (s *eventStore) listClaims(eventID int64) ([]eventClaimRecord, error) {
 	return out, rows.Err()
 }
 
+// claimExists reports whether the reward for (event,version,account) has reached
+// a state that blocks further automatic delivery. Only "granted" (terminal
+// success) and "exhausted" (manual-only) qualify — a "pending" claim is still
+// eligible for retry, so it must NOT count as existing.
 func (s *eventStore) claimExists(eventID int64, version int, accountID int64) (bool, error) {
 	var one int
 	err := s.db.QueryRow(
-		`SELECT 1 FROM event_award_claims WHERE event_id = ? AND version = ? AND account_id = ? LIMIT 1`,
-		eventID, version, accountID).Scan(&one)
+		`SELECT 1 FROM event_award_claims
+		 WHERE event_id = ? AND version = ? AND account_id = ?
+		   AND status IN (?, ?) LIMIT 1`,
+		eventID, version, accountID, eventClaimStatusGranted, eventClaimStatusExhausted).Scan(&one)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
@@ -275,18 +307,47 @@ func (s *eventStore) claimExists(eventID int64, version int, accountID int64) (b
 	return true, nil
 }
 
+// listRetryableClaims returns pending claims whose backoff window has elapsed
+// (next_attempt_at <= now) and which still have attempts remaining.
+func (s *eventStore) listRetryableClaims(now time.Time) ([]eventClaimRecord, error) {
+	nowStr := now.UTC().Format(time.RFC3339)
+	rows, err := s.db.Query(`
+		SELECT event_id, version, account_id, status, claimed_at, attempts,
+		       last_error, next_attempt_at, updated_at
+		FROM event_award_claims
+		WHERE status = ? AND attempts < ? AND next_attempt_at <= ?
+		ORDER BY next_attempt_at ASC`,
+		eventClaimStatusPending, eventGrantMaxAttempts, nowStr)
+	if err != nil {
+		return nil, fmt.Errorf("list retryable claims: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	out := make([]eventClaimRecord, 0)
+	for rows.Next() {
+		var c eventClaimRecord
+		if err := rows.Scan(&c.EventID, &c.Version, &c.AccountID, &c.Status,
+			&c.ClaimedAt, &c.Attempts, &c.LastError, &c.NextAttemptAt, &c.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scan retryable claim: %w", err)
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
 func (s *eventStore) recordGranted(eventID int64, version int, accountID int64) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 	_, err := s.db.Exec(`
 		INSERT INTO event_award_claims
-			(event_id, version, account_id, status, claimed_at, attempts, last_error, updated_at)
-		VALUES (?, ?, ?, 'granted', ?, 1, '', ?)
+			(event_id, version, account_id, status, claimed_at, attempts, last_error, next_attempt_at, updated_at)
+		VALUES (?, ?, ?, 'granted', ?, 1, '', '', ?)
 		ON CONFLICT(event_id, version, account_id) DO UPDATE SET
-			status     = 'granted',
-			claimed_at = excluded.claimed_at,
-			attempts   = event_award_claims.attempts + 1,
-			last_error = '',
-			updated_at = excluded.updated_at`,
+			status          = 'granted',
+			claimed_at      = excluded.claimed_at,
+			attempts        = event_award_claims.attempts + 1,
+			last_error      = '',
+			next_attempt_at = '',
+			updated_at      = excluded.updated_at`,
 		eventID, version, accountID, now, now)
 	if err != nil {
 		return fmt.Errorf("record granted %d/%d/%d: %w", eventID, version, accountID, err)
@@ -294,18 +355,41 @@ func (s *eventStore) recordGranted(eventID int64, version int, accountID int64) 
 	return nil
 }
 
+// recordFailed records a failed grant attempt. The resulting status is computed
+// from the post-increment attempt count: once eventGrantMaxAttempts attempts have
+// been used the claim becomes "exhausted" (manual-only, next_attempt_at cleared);
+// otherwise it becomes "pending" with next_attempt_at = now + backoff so the
+// retry loop will try again after the window elapses.
 func (s *eventStore) recordFailed(eventID int64, version int, accountID int64, errMsg string) error {
-	now := time.Now().UTC().Format(time.RFC3339)
+	now := time.Now().UTC()
+	nowStr := now.Format(time.RFC3339)
+	nextStr := now.Add(eventGrantRetryBackoff).Format(time.RFC3339)
+	// On insert this is attempt 1; on conflict it's the existing attempts+1.
+	// The CASE expressions decide status and next_attempt_at from that new count.
 	_, err := s.db.Exec(`
 		INSERT INTO event_award_claims
-			(event_id, version, account_id, status, claimed_at, attempts, last_error, updated_at)
-		VALUES (?, ?, ?, 'failed', '', 1, ?, ?)
+			(event_id, version, account_id, status, claimed_at, attempts, last_error, next_attempt_at, updated_at)
+		VALUES (
+			?, ?, ?,
+			CASE WHEN 1 >= ? THEN ? ELSE ? END,
+			'', 1, ?,
+			CASE WHEN 1 >= ? THEN '' ELSE ? END,
+			?)
 		ON CONFLICT(event_id, version, account_id) DO UPDATE SET
-			status     = 'failed',
-			attempts   = event_award_claims.attempts + 1,
+			status = CASE WHEN event_award_claims.attempts + 1 >= ? THEN ? ELSE ? END,
+			attempts = event_award_claims.attempts + 1,
 			last_error = excluded.last_error,
+			next_attempt_at = CASE WHEN event_award_claims.attempts + 1 >= ? THEN '' ELSE ? END,
 			updated_at = excluded.updated_at`,
-		eventID, version, accountID, errMsg, now)
+		// VALUES (insert / attempt 1)
+		eventID, version, accountID,
+		eventGrantMaxAttempts, eventClaimStatusExhausted, eventClaimStatusPending,
+		errMsg,
+		eventGrantMaxAttempts, nextStr,
+		nowStr,
+		// ON CONFLICT (existing attempts + 1)
+		eventGrantMaxAttempts, eventClaimStatusExhausted, eventClaimStatusPending,
+		eventGrantMaxAttempts, nextStr)
 	if err != nil {
 		return fmt.Errorf("record failed %d/%d/%d: %w", eventID, version, accountID, err)
 	}

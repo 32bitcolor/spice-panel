@@ -43,7 +43,7 @@ export interface RewardFields {
 }
 
 export type ListKey = 'name' | 'type' | 'enabled' | 'version' | 'actions'
-export type ClaimKey = 'account_id' | 'version' | 'status' | 'attempts' | 'claimed_at' | 'last_error'
+export type ClaimKey = 'account_id' | 'version' | 'status' | 'attempts' | 'claimed_at' | 'last_error' | 'next_attempt_at' | 'actions'
 
 // Kept for any code that still references EventEditorValues
 export interface EventEditorValues {

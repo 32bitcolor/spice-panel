@@ -6373,6 +6373,25 @@ func cmdFetchEventPlayers(ctx context.Context, pool *pgxpool.Pool) ([]eventPlaye
 	return out, rows.Err()
 }
 
+// cmdFetchEventGrantTargets returns the player_controller_id and player_pawn_id
+// for a single account, regardless of online status. Reward-grant retries must
+// work for offline players, so — unlike cmdFetchEventPlayers — this query does
+// NOT filter on online_status.
+func cmdFetchEventGrantTargets(ctx context.Context, pool *pgxpool.Pool, accountID int64) (controllerID, actorID int64, err error) {
+	row := pool.QueryRow(ctx, `
+		SELECT COALESCE(ps.player_controller_id, 0),
+		       COALESCE(ps.player_pawn_id, 0)
+		FROM dune.player_state ps
+		WHERE ps.account_id = $1`, accountID)
+	if scanErr := row.Scan(&controllerID, &actorID); scanErr != nil {
+		if errors.Is(scanErr, pgx.ErrNoRows) {
+			return 0, 0, errNotFound
+		}
+		return 0, 0, fmt.Errorf("fetch event grant targets %d: %w", accountID, scanErr)
+	}
+	return controllerID, actorID, nil
+}
+
 // cmdFetchOnlinePositions returns a map of account_id → position for all
 // provided account IDs that are currently online and have a live actor.
 func cmdFetchOnlinePositions(ctx context.Context, pool *pgxpool.Pool, accountIDs []int64) (map[int64]playerPosition, error) {
