@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, Input, ListBox, Spinner, Switch, TextArea, Select, SelectItem } from '@heroui/react'
+import { Button, Input, ListBox, Spinner, Switch, TextArea, Select } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
 import { usePermissions } from '../../../hooks/usePermissions'
 import { ConfirmDialog, Icon, NumberInput, PageHeader, Panel, SectionLabel } from '../../../dune-ui'
@@ -191,14 +191,27 @@ export const ConfigView: React.FC<ConfigViewProps> = ({
           <div className="flex flex-col gap-1 mb-4">
             <span className="text-xs text-muted">{t('welcome.region.channelLabel')}</span>
             <Select
-              size="sm"
+              selectedKey={regionChatChannel || 'whisper'}
+              onSelectionChange={(k) => setRegionChatChannel(String(k))}
               aria-label={t('welcome.region.channelLabel')}
-              selectedKeys={[regionChatChannel || 'whisper']}
-              onSelectionChange={(keys) => setRegionChatChannel(Array.from(keys)[0] as string)}
               className="max-w-xs"
             >
-              <SelectItem key="whisper">{t('welcome.region.channelWhisper')}</SelectItem>
-              <SelectItem key="map">{t('welcome.region.channelMap')}</SelectItem>
+              <Select.Trigger>
+                <Select.Value />
+                <Select.Indicator />
+              </Select.Trigger>
+              <Select.Popover>
+                <ListBox>
+                  <ListBox.Item key="whisper" id="whisper" textValue={t('welcome.region.channelWhisper')}>
+                    {t('welcome.region.channelWhisper')}
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                  <ListBox.Item key="map" id="map" textValue={t('welcome.region.channelMap')}>
+                    {t('welcome.region.channelMap')}
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                </ListBox>
+              </Select.Popover>
             </Select>
             <p className="text-xs text-muted">
               {regionChatChannel === 'map'
