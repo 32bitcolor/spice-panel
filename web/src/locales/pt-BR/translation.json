@@ -1155,11 +1155,6 @@
       "recovered": "Recuperado",
       "refuel": "Reabastecer",
       "refuelDone": "{{label}} reabastecido — reconecte para ver no jogo",
-      "repair": "Reparar",
-      "repairDone": "{{repaired}} módulos reparados em {{label}} — reconecte para ver no jogo",
-      "repairNone": "Nenhum módulo encontrado em {{label}}",
-      "repairNotice": "Reparos de veículos requerem reinicialização do servidor para ter efeito no jogo.",
-      "repairPartial": "{{repaired}} de {{total}} módulos reparados em {{label}} ({{skipped}} ignorados) — reconecte para ver no jogo",
       "vehiclesLabel": "Veículos"
     }
   },

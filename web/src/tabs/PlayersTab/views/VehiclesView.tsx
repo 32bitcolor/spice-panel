@@ -5,7 +5,7 @@ import { Icon as IconifyIcon } from '@iconify/react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'
 import type { VehicleRow } from '../../../api/client'
-import { DataTable, Icon, LoadingState, SectionLabel, type Column } from '../../../dune-ui'
+import { DataTable, LoadingState, SectionLabel, type Column } from '../../../dune-ui'
 import { usePermissions } from '../../../hooks/usePermissions'
 import type { VehicleKey, VehiclesViewProps } from './types'
 
@@ -38,26 +38,6 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({ player }) => {
       .finally(() => setLoading(false))
   }, [player.controller_id])
 
-  const handleRepairVehicle = async (v: VehicleRow) => {
-    try {
-      const res = await api.players.repairVehicle(v.id, player.id)
-      const label = v.vehicle_name || v.class
-      if (res.total === 0) {
-        toast.success(t('players.vehicles.repairNone', { label }))
-      }
-      else if (res.skipped > 0) {
-        toast.success(t('players.vehicles.repairPartial', { repaired: res.repaired, total: res.total, label, skipped: res.skipped }))
-      }
-      else {
-        toast.success(t('players.vehicles.repairDone', { repaired: res.repaired, label }))
-      }
-      api.players.vehicles(player.controller_id).then(setVehicles).catch(() => {})
-    }
-    catch (e: unknown) {
-      toast.danger(e instanceof Error ? e.message : String(e))
-    }
-  }
-
   const handleRefuelVehicle = async (v: VehicleRow) => {
     try {
       await api.players.refuelVehicle(v.id, player.id)
@@ -75,10 +55,6 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({ player }) => {
   return (
     <div className="flex flex-col h-full gap-3 min-h-0">
       <div className="shrink-0 min-h-8 flex items-center"><SectionLabel>{t('players.vehicles.vehiclesLabel')}</SectionLabel></div>
-      <div className="shrink-0 rounded-[var(--radius)] px-4 py-2 text-xs font-medium bg-danger/10 border border-danger/40 text-danger flex items-center gap-2 -mt-1">
-        <Icon name="triangle-alert" />
-        <span>{t('players.vehicles.repairNotice')}</span>
-      </div>
       <DataTable<VehicleRow, VehicleKey>
         aria-label={t('players.vehicles.vehiclesLabel')}
         className="min-h-0 max-h-full"
@@ -126,7 +102,6 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({ player }) => {
               return !v.is_backup
                 ? (
                     <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" onPress={() => handleRepairVehicle(v)}>{t('players.vehicles.repair')}</Button>
                       <Button size="sm" variant="ghost" onPress={() => handleRefuelVehicle(v)}>{t('players.vehicles.refuel')}</Button>
                     </div>
                   )

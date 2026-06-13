@@ -99,26 +99,6 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({ player, open, on
     }
   }
 
-  const handleRepairVehicle = async (v: VehicleRow) => {
-    try {
-      const res = await api.players.repairVehicle(v.id, player.id)
-      const label = v.vehicle_name || v.class
-      if (res.total === 0) {
-        toast.success(t('players.vehicles.repairNone', { label }))
-      }
-      else if (res.skipped > 0) {
-        toast.success(t('players.vehicles.repairPartial', { repaired: res.repaired, total: res.total, label, skipped: res.skipped }))
-      }
-      else {
-        toast.success(t('players.vehicles.repairDone', { repaired: res.repaired, label }))
-      }
-      api.players.vehicles(player.controller_id).then(setVehicles).catch(() => {})
-    }
-    catch (e: unknown) {
-      toast.danger(e instanceof Error ? e.message : String(e))
-    }
-  }
-
   const handleRefuelVehicle = async (v: VehicleRow) => {
     try {
       await api.players.refuelVehicle(v.id, player.id)
@@ -218,10 +198,6 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({ player, open, on
                         <SectionLabel>{t('players.vehicles.vehiclesLabel')}</SectionLabel>
                         {vehiclesLoading && <Spinner size="sm" color="current" />}
                       </div>
-                      <div className="shrink-0 rounded-[var(--radius)] px-4 py-2 text-xs font-medium bg-danger/10 border border-danger/40 text-danger flex items-center gap-2">
-                        <Icon name="triangle-alert" className="shrink-0" />
-                        <span>{t('players.vehicles.repairNotice')}</span>
-                      </div>
                       <DataTable<VehicleRow, VehicleKey>
                         aria-label={t('players.vehicles.vehiclesLabel')}
                         className="max-h-[180px]"
@@ -269,7 +245,6 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({ player, open, on
                               return !v.is_backup
                                 ? (
                                     <div className="flex gap-1">
-                                      <Button size="sm" variant="ghost" onPress={() => handleRepairVehicle(v)}>{t('players.vehicles.repair')}</Button>
                                       <Button size="sm" variant="ghost" onPress={() => handleRefuelVehicle(v)}>{t('players.vehicles.refuel')}</Button>
                                     </div>
                                   )

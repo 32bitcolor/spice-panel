@@ -1138,11 +1138,6 @@
       "recovered": "Kurtarıldı",
       "refuel": "Yakıt Doldur",
       "refuelDone": "{{label}} yakıt deposu dolduruldu — oyun içinde görmek için yeniden giriş yapın",
-      "repair": "Onar",
-      "repairDone": "{{label}} üzerindeki {{repaired}} modül onarıldı — oyun içinde görmek için yeniden giriş yapın",
-      "repairNone": "{{label}} üzerinde modül bulunamadı",
-      "repairNotice": "Araç onarımlarının oyunda etkili olması için sunucu yeniden başlatılmalıdır.",
-      "repairPartial": "{{label}} üzerindeki {{total}} modülün {{repaired}} tanesi onarıldı ({{skipped}} atlandı) — oyun içinde görmek için yeniden giriş yapın",
       "vehiclesLabel": "Araçlar"
     }
   },

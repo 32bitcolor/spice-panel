@@ -1138,11 +1138,6 @@
       "recovered": "回収済み",
       "refuel": "給油",
       "refuelDone": "{{label}} に給油しました — ゲーム内で確認するには再ログインしてください",
-      "repair": "修理",
-      "repairDone": "{{label}} の {{repaired}} 個のモジュールを修理しました — ゲーム内で確認するには再ログインしてください",
-      "repairNone": "{{label}} にモジュールが見つかりません",
-      "repairNotice": "乗り物の修理をゲーム内で反映するにはサーバーの再起動が必要です。",
-      "repairPartial": "{{label}} の {{total}} 個のモジュールのうち {{repaired}} 個を修理しました（{{skipped}} 個をスキップ）— ゲーム内で確認するには再ログインしてください",
       "vehiclesLabel": "乗り物"
     }
   },
