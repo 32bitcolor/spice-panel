@@ -148,12 +148,8 @@ func discordPostOpen(dg *discordgo.Session, cfg appConfig, dcfg discordConfig) {
 
 	setDiscordState(dg, cfg.DiscordGuildID)
 	log.Printf("discord: bot connected (guild %s)", cfg.DiscordGuildID)
-
-	if dcfg.AnnounceChannelID != "" {
-		if err := postDiscordAnnouncement(dcfg.AnnounceChannelID, "✅ dune-admin bot connected."); err != nil {
-			log.Printf("discord: announce seam test failed: %v", err)
-		}
-	}
+	// No "bot connected" announce — it spams the channel on every (re)connect.
+	// Live connection status is surfaced by the persistent status embed (#188).
 }
 
 // discordShutdownWatcher blocks until ctx is cancelled, then closes the session.
