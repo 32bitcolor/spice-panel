@@ -1522,6 +1522,18 @@
       "stackOf": "stosy po {{n}}",
       "totalVolume": "Łączna waga/objętość:",
       "totalSlots": "Łączna liczba slotów:"
+    },
+    "region": {
+      "title": "Ogłoszenie wejścia/wyjścia z regionu",
+      "intro": "W grze nie ma kanału czatu regionalnego, dlatego dune-admin szepcze to powiadomienie każdemu graczowi przebywającemu w tym samym regionie, gdy ktoś do niego wchodzi lub go opuszcza. Użyj {player} dla nazwy gracza i {region} dla nazwy regionu.",
+      "joinEnabledLabel": "Ogłaszaj, gdy gracz wchodzi do regionu",
+      "joinEnabledHint": "Szeptane do wszystkich już obecnych w regionie w chwili przybycia gracza.",
+      "joinTemplateLabel": "Wiadomość wejścia",
+      "joinTemplatePlaceholder": "{player} przybył do {region}.",
+      "leaveEnabledLabel": "Ogłaszaj, gdy gracz opuszcza region",
+      "leaveEnabledHint": "Szeptane do wszystkich nadal obecnych w regionie w chwili odejścia gracza.",
+      "leaveTemplateLabel": "Wiadomość wyjścia",
+      "leaveTemplatePlaceholder": "{player} opuścił {region}."
     }
   },
   "events": {

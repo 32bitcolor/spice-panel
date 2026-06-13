@@ -33,6 +33,10 @@ export const WelcomePackageTab: React.FC<WelcomePackageTabProps> = ({ showSubnav
   const [motdEnabled, setMotdEnabled] = React.useState(false)
   const [motdMessage, setMotdMessage] = React.useState('')
   const [motdSourcePlayer, setMotdSourcePlayer] = React.useState('')
+  const [regionJoinEnabled, setRegionJoinEnabled] = React.useState(false)
+  const [regionLeaveEnabled, setRegionLeaveEnabled] = React.useState(false)
+  const [regionJoinTemplate, setRegionJoinTemplate] = React.useState('')
+  const [regionLeaveTemplate, setRegionLeaveTemplate] = React.useState('')
   const [templates, setTemplates] = React.useState<{ id: string, name: string }[]>([])
 
   // Snapshot of what's persisted on the server; null until first load completes.
@@ -52,6 +56,10 @@ export const WelcomePackageTab: React.FC<WelcomePackageTabProps> = ({ showSubnav
     setMotdEnabled(c.motd_enabled ?? false)
     setMotdMessage(c.motd_message ?? '')
     setMotdSourcePlayer(c.motd_source_player ?? '')
+    setRegionJoinEnabled(c.region_join_enabled ?? false)
+    setRegionLeaveEnabled(c.region_leave_enabled ?? false)
+    setRegionJoinTemplate(c.region_join_template ?? '')
+    setRegionLeaveTemplate(c.region_leave_template ?? '')
   }, [])
 
   const load = React.useCallback(() => {
@@ -94,6 +102,10 @@ export const WelcomePackageTab: React.FC<WelcomePackageTabProps> = ({ showSubnav
         motd_enabled: motdEnabled,
         motd_message: motdMessage,
         motd_source_player: motdSourcePlayer,
+        region_join_enabled: regionJoinEnabled,
+        region_leave_enabled: regionLeaveEnabled,
+        region_join_template: regionJoinTemplate,
+        region_leave_template: regionLeaveTemplate,
       }
       const saved = await api.welcomePackage.saveConfig(cfg)
       applyConfig(saved)
@@ -179,6 +191,10 @@ export const WelcomePackageTab: React.FC<WelcomePackageTabProps> = ({ showSubnav
         || motdEnabled !== (savedConfig.motd_enabled ?? false)
         || motdMessage !== (savedConfig.motd_message ?? '')
         || motdSourcePlayer !== (savedConfig.motd_source_player ?? '')
+        || regionJoinEnabled !== (savedConfig.region_join_enabled ?? false)
+        || regionLeaveEnabled !== (savedConfig.region_leave_enabled ?? false)
+        || regionJoinTemplate !== (savedConfig.region_join_template ?? '')
+        || regionLeaveTemplate !== (savedConfig.region_leave_template ?? '')
 
     const isDirty = packageAdded + packageRemoved + packageUpdated > 0 || settingsChanged
     return { packageAdded, packageRemoved, packageUpdated, settingsChanged, isDirty }
@@ -193,6 +209,10 @@ export const WelcomePackageTab: React.FC<WelcomePackageTabProps> = ({ showSubnav
     motdEnabled,
     motdMessage,
     motdSourcePlayer,
+    regionJoinEnabled,
+    regionLeaveEnabled,
+    regionJoinTemplate,
+    regionLeaveTemplate,
     savedConfig,
   ])
 
@@ -220,6 +240,14 @@ export const WelcomePackageTab: React.FC<WelcomePackageTabProps> = ({ showSubnav
             setMotdMessage={setMotdMessage}
             motdSourcePlayer={motdSourcePlayer}
             setMotdSourcePlayer={setMotdSourcePlayer}
+            regionJoinEnabled={regionJoinEnabled}
+            setRegionJoinEnabled={setRegionJoinEnabled}
+            regionLeaveEnabled={regionLeaveEnabled}
+            setRegionLeaveEnabled={setRegionLeaveEnabled}
+            regionJoinTemplate={regionJoinTemplate}
+            setRegionJoinTemplate={setRegionJoinTemplate}
+            regionLeaveTemplate={regionLeaveTemplate}
+            setRegionLeaveTemplate={setRegionLeaveTemplate}
             save={save}
             saving={saving}
             runNow={runNow}

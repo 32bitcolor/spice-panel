@@ -1499,6 +1499,18 @@
       "stackOf": "pilhas de {{n}}",
       "totalVolume": "Peso/volume total:",
       "totalSlots": "Total de espaços:"
+    },
+    "region": {
+      "title": "Anúncio de entrada/saída de região",
+      "intro": "Não existe um canal de bate-papo de região no jogo, então o dune-admin sussurra este aviso a cada jogador presente na mesma região quando alguém entra ou sai dela. Use {player} para o nome do jogador e {region} para o nome da região.",
+      "joinEnabledLabel": "Anunciar quando um jogador entra em uma região",
+      "joinEnabledHint": "Sussurrado a todos já presentes na região no momento em que um jogador chega.",
+      "joinTemplateLabel": "Mensagem de entrada",
+      "joinTemplatePlaceholder": "{player} chegou a {region}.",
+      "leaveEnabledLabel": "Anunciar quando um jogador sai de uma região",
+      "leaveEnabledHint": "Sussurrado a todos ainda presentes na região no momento em que um jogador sai.",
+      "leaveTemplateLabel": "Mensagem de saída",
+      "leaveTemplatePlaceholder": "{player} saiu de {region}."
     }
   },
   "events": {

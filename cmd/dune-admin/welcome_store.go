@@ -66,6 +66,10 @@ CREATE TABLE IF NOT EXISTS welcome_config (
 	motd_enabled                   INTEGER NOT NULL DEFAULT 0,
 	motd_message                   TEXT    NOT NULL DEFAULT '',
 	motd_source_player             TEXT    NOT NULL DEFAULT '',
+	region_join_enabled            INTEGER NOT NULL DEFAULT 0,
+	region_leave_enabled           INTEGER NOT NULL DEFAULT 0,
+	region_join_template           TEXT    NOT NULL DEFAULT '',
+	region_leave_template          TEXT    NOT NULL DEFAULT '',
 	updated_at                     TEXT    NOT NULL
 );`
 
@@ -85,6 +89,10 @@ type welcomeConfigRow struct {
 	MotdEnabled                bool
 	MotdMessage                string
 	MotdSourcePlayer           string
+	RegionJoinEnabled          bool
+	RegionLeaveEnabled         bool
+	RegionJoinTemplate         string
+	RegionLeaveTemplate        string
 }
 
 // initWelcomeSchema creates the welcome tables and applies column migrations on
@@ -106,6 +114,10 @@ func initWelcomeSchema(db *sql.DB) error {
 		"ALTER TABLE welcome_config ADD COLUMN motd_enabled INTEGER NOT NULL DEFAULT 0",
 		"ALTER TABLE welcome_config ADD COLUMN motd_message TEXT NOT NULL DEFAULT ''",
 		"ALTER TABLE welcome_config ADD COLUMN motd_source_player TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE welcome_config ADD COLUMN region_join_enabled INTEGER NOT NULL DEFAULT 0",
+		"ALTER TABLE welcome_config ADD COLUMN region_leave_enabled INTEGER NOT NULL DEFAULT 0",
+		"ALTER TABLE welcome_config ADD COLUMN region_join_template TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE welcome_config ADD COLUMN region_leave_template TEXT NOT NULL DEFAULT ''",
 	} {
 		if _, alterErr := db.Exec(col); alterErr != nil {
 			if !isDuplicateColumnErr(alterErr) {
@@ -289,6 +301,14 @@ func (s *welcomeStore) saveConfig(cfg welcomeConfigRow) error {
 	if cfg.MotdEnabled {
 		motdEnabled = 1
 	}
+	regionJoinEnabled := 0
+	if cfg.RegionJoinEnabled {
+		regionJoinEnabled = 1
+	}
+	regionLeaveEnabled := 0
+	if cfg.RegionLeaveEnabled {
+		regionLeaveEnabled = 1
+	}
 	// Derive compat active_version from slice (first element) or keep as-is.
 	activeVersion := cfg.ActiveVersion
 	if len(cfg.ActiveVersions) > 0 {
@@ -304,8 +324,9 @@ func (s *welcomeStore) saveConfig(cfg welcomeConfigRow) error {
 			(id, enabled, scan_secs, active_version, active_versions_json, packages_json,
 			 welcome_message_enabled, welcome_message, welcome_whisper_source_player,
 			 motd_enabled, motd_message, motd_source_player,
+			 region_join_enabled, region_leave_enabled, region_join_template, region_leave_template,
 			 updated_at)
-		VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			enabled                       = excluded.enabled,
 			scan_secs                     = excluded.scan_secs,
@@ -318,10 +339,15 @@ func (s *welcomeStore) saveConfig(cfg welcomeConfigRow) error {
 			motd_enabled                  = excluded.motd_enabled,
 			motd_message                  = excluded.motd_message,
 			motd_source_player            = excluded.motd_source_player,
+			region_join_enabled           = excluded.region_join_enabled,
+			region_leave_enabled          = excluded.region_leave_enabled,
+			region_join_template          = excluded.region_join_template,
+			region_leave_template         = excluded.region_leave_template,
 			updated_at                    = excluded.updated_at`,
 		enabled, cfg.ScanSecs, activeVersion, string(activeVersionsJSON), cfg.PackagesJSON,
 		msgEnabled, cfg.WelcomeMessage, cfg.WelcomeWhisperSourcePlayer,
-		motdEnabled, cfg.MotdMessage, cfg.MotdSourcePlayer, now)
+		motdEnabled, cfg.MotdMessage, cfg.MotdSourcePlayer,
+		regionJoinEnabled, regionLeaveEnabled, cfg.RegionJoinTemplate, cfg.RegionLeaveTemplate, now)
 	if err != nil {
 		return fmt.Errorf("save welcome config: %w", err)
 	}
@@ -333,15 +359,18 @@ func (s *welcomeStore) saveConfig(cfg welcomeConfigRow) error {
 func (s *welcomeStore) loadConfig() (welcomeConfigRow, bool, error) {
 	var row welcomeConfigRow
 	var enabledInt, msgEnabledInt, motdEnabledInt int
+	var regionJoinEnabledInt, regionLeaveEnabledInt int
 	var activeVersionsJSON string
 	err := s.db.QueryRow(`
 		SELECT enabled, scan_secs, active_version, active_versions_json, packages_json,
 		       welcome_message_enabled, welcome_message, welcome_whisper_source_player,
-		       motd_enabled, motd_message, motd_source_player
+		       motd_enabled, motd_message, motd_source_player,
+		       region_join_enabled, region_leave_enabled, region_join_template, region_leave_template
 		FROM welcome_config WHERE id = 1`).
 		Scan(&enabledInt, &row.ScanSecs, &row.ActiveVersion, &activeVersionsJSON, &row.PackagesJSON,
 			&msgEnabledInt, &row.WelcomeMessage, &row.WelcomeWhisperSourcePlayer,
-			&motdEnabledInt, &row.MotdMessage, &row.MotdSourcePlayer)
+			&motdEnabledInt, &row.MotdMessage, &row.MotdSourcePlayer,
+			&regionJoinEnabledInt, &regionLeaveEnabledInt, &row.RegionJoinTemplate, &row.RegionLeaveTemplate)
 	if errors.Is(err, sql.ErrNoRows) {
 		return welcomeConfigRow{}, false, nil
 	}
@@ -351,6 +380,8 @@ func (s *welcomeStore) loadConfig() (welcomeConfigRow, bool, error) {
 	row.Enabled = enabledInt != 0
 	row.WelcomeMessageEnabled = msgEnabledInt != 0
 	row.MotdEnabled = motdEnabledInt != 0
+	row.RegionJoinEnabled = regionJoinEnabledInt != 0
+	row.RegionLeaveEnabled = regionLeaveEnabledInt != 0
 	// Parse active_versions_json; fall back to promoting active_version for old rows.
 	if activeVersionsJSON != "" && activeVersionsJSON != "null" && activeVersionsJSON != "[]" {
 		if jsonErr := json.Unmarshal([]byte(activeVersionsJSON), &row.ActiveVersions); jsonErr != nil {

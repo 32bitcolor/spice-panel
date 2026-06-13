@@ -1476,6 +1476,18 @@
       "stackOf": "每堆 {{n}}",
       "totalVolume": "总重量/体积：",
       "totalSlots": "总格位："
+    },
+    "region": {
+      "title": "区域进入/离开广播",
+      "intro": "游戏内没有区域聊天频道，因此当有玩家进入或离开某个区域时，dune-admin 会向当前位于同一区域的每位玩家私聊发送此通知。使用 {player} 表示玩家名称，使用 {region} 表示区域名称。",
+      "joinEnabledLabel": "当玩家进入区域时广播",
+      "joinEnabledHint": "玩家到达的那一刻，私聊发送给该区域内已有的所有人。",
+      "joinTemplateLabel": "进入消息",
+      "joinTemplatePlaceholder": "{player} 已到达 {region}。",
+      "leaveEnabledLabel": "当玩家离开区域时广播",
+      "leaveEnabledHint": "玩家离开的那一刻，私聊发送给仍在该区域内的所有人。",
+      "leaveTemplateLabel": "离开消息",
+      "leaveTemplatePlaceholder": "{player} 已离开 {region}。"
     }
   },
   "events": {

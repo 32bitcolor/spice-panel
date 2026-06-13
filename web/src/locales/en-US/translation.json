@@ -1476,6 +1476,18 @@
       "stackOf": "stacks of {{n}}",
       "totalVolume": "Total weight/volume:",
       "totalSlots": "Total slots:"
+    },
+    "region": {
+      "title": "Region Join/Leave Broadcast",
+      "intro": "There is no in-game region chat channel, so dune-admin whispers this notice to every player currently in the same region when someone joins or leaves it. Use {player} for the player's name and {region} for the region name.",
+      "joinEnabledLabel": "Announce when a player enters a region",
+      "joinEnabledHint": "Whispered to everyone already in that region the moment a player arrives.",
+      "joinTemplateLabel": "Join message",
+      "joinTemplatePlaceholder": "{player} has arrived in {region}.",
+      "leaveEnabledLabel": "Announce when a player leaves a region",
+      "leaveEnabledHint": "Whispered to everyone still in that region the moment a player departs.",
+      "leaveTemplateLabel": "Leave message",
+      "leaveTemplatePlaceholder": "{player} has left {region}."
     }
   },
   "playerSearch": {

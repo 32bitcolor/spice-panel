@@ -1476,6 +1476,18 @@
       "stackOf": "Stapel à {{n}}",
       "totalVolume": "Gesamtgewicht/-volumen:",
       "totalSlots": "Plätze gesamt:"
+    },
+    "region": {
+      "title": "Regions-Beitritt/-Verlassen-Ansage",
+      "intro": "Es gibt keinen Regions-Chatkanal im Spiel, daher flüstert dune-admin diese Nachricht jedem Spieler in derselben Region zu, wenn jemand sie betritt oder verlässt. Verwende {player} für den Spielernamen und {region} für den Regionsnamen.",
+      "joinEnabledLabel": "Ankündigen, wenn ein Spieler eine Region betritt",
+      "joinEnabledHint": "Wird allen bereits in dieser Region befindlichen Spielern zugeflüstert, sobald ein Spieler ankommt.",
+      "joinTemplateLabel": "Beitrittsnachricht",
+      "joinTemplatePlaceholder": "{player} ist in {region} angekommen.",
+      "leaveEnabledLabel": "Ankündigen, wenn ein Spieler eine Region verlässt",
+      "leaveEnabledHint": "Wird allen verbleibenden Spielern in dieser Region zugeflüstert, sobald ein Spieler sie verlässt.",
+      "leaveTemplateLabel": "Verlassen-Nachricht",
+      "leaveTemplatePlaceholder": "{player} hat {region} verlassen."
     }
   },
   "events": {

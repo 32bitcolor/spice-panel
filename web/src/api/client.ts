@@ -724,6 +724,10 @@ export interface WelcomePackageConfig {
   motd_enabled: boolean
   motd_message: string
   motd_source_player: string
+  region_join_enabled: boolean
+  region_leave_enabled: boolean
+  region_join_template: string
+  region_leave_template: string
 }
 
 export interface WelcomeGrantRecord {
