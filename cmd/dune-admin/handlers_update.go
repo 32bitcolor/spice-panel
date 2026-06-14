@@ -25,7 +25,7 @@ import (
 func artifactName(goos, goarch string) string {
 	switch goos {
 	case "darwin":
-		return "dune-admin_darwin_universal.tar.gz"
+		return "dune-admin_darwin_all.tar.gz"
 	case "windows":
 		return fmt.Sprintf("dune-admin_windows_%s.zip", goarch)
 	default:
@@ -279,6 +279,7 @@ func applyUpdate(tag, goos, goarch, currentBin string, fetcher func(string) ([]b
 	}
 
 	prev := currentBin + ".prev"
+	_ = os.Remove(prev) // Windows rename won't overwrite; remove stale .prev first
 	if err := os.Rename(currentBin, prev); err != nil {
 		_ = os.Remove(tmp)
 		return fmt.Errorf("backup current binary: %w", err)
