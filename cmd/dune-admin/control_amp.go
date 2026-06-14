@@ -814,8 +814,8 @@ func (c *ampControl) ReadDefaultINI(_ context.Context, exec Executor, filename s
 
 // directorConfigPath derives $STATE/director_config.ini from the resolved server
 // INI dir, which is $STATE/ue5-saved/UserSettings (so $STATE is two levels up).
-func (c *ampControl) directorConfigPath() (string, error) {
-	dir, err := iniDir()
+func (c *ampControl) directorConfigPath(exec Executor) (string, error) {
+	dir, err := iniDir(c, exec)
 	if err != nil {
 		return "", err
 	}
@@ -823,7 +823,7 @@ func (c *ampControl) directorConfigPath() (string, error) {
 }
 
 func (c *ampControl) readDirectorConfig(exec Executor) (string, string, error) {
-	path, err := c.directorConfigPath()
+	path, err := c.directorConfigPath(exec)
 	if err != nil {
 		return "", "", err
 	}
@@ -838,7 +838,7 @@ func (c *ampControl) readDirectorConfig(exec Executor) (string, string, error) {
 }
 
 func (c *ampControl) writeDirectorConfig(exec Executor, content string) (string, error) {
-	path, err := c.directorConfigPath()
+	path, err := c.directorConfigPath(exec)
 	if err != nil {
 		return "", err
 	}
