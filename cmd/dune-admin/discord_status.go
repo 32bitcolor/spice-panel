@@ -450,10 +450,15 @@ func runStatusTick(ctx context.Context, channelID string) {
 		return
 	}
 
-	data := collectStatusData(ctx)
+	sc := globalRegistry.Active()
+	data := collectStatusData(ctx, sc, globalStore)
 	embed := buildStatusEmbed(data, time.Now())
 
-	store := newSqliteStatusStore(globalStore, "default")
+	storeScope := "default"
+	if sc != nil {
+		storeScope = sc.StoreScope
+	}
+	store := newSqliteStatusStore(globalStore, storeScope)
 	if err := postOrEditStatusEmbed(discordSessionAdapter{sess: sess}, store, channelID, embed); err != nil {
 		log.Printf("discord status: post/edit: %v", err)
 	}
@@ -462,20 +467,24 @@ func runStatusTick(ctx context.Context, channelID string) {
 // collectStatusData gathers the live status from the control plane, DB, and the
 // session store. Every source is best-effort: a failure degrades that field
 // rather than aborting the tick.
-func collectStatusData(ctx context.Context) statusEmbedData {
+func collectStatusData(ctx context.Context, sc *ServerContext, sdb *sql.DB) statusEmbedData {
 	data := statusEmbedData{State: serverStateOffline}
-	applyControlStatus(ctx, &data)
-	applyDBStats(ctx, &data)
-	applyUnique24h(ctx, &data)
+	applyControlStatus(ctx, sc, &data)
+	applyDBStats(ctx, sc, &data)
+	serverID := "default"
+	if sc != nil {
+		serverID = sc.StoreScope
+	}
+	applyUnique24h(ctx, sdb, serverID, &data)
 	return data
 }
 
 // applyControlStatus fills State, Maps, and CurrentOnline from the control plane.
-func applyControlStatus(ctx context.Context, data *statusEmbedData) {
-	if globalControl == nil {
+func applyControlStatus(ctx context.Context, sc *ServerContext, data *statusEmbedData) {
+	if sc == nil || sc.Control == nil {
 		return
 	}
-	status, err := globalControl.GetStatus(ctx, globalExecutor)
+	status, err := sc.Control.GetStatus(ctx, sc.Executor)
 	data.State = deriveServerState(status, err)
 	if err != nil || status == nil {
 		return
@@ -492,11 +501,11 @@ func applyControlStatus(ctx context.Context, data *statusEmbedData) {
 
 // applyDBStats fills TotalPlayers and supplies fallbacks for CurrentOnline and
 // Maps when the control plane provided none.
-func applyDBStats(ctx context.Context, data *statusEmbedData) {
-	if globalDB == nil {
+func applyDBStats(ctx context.Context, sc *ServerContext, data *statusEmbedData) {
+	if sc == nil || sc.DB == nil {
 		return
 	}
-	stats, err := cmdFetchServerStats(ctx, globalDB)
+	stats, err := cmdFetchServerStats(ctx, sc.DB)
 	if err != nil {
 		log.Printf("discord status: server stats: %v", err)
 		return
@@ -511,8 +520,8 @@ func applyDBStats(ctx context.Context, data *statusEmbedData) {
 }
 
 // applyUnique24h fills UniquePlayers from the session store.
-func applyUnique24h(ctx context.Context, data *statusEmbedData) {
-	uniq, err := countUniquePlayers24h(ctx, globalStore, "default", time.Now())
+func applyUnique24h(ctx context.Context, sdb *sql.DB, serverID string, data *statusEmbedData) {
+	uniq, err := countUniquePlayers24h(ctx, sdb, serverID, time.Now())
 	if err != nil {
 		log.Printf("discord status: unique 24h: %v", err)
 		return
