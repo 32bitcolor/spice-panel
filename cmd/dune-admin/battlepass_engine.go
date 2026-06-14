@@ -6,6 +6,8 @@ import (
 	"log"
 	"sync"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // globalBattlepassCancel stops the running battlepass engine goroutine.
@@ -270,27 +272,27 @@ func runBattlepassEngine(ctx context.Context, deps battlepassDeps, store *battle
 	}
 }
 
-// productionBattlepassDeps builds the deps from live globals. Called from
-// startBattlepassIfEnabled only; tests inject mocks directly.
-func productionBattlepassDeps() battlepassDeps {
+// productionBattlepassDeps builds the deps from the given pool. Called from
+// applyBattlepassEngine only; tests inject mocks directly.
+func productionBattlepassDeps(pool *pgxpool.Pool) battlepassDeps {
 	return battlepassDeps{
 		fetchPlayers: func(ctx context.Context) ([]battlepassPlayer, error) {
-			if globalDB == nil {
+			if pool == nil {
 				return nil, fmt.Errorf("database not connected")
 			}
-			return cmdFetchBattlepassPlayers(ctx, globalDB)
+			return cmdFetchBattlepassPlayers(ctx, pool)
 		},
 		fetchCompletedJourneyNodes: func(ctx context.Context, accountID int64) ([]string, error) {
-			if globalDB == nil {
+			if pool == nil {
 				return nil, fmt.Errorf("database not connected")
 			}
-			return cmdFetchCompletedJourneyNodeIDs(ctx, globalDB, accountID)
+			return cmdFetchCompletedJourneyNodeIDs(ctx, pool, accountID)
 		},
 		fetchPlayerTags: func(ctx context.Context, accountID int64) ([]string, error) {
-			if globalDB == nil {
+			if pool == nil {
 				return nil, fmt.Errorf("database not connected")
 			}
-			return cmdFetchPlayerTagsForAccount(ctx, globalDB, accountID)
+			return cmdFetchPlayerTagsForAccount(ctx, pool, accountID)
 		},
 		pace: func(ctx context.Context, d time.Duration) error {
 			if d <= 0 {
@@ -362,13 +364,15 @@ func applyBattlepassEngine(cfg appConfig) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	globalBattlepassCancel = cancel
-	go runBattlepassEngine(ctx, productionBattlepassDeps(),
-		globalBattlepassStore, interval, paceEvery, startDelay, battlepassAwardPast(cfg), autoGrant)
-
-	// When auto-grant is on, run the deferred-grant retry loop alongside the
-	// evaluation engine. It is cancelled by the same ctx on stop/reconfigure.
-	if autoGrant {
-		go runBattlepassGrantLoop(ctx, globalBattlepassStore, productionBattlepassGrantDeps(globalDB))
+	for _, sc := range globalRegistry.All() {
+		if sc.DB == nil {
+			continue
+		}
+		go runBattlepassEngine(ctx, productionBattlepassDeps(sc.DB),
+			globalBattlepassStore, interval, paceEvery, startDelay, battlepassAwardPast(cfg), autoGrant)
+		if autoGrant {
+			go runBattlepassGrantLoop(ctx, globalBattlepassStore, productionBattlepassGrantDeps(sc.DB))
+		}
 	}
 }
 

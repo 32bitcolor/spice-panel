@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // globalEventsCancel stops the running events engine goroutine.
@@ -631,14 +633,17 @@ func applyEventEngine(cfg appConfig) {
 		return
 	}
 
-	deps := productionEventDeps()
-
-	go reconcileAllEvents(context.Background(), deps, globalEventStore)
-
 	ctx, cancel := context.WithCancel(context.Background())
 	globalEventsCancel = cancel
-	go runEventEngine(ctx, deps, globalEventStore)
-	go runEventRetryLoop(ctx, deps, globalEventStore)
+	for _, sc := range globalRegistry.All() {
+		if sc.DB == nil {
+			continue
+		}
+		deps := productionEventDeps(sc.DB)
+		go reconcileAllEvents(context.Background(), deps, globalEventStore)
+		go runEventEngine(ctx, deps, globalEventStore)
+		go runEventRetryLoop(ctx, deps, globalEventStore)
+	}
 	log.Printf("events: engine started (per-event scheduling + reward-grant retries)")
 }
 
@@ -669,57 +674,68 @@ func reconcileAllEvents(ctx context.Context, deps eventDeps, store *eventStore) 
 	}
 }
 
-// productionEventDeps builds the event deps using live globals. Called from
-// startEventEngineIfEnabled only; tests inject mocks directly.
-func productionEventDeps() eventDeps {
+// productionEventDeps builds the event deps from the given pool. Called from
+// applyEventEngine only; tests inject mocks directly.
+func productionEventDeps(pool *pgxpool.Pool) eventDeps {
 	return eventDeps{
 		fetchOnlinePlayers: func(ctx context.Context) ([]eventPlayer, error) {
-			if globalDB == nil {
+			if pool == nil {
 				return nil, fmt.Errorf("database not connected")
 			}
-			return cmdFetchEventPlayers(ctx, globalDB)
+			return cmdFetchEventPlayers(ctx, pool)
 		},
 		fetchOnlinePositions: func(ctx context.Context, accountIDs []int64) (map[int64]playerPosition, error) {
-			if globalDB == nil {
+			if pool == nil {
 				return nil, fmt.Errorf("database not connected")
 			}
-			return cmdFetchOnlinePositions(ctx, globalDB, accountIDs)
+			return cmdFetchOnlinePositions(ctx, pool, accountIDs)
 		},
 		fetchPlayerLevel: func(ctx context.Context, accountID int64) (int, error) {
-			if globalDB == nil {
+			if pool == nil {
 				return 0, fmt.Errorf("database not connected")
 			}
-			return cmdFetchCharacterLevel(ctx, globalDB, accountID)
+			return cmdFetchCharacterLevel(ctx, pool, accountID)
 		},
 		fetchPlayerTags: func(ctx context.Context, accountID int64) ([]string, error) {
-			if globalDB == nil {
+			if pool == nil {
 				return nil, fmt.Errorf("database not connected")
 			}
-			return cmdFetchPlayerTagsForAccount(ctx, globalDB, accountID)
+			return cmdFetchPlayerTagsForAccount(ctx, pool, accountID)
 		},
 		grantCurrency: func(ctx context.Context, controllerID, amount int64) error {
-			if globalDB == nil {
+			if pool == nil {
 				return fmt.Errorf("database not connected")
 			}
-			_, err := cmdGiveCurrencyCtx(ctx, globalDB, controllerID, amount)
+			_, err := cmdGiveCurrencyCtx(ctx, pool, controllerID, amount)
 			return err
 		},
 		grantItem: func(ctx context.Context, actorID int64, template string, qty, quality int64) error {
-			if globalDB == nil {
+			if pool == nil {
 				return fmt.Errorf("database not connected")
 			}
-			return cmdGiveItemCtx(ctx, globalDB, actorID, template, qty, quality)
+			return cmdGiveItemCtx(ctx, pool, actorID, template, qty, quality)
 		},
 		grantXP: func(ctx context.Context, actorID int64, track string, amount int32) error {
-			if globalDB == nil {
+			if pool == nil {
 				return fmt.Errorf("database not connected")
 			}
-			return cmdAwardXPCtx(ctx, globalDB, actorID, track, amount)
+			return cmdAwardXPCtx(ctx, pool, actorID, track, amount)
 		},
 		announce: func(channelID, message string) error {
 			return postDiscordAnnouncement(channelID, message)
 		},
-		resolveGrantTargets: productionResolveGrantTargets,
+		resolveGrantTargets: makeEventResolveGrantTargetsFn(pool),
+	}
+}
+
+// makeEventResolveGrantTargetsFn returns a closure that resolves event grant targets
+// for the given pool, extracted to keep productionEventDeps complexity in bounds.
+func makeEventResolveGrantTargetsFn(pool *pgxpool.Pool) func(context.Context, int64) (int64, int64, error) {
+	return func(ctx context.Context, accountID int64) (int64, int64, error) {
+		if pool == nil {
+			return 0, 0, fmt.Errorf("database not connected")
+		}
+		return cmdFetchEventGrantTargets(ctx, pool, accountID)
 	}
 }
 

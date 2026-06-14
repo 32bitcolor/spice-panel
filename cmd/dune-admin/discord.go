@@ -346,24 +346,42 @@ func postDiscordAnnouncement(channelID, message string) error {
 
 // ── Dep wrappers ──────────────────────────────────────────────────────────────
 
-// discordStatusDep is the live status dep: fetches online/total counts.
+// discordStatusDep is the live status dep: aggregates online/total counts
+// across all registered servers (multi-server aware).
 func discordStatusDep(ctx context.Context) (string, error) {
-	if globalDB == nil {
-		return "", fmt.Errorf("database not connected")
-	}
-	var online, total int64
-	err := globalDB.QueryRow(ctx, `
+	const q = `
 		SELECT
 			COUNT(*) FILTER (WHERE COALESCE(ps.online_status::text, 'Offline') <> 'Offline'),
 			COUNT(*)
 		FROM dune.actors a
 		LEFT JOIN dune.player_state ps ON ps.account_id = a.owner_account_id
-		WHERE a.class ILIKE '%PlayerCharacter%' AND a.owner_account_id <> $1`,
-		gmIdentityAccountID).Scan(&online, &total)
-	if err != nil {
-		return "", fmt.Errorf("status query: %w", err)
+		WHERE a.class ILIKE '%PlayerCharacter%' AND a.owner_account_id <> $1`
+
+	servers := globalRegistry.All()
+	if len(servers) == 0 {
+		if globalDB == nil {
+			return "", fmt.Errorf("database not connected")
+		}
+		var online, total int64
+		if err := globalDB.QueryRow(ctx, q, gmIdentityAccountID).Scan(&online, &total); err != nil {
+			return "", fmt.Errorf("status query: %w", err)
+		}
+		return fmt.Sprintf("🌐 Server online · **%d / %d** players active", online, total), nil
 	}
-	return fmt.Sprintf("🌐 Server online · **%d / %d** players active", online, total), nil
+
+	var totalOnline, totalPlayers int64
+	for _, sc := range servers {
+		if sc.DB == nil {
+			continue
+		}
+		var online, total int64
+		if err := sc.DB.QueryRow(ctx, q, gmIdentityAccountID).Scan(&online, &total); err != nil {
+			return "", fmt.Errorf("status query (%s): %w", sc.ID, err)
+		}
+		totalOnline += online
+		totalPlayers += total
+	}
+	return fmt.Sprintf("🌐 Server online · **%d / %d** players active", totalOnline, totalPlayers), nil
 }
 
 // ── Pointer helpers ───────────────────────────────────────────────────────────

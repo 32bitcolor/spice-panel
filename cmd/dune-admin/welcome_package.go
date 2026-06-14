@@ -163,8 +163,11 @@ func whisperAccount(ctx context.Context, acc welcomeAccount, msgVersion string, 
 // welcomeGrantViaGiveItems is the production grant function: it reuses the exact
 // shipped give-items path (live RMQ for online players, DB-write fallback
 // otherwise) and returns "template: reason" strings for any skipped items.
-func welcomeGrantViaGiveItems(ctx context.Context, pawnID int64, flsID string, items []welcomePackageItem) ([]string, error) {
-	online, resolvedFls := resolveGiveItemsOnlinePath(ctx, pawnID, func(ctx context.Context, id int64) error { return checkPlayerOfflinePool(ctx, globalDB, id) }, flsIDFromActorID)
+func welcomeGrantViaGiveItems(ctx context.Context, pool *pgxpool.Pool, pawnID int64, flsID string, items []welcomePackageItem) ([]string, error) {
+	online, resolvedFls := resolveGiveItemsOnlinePath(ctx, pawnID,
+		func(ctx context.Context, id int64) error { return checkPlayerOfflinePool(ctx, pool, id) },
+		func(ctx context.Context, id int64) (string, error) { return flsIDFromActorIDPool(ctx, pool, id) },
+	)
 	if resolvedFls == "" {
 		resolvedFls = flsID
 	}
@@ -173,10 +176,12 @@ func welcomeGrantViaGiveItems(ctx context.Context, pawnID int64, flsID string, i
 		req.Items = append(req.Items, giveItemInput(it))
 	}
 	_, skipped := processGiveItems(ctx, req, online, resolvedFls, giveItemsDeps{
-		checkCapacity: checkInventoryCapacity,
-		rmqAdd:        rmqAddItemToInventory,
+		checkCapacity: func(ctx context.Context, playerID int64, template string, qty int64) error {
+			return checkInventoryCapacityPool(ctx, pool, playerID, template, qty)
+		},
+		rmqAdd: rmqAddItemToInventory,
 		dbGive: func(playerID int64, template string, qty, quality int64) (msgMutate, bool) {
-			msg, ok := cmdGiveItem(globalDB, playerID, template, qty, quality)().(msgMutate)
+			msg, ok := cmdGiveItem(pool, playerID, template, qty, quality)().(msgMutate)
 			return msg, ok
 		},
 		needsDBPath: itemNeedsDBPath,
@@ -359,8 +364,9 @@ func runWelcomePackageScanner(ctx context.Context) {
 	t := time.NewTicker(interval)
 	defer t.Stop()
 	for {
-		sc := globalRegistry.Active()
-		welcomePackageScanTick(ctx, sc, resolveWelcomeStore(sc))
+		for _, sc := range globalRegistry.All() {
+			welcomePackageScanTick(ctx, sc, resolveWelcomeStore(sc))
+		}
 		select {
 		case <-ctx.Done():
 			return
@@ -408,7 +414,9 @@ func welcomePackageScanTick(ctx context.Context, sc *ServerContext, store *welco
 		return
 	}
 	if pkgActive {
-		runWelcomePackageGrants(ctx, rt, online, store, welcomeGrantViaGiveItems)
+		runWelcomePackageGrants(ctx, rt, online, store, func(ctx context.Context, pawnID int64, flsID string, items []welcomePackageItem) ([]string, error) {
+			return welcomeGrantViaGiveItems(ctx, pool, pawnID, flsID, items)
+		})
 	}
 	if presenceActive {
 		runPresenceWhispers(ctx, rt, online, motdActive, regionActive)

@@ -414,7 +414,9 @@ func handleOverrideWelcomeGrant(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := overrideGrantToAccount(r.Context(), acc, pkg.Version, pkg.Items, welcomeScanDeps{
-		grant: welcomeGrantViaGiveItems,
+		grant: func(ctx context.Context, pawnID int64, flsID string, items []welcomePackageItem) ([]string, error) {
+			return welcomeGrantViaGiveItems(ctx, db, pawnID, flsID, items)
+		},
 		store: welcomeStoreDB,
 	}); err != nil {
 		jsonErr(w, err, http.StatusBadRequest)
@@ -430,11 +432,12 @@ func handleOverrideWelcomeGrant(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Failure 503 {object} map[string]string
 // @Router /api/v1/welcome-package/run [post]
-func handleRunWelcomePackage(w http.ResponseWriter, _ *http.Request) {
+func handleRunWelcomePackage(w http.ResponseWriter, r *http.Request) {
 	if welcomeStoreDB == nil {
 		jsonErr(w, fmt.Errorf("welcome package store not available"), http.StatusServiceUnavailable)
 		return
 	}
+	db := dbFromCtx(r)
 	rt := getWelcomeRuntime()
 	activePkgs := rt.activePackages()
 	if len(activePkgs) == 0 {
@@ -449,8 +452,10 @@ func handleRunWelcomePackage(w http.ResponseWriter, _ *http.Request) {
 		}
 		g, f, s, err := welcomePackageScanOnce(context.Background(), pkg.Version, pkg.Items, welcomeScanDeps{
 			listAccounts: listWelcomeOnlineAccounts,
-			grant:        welcomeGrantViaGiveItems,
-			store:        welcomeStoreDB,
+			grant: func(ctx context.Context, pawnID int64, flsID string, items []welcomePackageItem) ([]string, error) {
+				return welcomeGrantViaGiveItems(ctx, db, pawnID, flsID, items)
+			},
+			store: welcomeStoreDB,
 		})
 		if err != nil {
 			jsonErr(w, err, http.StatusInternalServerError)

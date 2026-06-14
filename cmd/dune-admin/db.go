@@ -1549,28 +1549,34 @@ func cmdFetchWelcomeAccount(ctx context.Context, pool *pgxpool.Pool, accountID i
 	return acc, nil
 }
 
-func checkInventoryCapacity(ctx context.Context, playerID int64, template string, qty int64) error {
-	if globalDB == nil {
+// checkInventoryCapacityPool verifies that qty items of template fit in the
+// player's inventory using the given pool.
+func checkInventoryCapacityPool(ctx context.Context, pool *pgxpool.Pool, playerID int64, template string, qty int64) error {
+	if pool == nil {
 		return fmt.Errorf("not connected")
 	}
-	profile, ok := loadBackpackCapacity(ctx, globalDB, playerID)
+	profile, ok := loadBackpackCapacity(ctx, pool, playerID)
 	if !ok {
 		return nil
 	}
 	if !profile.hasSlotCap && !profile.hasVolumeCap {
 		return nil
 	}
-	usage, err := loadInventoryUsage(ctx, globalDB, profile.id, profile.hasVolumeCap)
+	usage, err := loadInventoryUsage(ctx, pool, profile.id, profile.hasVolumeCap)
 	if err != nil {
 		return nil
 	}
-	if err := checkInventoryVolumeLimit(ctx, globalDB, profile, usage, template, qty); err != nil {
+	if err := checkInventoryVolumeLimit(ctx, pool, profile, usage, template, qty); err != nil {
 		return err
 	}
-	if err := checkInventorySlotLimit(ctx, globalDB, profile, usage, template, qty); err != nil {
+	if err := checkInventorySlotLimit(ctx, pool, profile, usage, template, qty); err != nil {
 		return err
 	}
 	return nil
+}
+
+func checkInventoryCapacity(ctx context.Context, playerID int64, template string, qty int64) error {
+	return checkInventoryCapacityPool(ctx, globalDB, playerID, template, qty)
 }
 
 // cmdGrantLive inserts into landsraad_house_rewards which fires a pg_notify trigger.
