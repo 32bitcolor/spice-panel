@@ -2,6 +2,8 @@ package main
 
 import (
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"dune-admin/internal/marketbot"
@@ -176,4 +178,44 @@ func TestPreserveMaskedDBPass(t *testing.T) {
 			t.Fatalf("expected in-memory fallback password, got %q", cfg.DBPass)
 		}
 	})
+}
+
+// TestHandleDiscover_NilExecutor verifies 503 when no executor is connected.
+func TestHandleDiscover_NilExecutor(t *testing.T) {
+	prevE := globalExecutor
+	globalExecutor = nil
+	t.Cleanup(func() { globalExecutor = prevE })
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/discover", nil)
+	rr := httptest.NewRecorder()
+	handleDiscover(rr, req)
+
+	if rr.Code != http.StatusServiceUnavailable {
+		t.Fatalf("want 503, got %d", rr.Code)
+	}
+}
+
+// TestHandleDiscover_CtxExecutorOverridesGlobal verifies that an executor stashed
+// in the request context prevents the 503 guard when globalExecutor is nil.
+func TestHandleDiscover_CtxExecutorOverridesGlobal(t *testing.T) {
+	prevE := globalExecutor
+	globalExecutor = nil
+	t.Cleanup(func() { globalExecutor = prevE })
+
+	exec := &fnExecutor{fn: func(string) (string, error) { return "", nil }}
+	reg := newServerRegistry(nil)
+	sc := &ServerContext{ID: "s1", StoreScope: "s1", Executor: exec}
+	reg.Register(sc)
+
+	inner := http.HandlerFunc(handleDiscover)
+	h := serverSelectorMiddleware(reg, inner)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/discover", nil)
+	req.Header.Set("X-Dune-Server", "s1")
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	if rr.Code == http.StatusServiceUnavailable {
+		t.Error("ctx executor should prevent the 503 guard when globalExecutor is nil")
+	}
 }

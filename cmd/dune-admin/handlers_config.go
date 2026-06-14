@@ -292,18 +292,20 @@ func applyMarketBotConfig(cfg appConfig) {
 // the gap-filled values into config.yaml (then applies them). Requires an
 // active executor (command-mode/kubectl).
 func handleDiscover(w http.ResponseWriter, r *http.Request) {
-	if globalExecutor == nil {
+	exec := executorFromCtx(r)
+	if exec == nil {
 		jsonErr(w, fmt.Errorf("no executor connected"), http.StatusServiceUnavailable)
 		return
 	}
-	g, err := discoverGameConfig(globalExecutor)
+	g, err := discoverGameConfig(exec)
 	if err != nil {
 		jsonErr(w, err, http.StatusBadGateway)
 		return
 	}
 	var gameIP, adminIP, directorIP string
-	if globalControl != nil && globalControl.Name() == "kubectl" {
-		pods := fetchClusterPodIPs(globalExecutor)
+	ctrl := controlFromCtx(r)
+	if ctrl != nil && ctrl.Name() == "kubectl" {
+		pods := fetchClusterPodIPs(exec)
 		gameIP = podIPByPattern(pods, "mq-game")
 		adminIP = podIPByPattern(pods, "mq-admin")
 		directorIP = podIPByPattern(pods, "bgd")
