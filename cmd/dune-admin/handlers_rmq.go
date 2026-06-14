@@ -224,7 +224,7 @@ func handleRMQBroadcastShutdown(w http.ResponseWriter, r *http.Request) {
 	// countdown elapses (#205 — previously nothing happened in game).
 	if !req.Cancel {
 		delay := time.Duration(req.DelayMinutes) * time.Minute
-		scheduleBroadcastShutdownExec(delay, shutdownVerb(req.ShutdownType))
+		scheduleBroadcastShutdownExec(delay, shutdownVerb(req.ShutdownType), controlFromCtx(r), executorFromCtx(r))
 	}
 	action := "shutdown broadcast sent"
 	if req.Cancel {
@@ -253,8 +253,9 @@ func shutdownVerb(shutdownType string) string {
 }
 
 // scheduleBroadcastShutdownExec arms a one-shot timer to run the control-plane
-// action after delay, cancelling any previously-armed action first.
-func scheduleBroadcastShutdownExec(delay time.Duration, verb string) {
+// action after delay, cancelling any previously-armed action first. ctrl and
+// exec are captured at call time so the goroutine uses the right server.
+func scheduleBroadcastShutdownExec(delay time.Duration, verb string, ctrl ControlPlane, exec Executor) {
 	shutdownExecMu.Lock()
 	defer shutdownExecMu.Unlock()
 	if shutdownExecTimer != nil {
@@ -266,7 +267,7 @@ func scheduleBroadcastShutdownExec(delay time.Duration, verb string) {
 		shutdownExecTimer = nil
 		shutdownExecAt = 0
 		shutdownExecMu.Unlock()
-		fireBroadcastShutdown(context.Background(), verb)
+		fireBroadcastShutdown(context.Background(), verb, ctrl, exec)
 	})
 }
 
@@ -291,12 +292,12 @@ func pendingBroadcastShutdown() (at int64, pending bool) {
 
 // fireBroadcastShutdown runs the lifecycle command against the control plane.
 // Mirrors fireScheduledRestart: a no-op (logged) when nothing is connected.
-func fireBroadcastShutdown(ctx context.Context, verb string) {
-	if globalControl == nil || globalExecutor == nil {
+func fireBroadcastShutdown(ctx context.Context, verb string, ctrl ControlPlane, exec Executor) {
+	if ctrl == nil || exec == nil {
 		log.Printf("broadcast-shutdown: control plane not connected; %s skipped", verb)
 		return
 	}
-	if _, err := globalControl.ExecCommand(ctx, globalExecutor, verb); err != nil {
+	if _, err := ctrl.ExecCommand(ctx, exec, verb); err != nil {
 		log.Printf("broadcast-shutdown: %s failed: %v", verb, err)
 	}
 }
