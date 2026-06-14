@@ -38,7 +38,6 @@ const phaseIndex = (phase: UpdatePhase): number => {
 export const UpdateProgressModal: React.FC<Props> = ({ isOpen, phase, errorMessage, onDismiss }) => {
   const { t } = useTranslation()
   const isError = phase === 'error'
-  const isDone = phase === 'ready'
   const currentIndex = phaseIndex(phase)
 
   return (
@@ -104,9 +103,14 @@ export const UpdateProgressModal: React.FC<Props> = ({ isOpen, phase, errorMessa
             )}
           </Modal.Body>
 
-          {(isError || isDone) && onDismiss && (
+          {onDismiss && (
             <Modal.Footer className="flex justify-end">
-              <Button size="sm" variant="ghost" onPress={onDismiss}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onPress={onDismiss}
+                isDisabled={!isError && phase !== 'waitingLong' && phase !== 'ready'}
+              >
                 {t('app.updateProgress.dismiss')}
               </Button>
             </Modal.Footer>
