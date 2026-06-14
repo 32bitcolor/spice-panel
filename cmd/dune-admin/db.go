@@ -1484,15 +1484,14 @@ func checkInventorySlotLimit(ctx context.Context, profile inventoryCapacityProfi
 // backpack (inventory_type=0). Returns an error if the inventory is over volume
 // or slot limits. Used to pre-validate RMQ give-item commands since the game
 // server's cheat function bypasses these checks.
-// listWelcomeOnlineAccounts returns currently-online characters eligible for the
-// welcome package: account id, pawn actor id (consumed by the give-items path),
-// FLS id (accounts."user", the ledger key), and character name. Online-only so
-// the live RMQ grant path applies — this is the "on first login" trigger.
-func listWelcomeOnlineAccounts(ctx context.Context) ([]welcomeAccount, error) {
-	if globalDB == nil {
+// cmdListWelcomeOnlineAccounts returns currently-online characters eligible for
+// the welcome package using the provided pool. Online-only so the live RMQ grant
+// path applies — this is the "on first login" trigger.
+func cmdListWelcomeOnlineAccounts(ctx context.Context, pool *pgxpool.Pool) ([]welcomeAccount, error) {
+	if pool == nil {
 		return nil, fmt.Errorf("not connected")
 	}
-	rows, err := globalDB.Query(ctx, `
+	rows, err := pool.Query(ctx, `
 		SELECT ps.account_id, ps.player_pawn_id,
 		       COALESCE(ac."user", ''), COALESCE(ps.character_name, ''),
 		       COALESCE(a.map, '')
@@ -1514,6 +1513,12 @@ func listWelcomeOnlineAccounts(ctx context.Context) ([]welcomeAccount, error) {
 		out = append(out, acc)
 	}
 	return out, rows.Err()
+}
+
+// listWelcomeOnlineAccounts is the global-pool wrapper used by the handler path.
+// Handler conversion to dbFromCtx is Phase 3.
+func listWelcomeOnlineAccounts(ctx context.Context) ([]welcomeAccount, error) {
+	return cmdListWelcomeOnlineAccounts(ctx, globalDB)
 }
 
 // cmdFetchWelcomeAccount returns one account's welcome-grant identity (pawn id,

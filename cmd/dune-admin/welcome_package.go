@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // welcomePackageItem is one configured grant in the welcome package. It maps
@@ -357,7 +359,8 @@ func runWelcomePackageScanner(ctx context.Context) {
 	t := time.NewTicker(interval)
 	defer t.Stop()
 	for {
-		welcomePackageScanTick(ctx)
+		sc := globalRegistry.Active()
+		welcomePackageScanTick(ctx, sc, resolveWelcomeStore(sc))
 		select {
 		case <-ctx.Done():
 			return
@@ -366,12 +369,21 @@ func runWelcomePackageScanner(ctx context.Context) {
 	}
 }
 
-func welcomePackageScanTick(ctx context.Context) {
+// resolveWelcomeStore returns the welcome store scoped to sc's server ID. Falls
+// back to the legacy welcomeStoreDB when globalStore is unavailable.
+func resolveWelcomeStore(sc *ServerContext) *welcomeStore {
+	if sc != nil && globalStore != nil {
+		return newWelcomeStore(globalStore, sc.StoreScope)
+	}
+	return welcomeStoreDB
+}
+
+func welcomePackageScanTick(ctx context.Context, sc *ServerContext, store *welcomeStore) {
 	rt := getWelcomeRuntime()
 	motdActive := rt.motdEnabled && strings.TrimSpace(rt.motdMessage) != ""
 	regionActive := regionBroadcastActive(rt)
 	presenceActive := motdActive || regionActive
-	pkgActive := rt.enabled && welcomeStoreDB != nil && len(rt.activePackages()) > 0
+	pkgActive := rt.enabled && store != nil && len(rt.activePackages()) > 0
 
 	// Keep the join/leave-detection baseline fresh only while a presence-driven
 	// feature (MOTD or region broadcast) is active. When both are off, reset so
@@ -385,14 +397,18 @@ func welcomePackageScanTick(ctx context.Context) {
 	}
 
 	// MOTD, region broadcast, and package grants all consume the current online
-	// set — fetch once.
-	online, err := listWelcomeOnlineAccounts(ctx)
+	// set — fetch once using the server's Postgres pool.
+	var pool *pgxpool.Pool
+	if sc != nil {
+		pool = sc.DB
+	}
+	online, err := cmdListWelcomeOnlineAccounts(ctx, pool)
 	if err != nil {
 		log.Printf("welcome: list online accounts: %v", err)
 		return
 	}
 	if pkgActive {
-		runWelcomePackageGrants(ctx, rt, online)
+		runWelcomePackageGrants(ctx, rt, online, store, welcomeGrantViaGiveItems)
 	}
 	if presenceActive {
 		runPresenceWhispers(ctx, rt, online, motdActive, regionActive)
@@ -437,8 +453,9 @@ func runPresenceWhispers(ctx context.Context, rt welcomePackageRuntime, online [
 
 // runWelcomePackageGrants grants the active package(s) to eligible accounts in
 // the given online snapshot, sending the package's companion welcome message
-// (once per version) when configured.
-func runWelcomePackageGrants(ctx context.Context, rt welcomePackageRuntime, online []welcomeAccount) {
+// (once per version) when configured. store and grantFn are explicit so the
+// caller can scope grants to the right server and tests can stub the grant path.
+func runWelcomePackageGrants(ctx context.Context, rt welcomePackageRuntime, online []welcomeAccount, store *welcomeStore, grantFn func(context.Context, int64, string, []welcomePackageItem) ([]string, error)) {
 	var whisperFn func(context.Context, int64, string, string) error
 	if rt.welcomeMessageEnabled && strings.TrimSpace(rt.welcomeMessage) != "" {
 		msg := rt.welcomeMessage
@@ -454,9 +471,9 @@ func runWelcomePackageGrants(ctx context.Context, rt welcomePackageRuntime, onli
 		}
 		g, f, _, err := welcomePackageScanOnce(ctx, pkg.Version, pkg.Items, welcomeScanDeps{
 			listAccounts: listOnline,
-			grant:        welcomeGrantViaGiveItems,
+			grant:        grantFn,
 			whisper:      whisperFn,
-			store:        welcomeStoreDB,
+			store:        store,
 		})
 		if err != nil {
 			log.Printf("welcome-package: scan error (version=%q): %v", pkg.Version, err)
