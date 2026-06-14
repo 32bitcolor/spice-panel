@@ -213,6 +213,19 @@
     "updated": "Updated to {{version}}. Server is restarting…",
     "updateFailed": "Update failed: {{message}}",
     "updateNow": "Update now",
+    "updateProgress": {
+      "title": "Applying Update",
+      "dismiss": "Dismiss",
+      "downloading": "Downloading update…",
+      "verifying": "Verifying checksum…",
+      "extracting": "Extracting binary…",
+      "restarting": "Restarting server…",
+      "waiting": "Waiting for server to come back…",
+      "waitingLong": "Server is taking longer than expected — still waiting…",
+      "ready": "Update complete! Reloading…",
+      "error": "Update failed",
+      "timeout": "Server did not come back within the expected time. It may still be restarting — the page will reload when it's ready."
+    },
     "viewReleaseNotes": "View release notes",
     "backendUnreachable": {
       "body": "The web app loaded, but it couldn't connect to the dune-admin backend. Make sure the dune-admin executable is running and reachable from this browser.",

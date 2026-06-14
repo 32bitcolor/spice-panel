@@ -11,6 +11,8 @@ import { LanguageSelector } from './components/LanguageSelector'
 import { ThemeSelector } from './components/ThemeSelector'
 import { HelpMenu } from './components/HelpMenu'
 import { UserMenu } from './components/UserMenu'
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 const BattlegroupTab = React.lazy(() => import('./tabs/BattlegroupTab').then((m) => ({ default: m.BattlegroupTab })))
 const LiveMapTab = React.lazy(() => import('./tabs/LiveMapTab').then((m) => ({ default: m.LiveMapTab })))
 const PlayersTab = React.lazy(() => import('./tabs/PlayersTab').then((m) => ({ default: m.PlayersTab })))
@@ -36,6 +38,8 @@ import { api } from './api/client'
 import type { UpdateCheckResult } from './api/client'
 import type { TabId, AppCoreProps, ConnectionBadgeProps } from './types'
 import { canSeeTabByControlPlane } from './tabNav'
+import { UpdateProgressModal } from './components/UpdateProgressModal'
+import type { UpdatePhase } from './components/UpdateProgressModal'
 
 const TAB_IDS = [
   'battlegroup',
@@ -218,6 +222,8 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
   const [showUpdateModal, setShowUpdateModal] = React.useState(false)
   const [updateChecking, setUpdateChecking] = React.useState(false)
   const [updateApplying, setUpdateApplying] = React.useState(false)
+  const [updatePhase, setUpdatePhase] = React.useState<UpdatePhase>('downloading')
+  const [updateError, setUpdateError] = React.useState<string | undefined>(undefined)
   const [formSaving, setFormSaving] = React.useState(false)
   const formSaveRef = React.useRef<(() => Promise<void>) | null>(null)
 
@@ -283,25 +289,75 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
 
   const applyUpdate = async (force = false) => {
     setUpdateApplying(true)
+    setUpdatePhase('downloading')
+    setUpdateError(undefined)
+    setShowUpdateModal(false)
+    setShowBackendConfig(false)
     try {
       const result = await api.update.apply(force)
-      if (result.updated) {
-        localStorage.removeItem(UPDATE_CACHE_KEY)
-        toast.success(force ? t('app.reinstalled', { version: result.version ?? 'latest' }) : t('app.updated', { version: result.version ?? 'latest' }))
-        setUpdateInfo(null)
-        setTimeout(() => {
-          window.location.reload()
-        }, 1500)
+      if (!result.updated) {
+        toast.info(result.message)
+        setUpdateApplying(false)
+        return
+      }
+      localStorage.removeItem(UPDATE_CACHE_KEY)
+      setUpdateInfo(null)
+
+      // Binary swapped; server is restarting in ~500ms.
+      setUpdatePhase('verifying')
+      await sleep(400)
+      setUpdatePhase('extracting')
+      await sleep(300)
+      setUpdatePhase('restarting')
+
+      // Poll /status until the server comes back up (max 90s).
+      const started = Date.now()
+      const TIMEOUT_MS = 90_000
+      const LONG_WAIT_MS = 20_000
+      await sleep(2000)
+      setUpdatePhase('waiting')
+
+      let back = false
+      while (Date.now() - started < TIMEOUT_MS) {
+        if (Date.now() - started > LONG_WAIT_MS) {
+          setUpdatePhase('waitingLong')
+        }
+        try {
+          await api.status()
+          back = true
+          break
+        }
+        catch {
+          await sleep(2000)
+        }
+      }
+
+      if (back) {
+        setUpdatePhase('ready')
+        await sleep(800)
+        window.location.reload()
       }
       else {
-        toast.info(result.message)
+        // Timed out but keep polling in background; page will reload on next success.
+        setUpdatePhase('waitingLong')
+        const keepPolling = async () => {
+          while (true) {
+            await sleep(3000)
+            try {
+              await api.status()
+              window.location.reload()
+              return
+            }
+            catch { /* keep trying */ }
+          }
+        }
+        void keepPolling()
       }
     }
     catch (e) {
-      toast.danger(t('app.updateFailed', { message: e instanceof Error ? e.message : String(e) }))
-    }
-    finally {
-      setUpdateApplying(false)
+      const msg = e instanceof Error ? e.message : String(e)
+      setUpdateError(t('app.updateFailed', { message: msg }))
+      setUpdatePhase('error')
     }
   }
 
@@ -575,22 +631,18 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
                   onPress={() => applyUpdate(true)}
                   isDisabled={updateApplying}
                 >
-                  {updateApplying ? <Spinner size="sm" color="current" /> : t('app.reinstall')}
+                  {t('app.reinstall')}
                 </Button>
               )}
               {can('server:control') && updateInfo?.needs_update && (
                 <Button size="sm" onPress={() => applyUpdate()} isDisabled={updateApplying}>
-                  {updateApplying
-                    ? <Spinner size="sm" color="current" />
-                    : (
-                        <span className="font-mono text-xs">
-                          v
-                          {updateInfo.current}
-                          {' → '}
-                          v
-                          {updateInfo.latest.replace(/^v/, '')}
-                        </span>
-                      )}
+                  <span className="font-mono text-xs">
+                    v
+                    {updateInfo.current}
+                    {' → '}
+                    v
+                    {updateInfo.latest.replace(/^v/, '')}
+                  </span>
                 </Button>
               )}
 
@@ -673,18 +725,25 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
                 <Button
                   size="sm"
                   onPress={() => {
-                    setShowUpdateModal(false)
                     void applyUpdate()
                   }}
                   isDisabled={updateApplying}
                 >
-                  {updateApplying ? <Spinner size="sm" color="current" /> : t('app.updateNow')}
+                  {t('app.updateNow')}
                 </Button>
               )}
             </Modal.Footer>
           </Modal.Dialog>
         </Modal.Container>
       </Modal.Backdrop>
+
+      {/* Update progress overlay — shown while downloading, restarting, and waiting for the server */}
+      <UpdateProgressModal
+        isOpen={updateApplying}
+        phase={updatePhase}
+        errorMessage={updateError}
+        onDismiss={() => setUpdateApplying(false)}
+      />
     </div>
   )
 }
