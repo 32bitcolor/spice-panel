@@ -193,15 +193,15 @@ func aggregateMapCounts(servers []ServerRow) []mapPlayerCount {
 // countUniquePlayers24h returns the number of distinct accounts that started a
 // play session in the 24 hours preceding now. A nil db yields 0 with no error
 // (session tracking disabled — the embed degrades gracefully).
-func countUniquePlayers24h(ctx context.Context, db *sql.DB, now time.Time) (int64, error) {
+func countUniquePlayers24h(ctx context.Context, db *sql.DB, serverID string, now time.Time) (int64, error) {
 	if db == nil {
 		return 0, nil
 	}
 	since := now.UTC().Add(-24 * time.Hour).Format(time.RFC3339)
 	var count int64
 	err := db.QueryRowContext(ctx,
-		`SELECT COUNT(DISTINCT account_id) FROM play_sessions WHERE started_at >= ?`,
-		since).Scan(&count)
+		`SELECT COUNT(DISTINCT account_id) FROM play_sessions WHERE server_id = ? AND started_at >= ?`,
+		serverID, since).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("count unique 24h: %w", err)
 	}
@@ -512,7 +512,7 @@ func applyDBStats(ctx context.Context, data *statusEmbedData) {
 
 // applyUnique24h fills UniquePlayers from the session store.
 func applyUnique24h(ctx context.Context, data *statusEmbedData) {
-	uniq, err := countUniquePlayers24h(ctx, globalStore, time.Now())
+	uniq, err := countUniquePlayers24h(ctx, globalStore, "default", time.Now())
 	if err != nil {
 		log.Printf("discord status: unique 24h: %v", err)
 		return

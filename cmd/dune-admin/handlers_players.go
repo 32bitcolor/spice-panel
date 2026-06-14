@@ -56,7 +56,7 @@ func handleGetPlayerSummary(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}
-	playtime, trend := sessionSummary(r.Context(), globalSessionDB, summaryTrendDays)
+	playtime, trend := sessionSummary(r.Context(), globalSessionDB, storeScopeFromCtx(r), summaryTrendDays)
 	// Average character level is best-effort: a query failure degrades to 0
 	// (averageLevel(nil)) rather than failing the whole dashboard.
 	xps, err := cmdFetchCharXPList(r.Context(), db)
@@ -108,7 +108,7 @@ func handleGetFactionTrends(w http.ResponseWriter, r *http.Request) {
 	// series rather than failing the request.
 	var snaps []daySnap
 	if globalSessionDB != nil {
-		if snaps, err = getDailySnapshots(r.Context(), globalSessionDB, factionTrendDays); err != nil {
+		if snaps, err = getDailySnapshots(r.Context(), globalSessionDB, storeScopeFromCtx(r), factionTrendDays); err != nil {
 			log.Printf("handleGetFactionTrends: snapshots: %v", err)
 		}
 	}

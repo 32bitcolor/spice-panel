@@ -339,7 +339,7 @@ func TestCountUniquePlayers24h(t *testing.T) {
 	insert(2, alsoRecent)
 	insert(3, old)
 
-	count, err := countUniquePlayers24h(context.Background(), db, now)
+	count, err := countUniquePlayers24h(context.Background(), db, "default", now)
 	if err != nil {
 		t.Fatalf("count: %v", err)
 	}
@@ -349,7 +349,7 @@ func TestCountUniquePlayers24h(t *testing.T) {
 }
 
 func TestCountUniquePlayers24h_NilDB(t *testing.T) {
-	count, err := countUniquePlayers24h(context.Background(), nil, time.Now())
+	count, err := countUniquePlayers24h(context.Background(), nil, "default", time.Now())
 	if err != nil {
 		t.Fatalf("nil db should be a graceful zero, got err: %v", err)
 	}

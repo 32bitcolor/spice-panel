@@ -87,19 +87,19 @@ func initSessionSchema(db *sql.DB) error {
 
 // closeOrphanedSessions marks sessions left open by a previous run. Duration
 // is set to 0 since we don't know when the player actually logged off.
-func closeOrphanedSessions(db *sql.DB) error {
+func closeOrphanedSessions(db *sql.DB, serverID string) error {
 	_, err := db.Exec(`
 		UPDATE play_sessions
 		SET ended_at = started_at, duration_secs = 0
-		WHERE ended_at IS NULL
-	`)
+		WHERE server_id = ? AND ended_at IS NULL
+	`, serverID)
 	return err
 }
 
 // recordSessions compares onlineIDs against currently open sessions in the
 // SQLite store and opens/closes sessions as needed.
-func recordSessions(ctx context.Context, onlineIDs []int64, db *sql.DB) error {
-	openSessions, err := queryOpenSessions(ctx, db)
+func recordSessions(ctx context.Context, onlineIDs []int64, db *sql.DB, serverID string) error {
+	openSessions, err := queryOpenSessions(ctx, db, serverID)
 	if err != nil {
 		return err
 	}
@@ -114,8 +114,8 @@ func recordSessions(ctx context.Context, onlineIDs []int64, db *sql.DB) error {
 	for _, id := range onlineIDs {
 		if !openSessions[id] {
 			if _, err := db.ExecContext(ctx,
-				`INSERT INTO play_sessions(account_id, started_at) VALUES(?, ?)`,
-				id, now,
+				`INSERT INTO play_sessions(server_id, account_id, started_at) VALUES(?, ?, ?)`,
+				serverID, id, now,
 			); err != nil {
 				return fmt.Errorf("start session for account %d: %w", id, err)
 			}
@@ -128,8 +128,8 @@ func recordSessions(ctx context.Context, onlineIDs []int64, db *sql.DB) error {
 				UPDATE play_sessions
 				SET ended_at = ?,
 				    duration_secs = CAST((julianday(?) - julianday(started_at)) * 86400 AS INTEGER)
-				WHERE account_id = ? AND ended_at IS NULL`,
-				now, now, id,
+				WHERE server_id = ? AND account_id = ? AND ended_at IS NULL`,
+				now, now, serverID, id,
 			); err != nil {
 				return fmt.Errorf("close session for account %d: %w", id, err)
 			}
@@ -139,8 +139,8 @@ func recordSessions(ctx context.Context, onlineIDs []int64, db *sql.DB) error {
 	return nil
 }
 
-func queryOpenSessions(ctx context.Context, db *sql.DB) (map[int64]bool, error) {
-	rows, err := db.QueryContext(ctx, `SELECT account_id FROM play_sessions WHERE ended_at IS NULL`)
+func queryOpenSessions(ctx context.Context, db *sql.DB, serverID string) (map[int64]bool, error) {
+	rows, err := db.QueryContext(ctx, `SELECT account_id FROM play_sessions WHERE server_id = ? AND ended_at IS NULL`, serverID)
 	if err != nil {
 		return nil, fmt.Errorf("query open sessions: %w", err)
 	}
@@ -157,15 +157,15 @@ func queryOpenSessions(ctx context.Context, db *sql.DB) (map[int64]bool, error) 
 	return open, rows.Err()
 }
 
-func getSessionStats(ctx context.Context, db *sql.DB, accountID int64) (sessionStats, error) {
+func getSessionStats(ctx context.Context, db *sql.DB, serverID string, accountID int64) (sessionStats, error) {
 	row := db.QueryRowContext(ctx, `
 		SELECT
 			COALESCE(SUM(duration_secs), 0),
 			COUNT(*),
 			COALESCE(AVG(duration_secs), 0.0)
 		FROM play_sessions
-		WHERE account_id = ? AND ended_at IS NOT NULL
-	`, accountID)
+		WHERE server_id = ? AND account_id = ? AND ended_at IS NOT NULL
+	`, serverID, accountID)
 
 	var stats sessionStats
 	var avg float64
@@ -186,11 +186,10 @@ func startSessionTracking() context.CancelFunc {
 	return cancel
 }
 
-// initSessionPoller initialises the session database and starts the background
-// polling goroutine. When globalStore is available the unified handle is used
-// directly; otherwise a dedicated file is opened (legacy / test mode). Skips
-// gracefully when globalDB is not yet connected so the server starts in
-// degraded mode.
+// initSessionPoller initialises the session database and starts one background
+// polling goroutine per registered server. When globalStore is available the
+// unified handle is used directly; otherwise a dedicated file is opened (legacy
+// / test mode). Skips gracefully when no servers have a DB connection.
 func initSessionPoller(ctx context.Context) error {
 	var sdb *sql.DB
 	if globalStore != nil {
@@ -202,17 +201,24 @@ func initSessionPoller(ctx context.Context) error {
 			return fmt.Errorf("open session db: %w", err)
 		}
 	}
-	if err := closeOrphanedSessions(sdb); err != nil {
-		log.Printf("session poller: close orphaned sessions: %v", err)
-	}
 	globalSessionDB = sdb
 
-	if globalDB == nil {
-		log.Printf("session poller: DB not connected, skipping poll loop")
-		return nil
+	servers := globalRegistry.All()
+	started := 0
+	for _, sc := range servers {
+		if sc.DB == nil {
+			log.Printf("session poller [%s]: DB not connected, skipping", sc.StoreScope)
+			continue
+		}
+		if err := closeOrphanedSessions(sdb, sc.StoreScope); err != nil {
+			log.Printf("session poller [%s]: close orphaned sessions: %v", sc.StoreScope, err)
+		}
+		go startSessionPoller(ctx, sc.DB, sdb, sc.StoreScope, 5*time.Minute)
+		started++
 	}
-
-	go startSessionPoller(ctx, globalDB, sdb, 5*time.Minute)
+	if started == 0 {
+		log.Printf("session poller: no servers with DB connections, skipping poll loop")
+	}
 	return nil
 }
 
@@ -222,14 +228,14 @@ type sessionRecord struct {
 	DurationSecs int64  `json:"duration_secs"`
 }
 
-func getSessionHistory(ctx context.Context, db *sql.DB, accountID int64, limit int) ([]sessionRecord, error) {
+func getSessionHistory(ctx context.Context, db *sql.DB, serverID string, accountID int64, limit int) ([]sessionRecord, error) {
 	rows, err := db.QueryContext(ctx, `
 		SELECT started_at, ended_at, duration_secs
 		FROM play_sessions
-		WHERE account_id = ? AND ended_at IS NOT NULL
+		WHERE server_id = ? AND account_id = ? AND ended_at IS NOT NULL
 		ORDER BY started_at ASC
 		LIMIT ?
-	`, accountID, limit)
+	`, serverID, accountID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("query session history for account %d: %w", accountID, err)
 	}
@@ -266,15 +272,15 @@ type statSnapshot struct {
 	SolarisBalance *int64 `json:"solaris_balance"`
 }
 
-func writeStatSnapshot(ctx context.Context, sdb *sql.DB, snap statSnapshot) error {
+func writeStatSnapshot(ctx context.Context, sdb *sql.DB, snap statSnapshot, serverID string) error {
 	_, err := sdb.ExecContext(ctx, `
 		INSERT INTO stat_snapshots(
-			account_id, snapped_at,
+			server_id, account_id, snapped_at,
 			char_xp, skill_points, intel_points,
 			combat_xp, crafting_xp, gathering_xp, exploration_xp, sabotage_xp,
 			solaris_balance
-		) VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
-		snap.AccountID, snap.SnappedAt,
+		) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
+		serverID, snap.AccountID, snap.SnappedAt,
 		snap.CharXP, snap.SkillPoints, snap.IntelPoints,
 		snap.CombatXP, snap.CraftingXP, snap.GatheringXP, snap.ExplorationXP, snap.SabotageXP,
 		snap.SolarisBalance,
@@ -285,16 +291,16 @@ func writeStatSnapshot(ctx context.Context, sdb *sql.DB, snap statSnapshot) erro
 	return nil
 }
 
-func getStatSnapshotHistory(ctx context.Context, sdb *sql.DB, accountID int64, limit int) ([]statSnapshot, error) {
+func getStatSnapshotHistory(ctx context.Context, sdb *sql.DB, serverID string, accountID int64, limit int) ([]statSnapshot, error) {
 	rows, err := sdb.QueryContext(ctx, `
 		SELECT snapped_at, char_xp, skill_points, intel_points,
 		       combat_xp, crafting_xp, gathering_xp, exploration_xp, sabotage_xp,
 		       solaris_balance
 		FROM stat_snapshots
-		WHERE account_id = ?
+		WHERE server_id = ? AND account_id = ?
 		ORDER BY snapped_at ASC
 		LIMIT ?
-	`, accountID, limit)
+	`, serverID, accountID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("query stat snapshot history for account %d: %w", accountID, err)
 	}
@@ -332,7 +338,7 @@ type daySnap struct {
 // getDailySnapshots returns the latest snapshot per (account, UTC day) within
 // the last `days` days — one row per account per day, so a day's total isn't
 // inflated by the 5-minute poll cadence.
-func getDailySnapshots(ctx context.Context, db *sql.DB, days int) ([]daySnap, error) {
+func getDailySnapshots(ctx context.Context, db *sql.DB, serverID string, days int) ([]daySnap, error) {
 	if days < 1 {
 		days = 1
 	}
@@ -345,9 +351,9 @@ func getDailySnapshots(ctx context.Context, db *sql.DB, days int) ([]daySnap, er
 			       COALESCE(char_xp, 0) AS xp,
 			       ROW_NUMBER() OVER (PARTITION BY account_id, substr(snapped_at, 1, 10) ORDER BY snapped_at DESC) AS rn
 			FROM stat_snapshots
-			WHERE substr(snapped_at, 1, 10) >= ?
+			WHERE server_id = ? AND substr(snapped_at, 1, 10) >= ?
 		) WHERE rn = 1
-		ORDER BY day`, since)
+		ORDER BY day`, serverID, since)
 	if err != nil {
 		return nil, fmt.Errorf("query daily snapshots: %w", err)
 	}
@@ -364,29 +370,29 @@ func getDailySnapshots(ctx context.Context, db *sql.DB, days int) ([]daySnap, er
 	return out, rows.Err()
 }
 
-func pollOnce(ctx context.Context, pool *pgxpool.Pool, db *sql.DB) {
+func pollOnce(ctx context.Context, pool *pgxpool.Pool, db *sql.DB, serverID string) {
 	onlineIDs, err := cmdFetchOnlineAccountIDs(ctx, pool)
 	if err != nil {
-		log.Printf("session poller: fetch online players: %v", err)
+		log.Printf("session poller [%s]: fetch online players: %v", serverID, err)
 		return
 	}
-	if err := recordSessions(ctx, onlineIDs, db); err != nil {
-		log.Printf("session poller: record sessions: %v", err)
+	if err := recordSessions(ctx, onlineIDs, db, serverID); err != nil {
+		log.Printf("session poller [%s]: record sessions: %v", serverID, err)
 	}
 	snappedAt := time.Now().UTC().Format(time.RFC3339)
 	for _, accountID := range onlineIDs {
 		snap, err := cmdFetchPlayerSnapshot(ctx, pool, accountID, snappedAt)
 		if err != nil {
-			log.Printf("session poller: snapshot account %d: %v", accountID, err)
+			log.Printf("session poller [%s]: snapshot account %d: %v", serverID, accountID, err)
 			continue
 		}
-		if err := writeStatSnapshot(ctx, db, snap); err != nil {
-			log.Printf("session poller: write snapshot account %d: %v", accountID, err)
+		if err := writeStatSnapshot(ctx, db, snap, serverID); err != nil {
+			log.Printf("session poller [%s]: write snapshot account %d: %v", serverID, accountID, err)
 		}
 	}
 }
 
-func startSessionPoller(ctx context.Context, pool *pgxpool.Pool, db *sql.DB, interval time.Duration) {
+func startSessionPoller(ctx context.Context, pool *pgxpool.Pool, db *sql.DB, serverID string, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for {
@@ -394,7 +400,7 @@ func startSessionPoller(ctx context.Context, pool *pgxpool.Pool, db *sql.DB, int
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			pollOnce(ctx, pool, db)
+			pollOnce(ctx, pool, db, serverID)
 		}
 	}
 }
@@ -407,10 +413,11 @@ type activityPoint struct {
 }
 
 // getServerPlaytimeSecs sums completed-session duration across all players.
-func getServerPlaytimeSecs(ctx context.Context, db *sql.DB) (int64, error) {
+func getServerPlaytimeSecs(ctx context.Context, db *sql.DB, serverID string) (int64, error) {
 	var total int64
 	row := db.QueryRowContext(ctx,
-		`SELECT COALESCE(SUM(duration_secs), 0) FROM play_sessions WHERE ended_at IS NOT NULL`)
+		`SELECT COALESCE(SUM(duration_secs), 0) FROM play_sessions WHERE server_id = ? AND ended_at IS NOT NULL`,
+		serverID)
 	if err := row.Scan(&total); err != nil {
 		return 0, fmt.Errorf("server playtime: %w", err)
 	}
@@ -420,12 +427,12 @@ func getServerPlaytimeSecs(ctx context.Context, db *sql.DB) (int64, error) {
 // getActivityTrendCounts returns a sparse day->session-count map for sessions
 // started on or after sinceDay ("YYYY-MM-DD", UTC). started_at is RFC3339, so
 // its first 10 chars are the UTC date — substr keeps the day-bucket comparable.
-func getActivityTrendCounts(ctx context.Context, db *sql.DB, sinceDay string) (map[string]int64, error) {
+func getActivityTrendCounts(ctx context.Context, db *sql.DB, serverID string, sinceDay string) (map[string]int64, error) {
 	rows, err := db.QueryContext(ctx, `
 		SELECT substr(started_at, 1, 10) AS day, COUNT(*)
 		FROM play_sessions
-		WHERE substr(started_at, 1, 10) >= ?
-		GROUP BY day`, sinceDay)
+		WHERE server_id = ? AND substr(started_at, 1, 10) >= ?
+		GROUP BY day`, serverID, sinceDay)
 	if err != nil {
 		return nil, fmt.Errorf("query activity trend: %w", err)
 	}
@@ -467,19 +474,19 @@ func fillActivityTrend(days int, today time.Time, counts map[string]int64) []act
 // and a zero-filled `days`-day activity trend. db may be nil (session tracking
 // disabled) — then playtime is 0 and the trend is all zeros. Query failures are
 // logged, not fatal: the dashboard degrades gracefully.
-func sessionSummary(ctx context.Context, db *sql.DB, days int) (int64, []activityPoint) {
+func sessionSummary(ctx context.Context, db *sql.DB, serverID string, days int) (int64, []activityPoint) {
 	now := time.Now().UTC()
 	if db == nil {
 		return 0, fillActivityTrend(days, now, map[string]int64{})
 	}
 	var playtime int64
-	if pt, err := getServerPlaytimeSecs(ctx, db); err != nil {
+	if pt, err := getServerPlaytimeSecs(ctx, db, serverID); err != nil {
 		log.Printf("sessionSummary: playtime: %v", err)
 	} else {
 		playtime = pt
 	}
 	since := now.AddDate(0, 0, -(days - 1)).Format("2006-01-02")
-	counts, err := getActivityTrendCounts(ctx, db, since)
+	counts, err := getActivityTrendCounts(ctx, db, serverID, since)
 	if err != nil {
 		log.Printf("sessionSummary: trend: %v", err)
 		counts = map[string]int64{}

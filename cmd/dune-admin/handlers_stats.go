@@ -65,7 +65,7 @@ func handleGetPlayerStats(w http.ResponseWriter, r *http.Request) {
 
 	var sess sessionStats
 	if globalSessionDB != nil {
-		sess, err = getSessionStats(r.Context(), globalSessionDB, accountID)
+		sess, err = getSessionStats(r.Context(), globalSessionDB, storeScopeFromCtx(r), accountID)
 		if err != nil {
 			log.Printf("handleGetPlayerStats: session stats: %v", err)
 		}
@@ -112,7 +112,7 @@ func handleGetSessionHistory(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, fmt.Errorf("invalid account id"), http.StatusBadRequest)
 		return
 	}
-	recs, err := getSessionHistory(r.Context(), globalSessionDB, accountID, 200)
+	recs, err := getSessionHistory(r.Context(), globalSessionDB, storeScopeFromCtx(r), accountID, 200)
 	if err != nil {
 		log.Printf("handleGetSessionHistory: %v", err)
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
@@ -131,7 +131,7 @@ func handleGetStatSnapshotHistory(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, fmt.Errorf("invalid account id"), http.StatusBadRequest)
 		return
 	}
-	snaps, err := getStatSnapshotHistory(r.Context(), globalSessionDB, accountID, 500)
+	snaps, err := getStatSnapshotHistory(r.Context(), globalSessionDB, storeScopeFromCtx(r), accountID, 500)
 	if err != nil {
 		log.Printf("handleGetStatSnapshotHistory: %v", err)
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
