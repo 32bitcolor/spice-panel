@@ -640,7 +640,7 @@ func dispatchBackup(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("not connected")
 	}
 	if prov, ok := globalControl.(dbBackupProvider); ok {
-		name, size, err := createDBBackup(prov)
+		name, size, err := createDBBackup(prov, globalExecutor)
 		if err != nil {
 			return "", err
 		}
@@ -662,7 +662,7 @@ func dispatchRestore(ctx context.Context, filename string) (string, error) {
 		if err := validateBackupName(filename); err != nil {
 			return "", err
 		}
-		return restoreDBBackupFile(prov, filename)
+		return restoreDBBackupFile(prov, filename, globalExecutor)
 	}
 	if filename == "" || strings.ContainsAny(filename, `/\`) || !strings.HasSuffix(filename, ".backup") {
 		return "", fmt.Errorf("invalid filename")

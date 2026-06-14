@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // errBattlepassNothingEarned signals a grant request for an account with no
@@ -105,23 +107,23 @@ func grantBattlepassItems(ctx context.Context, store *battlepassStore, deps batt
 	}
 }
 
-// productionBattlepassGrantDeps builds grant deps from live globals.
-func productionBattlepassGrantDeps() battlepassGrantDeps {
+// productionBattlepassGrantDeps builds grant deps from the given pool.
+func productionBattlepassGrantDeps(pool *pgxpool.Pool) battlepassGrantDeps {
 	return battlepassGrantDeps{
 		fetchPlayers: func(ctx context.Context) ([]battlepassPlayer, error) {
-			return cmdFetchBattlepassPlayers(ctx, globalDB)
+			return cmdFetchBattlepassPlayers(ctx, pool)
 		},
 		awardIntel: func(ctx context.Context, pawnID, amount int64) error {
-			return cmdAwardIntelCtx(ctx, globalDB, pawnID, amount)
+			return cmdAwardIntelCtx(ctx, pool, pawnID, amount)
 		},
 		giveItem: func(ctx context.Context, actorID int64, template string, qty, quality int64) error {
-			return cmdGiveItemCtx(ctx, globalDB, actorID, template, qty, quality)
+			return cmdGiveItemCtx(ctx, pool, actorID, template, qty, quality)
 		},
 		resolveGrantTarget: func(ctx context.Context, accountID int64) (int64, error) {
-			if globalDB == nil {
+			if pool == nil {
 				return 0, fmt.Errorf("database not connected")
 			}
-			return cmdFetchBattlepassGrantTargets(ctx, globalDB, accountID)
+			return cmdFetchBattlepassGrantTargets(ctx, pool, accountID)
 		},
 	}
 }
@@ -516,7 +518,7 @@ func handleBattlepassGrantTier(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	intel, err := grantBattlepassTier(r.Context(), globalBattlepassStore, productionBattlepassGrantDeps(), req.AccountID, req.TierKey)
+	intel, err := grantBattlepassTier(r.Context(), globalBattlepassStore, productionBattlepassGrantDeps(db), req.AccountID, req.TierKey)
 	switch {
 	case errors.Is(err, errBattlepassNothingEarned):
 		jsonErr(w, err, http.StatusBadRequest)
@@ -568,7 +570,7 @@ func handleBattlepassGrant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	total, tiers, err := grantBattlepassEarned(r.Context(), globalBattlepassStore, productionBattlepassGrantDeps(), req.AccountID)
+	total, tiers, err := grantBattlepassEarned(r.Context(), globalBattlepassStore, productionBattlepassGrantDeps(db), req.AccountID)
 	switch {
 	case errors.Is(err, errBattlepassNothingEarned):
 		jsonErr(w, err, http.StatusBadRequest)

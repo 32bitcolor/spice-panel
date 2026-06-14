@@ -368,7 +368,7 @@ func applyBattlepassEngine(cfg appConfig) {
 	// When auto-grant is on, run the deferred-grant retry loop alongside the
 	// evaluation engine. It is cancelled by the same ctx on stop/reconfigure.
 	if autoGrant {
-		go runBattlepassGrantLoop(ctx, globalBattlepassStore, productionBattlepassGrantDeps())
+		go runBattlepassGrantLoop(ctx, globalBattlepassStore, productionBattlepassGrantDeps(globalDB))
 	}
 }
 
