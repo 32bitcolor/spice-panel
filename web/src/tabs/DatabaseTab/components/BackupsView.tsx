@@ -173,7 +173,11 @@ const ScheduleCard: React.FC = () => {
 }
 
 // ── Backups view ─────────────────────────────────────────────────────────────
-export const BackupsView: React.FC = () => {
+interface BackupsViewProps {
+  onRefreshRef?: React.MutableRefObject<(() => void) | null>
+}
+
+export const BackupsView: React.FC<BackupsViewProps> = ({ onRefreshRef }) => {
   const { t } = useTranslation()
   const { can } = usePermissions()
   const [backups, setBackups] = React.useState<DBBackupFile[]>([])
@@ -192,6 +196,10 @@ export const BackupsView: React.FC = () => {
         toast.danger(t('backups.loadFailed', { message: e instanceof Error ? e.message : String(e) })))
       .finally(() => setLoading(false))
   }, [t])
+
+  React.useEffect(() => {
+    if (onRefreshRef) onRefreshRef.current = load
+  }, [load, onRefreshRef])
 
   React.useEffect(() => {
     load()
@@ -238,7 +246,7 @@ export const BackupsView: React.FC = () => {
 
   return (
     <div className="h-full min-h-0 flex flex-col gap-3">
-      <PageHeader title={t('database.sections.backups')} onRefresh={load} loading={loading} />
+      <PageHeader title={t('database.sections.backups')} />
 
       <div className="rounded-[var(--radius)] px-3 py-2 text-sm flex items-start gap-2 bg-warning/10 text-warning border border-warning/40 shrink-0">
         <Icon name="triangle-alert" className="size-4 mt-0.5 shrink-0" />
