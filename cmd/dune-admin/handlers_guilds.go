@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var errEmptyGuildName = errors.New("guild name must not be empty")
@@ -19,11 +21,12 @@ var errEmptyGuildName = errors.New("guild name must not be empty")
 // @Failure 503 {object} map[string]string
 // @Router /api/v1/guilds [get]
 func handleListGuilds(w http.ResponseWriter, r *http.Request) {
-	if globalDB == nil {
+	db := dbFromCtx(r)
+	if db == nil {
 		jsonErr(w, fmt.Errorf("database not connected"), http.StatusServiceUnavailable)
 		return
 	}
-	guilds, err := cmdFetchGuilds(r.Context(), globalDB)
+	guilds, err := cmdFetchGuilds(r.Context(), db)
 	if err != nil {
 		log.Printf("handleListGuilds: %v", err)
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
@@ -43,7 +46,8 @@ func handleListGuilds(w http.ResponseWriter, r *http.Request) {
 // @Failure 503 {object} map[string]string
 // @Router /api/v1/guilds/{id} [get]
 func handleGetGuild(w http.ResponseWriter, r *http.Request) {
-	if globalDB == nil {
+	db := dbFromCtx(r)
+	if db == nil {
 		jsonErr(w, fmt.Errorf("database not connected"), http.StatusServiceUnavailable)
 		return
 	}
@@ -52,7 +56,7 @@ func handleGetGuild(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, fmt.Errorf("invalid guild id"), http.StatusBadRequest)
 		return
 	}
-	detail, err := cmdFetchGuildDetail(r.Context(), globalDB, id)
+	detail, err := cmdFetchGuildDetail(r.Context(), db, id)
 	if err != nil {
 		if errors.Is(err, errGuildNotFound) {
 			jsonErr(w, fmt.Errorf("guild not found"), http.StatusNotFound)
@@ -68,9 +72,9 @@ func handleGetGuild(w http.ResponseWriter, r *http.Request) {
 // applyGuildUpdate applies the provided (optional) name/description edits. Returns
 // sentinel errors (errEmptyGuildName / errGuildNameTaken / errGuildNotFound) that
 // the handler maps to HTTP statuses.
-func applyGuildUpdate(r *http.Request, id int64, name, desc *string) error {
+func applyGuildUpdate(r *http.Request, db *pgxpool.Pool, id int64, name, desc *string) error {
 	if desc != nil {
-		if err := cmdEditGuildDescription(r.Context(), globalDB, id, *desc); err != nil {
+		if err := cmdEditGuildDescription(r.Context(), db, id, *desc); err != nil {
 			return err
 		}
 	}
@@ -79,7 +83,7 @@ func applyGuildUpdate(r *http.Request, id int64, name, desc *string) error {
 		if n == "" {
 			return errEmptyGuildName
 		}
-		if err := cmdEditGuildName(r.Context(), globalDB, id, n); err != nil {
+		if err := cmdEditGuildName(r.Context(), db, id, n); err != nil {
 			return err
 		}
 	}
@@ -112,7 +116,8 @@ func writeGuildUpdateErr(w http.ResponseWriter, err error) {
 // @Failure 503 {object} map[string]string
 // @Router /api/v1/guilds/{id} [patch]
 func handleUpdateGuild(w http.ResponseWriter, r *http.Request) {
-	if globalDB == nil {
+	db := dbFromCtx(r)
+	if db == nil {
 		jsonErr(w, fmt.Errorf("database not connected"), http.StatusServiceUnavailable)
 		return
 	}
@@ -133,11 +138,11 @@ func handleUpdateGuild(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, fmt.Errorf("nothing to update"), http.StatusBadRequest)
 		return
 	}
-	if err := applyGuildUpdate(r, id, body.Name, body.Description); err != nil {
+	if err := applyGuildUpdate(r, db, id, body.Name, body.Description); err != nil {
 		writeGuildUpdateErr(w, err)
 		return
 	}
-	detail, err := cmdFetchGuildDetail(r.Context(), globalDB, id)
+	detail, err := cmdFetchGuildDetail(r.Context(), db, id)
 	if err != nil {
 		writeGuildUpdateErr(w, err)
 		return
@@ -156,7 +161,8 @@ func handleUpdateGuild(w http.ResponseWriter, r *http.Request) {
 // @Failure 503 {object} map[string]string
 // @Router /api/v1/guilds/{id}/members/{pid}/role [put]
 func handleSetGuildMemberRole(w http.ResponseWriter, r *http.Request) {
-	if globalDB == nil {
+	db := dbFromCtx(r)
+	if db == nil {
 		jsonErr(w, fmt.Errorf("database not connected"), http.StatusServiceUnavailable)
 		return
 	}
@@ -181,7 +187,7 @@ func handleSetGuildMemberRole(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, fmt.Errorf("role must be %d (member) or %d (admin)", guildRoleMember, guildRoleAdmin), http.StatusBadRequest)
 		return
 	}
-	if err := cmdSetGuildMemberRole(r.Context(), globalDB, id, pid, body.Role); err != nil {
+	if err := cmdSetGuildMemberRole(r.Context(), db, id, pid, body.Role); err != nil {
 		// The game procs raise on invalid transitions (e.g. demoting the sitting
 		// admin). Surface a hint; log the detail.
 		log.Printf("handleSetGuildMemberRole: %v", err)

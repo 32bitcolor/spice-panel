@@ -556,7 +556,8 @@ func processWhisper(ctx context.Context, accountID int64, message string, d whis
 // attributed to the seeded GM/Server persona. The exact wire shape is pinned by
 // buildWhisperBody against the live-confirmed protocol.
 func handleRMQWhisper(w http.ResponseWriter, r *http.Request) {
-	if globalDB == nil {
+	db := dbFromCtx(r)
+	if db == nil {
 		jsonErr(w, fmt.Errorf("database not connected"), http.StatusServiceUnavailable)
 		return
 	}

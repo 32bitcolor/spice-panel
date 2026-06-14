@@ -148,9 +148,10 @@ func handleListBattlepassTiers(w http.ResponseWriter, r *http.Request) {
 	}
 	// playerCount lets the UI render per-tier population percentages. Best
 	// effort: 0 when the game DB is unavailable.
+	db := dbFromCtx(r)
 	playerCount := 0
-	if globalDB != nil {
-		if players, err := cmdFetchBattlepassPlayers(r.Context(), globalDB); err == nil {
+	if db != nil {
+		if players, err := cmdFetchBattlepassPlayers(r.Context(), db); err == nil {
 			playerCount = len(players)
 		} else {
 			log.Printf("handleListBattlepassTiers players: %v", err)
@@ -425,9 +426,10 @@ func handleBattlepassPending(w http.ResponseWriter, r *http.Request) {
 		Intel       int64  `json:"intel"`
 		RewardItems string `json:"reward_items"`
 	}
+	db := dbFromCtx(r)
 	names := map[int64]battlepassPlayer{}
-	if globalDB != nil {
-		if players, err := cmdFetchBattlepassPlayers(r.Context(), globalDB); err == nil {
+	if db != nil {
+		if players, err := cmdFetchBattlepassPlayers(r.Context(), db); err == nil {
 			for _, p := range players {
 				names[p.AccountID] = p
 			}
@@ -508,7 +510,8 @@ func handleBattlepassGrantTier(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, fmt.Errorf("tier_key is required"), http.StatusBadRequest)
 		return
 	}
-	if globalDB == nil {
+	db := dbFromCtx(r)
+	if db == nil {
 		jsonErr(w, fmt.Errorf("database not connected"), http.StatusServiceUnavailable)
 		return
 	}
@@ -552,7 +555,8 @@ func handleBattlepassGrant(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, fmt.Errorf("battlepass store not available"), http.StatusServiceUnavailable)
 		return
 	}
-	if globalDB == nil {
+	db := dbFromCtx(r)
+	if db == nil {
 		jsonErr(w, fmt.Errorf("database not connected"), http.StatusServiceUnavailable)
 		return
 	}

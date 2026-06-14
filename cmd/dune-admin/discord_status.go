@@ -38,9 +38,11 @@ const (
 // limits and pointless churn. The configured value is clamped up to this.
 const statusMinInterval = 30 * time.Second
 
-// statusMessageMetaKey is the meta-table key under which the posted embed's
-// "channelID:messageID" is persisted so restarts edit, not duplicate.
-const statusMessageMetaKey = "discord_status_message"
+// statusMessageMetaKey returns the meta-table key for a given server's posted
+// embed "channelID:messageID" so restarts edit, not duplicate.
+func statusMessageMetaKey(serverID string) string {
+	return "discord_status_message:" + serverID
+}
 
 // ── Embed data ────────────────────────────────────────────────────────────────
 
@@ -216,18 +218,19 @@ type statusMessageStore interface {
 }
 
 // sqliteStatusStore implements statusMessageStore on the unified store's meta
-// table, storing "channelID:messageID" under statusMessageMetaKey.
+// table, storing "channelID:messageID" under statusMessageMetaKey(serverID).
 type sqliteStatusStore struct {
-	db *sql.DB
+	db       *sql.DB
+	serverID string
 }
 
-func newSqliteStatusStore(db *sql.DB) *sqliteStatusStore {
-	return &sqliteStatusStore{db: db}
+func newSqliteStatusStore(db *sql.DB, serverID string) *sqliteStatusStore {
+	return &sqliteStatusStore{db: db, serverID: serverID}
 }
 
 func (s *sqliteStatusStore) loadStatusMessage() (string, string, error) {
 	var raw string
-	err := s.db.QueryRow(`SELECT value FROM meta WHERE key = ?`, statusMessageMetaKey).Scan(&raw)
+	err := s.db.QueryRow(`SELECT value FROM meta WHERE key = ?`, statusMessageMetaKey(s.serverID)).Scan(&raw)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", "", nil
 	}
@@ -243,7 +246,7 @@ func (s *sqliteStatusStore) saveStatusMessage(channelID, messageID string) error
 	_, err := s.db.Exec(
 		`INSERT INTO meta(key, value) VALUES(?, ?)
 		 ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
-		statusMessageMetaKey, value)
+		statusMessageMetaKey(s.serverID), value)
 	if err != nil {
 		return fmt.Errorf("save status message: %w", err)
 	}
@@ -450,7 +453,7 @@ func runStatusTick(ctx context.Context, channelID string) {
 	data := collectStatusData(ctx)
 	embed := buildStatusEmbed(data, time.Now())
 
-	store := newSqliteStatusStore(globalStore)
+	store := newSqliteStatusStore(globalStore, "default")
 	if err := postOrEditStatusEmbed(discordSessionAdapter{sess: sess}, store, channelID, embed); err != nil {
 		log.Printf("discord status: post/edit: %v", err)
 	}

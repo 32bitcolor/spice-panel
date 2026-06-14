@@ -45,11 +45,12 @@ const summaryTrendDays = 14
 // @Failure 503 {object} map[string]string
 // @Router /api/v1/players/summary [get]
 func handleGetPlayerSummary(w http.ResponseWriter, r *http.Request) {
-	if globalDB == nil {
+	db := dbFromCtx(r)
+	if db == nil {
 		jsonErr(w, fmt.Errorf("database not connected"), http.StatusServiceUnavailable)
 		return
 	}
-	stats, err := cmdFetchServerStats(r.Context(), globalDB)
+	stats, err := cmdFetchServerStats(r.Context(), db)
 	if err != nil {
 		log.Printf("handleGetPlayerSummary: %v", err)
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
@@ -58,7 +59,7 @@ func handleGetPlayerSummary(w http.ResponseWriter, r *http.Request) {
 	playtime, trend := sessionSummary(r.Context(), globalSessionDB, summaryTrendDays)
 	// Average character level is best-effort: a query failure degrades to 0
 	// (averageLevel(nil)) rather than failing the whole dashboard.
-	xps, err := cmdFetchCharXPList(r.Context(), globalDB)
+	xps, err := cmdFetchCharXPList(r.Context(), db)
 	if err != nil {
 		log.Printf("handleGetPlayerSummary: char xp: %v", err)
 	}
@@ -88,7 +89,8 @@ const factionTrendDays = 30
 // @Failure 503 {object} map[string]string
 // @Router /api/v1/players/faction-trends [get]
 func handleGetFactionTrends(w http.ResponseWriter, r *http.Request) {
-	if globalDB == nil {
+	db := dbFromCtx(r)
+	if db == nil {
 		jsonErr(w, fmt.Errorf("database not connected"), http.StatusServiceUnavailable)
 		return
 	}
@@ -96,7 +98,7 @@ func handleGetFactionTrends(w http.ResponseWriter, r *http.Request) {
 	if metric != "level" {
 		metric = "solaris"
 	}
-	acctFaction, err := cmdFetchAccountFactions(r.Context(), globalDB)
+	acctFaction, err := cmdFetchAccountFactions(r.Context(), db)
 	if err != nil {
 		log.Printf("handleGetFactionTrends: %v", err)
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
@@ -953,6 +955,7 @@ func handleCharacterExport(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, fmt.Errorf("invalid id"), 400)
 		return
 	}
+	db := dbFromCtx(r)
 	ctx := r.Context()
 	rawID, err := rawFuncomID(ctx, accountID)
 	if err != nil {
@@ -960,7 +963,7 @@ func handleCharacterExport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var result string
-	err = globalDB.QueryRow(ctx, `SELECT dune.character_transfer_export($1)::text`, rawID).Scan(&result)
+	err = db.QueryRow(ctx, `SELECT dune.character_transfer_export($1)::text`, rawID).Scan(&result)
 	if err != nil {
 		jsonErr(w, fmt.Errorf("export failed: %w", err), 500)
 		return

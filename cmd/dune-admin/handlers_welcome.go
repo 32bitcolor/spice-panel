@@ -392,7 +392,8 @@ func handleOverrideWelcomeGrant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if globalDB == nil {
+	db := dbFromCtx(r)
+	if db == nil {
 		jsonErr(w, fmt.Errorf("database not connected"), http.StatusServiceUnavailable)
 		return
 	}
@@ -401,7 +402,7 @@ func handleOverrideWelcomeGrant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	acc, err := cmdFetchWelcomeAccount(r.Context(), globalDB, req.AccountID)
+	acc, err := cmdFetchWelcomeAccount(r.Context(), db, req.AccountID)
 	if err != nil {
 		if errors.Is(err, errNotFound) {
 			jsonErr(w, fmt.Errorf("player not found"), http.StatusNotFound)

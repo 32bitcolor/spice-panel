@@ -114,6 +114,21 @@ func connectAll() error {
 	// without losing control-plane functionality.
 	globalControl = newControlPlane(ctrl, cfg)
 
+	// Build the default ServerContext now — control plane + executor are set
+	// regardless of whether the DB connect succeeds. DB is filled in below.
+	defaultSC := &ServerContext{
+		ID:         "default",
+		Name:       "Default",
+		Cfg:        legacyServerFromFlat(loadedConfig),
+		Control:    globalControl,
+		Executor:   globalExecutor,
+		PodIP:      globalPodIP,
+		PodNS:      globalPodNS,
+		Pod:        globalPod,
+		SSH:        globalSSH,
+		StoreScope: "default",
+	}
+
 	// DB connect is best-effort: on failure keep the executor + control plane
 	// intact and return the error so the caller can surface it (main starts the
 	// server anyway; the systemd watchdog or a manual reconnect retries the DB).
@@ -125,9 +140,12 @@ func connectAll() error {
 	}
 	if err != nil {
 		globalDB = nil
+		globalRegistry.Register(defaultSC)
 		return fmt.Errorf("DB connect: %w", err)
 	}
 	globalDB = pool
+	defaultSC.DB = pool
+	globalRegistry.Register(defaultSC)
 	ensureDBSchema(pool)
 	return nil
 }
@@ -252,4 +270,252 @@ func connectDB(ctx context.Context, user, pass string) (*pgxpool.Pool, error) {
 	dbUser = user
 	dbPass = pass
 	return pool, nil
+}
+
+// legacyServerFromFlat synthesises a default ServerConfig from the process-wide
+// flag-globals and provider-specific fields in ac. It mirrors the cfg.X = ...
+// block in connectAll so that the "default" server registered in globalRegistry
+// carries the same values that the legacy connection path would use.
+func legacyServerFromFlat(ac appConfig) ServerConfig {
+	return ServerConfig{
+		ID:   "default",
+		Name: "Default",
+		// Transport — read from the flag-globals that connectAll uses.
+		SSHHost:      sshHost,
+		SSHUser:      sshUser,
+		SSHKey:       resolveKeyPath(),
+		SSHMode:      sshMode,
+		SSHExtraOpts: sshExtraOpts,
+		AutoDiscover: autoDiscover,
+		// Database
+		DBHost:   dbHost,
+		DBPort:   dbPort,
+		DBUser:   dbUser,
+		DBPass:   dbPass,
+		DBName:   dbName,
+		DBSchema: dbSchema,
+		// Control
+		Control:          resolveControl(),
+		ControlNamespace: controlNS,
+		// Broker
+		BrokerGameAddr:   brokerGameAddr,
+		BrokerAdminAddr:  brokerAdminAddr,
+		BrokerTLS:        brokerTLS,
+		BrokerUser:       ac.BrokerUser,
+		BrokerPass:       ac.BrokerPass,
+		BrokerJWTSecret:  ac.BrokerJWTSecret,
+		BrokerExecPrefix: ac.BrokerExecPrefix,
+		// Paths
+		BackupDir:     backupDir,
+		ServerIniDir:  serverIniDir,
+		DefaultIniDir: ac.DefaultIniDir,
+		// docker-specific container names
+		DockerGameserver:  ac.DockerGameserver,
+		DockerBrokerGame:  ac.DockerBrokerGame,
+		DockerBrokerAdmin: ac.DockerBrokerAdmin,
+		DockerDB:          ac.DockerDB,
+		// local-specific shell commands
+		CmdStart:   ac.CmdStart,
+		CmdStop:    ac.CmdStop,
+		CmdRestart: ac.CmdRestart,
+		CmdStatus:  ac.CmdStatus,
+		// AMP-specific
+		AmpInstance:         ac.AmpInstance,
+		AmpContainer:        ac.AmpContainer,
+		AmpUser:             ac.AmpUser,
+		AmpLogPath:          ac.AmpLogPath,
+		AmpUseContainer:     ac.AmpUseContainer,
+		AmpContainerRuntime: ac.AmpContainerRuntime,
+		AmpDataRoot:         ac.AmpDataRoot,
+		AmpAPIUser:          ac.AmpAPIUser,
+		AmpAPIPass:          ac.AmpAPIPass,
+		AmpAPIPort:          ac.AmpAPIPort,
+		AmpPgBin:            ac.AmpPgBin,
+		AmpPgLib:            ac.AmpPgLib,
+		AmpBackupDir:        ac.AmpBackupDir,
+		// Director proxy
+		DirectorURL: ac.DirectorURL,
+	}
+}
+
+// serverCfgToAppConfig converts a ServerConfig back into an appConfig for
+// functions that still take appConfig (newControlPlane, applyAutoDiscovery, etc.).
+// It starts from loadedConfig so global-only fields (auth_*, market bot, Discord
+// bot) are preserved, then overrides every per-server field.
+func serverCfgToAppConfig(sc ServerConfig) appConfig {
+	ac := loadedConfig
+	ac.SSHHost = sc.SSHHost
+	ac.SSHUser = sc.SSHUser
+	ac.SSHKey = sc.SSHKey
+	ac.SSHMode = sc.SSHMode
+	ac.SSHExtraOpts = sc.SSHExtraOpts
+	ac.AutoDiscover = sc.AutoDiscover
+	ac.DBHost = sc.DBHost
+	ac.DBPort = sc.DBPort
+	ac.DBUser = sc.DBUser
+	ac.DBPass = sc.DBPass
+	ac.DBName = sc.DBName
+	ac.DBSchema = sc.DBSchema
+	ac.Control = sc.Control
+	ac.ControlNamespace = sc.ControlNamespace
+	ac.DockerGameserver = sc.DockerGameserver
+	ac.DockerBrokerGame = sc.DockerBrokerGame
+	ac.DockerBrokerAdmin = sc.DockerBrokerAdmin
+	ac.DockerDB = sc.DockerDB
+	ac.CmdStart = sc.CmdStart
+	ac.CmdStop = sc.CmdStop
+	ac.CmdRestart = sc.CmdRestart
+	ac.CmdStatus = sc.CmdStatus
+	ac.BrokerGameAddr = sc.BrokerGameAddr
+	ac.BrokerAdminAddr = sc.BrokerAdminAddr
+	ac.BrokerTLS = sc.BrokerTLS
+	ac.BrokerUser = sc.BrokerUser
+	ac.BrokerPass = sc.BrokerPass
+	ac.BrokerJWTSecret = sc.BrokerJWTSecret
+	ac.BrokerExecPrefix = sc.BrokerExecPrefix
+	ac.BackupDir = sc.BackupDir
+	ac.ServerIniDir = sc.ServerIniDir
+	ac.DefaultIniDir = sc.DefaultIniDir
+	ac.AmpInstance = sc.AmpInstance
+	ac.AmpContainer = sc.AmpContainer
+	ac.AmpUser = sc.AmpUser
+	ac.AmpLogPath = sc.AmpLogPath
+	ac.AmpUseContainer = sc.AmpUseContainer
+	ac.AmpContainerRuntime = sc.AmpContainerRuntime
+	ac.AmpDataRoot = sc.AmpDataRoot
+	ac.AmpAPIUser = sc.AmpAPIUser
+	ac.AmpAPIPass = sc.AmpAPIPass
+	ac.AmpAPIPort = sc.AmpAPIPort
+	ac.AmpPgBin = sc.AmpPgBin
+	ac.AmpPgLib = sc.AmpPgLib
+	ac.AmpBackupDir = sc.AmpBackupDir
+	ac.DirectorURL = sc.DirectorURL
+	return ac
+}
+
+// connectDBDirectWithExecutor is the per-server analogue of connectDBDirect. It
+// opens a pgxpool using an explicit executor for Dial instead of globalExecutor,
+// so per-server connections don't share the global dial path.
+func connectDBDirectWithExecutor(ctx context.Context, exec Executor, cfg ServerConfig) (*pgxpool.Pool, error) {
+	connStr := fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPass, cfg.DBName)
+	poolCfg, err := pgxpool.ParseConfig(connStr)
+	if err != nil {
+		return nil, err
+	}
+	poolCfg.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+		_, err := conn.Exec(ctx, fmt.Sprintf(`SET search_path TO %s, public`, pgx.Identifier{cfg.DBSchema}.Sanitize()))
+		return err
+	}
+	if exec != nil {
+		addr := fmt.Sprintf("%s:%d", cfg.DBHost, cfg.DBPort)
+		poolCfg.ConnConfig.DialFunc = func(ctx context.Context, _, _ string) (net.Conn, error) {
+			return exec.Dial("tcp", addr)
+		}
+	}
+	pool, err := pgxpool.NewWithConfig(ctx, poolCfg)
+	if err != nil {
+		return nil, err
+	}
+	if err := pool.Ping(ctx); err != nil {
+		pool.Close()
+		return nil, err
+	}
+	return pool, nil
+}
+
+// connectDBViaSSH is the per-server analogue of connectDB (the kubectl/SSH path).
+// It routes DB traffic through an explicit executor and pod IP instead of
+// globalExecutor / globalPodIP so per-server pools don't cross-wire.
+func connectDBViaSSH(ctx context.Context, exec Executor, podIP string, cfg ServerConfig) (*pgxpool.Pool, error) {
+	connStr := fmt.Sprintf(
+		"host=127.0.0.1 port=%d user=%s password=%s dbname=%s sslmode=disable",
+		cfg.DBPort, cfg.DBUser, cfg.DBPass, cfg.DBName)
+	poolCfg, err := pgxpool.ParseConfig(connStr)
+	if err != nil {
+		return nil, err
+	}
+	poolCfg.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+		_, err := conn.Exec(ctx, fmt.Sprintf(`SET search_path TO %s, public`, pgx.Identifier{cfg.DBSchema}.Sanitize()))
+		return err
+	}
+	poolCfg.ConnConfig.LookupFunc = func(_ context.Context, _ string) ([]string, error) {
+		return []string{podIP}, nil
+	}
+	if exec == nil {
+		return nil, fmt.Errorf("cannot connect to DB: executor is nil")
+	}
+	poolCfg.ConnConfig.DialFunc = func(_ context.Context, _, _ string) (net.Conn, error) {
+		return exec.Dial("tcp", fmt.Sprintf("%s:%d", podIP, cfg.DBPort))
+	}
+	pool, err := pgxpool.NewWithConfig(ctx, poolCfg)
+	if err != nil {
+		return nil, err
+	}
+	if err := pool.Ping(ctx); err != nil {
+		pool.Close()
+		return nil, err
+	}
+	return pool, nil
+}
+
+// connectServer is the per-server analogue of connectAll. It creates an executor
+// and control plane from cfg, then attempts the DB connection. The returned
+// *ServerContext is never nil: the control plane is established even when the DB
+// connect fails, so callers retain control-plane access while the DB is down.
+func connectServer(cfg ServerConfig) (*ServerContext, error) {
+	sc := &ServerContext{
+		ID:         cfg.ID,
+		Name:       cfg.Name,
+		Cfg:        cfg,
+		StoreScope: cfg.ID,
+	}
+
+	ctrl := cfg.Control
+	if ctrl == "" {
+		ctrl = "local"
+	}
+
+	exec, err := newExecutor(cfg.SSHHost, cfg.SSHUser, cfg.SSHKey, cfg.SSHMode, cfg.SSHExtraOpts)
+	if err != nil {
+		return sc, fmt.Errorf("executor: %w", err)
+	}
+	if ctrl == "amp" {
+		user := cfg.AmpUser
+		if user == "" {
+			user = "amp"
+		}
+		exec = &ampExecutor{Executor: exec, ampUser: user}
+	}
+	sc.Executor = exec
+
+	if ctrl == "kubectl" {
+		ns, pod, podIP, discErr := discoverDBPod(exec)
+		if discErr != nil {
+			exec.Close()
+			sc.Executor = nil
+			return sc, fmt.Errorf("DB pod discovery: %w", discErr)
+		}
+		sc.PodNS = ns
+		sc.Pod = pod
+		sc.PodIP = podIP
+		if s, ok := exec.(*sshExecutor); ok {
+			sc.SSH = s.client
+		}
+	}
+
+	sc.Control = newControlPlane(ctrl, serverCfgToAppConfig(cfg))
+
+	var pool *pgxpool.Pool
+	if ctrl == "kubectl" {
+		pool, err = connectDBViaSSH(context.Background(), exec, sc.PodIP, cfg)
+	} else {
+		pool, err = connectDBDirectWithExecutor(context.Background(), exec, cfg)
+	}
+	if err != nil {
+		return sc, fmt.Errorf("DB connect: %w", err)
+	}
+	sc.DB = pool
+	return sc, nil
 }

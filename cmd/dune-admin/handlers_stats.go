@@ -44,7 +44,8 @@ func buildPlayerStats(pg playerPgStats, sess sessionStats) playerStats {
 }
 
 func handleGetPlayerStats(w http.ResponseWriter, r *http.Request) {
-	if globalDB == nil {
+	db := dbFromCtx(r)
+	if db == nil {
 		jsonErr(w, fmt.Errorf("database not connected"), http.StatusServiceUnavailable)
 		return
 	}
@@ -55,7 +56,7 @@ func handleGetPlayerStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pg, err := cmdFetchPlayerPgStats(r.Context(), globalDB, accountID)
+	pg, err := cmdFetchPlayerPgStats(r.Context(), db, accountID)
 	if err != nil {
 		log.Printf("handleGetPlayerStats: pg stats: %v", err)
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
@@ -74,7 +75,8 @@ func handleGetPlayerStats(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGetSolarisHistory(w http.ResponseWriter, r *http.Request) {
-	if globalDB == nil {
+	db := dbFromCtx(r)
+	if db == nil {
 		jsonErr(w, fmt.Errorf("database not connected"), http.StatusServiceUnavailable)
 		return
 	}
@@ -85,7 +87,7 @@ func handleGetSolarisHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	points, err := cmdFetchSolarisHistory(r.Context(), globalDB, accountID)
+	points, err := cmdFetchSolarisHistory(r.Context(), db, accountID)
 	if err != nil {
 		log.Printf("handleGetSolarisHistory: %v", err)
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
@@ -96,7 +98,8 @@ func handleGetSolarisHistory(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGetSessionHistory(w http.ResponseWriter, r *http.Request) {
-	if globalDB == nil {
+	db := dbFromCtx(r)
+	if db == nil {
 		jsonErr(w, fmt.Errorf("database not connected"), http.StatusServiceUnavailable)
 		return
 	}

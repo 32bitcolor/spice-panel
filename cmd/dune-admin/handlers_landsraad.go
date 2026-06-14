@@ -14,11 +14,12 @@ import (
 // @Failure 503 {object} map[string]string
 // @Router /api/v1/landsraad [get]
 func handleGetLandsraad(w http.ResponseWriter, r *http.Request) {
-	if globalDB == nil {
+	db := dbFromCtx(r)
+	if db == nil {
 		jsonErr(w, fmt.Errorf("database not connected"), http.StatusServiceUnavailable)
 		return
 	}
-	ov, err := cmdFetchLandsraad(r.Context(), globalDB)
+	ov, err := cmdFetchLandsraad(r.Context(), db)
 	if err != nil {
 		log.Printf("handleGetLandsraad: %v", err)
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)

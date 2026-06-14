@@ -84,7 +84,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 		if origin != "" && originAllowedForRequest(r) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Dune-Server")
 			// Session cookies require credentialed CORS. Safe because the
 			// allow-origin value is always an exact allowlisted origin, never "*".
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
@@ -106,6 +106,10 @@ func buildMux() *http.ServeMux {
 
 	// ── auth (exempt from capability enforcement) ────────────────────────────
 	registerAuthRoutes(mux)
+
+	// ── servers registry ──────────────────────────────────────────────────────
+	handleAPI(mux, "GET /api/v1/servers", capServerRead, handleListServers)
+	handleAPI(mux, "PUT /api/v1/servers/active", capServerControl, handleSetActiveServer)
 
 	// ── status ────────────────────────────────────────────────────────────────
 	handleAPI(mux, "GET /api/v1/status", capServerRead, handleStatus)
@@ -384,7 +388,7 @@ func startServer(addr string) {
 
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           securityHeadersMiddleware(corsMiddleware(authMiddleware(mux, mux))),
+		Handler:           securityHeadersMiddleware(corsMiddleware(authMiddleware(mux, serverSelectorMiddleware(globalRegistry, mux)))),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      10 * time.Minute, // backup/restore/download can take several minutes

@@ -172,36 +172,37 @@ func handleStorageOwnerDebug(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, fmt.Errorf("invalid id"), 400)
 		return
 	}
-	if globalDB == nil {
+	db := dbFromCtx(r)
+	if db == nil {
 		jsonErr(w, fmt.Errorf("not connected"), 500)
 		return
 	}
 	ctx := context.Background()
 
 	var ownerEntityID int64
-	_ = globalDB.QueryRow(ctx, `SELECT COALESCE(owner_entity_id,0) FROM dune.placeables WHERE id = $1`, id).Scan(&ownerEntityID)
+	_ = db.QueryRow(ctx, `SELECT COALESCE(owner_entity_id,0) FROM dune.placeables WHERE id = $1`, id).Scan(&ownerEntityID)
 
 	var afeEntityID, afeActorID int64
-	_ = globalDB.QueryRow(ctx, `SELECT entity_id, actor_id FROM dune.actor_fgl_entities WHERE entity_id = $1 LIMIT 1`, ownerEntityID).Scan(&afeEntityID, &afeActorID)
+	_ = db.QueryRow(ctx, `SELECT entity_id, actor_id FROM dune.actor_fgl_entities WHERE entity_id = $1 LIMIT 1`, ownerEntityID).Scan(&afeEntityID, &afeActorID)
 
 	var ownerAccountID int64
-	_ = globalDB.QueryRow(ctx, `SELECT COALESCE(owner_account_id,0) FROM dune.actors WHERE id = $1`, afeActorID).Scan(&ownerAccountID)
+	_ = db.QueryRow(ctx, `SELECT COALESCE(owner_account_id,0) FROM dune.actors WHERE id = $1`, afeActorID).Scan(&ownerAccountID)
 
 	// Alternate path: permission_actor_rank links container actor → player actor
 	var parPlayerID int64
-	_ = globalDB.QueryRow(ctx, `SELECT COALESCE(player_id,0) FROM dune.permission_actor_rank WHERE permission_actor_id = $1 LIMIT 1`, afeActorID).Scan(&parPlayerID)
+	_ = db.QueryRow(ctx, `SELECT COALESCE(player_id,0) FROM dune.permission_actor_rank WHERE permission_actor_id = $1 LIMIT 1`, afeActorID).Scan(&parPlayerID)
 
 	var parAccountID int64
-	_ = globalDB.QueryRow(ctx, `SELECT COALESCE(owner_account_id,0) FROM dune.actors WHERE id = $1`, parPlayerID).Scan(&parAccountID)
+	_ = db.QueryRow(ctx, `SELECT COALESCE(owner_account_id,0) FROM dune.actors WHERE id = $1`, parPlayerID).Scan(&parAccountID)
 
 	var characterName, funcomID, hexID string
 	accountID := ownerAccountID
 	if accountID == 0 {
 		accountID = parAccountID
 	}
-	_ = globalDB.QueryRow(ctx, `SELECT COALESCE(character_name,'') FROM dune.player_state WHERE account_id = $1`, accountID).Scan(&characterName)
-	_ = globalDB.QueryRow(ctx, `SELECT COALESCE(convert_from(encrypted_funcom_id,'UTF8'),'') FROM dune.encrypted_accounts WHERE id = $1`, accountID).Scan(&funcomID)
-	_ = globalDB.QueryRow(ctx, `SELECT COALESCE("user",'') FROM dune.accounts WHERE id = $1`, accountID).Scan(&hexID)
+	_ = db.QueryRow(ctx, `SELECT COALESCE(character_name,'') FROM dune.player_state WHERE account_id = $1`, accountID).Scan(&characterName)
+	_ = db.QueryRow(ctx, `SELECT COALESCE(convert_from(encrypted_funcom_id,'UTF8'),'') FROM dune.encrypted_accounts WHERE id = $1`, accountID).Scan(&funcomID)
+	_ = db.QueryRow(ctx, `SELECT COALESCE("user",'') FROM dune.accounts WHERE id = $1`, accountID).Scan(&hexID)
 
 	jsonOK(w, map[string]any{
 		"container_id":     id,

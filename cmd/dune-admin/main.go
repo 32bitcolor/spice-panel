@@ -327,7 +327,7 @@ func marketBotEnabled(cfg appConfig) bool {
 func startWelcomePackageScanner(_ appConfig) context.CancelFunc {
 	var store *welcomeStore
 	if globalStore != nil {
-		store = newWelcomeStore(globalStore)
+		store = newWelcomeStore(globalStore, "default")
 	} else {
 		var err error
 		store, err = openWelcomeStore(filepath.Join(configDir(), "welcome-package.db"))
@@ -1000,7 +1000,7 @@ func initLocationStore() {
 func initGivePacksStore() {
 	var s *givePacksStore
 	if globalStore != nil {
-		s = newGivePacksStore(globalStore)
+		s = newGivePacksStore(globalStore, "default")
 	} else {
 		var err error
 		s, err = openGivePacksStore(filepath.Join(configDir(), "give-packs.db"))
@@ -1028,7 +1028,7 @@ func initGivePacksStore() {
 // globalEventStore. A failure is non-fatal — handlers guard for a nil store.
 func initEventStore() {
 	if globalStore != nil {
-		globalEventStore = newEventStore(globalStore)
+		globalEventStore = newEventStore(globalStore, "default")
 		return
 	}
 	var err error
@@ -1044,7 +1044,7 @@ func initEventStore() {
 // globalBattlepassStore. A failure is non-fatal — handlers guard for nil.
 func initBattlepassStore() {
 	if globalStore != nil {
-		globalBattlepassStore = newBattlepassStore(globalStore)
+		globalBattlepassStore = newBattlepassStore(globalStore, "default")
 		return
 	}
 	s, err := openBattlepassStore(filepath.Join(configDir(), "battlepass.db"))

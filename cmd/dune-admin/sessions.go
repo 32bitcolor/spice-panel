@@ -76,6 +76,12 @@ func initSessionSchema(db *sql.DB) error {
 	if err != nil && !strings.Contains(err.Error(), "duplicate column name") {
 		return fmt.Errorf("migrate stat_snapshots.solaris_balance: %w", err)
 	}
+	if err := addServerIDColumn(db, "play_sessions"); err != nil {
+		return err
+	}
+	if err := addServerIDColumn(db, "stat_snapshots"); err != nil {
+		return err
+	}
 	return nil
 }
 

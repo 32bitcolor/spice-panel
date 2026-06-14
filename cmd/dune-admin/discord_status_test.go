@@ -282,7 +282,7 @@ func TestSqliteStatusStore_RoundTrip(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	store := newSqliteStatusStore(db)
+	store := newSqliteStatusStore(db, "default")
 
 	// Fresh store: empty values, no error.
 	ch, msg, err := store.loadStatusMessage()
