@@ -316,6 +316,18 @@ type appConfig struct {
 	// Existing flat-config installs (no servers: key) are unaffected.
 	Servers       []ServerConfig `yaml:"servers"        json:"servers,omitempty"`
 	DefaultServer string         `yaml:"default_server" json:"default_server,omitempty"`
+	// DefaultServerName is the display name of the legacy flat "default" server,
+	// so single-server installs can rename it. Blank → "Default".
+	DefaultServerName string `yaml:"default_server_name" json:"default_server_name,omitempty"`
+}
+
+// defaultServerName returns the configured display name for the legacy flat
+// "default" server, falling back to "Default".
+func defaultServerName() string {
+	if loadedConfig.DefaultServerName != "" {
+		return loadedConfig.DefaultServerName
+	}
+	return "Default"
 }
 
 // marketBotEnabled returns the effective bot-enabled flag. Missing yaml key →
@@ -655,6 +667,12 @@ func loadItemData() error {
 // still requires setup, so an unreachable/failed discovery doesn't strand the
 // operator without a wizard path.
 func needsSetupConfigured() bool {
+	// A multi-server install configures each server in Servers[]; the flat db_pass
+	// is irrelevant there. Adding a server via POST /servers must not leave
+	// needs_setup stuck true.
+	if len(loadedConfig.Servers) > 0 {
+		return false
+	}
 	if dbPass != "" {
 		return false
 	}

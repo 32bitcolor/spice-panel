@@ -100,6 +100,16 @@ func applyAmpServerDefaults(cfg *ServerConfig) {
 		t := true
 		cfg.AmpUseContainer = &t
 	}
+	if cfg.DefaultIniDir == "" {
+		cfg.DefaultIniDir = ampDefaultIniDir(cfg.AmpInstance)
+	}
+}
+
+// ampDefaultIniDir returns the standard AMP extracted game-server Config path for
+// an instance — where DefaultGame.ini lives under a CubeCoders AMP install.
+func ampDefaultIniDir(instance string) string {
+	return "/home/amp/.ampdata/instances/" + instance +
+		"/duneawakening/extracted/game-server/home/dune/server/DuneSandbox/Config"
 }
 
 // applyFlatConnectionDefaults is the appConfig (legacy/default-server) analogue
@@ -162,5 +172,8 @@ func applyAmpFlatDefaults(cfg *appConfig) {
 	if cfg.AmpUseContainer == nil {
 		t := true
 		cfg.AmpUseContainer = &t
+	}
+	if cfg.DefaultIniDir == "" {
+		cfg.DefaultIniDir = ampDefaultIniDir(cfg.AmpInstance)
 	}
 }

@@ -105,6 +105,7 @@ func buildMux() *http.ServeMux {
 
 	// ── servers registry ──────────────────────────────────────────────────────
 	handleAPI(mux, "GET /api/v1/servers", capServerRead, handleListServers)
+	handleAPI(mux, "GET /api/v1/servers/health", capServerRead, handleServersHealth)
 	handleAPI(mux, "POST /api/v1/servers", capServerControl, handleAddServer)
 	handleAPI(mux, "POST /api/v1/servers/discover", capServerControl, handleDiscoverServer)
 	handleAPI(mux, "PUT /api/v1/servers/active", capServerControl, handleSetActiveServer)

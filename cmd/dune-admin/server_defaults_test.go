@@ -117,6 +117,41 @@ func TestApplyServerConfigDefaults_PreservesExplicitAmp(t *testing.T) {
 	}
 }
 
+func TestApplyServerConfigDefaults_AmpDefaultIniDir(t *testing.T) {
+	cfg := ServerConfig{Control: "amp"}
+	applyServerConfigDefaults(&cfg)
+	want := "/home/amp/.ampdata/instances/DuneAwakening01/duneawakening/extracted/game-server/home/dune/server/DuneSandbox/Config"
+	if cfg.DefaultIniDir != want {
+		t.Errorf("DefaultIniDir = %q, want %q", cfg.DefaultIniDir, want)
+	}
+}
+
+func TestApplyServerConfigDefaults_AmpDefaultIniDirTracksInstance(t *testing.T) {
+	cfg := ServerConfig{Control: "amp", AmpInstance: "MyDune02"}
+	applyServerConfigDefaults(&cfg)
+	want := "/home/amp/.ampdata/instances/MyDune02/duneawakening/extracted/game-server/home/dune/server/DuneSandbox/Config"
+	if cfg.DefaultIniDir != want {
+		t.Errorf("DefaultIniDir = %q, want %q", cfg.DefaultIniDir, want)
+	}
+}
+
+func TestApplyServerConfigDefaults_PreservesExplicitIniDir(t *testing.T) {
+	cfg := ServerConfig{Control: "amp", DefaultIniDir: "/custom/path"}
+	applyServerConfigDefaults(&cfg)
+	if cfg.DefaultIniDir != "/custom/path" {
+		t.Errorf("explicit DefaultIniDir overwritten: %q", cfg.DefaultIniDir)
+	}
+}
+
+func TestApplyFlatConnectionDefaults_AmpDefaultIniDir(t *testing.T) {
+	cfg := appConfig{Control: "amp"}
+	applyFlatConnectionDefaults(&cfg)
+	want := "/home/amp/.ampdata/instances/DuneAwakening01/duneawakening/extracted/game-server/home/dune/server/DuneSandbox/Config"
+	if cfg.DefaultIniDir != want {
+		t.Errorf("flat DefaultIniDir = %q, want %q", cfg.DefaultIniDir, want)
+	}
+}
+
 func TestApplyServerConfigDefaults_SSHKeyForSSHControlPlanes(t *testing.T) {
 	// kubectl and amp auto-fill the SSH key when empty; local without an
 	// ssh_host leaves it empty (no SSH used).

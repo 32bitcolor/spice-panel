@@ -446,7 +446,8 @@ func persistServerConfig(id string, sc ServerConfig) error {
 	cfg := loadedConfig
 	isDefaultFlat := id == "default" && !serverInList(cfg.Servers, id)
 	if isDefaultFlat {
-		cfg = serverCfgToAppConfig(sc) // preserves global-only fields
+		cfg = serverCfgToAppConfig(sc)  // preserves global-only fields
+		cfg.DefaultServerName = sc.Name // allow renaming the legacy default server
 	} else {
 		updated := make([]ServerConfig, 0, len(cfg.Servers)+1)
 		found := false

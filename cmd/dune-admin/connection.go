@@ -141,7 +141,7 @@ func connectAll() error {
 	// regardless of whether the DB connect succeeds. DB is filled in below.
 	defaultSC := &ServerContext{
 		ID:         "default",
-		Name:       "Default",
+		Name:       defaultServerName(),
 		Cfg:        legacyServerFromFlat(loadedConfig),
 		Control:    globalControl,
 		Executor:   globalExecutor,
@@ -300,9 +300,13 @@ func connectDB(ctx context.Context, user, pass string) (*pgxpool.Pool, error) {
 // block in connectAll so that the "default" server registered in globalRegistry
 // carries the same values that the legacy connection path would use.
 func legacyServerFromFlat(ac appConfig) ServerConfig {
+	name := ac.DefaultServerName
+	if name == "" {
+		name = "Default"
+	}
 	return ServerConfig{
 		ID:   "default",
-		Name: "Default",
+		Name: name,
 		// Transport — read from the flag-globals that connectAll uses.
 		SSHHost:      sshHost,
 		SSHUser:      sshUser,
