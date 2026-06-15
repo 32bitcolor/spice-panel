@@ -205,7 +205,7 @@
     "signIn": "Se connecter",
     "switchToSidenav": "Passer à la navigation latérale",
     "switchToTopnav": "Passer à la navigation supérieure",
-    "title": "DUNE ADMIN",
+    "title": "UNE ADMIN",
     "updateAvailable": "Mise à jour disponible",
     "updateAvailableBody": "Une nouvelle version est disponible : v{{current}} → v{{latest}}.",
     "updated": "Mis à jour vers {{version}}. Le serveur redémarre…",
@@ -1234,7 +1234,11 @@
       "serverIniDir": "Répertoire INI serveur",
       "serverIniDirHint": "emplacement de UserGame.ini",
       "url": "URL",
-      "urlHint": "stockée dans le navigateur, pas sur le serveur"
+      "urlHint": "stockée dans le navigateur, pas sur le serveur",
+      "dangerZone": "Zone de danger",
+      "deleteServer": "Supprimer le serveur",
+      "deleteServerNamed": "Supprimer le serveur « {{name}} »",
+      "deleteServerHint": "Supprimer définitivement ce serveur et toutes ses données stockées. Cette action est irréversible."
     },
     "amp": {
       "containerName": "Nom de conteneur",
@@ -1317,7 +1321,8 @@
       "authDashboard": "Connexion au tableau de bord",
       "authDiscord": "Connexion Discord (OAuth)",
       "authOwners": "Propriétaires",
-      "discordStatus": "Embed de statut"
+      "discordStatus": "Embed de statut",
+      "marketBot": "Bot de marché"
     },
     "ssh": {
       "hostPort": "Hôte : port",
@@ -1397,6 +1402,14 @@
       "cookieStrictDesc": "Le cookie n'est jamais envoyé sur une requête intersite — protection CSRF maximale. Incompatible avec la connexion Discord (la redirection OAuth ne peut pas le transporter) ; à utiliser uniquement avec des comptes locaux.",
       "cookieNone": "Aucun",
       "cookieNoneDesc": "Le cookie est envoyé sur toutes les requêtes, y compris cross-origin. Nécessaire uniquement si l'UI et le backend sont sur des domaines différents (ex. séparation CDN). Nécessite HTTPS."
+    },
+    "scope": {
+      "server": "Serveur",
+      "admin": "DuneAdmin"
+    },
+    "marketBot": {
+      "enabled": "Activer le bot de marché pour ce serveur",
+      "enabledHint": "Exécute le bot de marché intégré sur ce serveur. Les réglages sont partagés entre les serveurs et se trouvent dans l’onglet Marché."
     }
   },
   "storage": {
@@ -1892,5 +1905,39 @@
     "placeholder": "Rechercher des joueurs…",
     "loadFailed": "Échec du chargement des joueurs : {{message}}",
     "loading": "Chargement des joueurs…"
+  },
+  "servers": {
+    "removeTitle": "Supprimer le serveur",
+    "removeDesc": "Supprimer définitivement « {{name}} » et toutes ses données stockées ? Cette action est irréversible.",
+    "removeConfirm": "Supprimer",
+    "removeFailed": "Échec de la suppression",
+    "removeWarning": "Supprimer définitivement « {{name}} » et toutes ses données stockées. Action irréversible.",
+    "removeConfirmLabel": "Saisissez {{name}} pour confirmer",
+    "removeCountdown": "Patientez {{seconds}}s…"
+  },
+  "setup": {
+    "discovering": "Détection automatique des paramètres du serveur…",
+    "connecting": "Connexion…",
+    "saveAndConnect": "Enregistrer et connecter",
+    "serverName": "Nom du serveur",
+    "serverNamePlaceholder": "ex. Production",
+    "nameRequired": "Le nom du serveur est requis",
+    "nameInvalid": "Le nom du serveur doit contenir des lettres ou des chiffres",
+    "connectTimeout": "Toujours pas connecté — vérifiez vos paramètres et réessayez."
+  },
+  "discovery": {
+    "title": "Détection automatique des paramètres",
+    "subtitle": "Lecture des valeurs depuis votre serveur…",
+    "failed": "Détection automatique impossible — saisissez les valeurs manuellement.",
+    "steps": {
+      "connect": "Connexion via SSH",
+      "namespace": "Détection de l’espace de noms",
+      "dbPod": "Localisation du pod de base de données",
+      "dbCreds": "Lecture des identifiants de base de données",
+      "brokers": "Localisation des pods broker",
+      "gameProc": "Localisation du processus du serveur de jeu",
+      "containers": "Inspection des conteneurs",
+      "finalize": "Finalisation"
+    }
   }
 }

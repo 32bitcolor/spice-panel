@@ -3,10 +3,11 @@ import { useTranslation } from 'react-i18next'
 import { Button, CloseButton, Input, Select, ListBox, Spinner, Switch, toast } from '@heroui/react'
 import { Segment } from '@heroui-pro/react'
 import { api, MASKED } from '../api/client'
-import type { AppConfig } from '../api/client'
-import { Icon, NumberInput, Panel, SectionLabel } from '../dune-ui'
+import type { AppConfig, ServerConfig } from '../api/client'
+import { Icon, Panel, SectionLabel } from '../dune-ui'
 import { DiscordMemberPicker } from './DiscordMemberPicker'
 import { AuthContext } from '../auth/context'
+import { useActiveServer } from '../context/useActiveServer'
 import type {
   FieldProps,
   TextInputProps,
@@ -86,6 +87,50 @@ const mergeConfig = (fetched: Record<string, unknown>): AppConfig => {
     }
   }
   return result
+}
+
+// PER_SERVER_KEYS are the AppConfig fields that live on a ServerConfig (vary
+// between game servers). Everything else (auth, Discord bot, listen addr, market
+// bot, scrip currency) is global dune-admin config. Used to split the unified
+// editing view into the two save targets: api.config (global) and
+// api.servers.saveConfig (per-server).
+const PER_SERVER_KEYS: (keyof AppConfig)[] = [
+  'control', 'control_namespace',
+  'ssh_host', 'ssh_user', 'ssh_key',
+  'db_host', 'db_port', 'db_user', 'db_pass', 'db_name', 'db_schema',
+  'docker_gameserver', 'docker_broker_game', 'docker_broker_admin', 'docker_db',
+  'cmd_start', 'cmd_stop', 'cmd_restart', 'cmd_status',
+  'broker_game_addr', 'broker_admin_addr', 'broker_tls', 'broker_user',
+  'broker_pass', 'broker_jwt_secret', 'broker_exec_prefix',
+  'backup_dir', 'server_ini_dir', 'default_ini_dir',
+  'amp_instance', 'amp_container', 'amp_user', 'amp_log_path', 'amp_use_container',
+  'amp_data_root', 'amp_api_user', 'amp_api_pass', 'amp_api_port',
+  'director_url',
+  // Market bot enable is PER SERVER (the rest of the bot config is global/shared).
+  'market_bot_enabled',
+]
+const PER_SERVER_KEY_SET = new Set<string>(PER_SERVER_KEYS as string[])
+
+// pickPerServer extracts the per-server fields from the unified editing config.
+const pickPerServer = (cfg: AppConfig): Partial<AppConfig> => {
+  const out: Partial<AppConfig> = {}
+  for (const k of PER_SERVER_KEYS) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(out as any)[k] = cfg[k]
+  }
+  return out
+}
+
+// pickGlobal extracts the global (non-per-server) fields from the editing config.
+const pickGlobal = (cfg: AppConfig): Partial<AppConfig> => {
+  const out: Partial<AppConfig> = {}
+  for (const k of Object.keys(cfg) as (keyof AppConfig)[]) {
+    if (!PER_SERVER_KEY_SET.has(k)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(out as any)[k] = cfg[k]
+    }
+  }
+  return out
 }
 
 // ── field primitives matching BotConfigEditor ─────────────────────────────────
@@ -212,23 +257,78 @@ const RolePicker: React.FC<RolePickerProps> = ({ value, onChange, roles, label, 
 
 // ── main component ────────────────────────────────────────────────────────────
 
-export const SettingsConfigForm: React.FC<SettingsConfigFormProps> = ({ saveRef, onSavingChange }) => {
+// slugify turns a server display name into a stable, URL-safe id.
+const slugify = (name: string): string =>
+  name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+
+export const SettingsConfigForm: React.FC<SettingsConfigFormProps> = ({
+  saveRef, onSavingChange, activeTab, hideTabBar, skipLoad, onRequestDeleteServer,
+  addMode, addServerName, onConfigChange, prefill,
+}) => {
   const { t } = useTranslation()
   const auth = React.useContext(AuthContext)
+  const { activeID, servers } = useActiveServer()
+  // Settings-modal mode (vs. wizard): the wizard hides the tab bar and drives
+  // navigation via activeTab. Only the modal splits config into global vs
+  // per-server and shows the scope toggle + Danger Zone.
+  const settingsMode = !hideTabBar
+  // Single-server installs never set an explicit active id; fall back to the
+  // first (only) server so the scope toggle still shows its name and edits
+  // target the right server ("default" for the legacy flat install).
+  const serverID = activeID || servers[0]?.id || 'default'
+  const activeName = servers.find((s) => s.id === serverID)?.name ?? ''
+
   const [cfg, setCfg] = React.useState<AppConfig>(EMPTY)
   const [loading, setLoading] = React.useState(true)
-  const [tab, setTab] = React.useState('connection')
+  const [scope, setScope] = React.useState<'server' | 'admin'>('server')
+  const [internalTab, setInternalTab] = React.useState('control')
+  const tab = activeTab ?? internalTab
   const [backendUrl, setBackendUrl] = React.useState(() => localStorage.getItem('dune_admin_backend') || '')
+
+  // Raw bases kept so a split save reconstructs each payload without clobbering
+  // the fields it doesn't own (e.g. a global save must preserve the flat
+  // per-server fields it received).
+  const globalBaseRef = React.useRef<Partial<AppConfig>>({})
+  const serverBaseRef = React.useRef<ServerConfig | null>(null)
 
   const [discordRoles, setDiscordRoles] = React.useState<DiscordRole[]>([])
   const [rolesLoading, setRolesLoading] = React.useState(false)
 
   React.useEffect(() => {
-    api.config.get()
-      .then((c) => setCfg(mergeConfig(c as Record<string, unknown>)))
-      .catch((e) => toast.danger(t('settings.loadFailed', { message: e instanceof Error ? e.message : String(e) })))
+    if (skipLoad) {
+      void Promise.resolve().then(() => setLoading(false))
+      return
+    }
+    const onErr = (e: unknown) =>
+      toast.danger(t('settings.loadFailed', { message: e instanceof Error ? e.message : String(e) }))
+
+    // Wizard mode: a single flat config (it edits / creates the default server).
+    if (!settingsMode) {
+      api.config.get()
+        .then((c) => setCfg(mergeConfig(c as Record<string, unknown>)))
+        .catch(onErr)
+        .finally(() => setLoading(false))
+      return
+    }
+
+    // Settings mode: merge global config with the active server's per-server
+    // config into one editing view. The default (legacy flat) server returns the
+    // same values via both endpoints, so the merge is a no-op for it.
+    Promise.all([
+      api.config.get(),
+      api.servers.getConfig(serverID).catch(() => null),
+    ])
+      .then(([global, server]) => {
+        globalBaseRef.current = global as Partial<AppConfig>
+        serverBaseRef.current = server
+        const combined = server
+          ? { ...(global as Record<string, unknown>), ...pickPerServer(mergeConfig(server as Record<string, unknown>)) }
+          : (global as Record<string, unknown>)
+        setCfg(mergeConfig(combined))
+      })
+      .catch(onErr)
       .finally(() => setLoading(false))
-  }, [t])
+  }, [t, skipLoad, settingsMode, serverID])
 
   const loadDiscordRoles = React.useCallback(() => {
     setRolesLoading(true)
@@ -259,11 +359,42 @@ export const SettingsConfigForm: React.FC<SettingsConfigFormProps> = ({ saveRef,
   const setBool = (key: keyof AppConfig) => (v: boolean) =>
     setCfg((prev) => ({ ...prev, [key]: v }))
 
+  const persist = async () => {
+    // Add-server wizard: create a NEW per-server entry. Only per-server fields
+    // are sent (POST /servers → connectServer, which tunnels the DB for AMP);
+    // global settings (auth, Discord, listen addr) are not part of a new server.
+    if (addMode) {
+      const name = (addServerName ?? '').trim()
+      if (!name) throw new Error(t('setup.nameRequired', 'Server name is required'))
+      const id = slugify(name)
+      if (!id) throw new Error(t('setup.nameInvalid', 'Server name must contain letters or numbers'))
+      const payload = { ...pickPerServer(cfg), id, name } as ServerConfig
+      await api.servers.add(payload)
+      return
+    }
+    // Wizard (first-run), or the legacy "default" server: a single flat save
+    // covers both global and per-server fields (and reconnects the default).
+    if (!settingsMode || serverID === 'default') {
+      await api.config.save(cfg)
+      return
+    }
+    // Multi-server: save globals first (no per-server reconnect), then the
+    // active server's config (which reconnects it and re-aliases globalDB).
+    const globalPayload = { ...globalBaseRef.current, ...pickGlobal(cfg) } as AppConfig
+    await api.config.save(globalPayload)
+    const serverPayload = {
+      ...(serverBaseRef.current ?? {}),
+      ...pickPerServer(cfg),
+      id: serverID,
+    } as ServerConfig
+    await api.servers.saveConfig(serverID, serverPayload)
+  }
+
   const save = async () => {
     onSavingChange?.(true)
     const authToggled = auth.enabled !== cfg.auth_enabled
     try {
-      await api.config.save(cfg)
+      await persist()
       toast.success(t('settings.configSaved'))
       // Toggling authentication clears the session cookie server-side; reset
       // the route to the default tab and force a full reload so the SPA
@@ -297,6 +428,15 @@ export const SettingsConfigForm: React.FC<SettingsConfigFormProps> = ({ saveRef,
     }
   })
 
+  // Add-server wizard plumbing: notify the wizard of config changes (so it can
+  // drive discovery from the entered settings) and merge discovered values in.
+  React.useEffect(() => {
+    onConfigChange?.(cfg)
+  }, [cfg, onConfigChange])
+  React.useEffect(() => {
+    if (prefill) void Promise.resolve().then(() => setCfg((prev) => ({ ...prev, ...prefill })))
+  }, [prefill])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center flex-1 gap-2 text-muted">
@@ -311,68 +451,68 @@ export const SettingsConfigForm: React.FC<SettingsConfigFormProps> = ({ saveRef,
   const isLocal = cfg.control === 'local'
   const isAmp = cfg.control === 'amp'
 
-  const TABS = [
-    { id: 'connection', label: t('settings.tabs.connection') },
+  const SERVER_TABS = [
     { id: 'control', label: t('settings.tabs.control') },
-    { id: 'broker', label: t('settings.tabs.broker') },
-    { id: 'discord', label: t('settings.tabs.discord') },
-    { id: 'auth', label: t('settings.tabs.auth') },
-    { id: 'advanced', label: t('settings.tabs.advanced') },
+    { id: 'ssh', label: t('settings.tabs.ssh') },
+    { id: 'server', label: t('settings.tabs.server') },
+    { id: 'server-advanced', label: t('settings.tabs.advanced') },
   ]
+  const ADMIN_TABS = [
+    { id: 'auth', label: t('settings.tabs.auth') },
+    { id: 'discord', label: t('settings.tabs.discord') },
+    { id: 'admin-advanced', label: t('settings.tabs.advanced') },
+  ]
+  const scopedTabs = scope === 'server' ? SERVER_TABS : ADMIN_TABS
+
+  const changeScope = (next: 'server' | 'admin') => {
+    setScope(next)
+    setInternalTab(next === 'server' ? 'control' : 'auth')
+  }
 
   return (
     <form className="flex flex-col flex-1 min-h-0 gap-3" onSubmit={(e) => e.preventDefault()} autoComplete="off">
       {/* sr-only (not display:none) — Chrome's credential heuristic skips display:none elements */}
       <input type="text" autoComplete="username" aria-hidden="true" tabIndex={-1} readOnly className="sr-only" />
-      <Segment
-        selectedKey={tab}
-        onSelectionChange={(k) => setTab(String(k))}
-        size="sm"
-        className="shrink-0 w-fit ml-auto"
-      >
-        {TABS.map(({ id, label }) => (
-          <Segment.Item key={id} id={id}>
-            <Segment.Separator />
-            {label}
-          </Segment.Item>
-        ))}
-      </Segment>
+      {!hideTabBar && (
+        <div className="shrink-0 flex flex-wrap items-center justify-between gap-2">
+          <Segment
+            selectedKey={scope}
+            onSelectionChange={(k) => changeScope(k === 'admin' ? 'admin' : 'server')}
+            size="sm"
+            className="w-fit"
+          >
+            <Segment.Item id="server">
+              <Segment.Separator />
+              {t('settings.scope.server', 'Server')}
+              {activeName ? `: ${activeName}` : ''}
+            </Segment.Item>
+            <Segment.Item id="admin">
+              <Segment.Separator />
+              {t('settings.scope.admin', 'dune-admin')}
+            </Segment.Item>
+          </Segment>
+          <Segment
+            selectedKey={tab}
+            onSelectionChange={(k) => setInternalTab(String(k))}
+            size="sm"
+            className="w-fit"
+          >
+            {scopedTabs.map(({ id, label }) => (
+              <Segment.Item key={id} id={id}>
+                <Segment.Separator />
+                {label}
+              </Segment.Item>
+            ))}
+          </Segment>
+        </div>
+      )}
 
-      {/* ── Connection ─────────────────────────────────────────────────── */}
-      {tab === 'connection' && (
+      {/* ── SSH ────────────────────────────────────────────────────────── */}
+      {tab === 'ssh' && (
         <div className="overflow-y-auto flex-1 pr-1 flex flex-col gap-4">
           <Panel>
-            <SectionLabel>{t('settings.sections.database')}</SectionLabel>
-            <TwoColumnGrid>
-              <FieldRow label={t('settings.db.host')} hint={t('settings.db.hostHint')}>
-                <TextInput value={cfg.db_host} onChange={set('db_host')} placeholder="127.0.0.1" />
-              </FieldRow>
-              <FieldRow label={t('settings.db.port')}>
-                <NumberInput
-                  ariaLabel={t('settings.db.port')}
-                  value={Number(cfg.db_port) || 0}
-                  onChange={(v) => set('db_port')(String(v))}
-                  showButtons={false}
-                  className="w-full"
-                />
-              </FieldRow>
-              <FieldRow label={t('settings.db.user')}>
-                <TextInput value={cfg.db_user} onChange={set('db_user')} placeholder="dune" />
-              </FieldRow>
-              <FieldRow label={t('settings.db.password')} hint={t('settings.db.passwordHint')}>
-                <TextInput value={cfg.db_pass} onChange={set('db_pass')} type="password" placeholder={MASKED} />
-              </FieldRow>
-              <FieldRow label={t('settings.db.name')}>
-                <TextInput value={cfg.db_name} onChange={set('db_name')} placeholder="dune" />
-              </FieldRow>
-              <FieldRow label={t('settings.db.schema')}>
-                <TextInput value={cfg.db_schema} onChange={set('db_schema')} placeholder="dune" />
-              </FieldRow>
-            </TwoColumnGrid>
-          </Panel>
-
-          <Panel>
             <SectionLabel>{t('settings.sections.ssh')}</SectionLabel>
+            <p className="text-xs text-muted -mt-1">{t('settings.ssh.hint', 'Leave blank if dune-admin runs directly on the game server host.')}</p>
             <TwoColumnGrid>
               <FieldRow label={t('settings.ssh.hostPort')} hint={t('settings.ssh.hostPortHint')}>
                 <TextInput value={cfg.ssh_host} onChange={set('ssh_host')} placeholder="192.168.0.72:22" />
@@ -398,7 +538,7 @@ export const SettingsConfigForm: React.FC<SettingsConfigFormProps> = ({ saveRef,
               <Select
                 selectedKey={cfg.control || 'local'}
                 onSelectionChange={(k) => setCfg((prev) => ({ ...prev, control: String(k) }))}
-                className="w-64"
+                className="w-full"
                 aria-label={t('settings.sections.controlPlane')}
               >
                 <Select.Trigger>
@@ -484,13 +624,12 @@ export const SettingsConfigForm: React.FC<SettingsConfigFormProps> = ({ saveRef,
               <TwoColumnGrid>
                 <FieldRow label={t('settings.amp.apiUser')}><TextInput value={cfg.amp_api_user} onChange={set('amp_api_user')} placeholder="admin" /></FieldRow>
                 <FieldRow label={t('settings.amp.apiPassword')}><TextInput value={cfg.amp_api_pass} onChange={set('amp_api_pass')} type="password" placeholder={MASKED} /></FieldRow>
-                <FieldRow label={t('settings.amp.apiPort')} hint="default 8081">
-                  <NumberInput
-                    ariaLabel={t('settings.amp.apiPort')}
-                    value={Number(cfg.amp_api_port) || 0}
-                    onChange={(v) => set('amp_api_port')(String(v))}
-                    showButtons={false}
-                    className="w-full"
+                <FieldRow label={t('settings.amp.apiPort')}>
+                  <TextInput
+                    value={cfg.amp_api_port ? String(cfg.amp_api_port) : ''}
+                    onChange={set('amp_api_port')}
+                    placeholder="8081"
+                    type="number"
                   />
                 </FieldRow>
               </TwoColumnGrid>
@@ -503,7 +642,64 @@ export const SettingsConfigForm: React.FC<SettingsConfigFormProps> = ({ saveRef,
         </div>
       )}
 
-      {/* ── Broker ─────────────────────────────────────────────────────── */}
+      {/* ── Database (standalone wizard step or combined server tab) ─────── */}
+      {(tab === 'server' || tab === 'db') && (
+        <div className="overflow-y-auto flex-1 pr-1 flex flex-col gap-4">
+          <Panel>
+            <SectionLabel>{t('settings.sections.database')}</SectionLabel>
+            <TwoColumnGrid>
+              <FieldRow label={t('settings.db.host')} hint={t('settings.db.hostHint')}>
+                <TextInput value={cfg.db_host} onChange={set('db_host')} placeholder="127.0.0.1" />
+              </FieldRow>
+              <FieldRow label={t('settings.db.port')}>
+                <TextInput
+                  value={cfg.db_port ? String(cfg.db_port) : ''}
+                  onChange={set('db_port')}
+                  placeholder="15432"
+                  type="number"
+                />
+              </FieldRow>
+              <FieldRow label={t('settings.db.user')}>
+                <TextInput value={cfg.db_user} onChange={set('db_user')} placeholder="dune" />
+              </FieldRow>
+              <FieldRow label={t('settings.db.password')} hint={t('settings.db.passwordHint')}>
+                <TextInput value={cfg.db_pass} onChange={set('db_pass')} type="password" placeholder={MASKED} />
+              </FieldRow>
+              <FieldRow label={t('settings.db.name')}>
+                <TextInput value={cfg.db_name} onChange={set('db_name')} placeholder="dune" />
+              </FieldRow>
+              <FieldRow label={t('settings.db.schema')}>
+                <TextInput value={cfg.db_schema} onChange={set('db_schema')} placeholder="dune" />
+              </FieldRow>
+            </TwoColumnGrid>
+          </Panel>
+
+          {/* Broker panel shown only in combined 'server' tab, not in standalone 'db' tab */}
+          {tab === 'server' && (
+            <Panel>
+              <SectionLabel>{t('settings.sections.rabbitmq')}</SectionLabel>
+              <p className="text-xs text-muted -mt-1">{t('settings.broker.optionalHint')}</p>
+              <TwoColumnGrid>
+                <FieldRow label={t('settings.broker.gameAddr')}><TextInput value={cfg.broker_game_addr} onChange={set('broker_game_addr')} placeholder="10.x.x.x:5672" /></FieldRow>
+                <FieldRow label={t('settings.broker.adminAddr')}><TextInput value={cfg.broker_admin_addr} onChange={set('broker_admin_addr')} placeholder="10.x.x.x:5672" /></FieldRow>
+                <FieldRow label={t('settings.broker.user')}><TextInput value={cfg.broker_user} onChange={set('broker_user')} placeholder="dune_cap" /></FieldRow>
+                <FieldRow label={t('settings.broker.password')}><TextInput value={cfg.broker_pass} onChange={set('broker_pass')} type="password" placeholder={MASKED} /></FieldRow>
+                <FieldRow label={t('settings.broker.jwtSecret')} hint={t('settings.broker.jwtSecretHint')}>
+                  <TextInput value={cfg.broker_jwt_secret} onChange={set('broker_jwt_secret')} type="password" placeholder={MASKED} />
+                </FieldRow>
+                <FieldRow label={t('settings.broker.execPrefix')} hint={t('settings.broker.execPrefixHint')}>
+                  <TextInput value={cfg.broker_exec_prefix} onChange={set('broker_exec_prefix')} placeholder="podman exec <container>" />
+                </FieldRow>
+                <div className="sm:col-span-2">
+                  <CheckboxField label={t('settings.broker.useTls')} checked={cfg.broker_tls} onChange={setBool('broker_tls')} />
+                </div>
+              </TwoColumnGrid>
+            </Panel>
+          )}
+        </div>
+      )}
+
+      {/* ── Broker (standalone wizard step) ────────────────────────────── */}
       {tab === 'broker' && (
         <div className="overflow-y-auto flex-1 pr-1 flex flex-col gap-4">
           <Panel>
@@ -616,12 +812,11 @@ export const SettingsConfigForm: React.FC<SettingsConfigFormProps> = ({ saveRef,
                 <TextInput value={cfg.discord_status_channel_id} onChange={set('discord_status_channel_id')} placeholder="555555555555555555" />
               </FieldRow>
               <FieldRow label={t('settings.discord.statusInterval')} hint={t('settings.discord.statusIntervalHint')}>
-                <NumberInput
-                  ariaLabel={t('settings.discord.statusInterval')}
-                  value={Number(cfg.discord_status_interval_seconds) || 0}
-                  onChange={(v) => set('discord_status_interval_seconds')(String(v))}
-                  showButtons={false}
-                  className="w-full"
+                <TextInput
+                  value={cfg.discord_status_interval_seconds ? String(cfg.discord_status_interval_seconds) : ''}
+                  onChange={set('discord_status_interval_seconds')}
+                  placeholder="60"
+                  type="number"
                 />
               </FieldRow>
             </TwoColumnGrid>
@@ -666,12 +861,11 @@ export const SettingsConfigForm: React.FC<SettingsConfigFormProps> = ({ saveRef,
                 />
               </FieldRow>
               <FieldRow label={t('settings.auth.sessionTtl')} hint={t('settings.auth.sessionTtlHint')}>
-                <NumberInput
-                  ariaLabel={t('settings.auth.sessionTtl')}
-                  value={Number(cfg.auth_session_ttl_hours) || 0}
-                  onChange={(v) => set('auth_session_ttl_hours')(String(v))}
-                  showButtons={false}
-                  className="w-full"
+                <TextInput
+                  value={cfg.auth_session_ttl_hours ? String(cfg.auth_session_ttl_hours) : ''}
+                  onChange={set('auth_session_ttl_hours')}
+                  placeholder="24"
+                  type="number"
                 />
               </FieldRow>
               <FieldRow label={t('settings.auth.cookiePolicy')}>
@@ -785,23 +979,29 @@ export const SettingsConfigForm: React.FC<SettingsConfigFormProps> = ({ saveRef,
         </div>
       )}
 
-      {/* ── Advanced ───────────────────────────────────────────────────── */}
-      {tab === 'advanced' && (
+      {/* ── Advanced (add-server wizard): per-server only → just market bot ─ */}
+      {tab === 'advanced' && addMode && (
+        <div className="overflow-y-auto flex-1 pr-1 flex flex-col gap-4">
+          <Panel>
+            <SectionLabel>{t('settings.sections.marketBot', 'Market Bot')}</SectionLabel>
+            <CheckboxField
+              label={t('settings.marketBot.enabled', 'Enable market bot for this server')}
+              hint={t('settings.marketBot.enabledHint', 'Runs the embedded market bot against this server. Tuning is shared across servers and lives in the Market tab.')}
+              checked={cfg.market_bot_enabled}
+              onChange={setBool('market_bot_enabled')}
+            />
+          </Panel>
+        </div>
+      )}
+
+      {/* ── Advanced (first-run wizard): global + per-server combined ────── */}
+      {tab === 'advanced' && !addMode && (
         <div className="overflow-y-auto flex-1 pr-1 flex flex-col gap-4">
           <Panel>
             <SectionLabel>{t('settings.sections.server')}</SectionLabel>
             <TwoColumnGrid>
               <FieldRow label={t('settings.adv.listenAddr')} hint={t('settings.adv.listenAddrHint')}>
                 <TextInput value={cfg.listen_addr} onChange={set('listen_addr')} placeholder=":8080" />
-              </FieldRow>
-              <FieldRow label={t('settings.adv.scripCurrency')}>
-                <NumberInput
-                  ariaLabel={t('settings.adv.scripCurrency')}
-                  value={Number(cfg.scrip_currency) || 0}
-                  onChange={(v) => set('scrip_currency')(String(v))}
-                  showButtons={false}
-                  className="w-full"
-                />
               </FieldRow>
               <FieldRow label={t('settings.adv.directorUrl')} hint={t('settings.adv.directorUrlHint')}>
                 <TextInput value={cfg.director_url} onChange={set('director_url')} placeholder="http://127.0.0.1:11717" />
@@ -825,10 +1025,67 @@ export const SettingsConfigForm: React.FC<SettingsConfigFormProps> = ({ saveRef,
           </Panel>
 
           <Panel>
+            <SectionLabel>{t('settings.sections.marketBot', 'Market Bot')}</SectionLabel>
+            <CheckboxField
+              label={t('settings.marketBot.enabled', 'Enable market bot for this server')}
+              hint={t('settings.marketBot.enabledHint', 'Runs the embedded market bot against this server. Tuning is shared across servers and lives in the Market tab.')}
+              checked={cfg.market_bot_enabled}
+              onChange={setBool('market_bot_enabled')}
+            />
+          </Panel>
+
+          <Panel>
             <SectionLabel>{t('settings.sections.backendUrlOverride')}</SectionLabel>
             <p className="text-xs text-muted -mt-1">
               {t('settings.adv.backendUrlHint')}
             </p>
+            <TwoColumnGrid>
+              <FieldRow label={t('settings.adv.url')} hint={t('settings.adv.urlHint')}>
+                <TextInput
+                  value={backendUrl}
+                  onChange={(v) => {
+                    setBackendUrl(v)
+                    localStorage.setItem('dune_admin_backend', v)
+                  }}
+                  placeholder="http://host:port"
+                />
+              </FieldRow>
+            </TwoColumnGrid>
+            {!hideTabBar && (
+              <div className="flex gap-2 mt-1">
+                <Button size="sm" onPress={() => window.location.reload()}>{t('settings.adv.applyReload')}</Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onPress={() => {
+                    setBackendUrl('')
+                    localStorage.removeItem('dune_admin_backend')
+                    window.location.reload()
+                  }}
+                >
+                  {t('settings.adv.reset')}
+                </Button>
+              </div>
+            )}
+          </Panel>
+        </div>
+      )}
+
+      {/* ── Advanced (dune-admin global) ───────────────────────────────── */}
+      {tab === 'admin-advanced' && (
+        <div className="overflow-y-auto flex-1 pr-1 flex flex-col gap-4">
+          <Panel>
+            <SectionLabel>{t('settings.sections.server')}</SectionLabel>
+            <TwoColumnGrid>
+              <FieldRow label={t('settings.adv.listenAddr')} hint={t('settings.adv.listenAddrHint')}>
+                <TextInput value={cfg.listen_addr} onChange={set('listen_addr')} placeholder=":8080" />
+              </FieldRow>
+            </TwoColumnGrid>
+          </Panel>
+
+          <Panel>
+            <SectionLabel>{t('settings.sections.backendUrlOverride')}</SectionLabel>
+            <p className="text-xs text-muted -mt-1">{t('settings.adv.backendUrlHint')}</p>
             <TwoColumnGrid>
               <FieldRow label={t('settings.adv.url')} hint={t('settings.adv.urlHint')}>
                 <TextInput
@@ -856,6 +1113,63 @@ export const SettingsConfigForm: React.FC<SettingsConfigFormProps> = ({ saveRef,
               </Button>
             </div>
           </Panel>
+        </div>
+      )}
+
+      {/* ── Advanced (per-server) ──────────────────────────────────────── */}
+      {tab === 'server-advanced' && (
+        <div className="overflow-y-auto flex-1 pr-1 flex flex-col gap-4">
+          <Panel>
+            <SectionLabel>{t('settings.sections.server')}</SectionLabel>
+            <TwoColumnGrid>
+              <FieldRow label={t('settings.adv.directorUrl')} hint={t('settings.adv.directorUrlHint')}>
+                <TextInput value={cfg.director_url} onChange={set('director_url')} placeholder="http://127.0.0.1:11717" />
+              </FieldRow>
+            </TwoColumnGrid>
+          </Panel>
+
+          <Panel>
+            <SectionLabel>{t('settings.sections.paths')}</SectionLabel>
+            <TwoColumnGrid>
+              <FieldRow label={t('settings.adv.backupDir')}>
+                <TextInput value={cfg.backup_dir} onChange={set('backup_dir')} placeholder="/path/to/backups" />
+              </FieldRow>
+              <FieldRow label={t('settings.adv.serverIniDir')} hint={t('settings.adv.serverIniDirHint')}>
+                <TextInput value={cfg.server_ini_dir} onChange={set('server_ini_dir')} placeholder="/path/to/server/state" />
+              </FieldRow>
+              <FieldRow label={t('settings.adv.defaultIniDir')} hint={t('settings.adv.defaultIniDirHint')}>
+                <TextInput value={cfg.default_ini_dir} onChange={set('default_ini_dir')} placeholder="/path/to/game/Config" />
+              </FieldRow>
+            </TwoColumnGrid>
+          </Panel>
+
+          <Panel>
+            <SectionLabel>{t('settings.sections.marketBot', 'Market Bot')}</SectionLabel>
+            <CheckboxField
+              label={t('settings.marketBot.enabled', 'Enable market bot for this server')}
+              hint={t('settings.marketBot.enabledHint', 'Runs the embedded market bot against this server. Tuning is shared across servers and lives in the Market tab.')}
+              checked={cfg.market_bot_enabled}
+              onChange={setBool('market_bot_enabled')}
+            />
+          </Panel>
+
+          {onRequestDeleteServer && (
+            <Panel>
+              <SectionLabel>{t('settings.adv.dangerZone', 'Danger Zone')}</SectionLabel>
+              <p className="text-xs text-muted -mt-1">
+                {t('settings.adv.deleteServerHint', 'Permanently remove this server and all of its stored data. This cannot be undone.')}
+              </p>
+              <div className="mt-1">
+                <Button size="sm" variant="danger-soft" onPress={() => onRequestDeleteServer()}>
+                  <Icon name="trash-2" />
+                  {' '}
+                  {activeName
+                    ? t('settings.adv.deleteServerNamed', 'Delete server "{{name}}"', { name: activeName })
+                    : t('settings.adv.deleteServer', 'Delete server')}
+                </Button>
+              </div>
+            </Panel>
+          )}
         </div>
       )}
     </form>

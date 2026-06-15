@@ -205,7 +205,7 @@
     "signIn": "Iniciar sesión",
     "switchToSidenav": "Cambiar a navegación lateral",
     "switchToTopnav": "Cambiar a navegación superior",
-    "title": "DUNE ADMIN",
+    "title": "UNE ADMIN",
     "updateAvailable": "Actualización disponible",
     "updateAvailableBody": "Hay una nueva versión disponible: v{{current}} → v{{latest}}.",
     "updated": "Actualizado a {{version}}. El servidor se está reiniciando…",
@@ -1234,7 +1234,11 @@
       "serverIniDir": "Directorio INI del servidor",
       "serverIniDirHint": "ubicación de UserGame.ini",
       "url": "URL",
-      "urlHint": "almacenada en el navegador, no en el servidor"
+      "urlHint": "almacenada en el navegador, no en el servidor",
+      "dangerZone": "Zona de peligro",
+      "deleteServer": "Eliminar servidor",
+      "deleteServerNamed": "Eliminar el servidor \"{{name}}\"",
+      "deleteServerHint": "Elimina permanentemente este servidor y todos sus datos almacenados. Esto no se puede deshacer."
     },
     "amp": {
       "containerName": "Nombre de contenedor",
@@ -1317,7 +1321,8 @@
       "authDashboard": "Inicio de sesión del panel",
       "authDiscord": "Inicio de sesión con Discord (OAuth)",
       "authOwners": "Propietarios",
-      "discordStatus": "Embed de estado"
+      "discordStatus": "Embed de estado",
+      "marketBot": "Bot de mercado"
     },
     "ssh": {
       "hostPort": "Host : puerto",
@@ -1397,6 +1402,14 @@
       "cookieStrictDesc": "La cookie nunca se envía en ninguna solicitud entre sitios: la máxima protección CSRF. Incompatible con el inicio de sesión de Discord (la redirección OAuth no puede llevarla); úsalo solo con cuentas locales.",
       "cookieNone": "Ninguno",
       "cookieNoneDesc": "La cookie se envía en todas las solicitudes, incluso de origen cruzado. Solo se necesita cuando la UI y el backend están en dominios distintos (p. ej. separación CDN). Requiere HTTPS."
+    },
+    "scope": {
+      "server": "Servidor",
+      "admin": "DuneAdmin"
+    },
+    "marketBot": {
+      "enabled": "Activar el bot de mercado para este servidor",
+      "enabledHint": "Ejecuta el bot de mercado integrado en este servidor. Los ajustes se comparten entre servidores y están en la pestaña Mercado."
     }
   },
   "storage": {
@@ -1892,5 +1905,39 @@
     "placeholder": "Buscar jugadores…",
     "loadFailed": "Error al cargar jugadores: {{message}}",
     "loading": "Cargando jugadores…"
+  },
+  "servers": {
+    "removeTitle": "Eliminar servidor",
+    "removeDesc": "¿Eliminar permanentemente \"{{name}}\" y todos sus datos almacenados? Esto no se puede deshacer.",
+    "removeConfirm": "Eliminar",
+    "removeFailed": "Error al eliminar",
+    "removeWarning": "Eliminar permanentemente \"{{name}}\" y todos sus datos almacenados. Esto no se puede deshacer.",
+    "removeConfirmLabel": "Escribe {{name}} para confirmar",
+    "removeCountdown": "Espera {{seconds}}s…"
+  },
+  "setup": {
+    "discovering": "Detectando automáticamente la configuración del servidor…",
+    "connecting": "Conectando…",
+    "saveAndConnect": "Guardar y conectar",
+    "serverName": "Nombre del servidor",
+    "serverNamePlaceholder": "p. ej. Producción",
+    "nameRequired": "El nombre del servidor es obligatorio",
+    "nameInvalid": "El nombre del servidor debe contener letras o números",
+    "connectTimeout": "Aún sin conexión: revisa tu configuración e inténtalo de nuevo."
+  },
+  "discovery": {
+    "title": "Detectando ajustes automáticamente",
+    "subtitle": "Leyendo valores del servidor…",
+    "failed": "No se pudo detectar automáticamente: introduce los valores manualmente.",
+    "steps": {
+      "connect": "Conectando por SSH",
+      "namespace": "Detectando espacio de nombres",
+      "dbPod": "Localizando pod de base de datos",
+      "dbCreds": "Leyendo credenciales de base de datos",
+      "brokers": "Localizando pods de broker",
+      "gameProc": "Localizando proceso del servidor de juego",
+      "containers": "Inspeccionando contenedores",
+      "finalize": "Finalizando"
+    }
   }
 }

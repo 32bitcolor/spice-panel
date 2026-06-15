@@ -1,11 +1,12 @@
 import * as React from 'react'
 import { Show, SignInButton, UserButton, useAuth } from '@clerk/react'
-import { Button, Chip, Modal, Spinner, Toast, toast } from '@heroui/react'
+import { Button, Chip, ListBox, Modal, Select, Spinner, Toast, toast } from '@heroui/react'
 import { AppLayout, Navbar, Sidebar } from '@heroui-pro/react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useStatus } from './hooks/useStatus'
 import { BackendUnreachable } from './components/BackendUnreachable'
+import { SetupWizard } from './components/SetupWizard'
 import { SettingsConfigForm } from './components/SettingsConfigForm'
 import { LanguageSelector } from './components/LanguageSelector'
 import { ThemeSelector } from './components/ThemeSelector'
@@ -31,6 +32,8 @@ const EventsTab = React.lazy(() => import('./tabs/EventsTab').then((m) => ({ def
 const BattlepassTab = React.lazy(() => import('./tabs/BattlepassTab').then((m) => ({ default: m.BattlepassTab })))
 const PermissionsTab = React.lazy(() => import('./tabs/PermissionsTab').then((m) => ({ default: m.PermissionsTab })))
 import { Icon } from './dune-ui'
+import { DeleteServerModal } from './components/DeleteServerModal'
+import { useActiveServer } from './context/useActiveServer'
 import { AuthContext } from './auth/context'
 import { LoginPage } from './auth/LoginPage'
 import { usePermissions } from './hooks/usePermissions'
@@ -146,12 +149,37 @@ export const App: React.FC = () => {
 }
 
 const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
-  const { status, state: connState } = useStatus()
+  const { status, state: connState, refresh: refreshStatus } = useStatus()
   const location = useLocation()
   const navigate = useNavigate()
   const { t, i18n } = useTranslation()
   const [reconnecting, setReconnecting] = React.useState(false)
   const { can, isOwner, enabled: authEnabled } = usePermissions()
+  const { servers, activeID, setActive, removeServer, refresh: refreshServers } = useActiveServer()
+  const [addingServer, setAddingServer] = React.useState(false)
+  const prevNeedsSetup = React.useRef<boolean | undefined>(undefined)
+  React.useEffect(() => {
+    if (prevNeedsSetup.current === true && status?.needs_setup === false) {
+      void refreshServers()
+    }
+    prevNeedsSetup.current = status?.needs_setup
+  }, [status?.needs_setup, refreshServers])
+
+  // Switching the active server loads a whole new config/context: re-fetch
+  // status so the header, control-plane gating and badges reflect the new
+  // server. Tab content is remounted via a key on activeID (below) so each tab
+  // re-fetches its data with the new X-Dune-Server header — no hard reload.
+  const prevActiveID = React.useRef(activeID)
+  React.useEffect(() => {
+    if (prevActiveID.current !== activeID) {
+      prevActiveID.current = activeID
+      void refreshStatus()
+    }
+  }, [activeID, refreshStatus])
+
+  const [deleteServerOpen, setDeleteServerOpen] = React.useState(false)
+  const [deleteServerID, setDeleteServerID] = React.useState('')
+  const [deletingServer, setDeletingServer] = React.useState(false)
 
   // Whether a tab is visible for the current session. All-true when backend
   // auth is disabled.
@@ -378,6 +406,24 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
     return <BackendUnreachable onRetry={() => window.location.reload()} />
   }
 
+  // #166: backend is reachable but has no config — show web setup wizard.
+  if (status?.needs_setup) {
+    return <SetupWizard />
+  }
+
+  // "Add server" wizard rendered as a full-screen overlay.
+  if (addingServer) {
+    return (
+      <SetupWizard
+        onDone={() => {
+          setAddingServer(false)
+          void refreshServers()
+        }}
+        onCancel={() => setAddingServer(false)}
+      />
+    )
+  }
+
   // A single top-level menu item. Sub-sections (Database, Welcome Kits,
   // Battle Pass) live inside their tab via an in-header Segment, so every
   // sidebar item is a plain top-level entry.
@@ -403,18 +449,14 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
       <Sidebar.Header>
         <Button
           variant="ghost"
-          className="flex items-center gap-2 px-2 h-10 min-w-0 hover:opacity-80 w-full justify-start"
+          className="flex items-center gap-0 px-2 h-14 min-w-0 hover:opacity-80 w-full justify-start"
           onPress={() => navigate(`/${DEFAULT_TAB}`)}
           aria-label={t('app.goHome')}
         >
-          <img
-            src="/dune-admin-logo-small.svg"
-            alt="Dune Admin"
-            className="size-6 shrink-0"
-          />
+          <img src="/dune-admin-logo-primary.svg" alt="dune-admin" className="h-12 w-auto" />
           <span
             data-sidebar="label"
-            className="text-sm font-bold uppercase tracking-[0.2em] text-accent overflow-hidden whitespace-nowrap"
+            className="text-xl font-bold uppercase text-accent overflow-hidden whitespace-nowrap"
           >
             {t('app.title')}
           </span>
@@ -469,6 +511,47 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
             </Button>
           )}
         </div>
+
+        {servers.length > 0 && (
+          <div className="flex items-center gap-1">
+            {/* Always render the dropdown when there is ≥1 server so the navbar
+                layout doesn't jump when a second server is added. */}
+            <Select
+              aria-label="Active server"
+              className="w-40"
+              selectedKey={activeID || servers[0]?.id}
+              onSelectionChange={(id) => {
+                if (id && id !== activeID) void setActive(String(id))
+              }}
+            >
+              <Select.Trigger>
+                <Select.Value />
+                <Select.Indicator />
+              </Select.Trigger>
+              <Select.Popover>
+                <ListBox>
+                  {servers.map((s) => (
+                    <ListBox.Item key={s.id} id={s.id} textValue={s.name}>
+                      {s.name}
+                      <ListBox.ItemIndicator />
+                    </ListBox.Item>
+                  ))}
+                </ListBox>
+              </Select.Popover>
+            </Select>
+            {can('server:control') && (
+              <Button
+                size="sm"
+                variant="ghost"
+                isIconOnly
+                aria-label="Add server"
+                onPress={() => setAddingServer(true)}
+              >
+                <Icon name="plus" />
+              </Button>
+            )}
+          </div>
+        )}
 
         <Navbar.Spacer />
 
@@ -569,7 +652,9 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
         navbar={navbar}
         sidebar={sidebar}
       >
-        <div className="h-full flex flex-col p-3 overflow-hidden min-h-0">
+        {/* Keyed by activeID so switching servers remounts every tab — each
+            re-fetches its data with the new X-Dune-Server header (no reload). */}
+        <div key={activeID} className="h-full flex flex-col p-3 overflow-hidden min-h-0">
           {tabContent}
         </div>
       </AppLayout>
@@ -602,7 +687,20 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
             {/* Body scrolls; form fills it with its own internal tab scroll */}
             <Modal.Body className="flex flex-col overflow-y-auto h-[80vh] min-h-0 pr-1">
               {showBackendConfig && (
-                <SettingsConfigForm saveRef={formSaveRef} onSavingChange={setFormSaving} />
+                <SettingsConfigForm
+                  saveRef={formSaveRef}
+                  onSavingChange={setFormSaving}
+                  onRequestDeleteServer={
+                    can('server:control')
+                      ? () => {
+                          // Single-server installs never set an explicit active
+                          // id; the backend registers it as "default".
+                          setDeleteServerID(activeID || 'default')
+                          setDeleteServerOpen(true)
+                        }
+                      : undefined
+                  }
+                />
               )}
             </Modal.Body>
 
@@ -743,6 +841,31 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
         phase={updatePhase}
         errorMessage={updateError}
         onDismiss={() => setUpdateApplying(false)}
+      />
+
+      {/* Remove-server confirmation — destructive (10s countdown + type-to-confirm),
+          with per-server data purge. Deleting the active server reassigns active;
+          deleting the last one returns to the Setup Wizard. removeServer refetches
+          the list (reconciling activeID) and we refresh status so the UI reacts
+          without a hard reload. */}
+      <DeleteServerModal
+        open={deleteServerOpen}
+        serverName={servers.find((s) => s.id === deleteServerID)?.name ?? deleteServerID}
+        busy={deletingServer}
+        onConfirm={() => {
+          setDeletingServer(true)
+          removeServer(deleteServerID)
+            .then(() => refreshStatus())
+            .then(() => {
+              setDeleteServerOpen(false)
+              setShowBackendConfig(false)
+            })
+            .catch((e: unknown) => {
+              toast.danger(`${t('servers.removeFailed', 'Remove failed')}: ${e instanceof Error ? e.message : String(e)}`)
+            })
+            .finally(() => setDeletingServer(false))
+        }}
+        onCancel={() => setDeleteServerOpen(false)}
       />
     </div>
   )
