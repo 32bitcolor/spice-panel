@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"testing"
 	"time"
 )
@@ -127,8 +128,15 @@ func TestGivePacksStore_ServerScope(t *testing.T) {
 	if !ok {
 		t.Error("server A should see its own config")
 	}
-	if got != packsJSON {
-		t.Errorf("sA.loadConfig packs = %q, want %q", got, packsJSON)
+	// Packs now round-trip through the typed give_packs/give_pack_items tables,
+	// so loadConfig re-marshals fully-populated structs rather than echoing the
+	// input bytes. Assert on the decoded pack identity instead of byte equality.
+	var gotPacks []givePack
+	if err := json.Unmarshal([]byte(got), &gotPacks); err != nil {
+		t.Fatalf("unmarshal sA packs %q: %v", got, err)
+	}
+	if len(gotPacks) != 1 || gotPacks[0].ID != "p1" {
+		t.Errorf("sA.loadConfig packs = %q, want one pack with id p1", got)
 	}
 }
 

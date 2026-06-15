@@ -57,6 +57,9 @@ func migrateColumnStores(db *sql.DB) {
 	if err := migrateServersColumns(db); err != nil {
 		fmt.Fprintf(os.Stderr, "unified store: servers column migration warning: %v\n", err)
 	}
+	if err := migrateGivePacksColumns(db); err != nil {
+		fmt.Fprintf(os.Stderr, "unified store: give-packs column migration warning: %v\n", err)
+	}
 }
 
 // backupPreMigration makes a one-time snapshot of the pre-upgrade SQLite store
@@ -140,6 +143,9 @@ func applyUnifiedSchema(db *sql.DB) error {
 	if err := initGivePacksSchema(db); err != nil {
 		return fmt.Errorf("unified store: give-packs schema: %w", err)
 	}
+	if err := initGivePacksColumnsSchema(db); err != nil {
+		return fmt.Errorf("unified store: give-packs columns schema: %w", err)
+	}
 	if err := initEventsSchema(db); err != nil {
 		return fmt.Errorf("unified store: events schema: %w", err)
 	}
@@ -200,8 +206,12 @@ func defaultLegacySources() []legacySource {
 			tables: []string{"map_locations"},
 		},
 		{
-			name:   "give-packs",
-			path:   filepath.Join(dir, "give-packs.db"),
+			name: "give-packs",
+			path: filepath.Join(dir, "give-packs.db"),
+			// Only the config row (with its legacy packs_json) is imported from a
+			// pre-unified standalone file. The typed give_packs/give_pack_items
+			// tables are derived afterwards by migrateGivePacksColumns — a legacy
+			// file predates them, so copying them directly would fail every boot.
 			tables: []string{"give_packs_config"},
 		},
 	}

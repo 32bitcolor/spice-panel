@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -44,6 +45,9 @@ func initGivePacksSchema(db *sql.DB) error {
 	); err != nil {
 		return fmt.Errorf("migrate give_packs_config server_id: %w", err)
 	}
+	if err := initGivePacksColumnsSchema(db); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -74,10 +78,12 @@ func (s *givePacksStore) close() error {
 	return s.db.Close()
 }
 
-// saveConfig upserts the single give_packs_config row (id=1).
-// packsJSON must be a valid JSON array (never nil — use "[]" for empty).
-// basePacksLoaded=true means the default seed has been applied; subsequent
-// startups will skip re-seeding even when packsJSON is "[]" (user deleted all).
+// saveConfig persists the pack library. The give_packs_config row remains the
+// canonical home for base_packs_loaded + updated_at (and presence), but packs are
+// now stored in the typed give_packs/give_pack_items tables; packs_json is written
+// as '[]' and is no longer authoritative. packsJSON must be a valid JSON array
+// ("" is treated as empty). basePacksLoaded=true means the default seed has been
+// applied; subsequent startups skip re-seeding even when there are zero packs.
 func (s *givePacksStore) saveConfig(packsJSON string, basePacksLoaded bool) error {
 	loaded := 0
 	if basePacksLoaded {
@@ -86,32 +92,50 @@ func (s *givePacksStore) saveConfig(packsJSON string, basePacksLoaded bool) erro
 	now := time.Now().UTC().Format(time.RFC3339)
 	_, err := s.db.Exec(`
 		INSERT INTO give_packs_config (server_id, base_packs_loaded, packs_json, updated_at)
-		VALUES (?, ?, ?, ?)
+		VALUES (?, ?, '[]', ?)
 		ON CONFLICT(server_id) DO UPDATE SET
 			base_packs_loaded = excluded.base_packs_loaded,
-			packs_json        = excluded.packs_json,
+			packs_json        = '[]',
 			updated_at        = excluded.updated_at`,
-		s.serverID, loaded, packsJSON, now)
+		s.serverID, loaded, now)
 	if err != nil {
 		return fmt.Errorf("save give-packs config: %w", err)
+	}
+	packs := []givePack{}
+	if packsJSON != "" {
+		if err := json.Unmarshal([]byte(packsJSON), &packs); err != nil {
+			return fmt.Errorf("parse give-packs json: %w", err)
+		}
+	}
+	if err := saveGivePacksColumns(s.db, s.serverID, packs); err != nil {
+		return fmt.Errorf("save give-packs columns: %w", err)
 	}
 	return nil
 }
 
-// loadConfig reads the single give_packs_config row.
+// loadConfig reads the pack library. base_packs_loaded and presence come from the
+// give_packs_config row (ok=false when absent — first boot, caller should seed the
+// embedded default); packs come from the typed give_packs/give_pack_items tables,
+// re-marshalled to a JSON array (always valid, "[]" when empty).
 // Returns (basePacksLoaded, packsJSON, ok, err).
-// ok=false when the table is empty (first boot); in that case the caller
-// should seed from the embedded default.
 func (s *givePacksStore) loadConfig() (basePacksLoaded bool, packsJSON string, ok bool, err error) {
 	var loadedInt int
 	scanErr := s.db.QueryRow(`
-		SELECT base_packs_loaded, packs_json FROM give_packs_config WHERE server_id = ?`,
-		s.serverID).Scan(&loadedInt, &packsJSON)
+		SELECT base_packs_loaded FROM give_packs_config WHERE server_id = ?`,
+		s.serverID).Scan(&loadedInt)
 	if errors.Is(scanErr, sql.ErrNoRows) {
 		return false, "", false, nil
 	}
 	if scanErr != nil {
 		return false, "", false, fmt.Errorf("load give-packs config: %w", scanErr)
 	}
-	return loadedInt != 0, packsJSON, true, nil
+	packs, loadErr := loadGivePacksColumns(s.db, s.serverID)
+	if loadErr != nil {
+		return false, "", false, fmt.Errorf("load give-packs columns: %w", loadErr)
+	}
+	blob, marshalErr := json.Marshal(packs)
+	if marshalErr != nil {
+		return false, "", false, fmt.Errorf("marshal give-packs: %w", marshalErr)
+	}
+	return loadedInt != 0, string(blob), true, nil
 }

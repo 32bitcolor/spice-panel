@@ -90,13 +90,18 @@ func seedLegacyStores(t *testing.T, dir string) []legacySource {
 	}
 	_ = ls.close()
 
-	// Give-packs: a config row.
+	// Give-packs: a config row as a REAL pre-refactor file looks — packs live in
+	// the give_packs_config.packs_json blob, the typed give_packs tables don't
+	// exist yet. Seed packs_json directly (the current saveConfig would write
+	// '[]' there). The typed tables are derived later by migrateGivePacksColumns.
 	gps, err := openGivePacksStore(givePacksPath)
 	if err != nil {
 		t.Fatalf("openGivePacksStore: %v", err)
 	}
 	const packsJSON = `[{"id":"t6-starter","name":"T6","category":"Starter","tier":6,"items":[]}]`
-	if err := gps.saveConfig(packsJSON, true); err != nil {
+	if _, err := gps.db.Exec(
+		`INSERT INTO give_packs_config (server_id, base_packs_loaded, packs_json, updated_at)
+		 VALUES ('default', 1, ?, '')`, packsJSON); err != nil {
 		t.Fatalf("seed give-packs: %v", err)
 	}
 	_ = gps.close()
@@ -138,7 +143,9 @@ func TestMigrateLegacyStores_ImportsData(t *testing.T) {
 	if n := countRows(t, db, "welcome_config"); n != 1 {
 		t.Errorf("welcome_config: want 1, got %d", n)
 	}
-	// give-packs config imported.
+	// give-packs config imported (with its legacy packs_json). The typed
+	// give_packs tables are derived separately by migrateGivePacksColumns, which
+	// has its own coverage (TestMigrateGivePacksColumns).
 	var packsJSON string
 	if err := db.QueryRow(`SELECT packs_json FROM give_packs_config WHERE server_id = 'default'`).Scan(&packsJSON); err != nil {
 		t.Fatalf("read imported give_packs_config: %v", err)
