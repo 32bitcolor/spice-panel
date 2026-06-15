@@ -14,7 +14,7 @@ import { OnboardingCards } from './OnboardingCards'
 export interface DashboardTabProps {
   onAddServer: () => void
   onOpenSettings: (tab?: string) => void
-  onManageServer: (id: string) => void
+  onManageServer: (id: number) => void
   /** Bumped when the settings modal closes, so onboarding state re-syncs. */
   refreshKey?: number
 }
@@ -58,7 +58,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
       .catch(() => { /* ignore */ })
   }, [canControl, refreshKey])
 
-  const view = (id: string) => {
+  const view = (id: number) => {
     void setActive(id).then(() => navigate('/battlegroup'))
   }
 

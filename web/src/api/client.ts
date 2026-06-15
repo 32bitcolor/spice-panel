@@ -253,10 +253,10 @@ export type AppConfig = {
 // between game servers), plus id/name. Secrets are masked on read and the
 // placeholder is restored server-side on write. Returned by GET
 // /servers/{id}/config and accepted by PUT /servers/{id}/config.
-export type ServerConfig = { id: string, name: string } & Partial<AppConfig>
+export type ServerConfig = { id: number, name: string } & Partial<AppConfig>
 
 export type ServerInfo = {
-  id: string
+  id: number
   name: string
   active: boolean
 }
@@ -264,7 +264,7 @@ export type ServerInfo = {
 // ServerHealth is the dashboard health summary for one registered server,
 // returned by GET /servers/health.
 export type ServerHealth = {
-  id: string
+  id: number
   name: string
   active: boolean
   control: string
@@ -1428,11 +1428,11 @@ export const api = {
       req<ServerInfo>('POST', '/servers', cfg),
     discover: (cfg: ServerConfig) =>
       req<Partial<AppConfig>>('POST', '/servers/discover', cfg),
-    setActive: (id: string) => req<{ active: string }>('PUT', '/servers/active', { id }),
-    remove: (id: string) => req<{ deleted: boolean }>('DELETE', `/servers/${id}`),
-    reconnect: (id: string) => req<{ connected: boolean }>('POST', `/servers/${id}/reconnect`),
-    getConfig: (id: string) => req<ServerConfig>('GET', `/servers/${id}/config`),
-    saveConfig: (id: string, cfg: ServerConfig) =>
+    setActive: (id: number) => req<{ active: number }>('PUT', '/servers/active', { id }),
+    remove: (id: number) => req<{ deleted: boolean }>('DELETE', `/servers/${id}`),
+    reconnect: (id: number) => req<{ connected: boolean }>('POST', `/servers/${id}/reconnect`),
+    getConfig: (id: number) => req<ServerConfig>('GET', `/servers/${id}/config`),
+    saveConfig: (id: number, cfg: ServerConfig) =>
       req<ServerConfig>('PUT', `/servers/${id}/config`, cfg),
   },
 

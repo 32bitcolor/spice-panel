@@ -2,13 +2,13 @@ import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Modal, Spinner, toast } from '@heroui/react'
 import { Icon } from '../dune-ui'
-import { SettingsConfigForm } from './SettingsConfigForm'
+import { ServerSettingsForm } from './settings/server/ServerSettingsForm'
 import { DeleteServerModal } from './DeleteServerModal'
 import { useActiveServer } from '../context/useActiveServer'
 
 export interface ManageServerModalProps {
   open: boolean
-  serverId: string
+  serverId: number
   /** Whether the session may delete/control servers. */
   canControl: boolean
   onClose: () => void
@@ -29,7 +29,7 @@ export const ManageServerModal: React.FC<ManageServerModalProps> = ({
   const [deleteOpen, setDeleteOpen] = React.useState(false)
   const [deleting, setDeleting] = React.useState(false)
 
-  const serverName = servers.find((s) => s.id === serverId)?.name ?? serverId
+  const serverName = servers.find((s) => s.id === serverId)?.name ?? String(serverId)
 
   const handleSave = () => {
     void saveRef.current?.().then(() => onClose())
@@ -49,7 +49,7 @@ export const ManageServerModal: React.FC<ManageServerModalProps> = ({
             </Modal.Header>
             <Modal.Body className="flex flex-col overflow-y-auto h-[80vh] min-h-0 pr-1">
               {open && (
-                <SettingsConfigForm
+                <ServerSettingsForm
                   key={serverId}
                   serverId={serverId}
                   saveRef={saveRef}

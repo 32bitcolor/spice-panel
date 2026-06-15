@@ -10,7 +10,7 @@ import type { BotServerConfigHandle, StringAppConfigKey } from './types'
 export const BotServerConfig = React.forwardRef<BotServerConfigHandle>((_, ref) => {
   const { t } = useTranslation()
   const { activeID, servers } = useActiveServer()
-  const serverID = activeID || servers[0]?.id || 'default'
+  const serverID = activeID || servers[0]?.id || 0
   const activeName = servers.find((s) => s.id === serverID)?.name ?? ''
   const [cfg, setCfg] = React.useState<AppConfig | null>(null)
   const [loading, setLoading] = React.useState(false)
@@ -46,7 +46,7 @@ export const BotServerConfig = React.forwardRef<BotServerConfigHandle>((_, ref) 
         // per-server toggle via the legacy mapping. For a non-default active
         // server, the toggle is saved through its per-server config endpoint.
         await api.config.save(cfg)
-        if (serverID !== 'default') {
+        if (serverID !== 0) {
           await api.servers.saveConfig(serverID, {
             id: serverID,
             name: activeName,

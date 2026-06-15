@@ -8,7 +8,9 @@ import { AuthContext } from '../auth/context'
 export const ActiveServerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const auth = React.useContext(AuthContext)
   const [servers, setServers] = React.useState<ServerInfo[]>([])
-  const [activeID, setActiveID] = React.useState(getActiveServerID)
+  // activeID is numeric (0 = none); the X-Dune-Server header carries its decimal
+  // string form, which the client persists in localStorage.
+  const [activeID, setActiveID] = React.useState<number>(() => Number(getActiveServerID()) || 0)
   const [loading, setLoading] = React.useState(true)
 
   const refresh = React.useCallback(async () => {
@@ -20,10 +22,10 @@ export const ActiveServerProvider: React.FC<{ children: React.ReactNode }> = ({ 
     // copies; a deleted/recreated server leaves an id that no longer exists in
     // the registry. Without this, every request keeps sending a dead
     // X-Dune-Server header and the backend rejects it with 404.
-    const current = getActiveServerID()
+    const current = Number(getActiveServerID()) || 0
     if (current && !list.some((s) => s.id === current)) {
-      const fallback = list.find((s) => s.active)?.id ?? ''
-      setActiveServerID(fallback)
+      const fallback = list.find((s) => s.active)?.id ?? 0
+      setActiveServerID(fallback ? String(fallback) : '')
       setActiveID(fallback)
     }
   }, [])
@@ -40,17 +42,17 @@ export const ActiveServerProvider: React.FC<{ children: React.ReactNode }> = ({ 
     void Promise.resolve().then(refresh)
   }, [auth.loading, hasSession, refresh])
 
-  const setActive = React.useCallback(async (id: string) => {
+  const setActive = React.useCallback(async (id: number) => {
     // Changing the process-wide active server requires server:control; guests
     // (read-only) still get client-side scoping via the X-Dune-Server header, so
     // a rejected backend call must not block the view switch.
     await api.servers.setActive(id).catch(() => {})
-    setActiveServerID(id)
+    setActiveServerID(String(id))
     setActiveID(id)
     setServers((prev) => prev.map((s) => ({ ...s, active: s.id === id })))
   }, [])
 
-  const removeServer = React.useCallback(async (id: string) => {
+  const removeServer = React.useCallback(async (id: number) => {
     await api.servers.remove(id)
     // Refetch the authoritative list and reconcile the active id. Deleting the
     // active server (backend reassigns active) or the last server (registry

@@ -3,7 +3,7 @@ import { Button, Input, Spinner } from '@heroui/react'
 import { Stepper } from '@heroui-pro/react'
 import { useTranslation } from 'react-i18next'
 import { toast } from '@heroui/react'
-import { SettingsConfigForm } from './SettingsConfigForm'
+import { ServerSettingsForm } from './settings/server/ServerSettingsForm'
 import { DiscoveryModal } from './DiscoveryModal'
 import { api } from '../api/client'
 import type { AppConfig } from '../api/client'
@@ -226,12 +226,11 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onDone }) => {
                     )}
                   </div>
                 )}
-                <SettingsConfigForm
+                <ServerSettingsForm
                   saveRef={saveRef}
                   onSavingChange={setSaving}
                   activeTab={STEPS[step]?.id}
                   hideTabBar
-                  skipLoad={isAddMode}
                   addMode={isAddMode}
                   addServerName={serverName}
                   onConfigChange={setLiveConfig}
@@ -246,7 +245,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onDone }) => {
       {isAddMode && showDiscovery && liveConfig && (
         <DiscoveryModal
           open={showDiscovery}
-          config={{ id: 'new', name: serverName, ...liveConfig }}
+          config={{ id: 0, name: serverName, ...liveConfig }}
           onDone={(discovered) => {
             setPrefill(discovered)
             setShowDiscovery(false)
