@@ -41,7 +41,7 @@ func handleBGStatus(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, fmt.Errorf("not connected"), 503)
 		return
 	}
-	status, err := ctrl.GetStatus(r.Context(), exec)
+	status, err := cachedBGStatus(r, ctrl, exec)
 	if err != nil {
 		jsonErr(w, err, 500)
 		return
@@ -52,6 +52,20 @@ func handleBGStatus(w http.ResponseWriter, r *http.Request) {
 		"phase":    status.Phase,
 		"database": status.Database,
 	}, "servers": status.Servers})
+}
+
+// cachedBGStatus serves the battlegroup status from the per-server cache (keyed
+// by the request's server scope), loading live on a miss. Falls back to a direct
+// GetStatus when the request has no server context or the cache is unavailable.
+func cachedBGStatus(r *http.Request, ctrl ControlPlane, exec Executor) (*BattlegroupStatus, error) {
+	sc := serverFromCtx(r)
+	if sc == nil || globalBGStatusCache == nil {
+		return ctrl.GetStatus(r.Context(), exec)
+	}
+	return globalBGStatusCache.GetOrLoad(r.Context(), cacheKey(sc.ID, "bgstatus"), healthCacheTTL,
+		func(ctx context.Context) (*BattlegroupStatus, error) {
+			return ctrl.GetStatus(ctx, exec)
+		})
 }
 
 func safeIdx(s []string, i int) string {
@@ -103,6 +117,11 @@ func handleBGExec(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		jsonErr(w, fmt.Errorf("exec: %w — output: %s", err, out), 500)
 		return
+	}
+	// A lifecycle command (start/stop/restart) changes status — drop the cached
+	// health + battlegroup status so the UI reflects it on the next poll.
+	if sc := serverFromCtx(r); sc != nil {
+		invalidateServerHealth(sc.ID)
 	}
 	jsonOK(w, map[string]string{"output": out})
 }

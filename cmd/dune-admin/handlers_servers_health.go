@@ -26,6 +26,27 @@ type serverHealth struct {
 // online player count (falling back to summing control-plane rows when the DB
 // pool is unavailable). Never panics — failures land in the Error field.
 func assembleServerHealth(ctx context.Context, sc *ServerContext) serverHealth {
+	st, err := serverBGStatus(ctx, sc)
+	return healthFromStatus(ctx, sc, st, err)
+}
+
+// serverBGStatus fetches a server's control-plane battlegroup status with a
+// bounded timeout. Returns (nil, nil) when the server has no control plane.
+// Shared by assembleServerHealth, the cached battlegroup-status handler, and the
+// warmer so one GetStatus call feeds both the health and bgstatus caches.
+func serverBGStatus(ctx context.Context, sc *ServerContext) (*BattlegroupStatus, error) {
+	if sc.Control == nil {
+		return nil, nil
+	}
+	cctx, cancel := context.WithTimeout(ctx, 8*time.Second)
+	defer cancel()
+	return sc.Control.GetStatus(cctx, sc.Executor)
+}
+
+// healthFromStatus builds a serverHealth summary from an already-fetched status
+// (and its fetch error), so callers that already have the status don't trigger a
+// second GetStatus.
+func healthFromStatus(ctx context.Context, sc *ServerContext, st *BattlegroupStatus, err error) serverHealth {
 	h := serverHealth{
 		ID:          sc.Cfg.ID,
 		Name:        sc.Name,
@@ -42,9 +63,6 @@ func assembleServerHealth(ctx context.Context, sc *ServerContext) serverHealth {
 		return h
 	}
 
-	cctx, cancel := context.WithTimeout(ctx, 8*time.Second)
-	defer cancel()
-	st, err := sc.Control.GetStatus(cctx, sc.Executor)
 	if err != nil || st == nil {
 		// A control plane that simply can't report status (e.g. local without
 		// cmd_status) is not an error worth surfacing on the card — leave the
@@ -71,7 +89,9 @@ func assembleServerHealth(ctx context.Context, sc *ServerContext) serverHealth {
 	// Prefer the authoritative DB online count; fall back to control-plane rows.
 	h.PlayersOnline = rowPlayers
 	if sc.DB != nil {
-		if stats, serr := cmdFetchServerStats(cctx, sc.DB); serr == nil {
+		dbctx, cancel := context.WithTimeout(ctx, 8*time.Second)
+		defer cancel()
+		if stats, serr := cmdFetchServerStats(dbctx, sc.DB); serr == nil {
 			h.PlayersOnline = int(stats.OnlinePlayers)
 		}
 	}

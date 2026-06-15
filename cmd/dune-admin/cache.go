@@ -108,27 +108,38 @@ func cacheKey(scope string, parts ...string) string {
 const healthCacheTTL = 15 * time.Second
 
 // globalHealthCache caches per-server health summaries (the expensive
-// control-plane GetStatus + DB-stats fan-out). Nil when caching is unavailable
-// (the handlers fall back to a live assemble).
+// control-plane GetStatus + DB-stats fan-out — the dashboard cards). Nil when
+// caching is unavailable (the handlers fall back to a live assemble).
 var globalHealthCache *ristrettoCache[serverHealth]
+
+// globalBGStatusCache caches the full per-server battlegroup status (the
+// Battlegroup tab). It's derived from the same control-plane GetStatus call as
+// health, so the warmer populates both from one fetch.
+var globalBGStatusCache *ristrettoCache[*BattlegroupStatus]
 
 // initGlobalCaches builds the process-wide read caches. Called once at startup
 // (before the connect path) from run(). On error the caches stay nil and the
 // handlers serve live data.
 func initGlobalCaches() error {
 	var err error
-	globalHealthCache, err = newRistrettoCache[serverHealth]("health", 256)
-	if err != nil {
+	if globalHealthCache, err = newRistrettoCache[serverHealth]("health", 256); err != nil {
 		return fmt.Errorf("init health cache: %w", err)
+	}
+	if globalBGStatusCache, err = newRistrettoCache[*BattlegroupStatus]("bgstatus", 256); err != nil {
+		return fmt.Errorf("init bgstatus cache: %w", err)
 	}
 	return nil
 }
 
-// invalidateServerHealth drops a server's cached health so the next read
-// re-assembles live. Called after mutations that change a server's status
-// (reconnect, config edit, delete).
+// invalidateServerHealth drops a server's cached health AND battlegroup status
+// (both derive from the same control-plane status) so the next read is live.
+// Called after mutations that change a server's status (reconnect, config edit,
+// delete, lifecycle start/stop/restart).
 func invalidateServerHealth(scope string) {
 	if globalHealthCache != nil {
 		globalHealthCache.Delete(cacheKey(scope, "health"))
+	}
+	if globalBGStatusCache != nil {
+		globalBGStatusCache.Delete(cacheKey(scope, "bgstatus"))
 	}
 }

@@ -27,15 +27,23 @@ func newCacheWarmer(reg *serverRegistry) *cacheWarmer {
 	return &cacheWarmer{registry: reg, interval: warmerInterval}
 }
 
-// warmAll refreshes every warmable entry for every registered server. Currently
-// just per-server health; broaden as more reads are cached.
+// warmAll refreshes every warmable entry for every registered server. One
+// control-plane GetStatus per server feeds BOTH the dashboard health summary and
+// the Battlegroup-tab status, so neither pays a cold miss on hard refresh.
 func (w *cacheWarmer) warmAll(ctx context.Context) {
-	if globalHealthCache == nil || w.registry == nil {
+	if w.registry == nil || (globalHealthCache == nil && globalBGStatusCache == nil) {
 		return
 	}
 	for _, sc := range w.registry.All() {
-		h := assembleServerHealth(ctx, sc)
-		globalHealthCache.Set(cacheKey(sc.ID, "health"), h, healthCacheTTL)
+		st, err := serverBGStatus(ctx, sc)
+		if globalHealthCache != nil {
+			globalHealthCache.Set(cacheKey(sc.ID, "health"), healthFromStatus(ctx, sc, st, err), healthCacheTTL)
+		}
+		// Only cache a successful status; a nil/errored status would poison the
+		// Battlegroup tab (the live handler returns the error instead).
+		if globalBGStatusCache != nil && st != nil {
+			globalBGStatusCache.Set(cacheKey(sc.ID, "bgstatus"), st, healthCacheTTL)
+		}
 	}
 }
 
