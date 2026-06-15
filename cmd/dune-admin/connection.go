@@ -177,7 +177,7 @@ func connectAll() error {
 // Failures are logged and swallowed — they must never block startup.
 func ensureDBSchema(pool *pgxpool.Pool) {
 	ctx := context.Background()
-	if err := cmdEnsureGMIdentity(ctx); err != nil {
+	if err := cmdEnsureGMIdentity(ctx, pool); err != nil {
 		log.Printf("connectAll: ensure GM identity: %v", err)
 	}
 	if err := cmdEnsureDiscordLinksTable(ctx, pool); err != nil {

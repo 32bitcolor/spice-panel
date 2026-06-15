@@ -2037,13 +2037,13 @@ func gmSeedSpec() gmSeed {
 // stays correct if user-data encryption is ever enabled. actors.transform is left
 // NULL so the GM never plots on the live map. Safe to call on every startup
 // (ON CONFLICT DO NOTHING); the connectAll wiring logs-and-continues on failure.
-func cmdEnsureGMIdentity(ctx context.Context) error {
-	if globalDB == nil {
+func cmdEnsureGMIdentity(ctx context.Context, pool *pgxpool.Pool) error {
+	if pool == nil {
 		return fmt.Errorf("not connected")
 	}
 	s := gmSeedSpec()
 
-	tx, err := globalDB.Begin(ctx)
+	tx, err := pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin gm seed: %w", err)
 	}
