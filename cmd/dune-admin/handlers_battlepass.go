@@ -127,21 +127,33 @@ func productionBattlepassGrantDeps(pool *pgxpool.Pool) battlepassGrantDeps {
 	}
 }
 
+// battlepassStoreForCtx returns the battlepass store scoped to the request's
+// server, so per-player claims, grants, and baselines never leak across servers.
+// Returns nil when the store is unavailable. Tier-catalog handlers use
+// globalBattlepassStore directly because the catalog has no server_id.
+func battlepassStoreForCtx(r *http.Request) *battlepassStore {
+	if globalBattlepassStore == nil {
+		return nil
+	}
+	return globalBattlepassStore.withScope(storeScopeFromCtx(r))
+}
+
 // ── handlers ──────────────────────────────────────────────────────────────────
 
 // handleListBattlepassTiers returns the tier catalog with per-tier claim counts.
 func handleListBattlepassTiers(w http.ResponseWriter, r *http.Request) {
-	if globalBattlepassStore == nil {
+	store := battlepassStoreForCtx(r)
+	if store == nil {
 		jsonErr(w, fmt.Errorf("battlepass store not available"), http.StatusServiceUnavailable)
 		return
 	}
-	tiers, err := globalBattlepassStore.listTiers()
+	tiers, err := store.listTiers()
 	if err != nil {
 		componentLog("battlepass").Error().Err(err).Msg("list tiers failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}
-	counts, err := globalBattlepassStore.countsByTier()
+	counts, err := store.countsByTier()
 	if err != nil {
 		componentLog("battlepass").Error().Err(err).Msg("counts by tier failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
@@ -380,7 +392,8 @@ func handleUpdateBattlepassTier(w http.ResponseWriter, r *http.Request) {
 
 // handleBattlepassProgress returns one account's claims and pending intel.
 func handleBattlepassProgress(w http.ResponseWriter, r *http.Request) {
-	if globalBattlepassStore == nil {
+	store := battlepassStoreForCtx(r)
+	if store == nil {
 		jsonErr(w, fmt.Errorf("battlepass store not available"), http.StatusServiceUnavailable)
 		return
 	}
@@ -389,7 +402,7 @@ func handleBattlepassProgress(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, fmt.Errorf("invalid account id"), http.StatusBadRequest)
 		return
 	}
-	claims, err := globalBattlepassStore.listClaims(accountID)
+	claims, err := store.listClaims(accountID)
 	if err != nil {
 		componentLog("battlepass").Error().Int64("account_id", accountID).Err(err).Msg("list claims failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
@@ -407,11 +420,12 @@ func handleBattlepassProgress(w http.ResponseWriter, r *http.Request) {
 // handleBattlepassPending lists all earned-but-ungranted claims at tier
 // granularity, decorated with character name and online state when available.
 func handleBattlepassPending(w http.ResponseWriter, r *http.Request) {
-	if globalBattlepassStore == nil {
+	store := battlepassStoreForCtx(r)
+	if store == nil {
 		jsonErr(w, fmt.Errorf("battlepass store not available"), http.StatusServiceUnavailable)
 		return
 	}
-	tierRows, err := globalBattlepassStore.earnedClaimsWithTiers()
+	tierRows, err := store.earnedClaimsWithTiers()
 	if err != nil {
 		componentLog("battlepass").Error().Err(err).Msg("earned claims with tiers failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
@@ -495,7 +509,8 @@ func grantBattlepassTier(ctx context.Context, store *battlepassStore, deps battl
 
 // handleBattlepassGrantTier grants a single earned tier for an account.
 func handleBattlepassGrantTier(w http.ResponseWriter, r *http.Request) {
-	if globalBattlepassStore == nil {
+	store := battlepassStoreForCtx(r)
+	if store == nil {
 		jsonErr(w, fmt.Errorf("battlepass store not available"), http.StatusServiceUnavailable)
 		return
 	}
@@ -517,7 +532,7 @@ func handleBattlepassGrantTier(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	intel, err := grantBattlepassTier(r.Context(), globalBattlepassStore, productionBattlepassGrantDeps(db), req.AccountID, req.TierKey)
+	intel, err := grantBattlepassTier(r.Context(), store, productionBattlepassGrantDeps(db), req.AccountID, req.TierKey)
 	switch {
 	case errors.Is(err, errBattlepassNothingEarned):
 		jsonErr(w, err, http.StatusBadRequest)
@@ -552,7 +567,8 @@ func handleBattlepassReseed(w http.ResponseWriter, r *http.Request) {
 // handleBattlepassGrant applies an account's earned intel to its character.
 // The player must be offline — the game would clobber a live edit.
 func handleBattlepassGrant(w http.ResponseWriter, r *http.Request) {
-	if globalBattlepassStore == nil {
+	store := battlepassStoreForCtx(r)
+	if store == nil {
 		jsonErr(w, fmt.Errorf("battlepass store not available"), http.StatusServiceUnavailable)
 		return
 	}
@@ -569,7 +585,7 @@ func handleBattlepassGrant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	total, tiers, err := grantBattlepassEarned(r.Context(), globalBattlepassStore, productionBattlepassGrantDeps(db), req.AccountID)
+	total, tiers, err := grantBattlepassEarned(r.Context(), store, productionBattlepassGrantDeps(db), req.AccountID)
 	switch {
 	case errors.Is(err, errBattlepassNothingEarned):
 		jsonErr(w, err, http.StatusBadRequest)

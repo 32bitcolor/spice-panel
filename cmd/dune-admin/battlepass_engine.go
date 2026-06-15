@@ -372,10 +372,13 @@ func applyBattlepassEngine(cfg appConfig) {
 		if sc.DB == nil {
 			continue
 		}
+		// Each server's engine writes claims/grants under that server's scope so
+		// the same account_id on different servers never collides.
+		scoped := globalBattlepassStore.withScope(sc.StoreScope)
 		go runBattlepassEngine(ctx, productionBattlepassDeps(sc.DB),
-			globalBattlepassStore, interval, paceEvery, startDelay, battlepassAwardPast(cfg), autoGrant)
+			scoped, interval, paceEvery, startDelay, battlepassAwardPast(cfg), autoGrant)
 		if autoGrant {
-			go runBattlepassGrantLoop(ctx, globalBattlepassStore, productionBattlepassGrantDeps(sc.DB))
+			go runBattlepassGrantLoop(ctx, scoped, productionBattlepassGrantDeps(sc.DB))
 		}
 	}
 }

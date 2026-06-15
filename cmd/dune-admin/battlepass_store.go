@@ -176,6 +176,15 @@ func newBattlepassStore(db *sql.DB, serverID string) *battlepassStore {
 	return &battlepassStore{db: db, serverID: serverID}
 }
 
+// withScope returns a view of the store bound to a different server_id, sharing
+// the same underlying handle. Claim/account/grant-ledger queries filter by
+// serverID, so each server sees only its own per-player rows even though the
+// same numeric account_id may exist on multiple servers. The tier catalog has
+// no server_id and is unaffected.
+func (s *battlepassStore) withScope(serverID string) *battlepassStore {
+	return &battlepassStore{db: s.db, serverID: serverID}
+}
+
 func openBattlepassStore(path string) (*battlepassStore, error) {
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
