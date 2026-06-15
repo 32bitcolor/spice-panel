@@ -568,7 +568,11 @@ func connectMultiServer(cfg appConfig) error {
 	for _, sc := range cfg.Servers {
 		ctx, err := connectServer(sc)
 		if err != nil {
-			log.Printf("connectMultiServer: server %d: %v", sc.ID, err)
+			control := sc.Control
+			if control == "" {
+				control = "local"
+			}
+			log.Printf("connectMultiServer: server %d (%s): %v", sc.ID, control, err)
 			if firstErr == nil {
 				firstErr = err
 			}

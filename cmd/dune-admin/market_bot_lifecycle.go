@@ -86,9 +86,12 @@ func startServerMarketBot(sc *ServerContext, gcfg appConfig) {
 		ListInterval: parseDurString(gcfg.MarketBotListInt, 30*time.Minute),
 		BuyThreshold: gcfg.MarketBotThresh,
 		MaxBuys:      gcfg.MarketBotMaxBuys,
+		// Attribute interleaved logs from multiple servers' bots to a specific
+		// server + control plane.
+		LogPrefix: serverLogPrefix("market-bot", sc),
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "market-bot[%s]: startup failed: %v\n", sc.ID, err)
+		fmt.Fprintf(os.Stderr, "%sstartup failed: %v\n", serverLogPrefix("market-bot", sc), err)
 		botCancel()
 		return
 	}

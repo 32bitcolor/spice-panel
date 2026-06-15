@@ -32,6 +32,10 @@ type BotConfig struct {
 	MaxBuys      int
 	APIAddr      string // empty = disable HTTP sub-API
 	APIToken     string
+	// LogPrefix is prepended to every bot log line (e.g. "market-bot[server=1 amp] ").
+	// Empty defaults to "market-bot ". Lets the host attribute interleaved logs
+	// from multiple servers' bots to a specific server + control plane.
+	LogPrefix string
 }
 
 // Instance holds live handles to the running bot so the host process can
@@ -104,7 +108,11 @@ func (i *Instance) CleanupListings(ctx context.Context) (orders int64, items int
 //	inst, err := marketbot.Start(ctx, cfg)  // non-blocking wrapper below
 func Run(ctx context.Context, cfg BotConfig) (*Instance, error) {
 	sink := NewLogSink()
-	logger := sink.Logger("market-bot ", os.Stderr)
+	prefix := cfg.LogPrefix
+	if prefix == "" {
+		prefix = "market-bot "
+	}
+	logger := sink.Logger(prefix, os.Stderr)
 	started := time.Now()
 
 	if cfg.BuyInterval == 0 {
@@ -201,7 +209,7 @@ func Run(ctx context.Context, cfg BotConfig) (*Instance, error) {
 	}
 	logger.Printf("catalog: %d listable items", len(catalog))
 
-	ex, err := NewExchange(pool, cfg.CacheDB, catalog, botCfg)
+	ex, err := NewExchange(pool, cfg.CacheDB, catalog, botCfg, logger)
 	if err != nil {
 		if ownsDB {
 			pool.Close()
@@ -243,7 +251,7 @@ func Run(ctx context.Context, cfg BotConfig) (*Instance, error) {
 		if ownsDB {
 			defer pool.Close()
 		}
-		runLoop(ctx, logger, botCfg, ex, catalog)
+		runLoop(ctx, botCfg, ex, catalog)
 		logger.Println("shutting down")
 	}()
 
@@ -266,7 +274,7 @@ func Start(ctx context.Context, cfg BotConfig) <-chan *Instance {
 	return ch
 }
 
-func runLoop(ctx context.Context, logger *log.Logger, cfg *Config, ex *Exchange, catalog []CatalogItem) {
+func runLoop(ctx context.Context, cfg *Config, ex *Exchange, catalog []CatalogItem) {
 	ex.Tick(ctx, catalog)
 
 	tick := time.NewTicker(time.Minute)

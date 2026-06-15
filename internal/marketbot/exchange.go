@@ -87,6 +87,7 @@ type listingInfo struct {
 }
 
 type Exchange struct {
+	logger        *log.Logger // per-server logger (carries the server id + control-plane prefix)
 	db            *pgxpool.Pool
 	cache         *sql.DB // local SQLite category cache
 	cfg           *Config
@@ -118,6 +119,16 @@ type marketPrice struct {
 	average int64
 }
 
+// logf writes to the per-server logger, falling back to the standard logger
+// when unset (e.g. in unit tests that build an Exchange literal).
+func (e *Exchange) logf(format string, args ...any) {
+	if e.logger != nil {
+		e.logger.Printf(format, args...)
+		return
+	}
+	log.Printf(format, args...)
+}
+
 func ensureCachePath(cachePath string) (string, error) {
 	if strings.TrimSpace(cachePath) == "" {
 		return "", fmt.Errorf("cache path is empty")
@@ -133,7 +144,7 @@ func ensureCachePath(cachePath string) (string, error) {
 	return cleanPath, nil
 }
 
-func NewExchange(db *pgxpool.Pool, cachePath string, catalog []CatalogItem, cfg *Config) (*Exchange, error) {
+func NewExchange(db *pgxpool.Pool, cachePath string, catalog []CatalogItem, cfg *Config, logger *log.Logger) (*Exchange, error) {
 	cachePath, err := ensureCachePath(cachePath)
 	if err != nil {
 		return nil, fmt.Errorf("prepare category cache path: %w", err)
@@ -161,6 +172,7 @@ func NewExchange(db *pgxpool.Pool, cachePath string, catalog []CatalogItem, cfg 
 	}
 
 	ex := &Exchange{
+		logger:     logger,
 		db:         db,
 		cache:      cache,
 		cfg:        cfg,
@@ -170,7 +182,7 @@ func NewExchange(db *pgxpool.Pool, cachePath string, catalog []CatalogItem, cfg 
 	}
 	if err := cache.QueryRow(`SELECT value FROM metadata WHERE key = 'game_epoch_unix'`).Scan(&ex.gameEpochUnix); err == nil {
 		if !clearSentinelEpoch(ex) {
-			log.Printf("loaded game epoch from cache: unix %d (game time now: %d)", ex.gameEpochUnix, ex.gameNow())
+			logger.Printf("loaded game epoch from cache: unix %d (game time now: %d)", ex.gameEpochUnix, ex.gameNow())
 		}
 	}
 	return ex, nil
@@ -247,7 +259,7 @@ func clearSentinelEpoch(e *Exchange) bool {
 		return false
 	}
 	if e.gameNow() >= epochSentinelCutoff-orderExpirySecs {
-		log.Printf("cached epoch %d produces near-sentinel gameNow — clearing corrupted cache entry", e.gameEpochUnix)
+		e.logf("cached epoch %d produces near-sentinel gameNow — clearing corrupted cache entry", e.gameEpochUnix)
 		e.gameEpochUnix = 0
 		return true
 	}
@@ -262,7 +274,7 @@ func applyLearnedEpoch(e *Exchange, fetchRef func() (int64, error)) {
 		return
 	}
 	if ref >= epochSentinelCutoff {
-		log.Printf("epoch detection: ref %d is at or above sentinel cutoff — skipping to prevent corruption", ref)
+		e.logf("epoch detection: ref %d is at or above sentinel cutoff — skipping to prevent corruption", ref)
 		return
 	}
 	gameNow := ref - orderExpirySecs
@@ -273,7 +285,7 @@ func applyLearnedEpoch(e *Exchange, fetchRef func() (int64, error)) {
 	e.gameEpochUnix = epoch
 	_, _ = e.cache.Exec(`INSERT INTO metadata (key, value) VALUES ('game_epoch_unix', ?)
 		ON CONFLICT (key) DO UPDATE SET value = excluded.value`, epoch)
-	log.Printf("game epoch learned: unix %d (current game time: %d)", epoch, gameNow)
+	e.logf("game epoch learned: unix %d (current game time: %d)", epoch, gameNow)
 }
 
 func (e *Exchange) gameNow() int64 {
@@ -368,7 +380,7 @@ func (e *Exchange) ensureAccessPoint(ctx context.Context) bool {
 	)
 	if ok {
 		e.accessPointID = id
-		log.Printf("access point id: %d", id)
+		e.logf("access point id: %d", id)
 	}
 	return ok
 }
@@ -403,10 +415,10 @@ func (e *Exchange) Init(ctx context.Context, catalog []CatalogItem) error {
 		return err
 	}
 	e.exchangeID = id
-	log.Printf("exchange id: %d", e.exchangeID)
+	e.logf("exchange id: %d", e.exchangeID)
 
 	if !e.ensureAccessPoint(ctx) {
-		log.Printf("access point id: none yet — the game hasn't created an exchange access point; " +
+		e.logf("access point id: none yet — the game hasn't created an exchange access point; " +
 			"NPC listings are disabled until a player opens an exchange terminal (auto-detected each tick)")
 	}
 
@@ -414,7 +426,7 @@ func (e *Exchange) Init(ctx context.Context, catalog []CatalogItem) error {
 		`SELECT dune.get_exchange_inventory_id($1)`, e.exchangeID).Scan(&e.botInvID); err != nil {
 		return fmt.Errorf("exchange inventory: %w", err)
 	}
-	log.Printf("exchange inventory id: %d", e.botInvID)
+	e.logf("exchange inventory id: %d", e.botInvID)
 
 	if err := e.initBotUser(ctx); err != nil {
 		return fmt.Errorf("bot user: %w", err)
@@ -463,7 +475,7 @@ func (e *Exchange) initBotUser(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("bot actor: %w", err)
 	}
-	log.Printf("bot actor id: %d (Revy)", e.ownerID)
+	e.logf("bot actor id: %d (Revy)", e.ownerID)
 
 	var userID int64
 	if err := e.db.QueryRow(ctx,
@@ -485,9 +497,9 @@ func (e *Exchange) initBotUser(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("seeded bot balance: %d → %d", currentBalance, seedAmount)
+		e.logf("seeded bot balance: %d → %d", currentBalance, seedAmount)
 	} else {
-		log.Printf("bot balance OK: %d (floor %d)", currentBalance, seedFloor)
+		e.logf("bot balance OK: %d (floor %d)", currentBalance, seedFloor)
 	}
 	return nil
 }
@@ -496,7 +508,7 @@ func (e *Exchange) refreshCategoryCache(ctx context.Context) {
 	rows, err := e.cache.Query(
 		`SELECT template_id, category_mask, category_depth FROM categories`)
 	if err != nil {
-		log.Printf("warn: load category cache: %v", err)
+		e.logf("warn: load category cache: %v", err)
 	} else {
 		for rows.Next() {
 			var tmpl string
@@ -515,7 +527,7 @@ func (e *Exchange) refreshCategoryCache(ctx context.Context) {
 		FROM dune.dune_exchange_orders
 		WHERE category_mask != 0`)
 	if err != nil {
-		log.Printf("warn: live category scan: %v", err)
+		e.logf("warn: live category scan: %v", err)
 		return
 	}
 	defer liveRows.Close()
@@ -548,12 +560,12 @@ func (e *Exchange) refreshCategoryCache(ctx context.Context) {
 			  SET category_mask  = excluded.category_mask,
 			      category_depth = excluded.category_depth`,
 			en.tmpl, en.mask, en.depth); err != nil {
-			log.Printf("warn: persist category %s: %v", en.tmpl, err)
+			e.logf("warn: persist category %s: %v", en.tmpl, err)
 		}
 	}
 
 	if len(toWrite) > 0 {
-		log.Printf("category cache: +%d new (total %d)", len(toWrite), len(e.categories))
+		e.logf("category cache: +%d new (total %d)", len(toWrite), len(e.categories))
 	}
 }
 
@@ -599,7 +611,7 @@ func (e *Exchange) buyPlayerListings(ctx context.Context, orderExpiry int64, sna
 		orderExpiry = 999_999_999
 	}
 
-	log.Printf("buy: tick start npcEpoch=%d npcNow=%d orderExpiry=%d paymentExpiry=%d",
+	e.logf("buy: tick start npcEpoch=%d npcNow=%d orderExpiry=%d paymentExpiry=%d",
 		e.gameEpochUnix, e.gameNow(), orderExpiry, epochSentinelCutoff)
 
 	rows, err := e.db.Query(ctx, `
@@ -612,7 +624,7 @@ func (e *Exchange) buyPlayerListings(ctx context.Context, orderExpiry int64, sna
 		WHERE o.is_npc_order = FALSE AND o.exchange_id = $1
 		LIMIT $2`, e.exchangeID, snap.MaxBuys*10)
 	if err != nil {
-		log.Printf("buy: query: %v", err)
+		e.logf("buy: query: %v", err)
 		return
 	}
 	defer rows.Close()
@@ -651,14 +663,14 @@ func (e *Exchange) buyPlayerListings(ctx context.Context, orderExpiry int64, sna
 
 		refPrice := gradedPrice(botPrice, grade, snap.GradeMultipliers)
 		if price > int64(float64(refPrice)*snap.BuyThreshold) {
-			log.Printf("buy: skip %s price=%d ref=%d(grade%d) threshold=%.2f", tmpl, price, refPrice, grade, snap.BuyThreshold)
+			e.logf("buy: skip %s price=%d ref=%d(grade%d) threshold=%.2f", tmpl, price, refPrice, grade, snap.BuyThreshold)
 			skippedPrice++
 			continue
 		}
 
 		totalCost := price * stackSize
 
-		log.Printf("buy: attempt orderID=%d tmpl=%s price=%d stack=%d total=%d seller=%d",
+		e.logf("buy: attempt orderID=%d tmpl=%s price=%d stack=%d total=%d seller=%d",
 			orderID, tmpl, price, stackSize, totalCost, sellerActorID)
 
 		tx, err := e.db.Begin(ctx)
@@ -684,7 +696,7 @@ func (e *Exchange) buyPlayerListings(ctx context.Context, orderExpiry int64, sna
 			VALUES ($1,$2,$3,$4,$5,1.0,1.0,$6,0,0,FALSE) RETURNING id`,
 			e.exchangeID, e.accessPointID, sellerActorID, tmpl, sellerPaymentExpiry(orderExpiry), sellerPaymentItemPrice(price),
 		).Scan(&logOrderID); err != nil {
-			log.Printf("buy: log order for %s: %v", tmpl, err)
+			e.logf("buy: log order for %s: %v", tmpl, err)
 			_ = tx.Rollback(ctx)
 			errs++
 			continue
@@ -709,14 +721,14 @@ func (e *Exchange) buyPlayerListings(ctx context.Context, orderExpiry int64, sna
 			{`DELETE FROM dune.dune_exchange_orders WHERE id = $1`, []any{orderID}},
 		} {
 			if _, err := tx.Exec(ctx, q.sql, q.args...); err != nil {
-				log.Printf("buy: %s: %v", tmpl, err)
+				e.logf("buy: %s: %v", tmpl, err)
 				ok = false
 				break
 			}
 		}
 		if ok && itemID > 0 {
 			if _, err := tx.Exec(ctx, `DELETE FROM dune.items WHERE id = $1`, itemID); err != nil {
-				log.Printf("buy: delete item %d: %v", itemID, err)
+				e.logf("buy: delete item %d: %v", itemID, err)
 				ok = false
 			}
 		}
@@ -729,7 +741,7 @@ func (e *Exchange) buyPlayerListings(ctx context.Context, orderExpiry int64, sna
 			errs++
 			continue
 		}
-		log.Printf("buy: committed orderID=%d tmpl=%s total=%d seller=%d payment_order=%d payment_expiry=%d",
+		e.logf("buy: committed orderID=%d tmpl=%s total=%d seller=%d payment_order=%d payment_expiry=%d",
 			orderID, tmpl, totalCost, sellerActorID, logOrderID, epochSentinelCutoff)
 		purchased++
 	}
@@ -738,7 +750,7 @@ func (e *Exchange) buyPlayerListings(ctx context.Context, orderExpiry int64, sna
 		e.errCount.Add(int64(errs))
 	}
 	if purchased+errs+skippedPrice+skippedUnknown > 0 {
-		log.Printf("buy: %d purchased, %d skipped-price, %d skipped-unknown, %d errors",
+		e.logf("buy: %d purchased, %d skipped-price, %d skipped-unknown, %d errors",
 			purchased, skippedPrice, skippedUnknown, errs)
 	}
 }
@@ -785,7 +797,7 @@ func (e *Exchange) createListingsBatch(ctx context.Context, listings []pendingLi
 				INSERT INTO dune.items (inventory_id, stack_size, position_index, template_id, quality_level, stats)
 				VALUES ($1, $2, $3, $4, $5, '{}') RETURNING id`,
 				e.botInvID, pl.stackMax, e.nextPos, pl.item.TemplateID, qualityLevel).Scan(&itemID); err != nil {
-				log.Printf("batch insert item %s grade %d: %v", pl.item.TemplateID, pl.grade, err)
+				e.logf("batch insert item %s grade %d: %v", pl.item.TemplateID, pl.grade, err)
 				ok = false
 				errs++
 				break
@@ -801,7 +813,7 @@ func (e *Exchange) createListingsBatch(ctx context.Context, listings []pendingLi
 				e.exchangeID, e.accessPointID, e.ownerID, pl.expiry,
 				pl.item.TemplateID, float32(1.0), float32(1.0),
 				catMask, catDepth, listPrice, qualityLevel, itemID).Scan(&orderID); err != nil {
-				log.Printf("batch insert order %s grade %d: %v", pl.item.TemplateID, pl.grade, err)
+				e.logf("batch insert order %s grade %d: %v", pl.item.TemplateID, pl.grade, err)
 				ok = false
 				errs++
 				break
@@ -810,7 +822,7 @@ func (e *Exchange) createListingsBatch(ctx context.Context, listings []pendingLi
 				INSERT INTO dune.dune_exchange_sell_orders (order_id, initial_stack_size, wear_normalized_price)
 				VALUES ($1, $2, $3)`,
 				orderID, pl.stackMax, listPrice); err != nil {
-				log.Printf("batch insert sell order %s grade %d: %v", pl.item.TemplateID, pl.grade, err)
+				e.logf("batch insert sell order %s grade %d: %v", pl.item.TemplateID, pl.grade, err)
 				ok = false
 				errs++
 				break
@@ -889,7 +901,7 @@ func (e *Exchange) ListTick(ctx context.Context, catalog []CatalogItem) {
 	// (fresh server before any exchange terminal exists). Re-detected here so
 	// listing resumes automatically once the game creates one.
 	if !e.ensureAccessPoint(ctx) {
-		log.Printf("list-tick: skipped — no exchange access point yet (waiting for the game to create one)")
+		e.logf("list-tick: skipped — no exchange access point yet (waiting for the game to create one)")
 		return
 	}
 
@@ -920,7 +932,7 @@ func (e *Exchange) ListTick(ctx context.Context, catalog []CatalogItem) {
 		  AND (o.expiration_time IS NULL OR o.expiration_time > $2)`,
 		e.ownerID, e.gameNow())
 	if err != nil {
-		log.Printf("load listings: %v", err)
+		e.logf("load listings: %v", err)
 		return
 	}
 	current := make(map[gradeKey][]listingInfo)
@@ -1041,7 +1053,7 @@ func (e *Exchange) ListTick(ctx context.Context, catalog []CatalogItem) {
 		errs += e2
 	}
 
-	log.Printf("list-tick: %d created, %d topped up, %d pruned, %d errors", created, topped, pruned, errs)
+	e.logf("list-tick: %d created, %d topped up, %d pruned, %d errors", created, topped, pruned, errs)
 
 	e.lastListNano.Store(time.Now().UnixNano())
 	if errs > 0 {
@@ -1128,7 +1140,7 @@ func (e *Exchange) updatePrices(ctx context.Context, catalog []CatalogItem, snap
 		WHERE o.owner_id = $1 AND o.is_npc_order = TRUE
 		GROUP BY o.template_id`, e.ownerID)
 	if err != nil {
-		log.Printf("price stats: %v", err)
+		e.logf("price stats: %v", err)
 		return
 	}
 	defer rows.Close()
@@ -1185,7 +1197,7 @@ func (e *Exchange) fetchMarketPrices(ctx context.Context, catalog []CatalogItem)
 	rows, err := e.db.Query(ctx,
 		`SELECT * FROM dune.dune_exchange_get_item_price_stats($1)`, templateIDs)
 	if err != nil {
-		log.Printf("market price stats: %v", err)
+		e.logf("market price stats: %v", err)
 		return
 	}
 	defer rows.Close()
@@ -1204,7 +1216,7 @@ func (e *Exchange) fetchMarketPrices(ctx context.Context, catalog []CatalogItem)
 		e.marketPrices[tmpl] = marketPrice{minimum: minPrice, average: avgPrice}
 		count++
 	}
-	log.Printf("market prices: fetched %d items from real market", count)
+	e.logf("market prices: fetched %d items from real market", count)
 }
 
 // expireBotOrders deletes bot NPC orders whose game-time expiry has passed.
@@ -1234,6 +1246,6 @@ func (e *Exchange) expireAndPurgeOrders(ctx context.Context) {
 		return err
 	})
 	if err != nil {
-		log.Printf("expire bot orders: %v", err)
+		e.logf("expire bot orders: %v", err)
 	}
 }
