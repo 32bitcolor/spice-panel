@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	pathpkg "path"
@@ -823,7 +822,7 @@ func readINIContent(path string, ctrl ControlPlane, exec Executor) string {
 		// Diagnostic for the field: a path we expected to read came back empty
 		// across every strategy. Helps confirm the #173 read-back failure on the
 		// AMP dev box without changing behaviour.
-		log.Printf("readINIContent: %s unreadable (empty from control-plane read and cat/sudo cat) — settings from this file won't show", path)
+		componentLog("server_settings").Warn().Str("path", path).Msg("ini unreadable (empty from control-plane read and cat/sudo cat); settings from this file won't show")
 	}
 	return out
 }
@@ -1049,7 +1048,7 @@ func handleGetServerSettings(w http.ResponseWriter, r *http.Request) {
 	// the INI-derived values.
 	if reader, ok := ctrl.(serverSettingsReader); ok {
 		if amp, err := reader.readServerSettings(r.Context(), exec, curatedFieldNamesFrom(settings)); err != nil {
-			log.Printf("handleGetServerSettings: amp settings read-back: %v", err)
+			componentLog("server_settings").Error().Err(err).Msg("amp settings read-back failed")
 		} else {
 			settings = overlayAMPSettings(settings, amp)
 		}

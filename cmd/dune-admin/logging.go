@@ -34,6 +34,28 @@ func initLogging() {
 	stdlog.SetOutput(appLogger)
 }
 
+// componentLog returns a child logger tagged with the subsystem name. Every
+// converted call site should attach a stable `component` field so logs group
+// and filter cleanly. It returns a pointer so the zerolog level methods
+// (pointer receivers) can be chained directly: componentLog("x").Warn()….
+func componentLog(component string) *zerolog.Logger {
+	l := appLogger.With().Str("component", component).Logger()
+	return &l
+}
+
+// serverLog returns a child logger tagged with the subsystem plus the
+// per-server identity (server_id + control_plane). Use it for any line emitted
+// in the scope of a specific ServerContext so interleaved multi-server output
+// stays distinguishable. Returns a pointer so level methods chain directly.
+func serverLog(component string, sc *ServerContext) *zerolog.Logger {
+	l := appLogger.With().
+		Str("component", component).
+		Str("server_id", sc.ID).
+		Str("control_plane", controlOrDefault(sc.Cfg.Control)).
+		Logger()
+	return &l
+}
+
 func parseLogLevel(s string) zerolog.Level {
 	if s == "" {
 		return zerolog.InfoLevel

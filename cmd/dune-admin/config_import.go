@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 )
 
@@ -38,7 +37,7 @@ func hydrateConfigFromStore() {
 	}
 	marker, err := metaGet(globalStore, configImportMarker)
 	if err != nil {
-		log.Printf("config hydrate: read marker: %v", err)
+		componentLog("config_import").Error().Err(err).Msg("read marker")
 		return
 	}
 	if marker == "" {
@@ -48,22 +47,22 @@ func hydrateConfigFromStore() {
 		// setup wizard. No marker is written, so a config.yaml dropped in later
 		// still imports on its first boot.
 		if _, statErr := os.Stat(configPath()); statErr != nil {
-			log.Printf("config import: no config.yaml at %s — fresh install, nothing to import", configPath())
+			componentLog("config_import").Info().Str("config_path", configPath()).Msg("no config.yaml — fresh install, nothing to import")
 		} else if err := importConfigYAMLIntoStore(loadedConfig); err != nil {
-			log.Printf("config import: %v", err)
+			componentLog("config_import").Error().Err(err).Msg("import config.yaml failed")
 			return
 		}
 	}
 
 	if cfg, ok, err := globalSettingsStore.loadSettings(); err != nil {
-		log.Printf("config hydrate: load settings: %v", err)
+		componentLog("config_import").Error().Err(err).Msg("load settings")
 	} else if ok {
 		loadedConfig = cfg // global settings; per-server fields come from servers table
 	}
 
 	servers, err := globalServersStore.listServers()
 	if err != nil {
-		log.Printf("config hydrate: list servers: %v", err)
+		componentLog("config_import").Error().Err(err).Msg("list servers")
 	} else {
 		loadedConfig.Servers = servers
 	}
@@ -96,7 +95,9 @@ func importConfigYAMLIntoStore(seed appConfig) error {
 			return err
 		}
 	}
-	log.Printf("config import: seeded DB from config.yaml (%d server(s))", max(len(seed.Servers), btoi(activeScope != "")))
+	componentLog("config_import").Info().
+		Int("server_count", max(len(seed.Servers), btoi(activeScope != ""))).
+		Msg("seeded DB from config.yaml")
 	return metaSet(globalStore, configImportMarker, "done")
 }
 

@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -363,19 +362,19 @@ func buildMux() *http.ServeMux {
 	if loadedConfig.DirectorURL != "" {
 		if target, err := url.Parse(loadedConfig.DirectorURL); err == nil {
 			mux.HandleFunc("/director/", newDirectorProxy(target, dialThroughExecutor))
-			log.Printf("Proxying /director/ → %s", loadedConfig.DirectorURL)
+			componentLog("server").Info().Str("director_url", loadedConfig.DirectorURL).Msg("proxying /director/")
 		}
 	}
 
 	// SPA frontend: prefer the embedded FS (release builds with -tags=embed),
 	// then fall back to a local dist directory for dev/AMP deployments.
 	if fsys := embeddedSPAFS(); fsys != nil {
-		log.Println("Serving frontend from embedded assets")
+		componentLog("server").Info().Msg("serving frontend from embedded assets")
 		mux.Handle("/", staticCacheMiddleware(spaHandlerFS(fsys)))
 	} else {
 		for _, dir := range []string{"./dist", "./web/dist"} {
 			if info, err := os.Stat(dir); err == nil && info.IsDir() {
-				log.Printf("Serving frontend from %s", dir)
+				componentLog("server").Info().Str("dir", dir).Msg("serving frontend from directory")
 				mux.Handle("/", staticCacheMiddleware(spaHandler(dir)))
 				break
 			}
@@ -397,7 +396,7 @@ func startServer(addr string) error {
 		WriteTimeout:      10 * time.Minute, // backup/restore/download can take several minutes
 		IdleTimeout:       60 * time.Second,
 	}
-	log.Printf("dune-admin listening on %s", addr)
+	componentLog("server").Info().Str("addr", addr).Msg("dune-admin listening")
 	// Return the error instead of log.Fatal so the deferred cleanup registered
 	// in run() unwinds on shutdown; log.Fatal calls os.Exit, which skips defers.
 	return srv.ListenAndServe()

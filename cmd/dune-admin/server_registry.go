@@ -147,15 +147,6 @@ func serverScope(id int) string {
 	return strconv.Itoa(id)
 }
 
-// serverLogPrefix builds a log prefix that attributes a line to a specific
-// server — its scope id and control plane, e.g. "market-bot[server=1 amp] ".
-// Used for server-scoped subsystems (market bot, per-server errors) so logs
-// interleaved from multiple servers stay distinguishable. The trailing space
-// separates the prefix from the message (with log.Lmsgprefix or %s).
-func serverLogPrefix(tag string, sc *ServerContext) string {
-	return fmt.Sprintf("%s[server=%s %s] ", tag, sc.ID, controlOrDefault(sc.Cfg.Control))
-}
-
 // controlOrDefault returns the control-plane name, treating blank as "local".
 func controlOrDefault(control string) string {
 	if control == "" {

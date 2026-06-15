@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 	"time"
@@ -410,7 +409,7 @@ func welcomePackageScanTick(ctx context.Context, sc *ServerContext, store *welco
 	}
 	online, err := cmdListWelcomeOnlineAccounts(ctx, pool)
 	if err != nil {
-		log.Printf("welcome: list online accounts: %v", err)
+		componentLog("welcome").Error().Err(err).Msg("list online accounts failed")
 		return
 	}
 	if pkgActive {
@@ -440,7 +439,7 @@ func runPresenceWhispers(ctx context.Context, rt welcomePackageRuntime, online [
 	if motdActive {
 		for _, m := range motdWhispersForJoins(joins, rt.motdEnabled, rt.motdMessage, rt.motdSourcePlayer) {
 			if err := sendWelcomeWhisper(ctx, m.accountID, m.sourcePlayer, m.message); err != nil {
-				log.Printf("motd: whisper to account %d failed: %v", m.accountID, err)
+				componentLog("welcome").Error().Err(err).Int64("account_id", m.accountID).Msg("motd whisper failed")
 			}
 		}
 	}
@@ -484,11 +483,11 @@ func runWelcomePackageGrants(ctx context.Context, rt welcomePackageRuntime, onli
 			store:        store,
 		})
 		if err != nil {
-			log.Printf("welcome-package: scan error (version=%q): %v", pkg.Version, err)
+			componentLog("welcome").Error().Err(err).Str("version", pkg.Version).Msg("welcome-package scan error")
 			continue
 		}
 		if g > 0 || f > 0 {
-			log.Printf("welcome-package: granted=%d failed=%d version=%q", g, f, pkg.Version)
+			componentLog("welcome").Info().Int("granted", g).Int("failed", f).Str("version", pkg.Version).Msg("welcome-package grants applied")
 		}
 	}
 }

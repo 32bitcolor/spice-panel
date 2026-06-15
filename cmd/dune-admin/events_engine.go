@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/rand/v2"
 	"strings"
 	"sync"
@@ -220,7 +219,7 @@ func evaluateMilestone(ctx context.Context, deps eventDeps, def eventDefinition)
 	for _, p := range players {
 		qualified, val, err := checkMilestoneSignal(ctx, deps, p.AccountID, cfg)
 		if err != nil {
-			log.Printf("events: milestone signal %s account %d: %v", cfg.Signal, p.AccountID, err)
+			componentLog("events").Warn().Str("signal", string(cfg.Signal)).Int64("account_id", p.AccountID).Err(err).Msg("milestone signal failed")
 			continue
 		}
 		if !qualified {
@@ -323,7 +322,7 @@ func sliceRewardSpec(reward *rewardSpec, lastErr string) *rewardSpec {
 func applyOneOutcome(ctx context.Context, deps eventDeps, store *eventStore, def eventDefinition, o eventOutcome, announce bool) {
 	status, lastErr, exists, err := store.getClaimStatus(def.ID, def.Version, o.AccountID)
 	if err != nil {
-		log.Printf("events: getClaimStatus %d/%d/%d: %v", def.ID, def.Version, o.AccountID, err)
+		componentLog("events").Warn().Int64("event_id", def.ID).Int("version", def.Version).Int64("account_id", o.AccountID).Err(err).Msg("getClaimStatus failed")
 		return
 	}
 	if exists {
@@ -338,7 +337,7 @@ func applyOneOutcome(ctx context.Context, deps eventDeps, store *eventStore, def
 	}
 	if o.RewardSpec != nil {
 		if err := grantEventReward(ctx, deps, o.RewardSpec, o.ControllerID, o.ActorID); err != nil {
-			log.Printf("events: grant reward account %d: %v", o.AccountID, err)
+			componentLog("events").Error().Int64("account_id", o.AccountID).Err(err).Msg("grant reward failed")
 			_ = store.recordFailed(def.ID, def.Version, o.AccountID, err.Error())
 			return
 		}
@@ -349,11 +348,11 @@ func applyOneOutcome(ctx context.Context, deps eventDeps, store *eventStore, def
 	}
 	if announce && o.AnnounceText != "" {
 		if err := deps.announce(channelID, o.AnnounceText); err != nil {
-			log.Printf("events: announce account %d: %v", o.AccountID, err)
+			componentLog("events").Warn().Int64("account_id", o.AccountID).Err(err).Msg("announce failed")
 		}
 	}
 	if err := store.recordGranted(def.ID, def.Version, o.AccountID); err != nil {
-		log.Printf("events: recordGranted %d/%d/%d: %v", def.ID, def.Version, o.AccountID, err)
+		componentLog("events").Warn().Int64("event_id", def.ID).Int("version", def.Version).Int64("account_id", o.AccountID).Err(err).Msg("recordGranted failed")
 	}
 }
 
@@ -437,7 +436,7 @@ func processEventTick(
 ) {
 	events, err := store.list()
 	if err != nil {
-		log.Printf("events: list: %v", err)
+		componentLog("events").Warn().Err(err).Msg("list failed")
 		return
 	}
 	for _, def := range events {
@@ -499,15 +498,15 @@ func processOneEvent(ctx context.Context, deps eventDeps, store *eventStore, def
 	case eventTypeMilestone:
 		outcomes, err = evaluateMilestone(ctx, deps, def)
 	default:
-		log.Printf("events: unknown type %q for event %d", def.Type, def.ID)
+		componentLog("events").Warn().Str("type", string(def.Type)).Int64("event_id", def.ID).Msg("unknown event type")
 		return
 	}
 	if err != nil {
-		log.Printf("events: evaluate %d: %v", def.ID, err)
+		componentLog("events").Warn().Int64("event_id", def.ID).Err(err).Msg("evaluate failed")
 		return
 	}
 	if err := applyEventOutcomes(ctx, deps, store, def, outcomes, true); err != nil {
-		log.Printf("events: apply outcomes %d: %v", def.ID, err)
+		componentLog("events").Warn().Int64("event_id", def.ID).Err(err).Msg("apply outcomes failed")
 	}
 }
 
@@ -622,14 +621,14 @@ func applyEventEngine(cfg appConfig) {
 	if globalEventsCancel != nil {
 		globalEventsCancel()
 		globalEventsCancel = nil
-		log.Printf("events: engine stopped")
+		componentLog("events").Info().Msg("engine stopped")
 	}
 
 	if !eventsEnabled(cfg) {
 		return
 	}
 	if globalEventStore == nil {
-		log.Printf("events: store not initialised — engine disabled")
+		componentLog("events").Warn().Msg("store not initialised; engine disabled")
 		return
 	}
 
@@ -644,7 +643,7 @@ func applyEventEngine(cfg appConfig) {
 		go runEventEngine(ctx, deps, globalEventStore)
 		go runEventRetryLoop(ctx, deps, globalEventStore)
 	}
-	log.Printf("events: engine started (per-event scheduling + reward-grant retries)")
+	componentLog("events").Info().Msg("engine started (per-event scheduling + reward-grant retries)")
 }
 
 // stopEventEngine cancels the running events engine goroutine if any.
@@ -661,7 +660,7 @@ func stopEventEngine() {
 func reconcileAllEvents(ctx context.Context, deps eventDeps, store *eventStore) {
 	events, err := store.list()
 	if err != nil {
-		log.Printf("events: reconcile list: %v", err)
+		componentLog("events").Warn().Err(err).Msg("reconcile list failed")
 		return
 	}
 	for _, def := range events {
@@ -669,7 +668,7 @@ func reconcileAllEvents(ctx context.Context, deps eventDeps, store *eventStore) 
 			continue
 		}
 		if err := reconcileEvent(ctx, deps, store, def); err != nil {
-			log.Printf("events: reconcile event %d: %v", def.ID, err)
+			componentLog("events").Warn().Int64("event_id", def.ID).Err(err).Msg("reconcile event failed")
 		}
 	}
 }

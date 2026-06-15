@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -181,7 +180,7 @@ func getSessionStats(ctx context.Context, db *sql.DB, serverID string, accountID
 func startSessionTracking() context.CancelFunc {
 	ctx, cancel := context.WithCancel(context.Background())
 	if err := initSessionPoller(ctx); err != nil {
-		log.Printf("session tracker: %v", err)
+		componentLog("sessions").Warn().Err(err).Msg("session tracker init failed")
 	}
 	return cancel
 }
@@ -207,17 +206,17 @@ func initSessionPoller(ctx context.Context) error {
 	started := 0
 	for _, sc := range servers {
 		if sc.DB == nil {
-			log.Printf("session poller [%s]: DB not connected, skipping", sc.StoreScope)
+			serverLog("sessions", sc).Info().Msg("session poller: DB not connected, skipping")
 			continue
 		}
 		if err := closeOrphanedSessions(sdb, sc.StoreScope); err != nil {
-			log.Printf("session poller [%s]: close orphaned sessions: %v", sc.StoreScope, err)
+			serverLog("sessions", sc).Warn().Err(err).Msg("session poller: close orphaned sessions failed")
 		}
 		go startSessionPoller(ctx, sc.DB, sdb, sc.StoreScope, 5*time.Minute)
 		started++
 	}
 	if started == 0 {
-		log.Printf("session poller: no servers with DB connections, skipping poll loop")
+		componentLog("sessions").Info().Msg("session poller: no servers with DB connections, skipping poll loop")
 	}
 	return nil
 }
@@ -373,21 +372,21 @@ func getDailySnapshots(ctx context.Context, db *sql.DB, serverID string, days in
 func pollOnce(ctx context.Context, pool *pgxpool.Pool, db *sql.DB, serverID string) {
 	onlineIDs, err := cmdFetchOnlineAccountIDs(ctx, pool)
 	if err != nil {
-		log.Printf("session poller [%s]: fetch online players: %v", serverID, err)
+		componentLog("sessions").Warn().Str("server_id", serverID).Err(err).Msg("session poller: fetch online players failed")
 		return
 	}
 	if err := recordSessions(ctx, onlineIDs, db, serverID); err != nil {
-		log.Printf("session poller [%s]: record sessions: %v", serverID, err)
+		componentLog("sessions").Warn().Str("server_id", serverID).Err(err).Msg("session poller: record sessions failed")
 	}
 	snappedAt := time.Now().UTC().Format(time.RFC3339)
 	for _, accountID := range onlineIDs {
 		snap, err := cmdFetchPlayerSnapshot(ctx, pool, accountID, snappedAt)
 		if err != nil {
-			log.Printf("session poller [%s]: snapshot account %d: %v", serverID, accountID, err)
+			componentLog("sessions").Warn().Str("server_id", serverID).Int64("account_id", accountID).Err(err).Msg("session poller: snapshot failed")
 			continue
 		}
 		if err := writeStatSnapshot(ctx, db, snap, serverID); err != nil {
-			log.Printf("session poller [%s]: write snapshot account %d: %v", serverID, accountID, err)
+			componentLog("sessions").Warn().Str("server_id", serverID).Int64("account_id", accountID).Err(err).Msg("session poller: write snapshot failed")
 		}
 	}
 }
@@ -481,14 +480,14 @@ func sessionSummary(ctx context.Context, db *sql.DB, serverID string, days int) 
 	}
 	var playtime int64
 	if pt, err := getServerPlaytimeSecs(ctx, db, serverID); err != nil {
-		log.Printf("sessionSummary: playtime: %v", err)
+		componentLog("sessions").Warn().Str("server_id", serverID).Err(err).Msg("sessionSummary: playtime query failed")
 	} else {
 		playtime = pt
 	}
 	since := now.AddDate(0, 0, -(days - 1)).Format("2006-01-02")
 	counts, err := getActivityTrendCounts(ctx, db, serverID, since)
 	if err != nil {
-		log.Printf("sessionSummary: trend: %v", err)
+		componentLog("sessions").Warn().Str("server_id", serverID).Err(err).Msg("sessionSummary: trend query failed")
 		counts = map[string]int64{}
 	}
 	return playtime, fillActivityTrend(days, now, counts)

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -62,7 +61,7 @@ func grantBattlepassEarned(ctx context.Context, store *battlepassStore, deps bat
 	}
 	if err := deps.awardIntel(ctx, pawnID, total); err != nil {
 		if recErr := store.recordGrantFailure(accountID, err.Error()); recErr != nil {
-			log.Printf("battlepass: record grant failure for %d: %v", accountID, recErr)
+			componentLog("battlepass").Error().Int64("account_id", accountID).Err(recErr).Msg("record grant failure failed")
 		}
 		return 0, 0, err
 	}
@@ -80,7 +79,7 @@ func grantBattlepassEarned(ctx context.Context, store *battlepassStore, deps bat
 func grantBattlepassItems(ctx context.Context, store *battlepassStore, deps battlepassGrantDeps, earned []battlepassClaim, pawnID int64) {
 	tiers, err := store.listTiers()
 	if err != nil {
-		log.Printf("battlepass: list tiers for item rewards: %v", err)
+		componentLog("battlepass").Error().Err(err).Msg("list tiers for item rewards failed")
 		return
 	}
 	rewardsByKey := make(map[string]string, len(tiers))
@@ -96,12 +95,12 @@ func grantBattlepassItems(ctx context.Context, store *battlepassStore, deps batt
 		}
 		var items []rewardItem
 		if err := json.Unmarshal([]byte(raw), &items); err != nil {
-			log.Printf("battlepass: tier %s reward_items: %v", c.TierKey, err)
+			componentLog("battlepass").Error().Str("tier_key", c.TierKey).Err(err).Msg("parse tier reward_items failed")
 			continue
 		}
 		for _, item := range items {
 			if err := deps.giveItem(ctx, pawnID, item.Template, item.Qty, item.Quality); err != nil {
-				log.Printf("battlepass: give item %q for tier %s account %d: %v", item.Template, c.TierKey, c.AccountID, err)
+				componentLog("battlepass").Error().Str("template", item.Template).Str("tier_key", c.TierKey).Int64("account_id", c.AccountID).Err(err).Msg("give item failed")
 			}
 		}
 	}
@@ -138,13 +137,13 @@ func handleListBattlepassTiers(w http.ResponseWriter, r *http.Request) {
 	}
 	tiers, err := globalBattlepassStore.listTiers()
 	if err != nil {
-		log.Printf("handleListBattlepassTiers: %v", err)
+		componentLog("battlepass").Error().Err(err).Msg("list tiers failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}
 	counts, err := globalBattlepassStore.countsByTier()
 	if err != nil {
-		log.Printf("handleListBattlepassTiers counts: %v", err)
+		componentLog("battlepass").Error().Err(err).Msg("counts by tier failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}
@@ -156,7 +155,7 @@ func handleListBattlepassTiers(w http.ResponseWriter, r *http.Request) {
 		if players, err := cmdFetchBattlepassPlayers(r.Context(), db); err == nil {
 			playerCount = len(players)
 		} else {
-			log.Printf("handleListBattlepassTiers players: %v", err)
+			componentLog("battlepass").Warn().Err(err).Msg("fetch players for tier counts failed")
 		}
 	}
 	jsonOK(w, map[string]any{
@@ -194,7 +193,7 @@ func handleBattlepassTiersBulk(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		log.Printf("handleBattlepassTiersBulk %s: %v", req.Action, err)
+		componentLog("battlepass").Error().Str("action", req.Action).Err(err).Msg("bulk tier action failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}
@@ -344,7 +343,7 @@ func handleUpdateBattlepassTier(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		log.Printf("handleUpdateBattlepassTier get: %v", err)
+		componentLog("battlepass").Error().Int64("tier_id", id).Err(err).Msg("get tier failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}
@@ -372,7 +371,7 @@ func handleUpdateBattlepassTier(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		log.Printf("handleUpdateBattlepassTier: %v", err)
+		componentLog("battlepass").Error().Int64("tier_id", id).Err(err).Msg("update tier failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}
@@ -392,7 +391,7 @@ func handleBattlepassProgress(w http.ResponseWriter, r *http.Request) {
 	}
 	claims, err := globalBattlepassStore.listClaims(accountID)
 	if err != nil {
-		log.Printf("handleBattlepassProgress: %v", err)
+		componentLog("battlepass").Error().Int64("account_id", accountID).Err(err).Msg("list claims failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}
@@ -414,7 +413,7 @@ func handleBattlepassPending(w http.ResponseWriter, r *http.Request) {
 	}
 	tierRows, err := globalBattlepassStore.earnedClaimsWithTiers()
 	if err != nil {
-		log.Printf("handleBattlepassPending: %v", err)
+		componentLog("battlepass").Error().Err(err).Msg("earned claims with tiers failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}
@@ -436,7 +435,7 @@ func handleBattlepassPending(w http.ResponseWriter, r *http.Request) {
 				names[p.AccountID] = p
 			}
 		} else {
-			log.Printf("handleBattlepassPending players: %v", err)
+			componentLog("battlepass").Warn().Err(err).Msg("fetch players for pending view failed")
 		}
 	}
 	out := make([]pendingTierRow, 0, len(tierRows))
@@ -483,7 +482,7 @@ func grantBattlepassTier(ctx context.Context, store *battlepassStore, deps battl
 
 	if err := deps.awardIntel(ctx, pawnID, claim.Intel); err != nil {
 		if recErr := store.recordGrantFailureForTier(accountID, tierKey, err.Error()); recErr != nil {
-			log.Printf("battlepass: record grant failure for %d/%s: %v", accountID, tierKey, recErr)
+			componentLog("battlepass").Error().Int64("account_id", accountID).Str("tier_key", tierKey).Err(recErr).Msg("record grant failure for tier failed")
 		}
 		return 0, err
 	}
@@ -527,7 +526,7 @@ func handleBattlepassGrantTier(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, fmt.Errorf("no character found for account %d", req.AccountID), http.StatusNotFound)
 		return
 	case err != nil:
-		log.Printf("handleBattlepassGrantTier account %d tier %s: %v", req.AccountID, req.TierKey, err)
+		componentLog("battlepass").Error().Int64("account_id", req.AccountID).Str("tier_key", req.TierKey).Err(err).Msg("grant tier failed")
 		jsonErr(w, err, http.StatusConflict)
 		return
 	}
@@ -543,7 +542,7 @@ func handleBattlepassReseed(w http.ResponseWriter, r *http.Request) {
 	}
 	catalog := defaultBattlepassCatalog()
 	if err := globalBattlepassStore.reseedTiers(catalog); err != nil {
-		log.Printf("handleBattlepassReseed: %v", err)
+		componentLog("battlepass").Error().Err(err).Msg("reseed tiers failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}
@@ -579,7 +578,7 @@ func handleBattlepassGrant(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, fmt.Errorf("no character found for account %d", req.AccountID), http.StatusNotFound)
 		return
 	case err != nil:
-		log.Printf("handleBattlepassGrant account %d: %v", req.AccountID, err)
+		componentLog("battlepass").Error().Int64("account_id", req.AccountID).Err(err).Msg("grant earned failed")
 		jsonErr(w, err, http.StatusConflict)
 		return
 	}
@@ -631,7 +630,7 @@ func handleSaveBattlepassConfig(w http.ResponseWriter, r *http.Request) {
 	loadedConfig.BattlepassScanStartDelayMs = p.ScanStartDelayMs
 
 	if err := persistGlobalSettings(loadedConfig); err != nil {
-		log.Printf("handleSaveBattlepassConfig: %v", err)
+		componentLog("battlepass").Error().Err(err).Msg("persist config failed")
 		jsonErr(w, fmt.Errorf("failed to write config"), http.StatusInternalServerError)
 		return
 	}
@@ -662,7 +661,7 @@ func handleCreateBattlepassTier(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		log.Printf("handleCreateBattlepassTier: %v", err)
+		componentLog("battlepass").Error().Str("tier_key", t.TierKey).Err(err).Msg("create tier failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}
@@ -678,7 +677,7 @@ func handleExportBattlepassCatalog(w http.ResponseWriter, r *http.Request) {
 	}
 	tiers, err := globalBattlepassStore.listTiers()
 	if err != nil {
-		log.Printf("handleExportBattlepassCatalog: %v", err)
+		componentLog("battlepass").Error().Err(err).Msg("export catalog failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}
@@ -739,7 +738,7 @@ func handleImportBattlepassCatalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := globalBattlepassStore.reseedTiers(tiers); err != nil {
-		log.Printf("handleImportBattlepassCatalog: %v", err)
+		componentLog("battlepass").Error().Err(err).Msg("import catalog failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 )
 
@@ -105,6 +104,10 @@ func handleDiscoverServer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	out := assembleServerDiscovery(exec, ctrl)
-	log.Printf("handleDiscoverServer %q (%s): %s", cfg.Name, ctrl, discoveryMaskForLog(out))
+	componentLog("server_discover").Info().
+		Str("server_name", cfg.Name).
+		Str("control_plane", ctrl).
+		Str("discovered", discoveryMaskForLog(out)).
+		Msg("server discovery complete")
 	jsonOK(w, out)
 }

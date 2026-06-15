@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -190,7 +189,7 @@ func evaluateBattlepassTick(ctx context.Context, deps battlepassDeps, store *bat
 			}
 		}
 		if err := evaluateBattlepassPlayer(ctx, deps, store, tiers, p, awardPast, autoGrant); err != nil {
-			log.Printf("battlepass: evaluate account %d: %v", p.AccountID, err)
+			componentLog("battlepass").Warn().Int64("account_id", p.AccountID).Err(err).Msg("evaluate player failed")
 		}
 	}
 	return nil
@@ -247,7 +246,7 @@ func bootBattlepassScan(ctx context.Context, deps battlepassDeps, store *battlep
 		}
 	}
 	if err := evaluateBattlepassTick(ctx, deps, store, awardPast, autoGrant, paceEvery); err != nil {
-		log.Printf("battlepass: boot scan: %v", err)
+		componentLog("battlepass").Warn().Err(err).Msg("boot scan failed")
 	}
 }
 
@@ -266,7 +265,7 @@ func runBattlepassEngine(ctx context.Context, deps battlepassDeps, store *battle
 			return
 		case <-ticker.C:
 			if err := evaluateBattlepassTick(ctx, deps, store, awardPast, autoGrant, paceEvery); err != nil {
-				log.Printf("battlepass: tick: %v", err)
+				componentLog("battlepass").Warn().Err(err).Msg("tick failed")
 			}
 		}
 	}
@@ -337,9 +336,9 @@ func applyBattlepassEngine(cfg appConfig) {
 
 	catalog := defaultBattlepassCatalog()
 	if err := globalBattlepassStore.reseedTiers(catalog); err != nil {
-		log.Printf("battlepass: reseed catalog: %v", err)
+		componentLog("battlepass").Error().Err(err).Msg("reseed catalog failed")
 	} else {
-		log.Printf("battlepass: catalog synced (%d tiers)", len(catalog))
+		componentLog("battlepass").Info().Int("tier_count", len(catalog)).Msg("catalog synced")
 	}
 
 	globalBattlepassMu.Lock()
@@ -348,7 +347,7 @@ func applyBattlepassEngine(cfg appConfig) {
 	if globalBattlepassCancel != nil {
 		globalBattlepassCancel()
 		globalBattlepassCancel = nil
-		log.Printf("battlepass: engine stopped")
+		componentLog("battlepass").Info().Msg("engine stopped")
 	}
 
 	if !battlepassEnabled(cfg) {
@@ -359,8 +358,13 @@ func applyBattlepassEngine(cfg appConfig) {
 	paceEvery := clampBattlepassPaceMs(cfg.BattlepassScanPaceMs)
 	startDelay := clampBattlepassStartDelayMs(cfg.BattlepassScanStartDelayMs)
 	autoGrant := battlepassAutoGrant(cfg)
-	log.Printf("battlepass: engine started (interval %s, pace %s, start_delay %s, award_past=%t, auto_grant=%t)",
-		interval, paceEvery, startDelay, battlepassAwardPast(cfg), autoGrant)
+	componentLog("battlepass").Info().
+		Str("interval", interval.String()).
+		Str("pace", paceEvery.String()).
+		Str("start_delay", startDelay.String()).
+		Bool("award_past", battlepassAwardPast(cfg)).
+		Bool("auto_grant", autoGrant).
+		Msg("engine started")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	globalBattlepassCancel = cancel

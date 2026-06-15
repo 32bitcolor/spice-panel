@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 
 	"github.com/jackc/pgx/v5"
@@ -178,10 +177,10 @@ func connectAll() error {
 func ensureDBSchema(pool *pgxpool.Pool) {
 	ctx := context.Background()
 	if err := cmdEnsureGMIdentity(ctx, pool); err != nil {
-		log.Printf("connectAll: ensure GM identity: %v", err)
+		componentLog("connection").Error().Err(err).Msg("ensure GM identity")
 	}
 	if err := cmdEnsureDiscordLinksTable(ctx, pool); err != nil {
-		log.Printf("connectAll: ensure discord_links table: %v", err)
+		componentLog("connection").Error().Err(err).Msg("ensure discord_links table")
 	}
 }
 
@@ -194,14 +193,17 @@ func ensureDBSchema(pool *pgxpool.Pool) {
 func applyAutoDiscovery(cfg *appConfig, exec Executor, ctrl string) {
 	g, err := discoverGameConfig(exec)
 	if err != nil {
-		log.Printf("connectAll: auto-discover: %v", err)
+		componentLog("connection").Warn().Err(err).Msg("auto-discover failed")
 		return
 	}
 	applyDiscovered(cfg, g)
 	// Propagate into the globals the DB connect path reads.
 	dbUser, dbPass, dbName = cfg.DBUser, cfg.DBPass, cfg.DBName
-	log.Printf("connectAll: auto-discover filled DB user=%s name=%s (pass %s)",
-		cfg.DBUser, cfg.DBName, maskSecret(cfg.DBPass))
+	componentLog("connection").Info().
+		Str("db_user", cfg.DBUser).
+		Str("db_name", cfg.DBName).
+		Str("db_pass", maskSecret(cfg.DBPass)).
+		Msg("auto-discover filled DB credentials")
 	if ctrl == "kubectl" {
 		pods := fetchClusterPodIPs(exec)
 		gameIP := podIPByPattern(pods, "mq-game")
@@ -217,9 +219,9 @@ func applyAutoDiscovery(cfg *appConfig, exec Executor, ctrl string) {
 		// (store-unavailable) path persists them back to config.yaml.
 		if globalSettingsStore == nil {
 			if werr := writeConfigFile(*cfg); werr != nil {
-				log.Printf("connectAll: discover-write: %v", werr)
+				componentLog("connection").Error().Err(werr).Msg("discover-write failed")
 			} else {
-				log.Printf("connectAll: discover-write persisted config.yaml")
+				componentLog("connection").Info().Msg("discover-write persisted config.yaml")
 			}
 		}
 	}
@@ -568,7 +570,10 @@ func connectMultiServer(cfg appConfig) error {
 	for _, sc := range cfg.Servers {
 		ctx, err := connectServer(sc)
 		if err != nil {
-			log.Printf("connectMultiServer: server %d (%s): %v", sc.ID, controlOrDefault(sc.Control), err)
+			componentLog("connection").Error().Err(err).
+				Int("server_id", sc.ID).
+				Str("control_plane", controlOrDefault(sc.Control)).
+				Msg("connect server failed")
 			if firstErr == nil {
 				firstErr = err
 			}
@@ -586,7 +591,9 @@ func connectMultiServer(cfg appConfig) error {
 	}
 	if activeID != "" {
 		if err := globalRegistry.SetActive(activeID); err != nil {
-			log.Printf("connectMultiServer: set active %q: %v", activeID, err)
+			componentLog("connection").Error().Err(err).
+				Str("active_id", activeID).
+				Msg("set active server failed")
 		}
 	}
 

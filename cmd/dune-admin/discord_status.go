@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"sort"
 	"strings"
 	"sync"
@@ -288,7 +287,7 @@ func (a discordSessionAdapter) ChannelMessageEditEmbed(channelID, messageID stri
 func postOrEditStatusEmbed(sess statusEmbedSender, store statusMessageStore, channelID string, embed *discordgo.MessageEmbed) error {
 	storedChannel, storedMsg, err := store.loadStatusMessage()
 	if err != nil {
-		log.Printf("discord status: load stored message: %v", err)
+		componentLog("discord").Warn().Err(err).Msg("status: load stored message failed")
 		// Fall through and treat as no stored message.
 		storedChannel, storedMsg = "", ""
 	}
@@ -302,7 +301,7 @@ func postOrEditStatusEmbed(sess statusEmbedSender, store statusMessageStore, cha
 			return fmt.Errorf("edit status embed: %w", editErr)
 		}
 		// Stored message was deleted in Discord — fall through to re-send.
-		log.Printf("discord status: stored message gone, re-posting")
+		componentLog("discord").Info().Msg("status: stored message gone, re-posting")
 	}
 
 	return sendAndPersist(sess, store, channelID, embed)
@@ -434,7 +433,7 @@ func applyDiscordStatusLoop(cfg appConfig) {
 	statusLoopMu.Unlock()
 
 	go runStatusLoop(ctx, deps)
-	log.Printf("discord status: embed loop started (channel %s, every %s)", channelID, deps.interval)
+	componentLog("discord").Info().Str("channel_id", channelID).Dur("interval", deps.interval).Msg("status: embed loop started")
 }
 
 // runStatusTick collects status data, builds the embed, and posts-or-edits it.
@@ -446,7 +445,7 @@ func runStatusTick(ctx context.Context, channelID string) {
 		return // bot not connected yet; try again next tick
 	}
 	if globalStore == nil {
-		log.Printf("discord status: unified store unavailable — skipping tick")
+		componentLog("discord").Info().Msg("status: unified store unavailable — skipping tick")
 		return
 	}
 
@@ -460,7 +459,7 @@ func runStatusTick(ctx context.Context, channelID string) {
 	}
 	store := newSqliteStatusStore(globalStore, storeScope)
 	if err := postOrEditStatusEmbed(discordSessionAdapter{sess: sess}, store, channelID, embed); err != nil {
-		log.Printf("discord status: post/edit: %v", err)
+		componentLog("discord").Warn().Str("server_id", storeScope).Err(err).Msg("status: post/edit failed")
 	}
 }
 
@@ -507,7 +506,7 @@ func applyDBStats(ctx context.Context, sc *ServerContext, data *statusEmbedData)
 	}
 	stats, err := cmdFetchServerStats(ctx, sc.DB)
 	if err != nil {
-		log.Printf("discord status: server stats: %v", err)
+		serverLog("discord", sc).Warn().Err(err).Msg("status: server stats query failed")
 		return
 	}
 	data.TotalPlayers = stats.TotalPlayers
@@ -523,7 +522,7 @@ func applyDBStats(ctx context.Context, sc *ServerContext, data *statusEmbedData)
 func applyUnique24h(ctx context.Context, sdb *sql.DB, serverID string, data *statusEmbedData) {
 	uniq, err := countUniquePlayers24h(ctx, sdb, serverID, time.Now())
 	if err != nil {
-		log.Printf("discord status: unique 24h: %v", err)
+		componentLog("discord").Warn().Str("server_id", serverID).Err(err).Msg("status: unique 24h query failed")
 		return
 	}
 	data.UniquePlayers = uniq

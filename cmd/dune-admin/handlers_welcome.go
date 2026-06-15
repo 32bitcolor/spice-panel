@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -79,7 +78,7 @@ func handleGetWelcomeConfig(w http.ResponseWriter, _ *http.Request) {
 	// YAML seed if this is the first boot after migration).
 	if welcomeStoreDB != nil {
 		if err := applyWelcomeConfigFromStore(); err != nil {
-			log.Printf("handleGetWelcomeConfig: %v", err)
+			componentLog("welcome").Error().Err(err).Msg("apply welcome config from store failed")
 		}
 	}
 	jsonOK(w, currentWelcomeConfig())
@@ -245,7 +244,7 @@ func handlePutWelcomeConfig(w http.ResponseWriter, r *http.Request) {
 			RegionChatChannel:          rt.regionChatChannel,
 		}
 		if err := welcomeStoreDB.saveConfig(row); err != nil {
-			log.Printf("handlePutWelcomeConfig: save to store: %v", err)
+			componentLog("welcome").Error().Err(err).Msg("save welcome config to store failed")
 			jsonErr(w, fmt.Errorf("failed to save config"), http.StatusInternalServerError)
 			return
 		}
@@ -277,7 +276,7 @@ func handleGetWelcomeGrants(w http.ResponseWriter, r *http.Request) {
 	}
 	rows, err := welcomeStoreDB.listGrants(limit)
 	if err != nil {
-		log.Printf("handleGetWelcomeGrants: %v", err)
+		componentLog("welcome").Error().Err(err).Msg("list welcome grants failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}
@@ -408,7 +407,7 @@ func handleOverrideWelcomeGrant(w http.ResponseWriter, r *http.Request) {
 			jsonErr(w, fmt.Errorf("player not found"), http.StatusNotFound)
 			return
 		}
-		log.Printf("handleOverrideWelcomeGrant: %v", err)
+		componentLog("welcome").Error().Err(err).Msg("override welcome grant: fetch account failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}

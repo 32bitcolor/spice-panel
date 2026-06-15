@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -193,11 +192,11 @@ func handleDeleteServer(w http.ResponseWriter, r *http.Request) {
 	// DB is the source of truth: drop the row, then purge its per-feature data.
 	if globalServersStore != nil {
 		if derr := globalServersStore.deleteServer(id); derr != nil {
-			log.Printf("handleDeleteServer: delete server %d: %v", id, derr)
+			componentLog("server_selector").Error().Err(derr).Int("server_id", id).Msg("delete server failed")
 		}
 	}
 	if perr := cmdPurgeServerData(r.Context(), globalStore, scope); perr != nil {
-		log.Printf("handleDeleteServer: purge store data for %d: %v", id, perr)
+		componentLog("server_selector").Error().Err(perr).Int("server_id", id).Msg("purge store data failed")
 	}
 
 	reassignActiveAfterDelete()
@@ -229,7 +228,7 @@ func persistActiveServer(scope string) {
 		return
 	}
 	if err := metaSet(globalStore, activeServerMetaKey, scope); err != nil {
-		log.Printf("persist active server %q: %v", scope, err)
+		componentLog("server_selector").Error().Err(err).Str("scope", scope).Msg("persist active server failed")
 	}
 }
 
@@ -310,7 +309,7 @@ func handleAddServer(w http.ResponseWriter, r *http.Request) {
 	scope := serverScope(newID)
 	sc, err := connectServer(cfg)
 	if err != nil {
-		log.Printf("handleAddServer %d: connect: %v", newID, err)
+		componentLog("server_selector").Error().Err(err).Int("server_id", newID).Msg("add server connect failed")
 		// Register with what we have — caller can reconnect later.
 		sc = &ServerContext{ID: scope, Name: cfg.Name, Cfg: cfg, StoreScope: scope}
 	}
@@ -338,7 +337,7 @@ func handleReconnectServer(w http.ResponseWriter, r *http.Request) {
 	stopServerMarketBot(sc)
 	newSC, err := connectServer(sc.Cfg)
 	if err != nil {
-		log.Printf("handleReconnectServer %q: %v", id, err)
+		componentLog("server_selector").Error().Err(err).Str("server_id", id).Msg("reconnect server failed")
 		jsonErr(w, fmt.Errorf("reconnect failed: %v", err), http.StatusServiceUnavailable)
 		return
 	}
@@ -448,7 +447,7 @@ func handleUpdateServerConfig(w http.ResponseWriter, r *http.Request) {
 	// (or even bare) context on failure so the edit still takes effect.
 	newSC, err := connectServer(next)
 	if err != nil {
-		log.Printf("handleUpdateServerConfig %d: reconnect: %v", id, err)
+		componentLog("server_selector").Error().Err(err).Int("server_id", id).Msg("update server config reconnect failed")
 	}
 	globalRegistry.Register(newSC)
 	if globalRegistry.ActiveID() == scope {

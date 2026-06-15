@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -177,7 +176,7 @@ func handleGetDirectorConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	path, content, err := store.readDirectorConfig(exec)
 	if err != nil {
-		log.Printf("handleGetDirectorConfig: %v", err)
+		componentLog("director").Error().Err(err).Msg("could not read director config")
 		jsonErr(w, fmt.Errorf("could not read director config"), http.StatusInternalServerError)
 		return
 	}
@@ -218,13 +217,13 @@ func handleUpdateDirectorConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	_, content, err := store.readDirectorConfig(exec)
 	if err != nil {
-		log.Printf("handleUpdateDirectorConfig: read: %v", err)
+		componentLog("director").Error().Err(err).Msg("could not read director config")
 		jsonErr(w, fmt.Errorf("could not read director config"), http.StatusInternalServerError)
 		return
 	}
 	path, err := store.writeDirectorConfig(exec, applyDirectorEdits(content, body.Updates))
 	if err != nil {
-		log.Printf("handleUpdateDirectorConfig: write: %v", err)
+		componentLog("director").Error().Err(err).Msg("could not write director config")
 		jsonErr(w, fmt.Errorf("could not write director config"), http.StatusInternalServerError)
 		return
 	}

@@ -16,7 +16,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -453,12 +452,10 @@ func detectStaleEnvFile(workDir string) bool {
 	if _, err := os.Stat(filepath.Join(workDir, ".env")); err != nil {
 		return false
 	}
-	log.Printf("[WARN] stale .env file found in %s", workDir)
-	log.Printf("[WARN] dune-admin is using %s — .env is ignored.", configPath())
-	log.Printf("[WARN] However, env vars pre-exported from .env before startup can")
-	log.Printf("[WARN] shadow config.yaml and silently break features (e.g. market-bot")
-	log.Printf("[WARN] control). Delete or rename .env and restart to be sure:")
-	log.Printf("[WARN]   mv %s %s.bak", filepath.Join(workDir, ".env"), filepath.Join(workDir, ".env"))
+	componentLog("main").Warn().
+		Str("dir", workDir).
+		Str("config_path", configPath()).
+		Msg("stale .env file found; .env is ignored but pre-exported env vars can shadow config.yaml and silently break features (e.g. market-bot control) — delete or rename .env and restart")
 	return true
 }
 
@@ -905,7 +902,10 @@ func usableItemDataPath(configured string) string {
 	}
 	if fb := resolveItemDataPath(); itemDataPathResolvable(fb) {
 		if configured != "" {
-			log.Printf("market-bot: item-data path %q not found; falling back to %q", configured, fb)
+			componentLog("main").Warn().
+				Str("configured_path", configured).
+				Str("fallback_path", fb).
+				Msg("market-bot item-data path not found; falling back")
 		}
 		return fb
 	}
@@ -961,7 +961,7 @@ func run(ctx context.Context) error {
 	// Read caches must exist before the connect path / any handler. Non-fatal:
 	// on error the handlers serve live data.
 	if err := initGlobalCaches(); err != nil {
-		log.Printf("init caches: %v (serving live)", err)
+		componentLog("main").Warn().Err(err).Msg("init caches failed; serving live")
 	}
 
 	alreadyConnected := setupIfNeeded()

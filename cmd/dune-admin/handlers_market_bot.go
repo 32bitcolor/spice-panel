@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -371,7 +370,7 @@ func proxyBotLogsWS(w http.ResponseWriter, r *http.Request, proxy *remoteBotClie
 	}
 	remoteConn, _, err := websocket.DefaultDialer.DialContext(r.Context(), proxy.wsURL("/logs"), hdr)
 	if err != nil {
-		log.Printf("remote bot ws dial: %v", err)
+		componentLog("market_bot").Error().Err(err).Msg("remote bot ws dial failed")
 		_ = clientConn.WriteMessage(websocket.CloseMessage,
 			websocket.FormatCloseMessage(websocket.CloseNormalClosure, "remote unavailable"))
 		return

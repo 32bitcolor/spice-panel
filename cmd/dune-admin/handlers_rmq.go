@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -116,7 +115,7 @@ func handleRMQFillWater(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 	if err != nil {
-		log.Printf("handleRMQFillWater: %v", err)
+		componentLog("rmq").Error().Err(err).Msg("fill water failed")
 		jsonErr(w, fmt.Errorf("fill water failed: %w", err), http.StatusInternalServerError)
 		return
 	}
@@ -295,11 +294,11 @@ func pendingBroadcastShutdown() (at int64, pending bool) {
 // Mirrors fireScheduledRestart: a no-op (logged) when nothing is connected.
 func fireBroadcastShutdown(ctx context.Context, verb string, ctrl ControlPlane, exec Executor) {
 	if ctrl == nil || exec == nil {
-		log.Printf("broadcast-shutdown: control plane not connected; %s skipped", verb)
+		componentLog("rmq").Warn().Str("verb", verb).Msg("broadcast-shutdown: control plane not connected; skipped")
 		return
 	}
 	if _, err := ctrl.ExecCommand(ctx, exec, verb); err != nil {
-		log.Printf("broadcast-shutdown: %s failed: %v", verb, err)
+		componentLog("rmq").Error().Err(err).Str("verb", verb).Msg("broadcast-shutdown failed")
 	}
 }
 
@@ -586,7 +585,7 @@ func handleRMQWhisper(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		log.Printf("handleRMQWhisper: %v", err)
+		componentLog("rmq").Error().Err(err).Msg("failed to send whisper")
 		jsonErr(w, fmt.Errorf("failed to send whisper"), http.StatusInternalServerError)
 		return
 	}

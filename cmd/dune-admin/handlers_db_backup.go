@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -64,7 +63,7 @@ func verifyDumpFile(path string) error {
 func handleDBBackupList(w http.ResponseWriter, _ *http.Request) {
 	files, err := listDBBackups()
 	if err != nil {
-		log.Printf("handleDBBackupList: %v", err)
+		componentLog("db_backup").Error().Err(err).Msg("list backups failed")
 		jsonErr(w, fmt.Errorf("could not list backups"), http.StatusInternalServerError)
 		return
 	}
@@ -84,7 +83,7 @@ func handleDBBackupCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	name, size, err := createDBBackup(prov, executorFromCtx(r))
 	if err != nil {
-		log.Printf("handleDBBackupCreate: %v", err)
+		componentLog("db_backup").Error().Err(err).Msg("create backup failed")
 		jsonErr(w, fmt.Errorf("backup failed"), http.StatusInternalServerError)
 		return
 	}
@@ -160,7 +159,7 @@ func handleDBBackupDownload(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", name))
 	if _, err := io.Copy(w, f); err != nil {
-		log.Printf("handleDBBackupDownload: %v", err)
+		componentLog("db_backup").Error().Err(err).Msg("download copy failed")
 	}
 }
 
@@ -176,7 +175,7 @@ func handleDBBackupDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := deleteDBBackup(name); err != nil {
-		log.Printf("handleDBBackupDelete: %v", err)
+		componentLog("db_backup").Error().Err(err).Msg("delete backup failed")
 		jsonErr(w, fmt.Errorf("could not delete backup"), http.StatusInternalServerError)
 		return
 	}
@@ -218,7 +217,7 @@ func handleDBBackupRestore(w http.ResponseWriter, r *http.Request) {
 	// over a running server would corrupt in-flight state.
 	running, err := gameServersRunning(r.Context(), ctrl, exec)
 	if err != nil {
-		log.Printf("handleDBBackupRestore: status check: %v", err)
+		componentLog("db_backup").Error().Err(err).Msg("status check failed")
 		jsonErr(w, fmt.Errorf("could not verify the battlegroup is stopped"), http.StatusInternalServerError)
 		return
 	}
@@ -229,7 +228,7 @@ func handleDBBackupRestore(w http.ResponseWriter, r *http.Request) {
 	}
 	out, err := restoreDBBackupFile(prov, body.File, exec)
 	if err != nil {
-		log.Printf("handleDBBackupRestore: %v", err)
+		componentLog("db_backup").Error().Err(err).Msg("restore failed")
 		jsonErr(w, fmt.Errorf("restore failed"), http.StatusInternalServerError)
 		return
 	}

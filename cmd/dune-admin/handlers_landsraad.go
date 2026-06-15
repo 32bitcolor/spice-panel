@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 )
 
@@ -21,7 +20,7 @@ func handleGetLandsraad(w http.ResponseWriter, r *http.Request) {
 	}
 	ov, err := cmdFetchLandsraad(r.Context(), db)
 	if err != nil {
-		log.Printf("handleGetLandsraad: %v", err)
+		componentLog("handlers").Error().Err(err).Msg("fetch landsraad failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}

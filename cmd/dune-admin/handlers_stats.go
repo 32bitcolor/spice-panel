@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 )
@@ -58,7 +57,7 @@ func handleGetPlayerStats(w http.ResponseWriter, r *http.Request) {
 
 	pg, err := cmdFetchPlayerPgStats(r.Context(), db, accountID)
 	if err != nil {
-		log.Printf("handleGetPlayerStats: pg stats: %v", err)
+		componentLog("handlers").Error().Int64("account_id", accountID).Err(err).Msg("fetch player pg stats failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}
@@ -67,7 +66,7 @@ func handleGetPlayerStats(w http.ResponseWriter, r *http.Request) {
 	if globalSessionDB != nil {
 		sess, err = getSessionStats(r.Context(), globalSessionDB, storeScopeFromCtx(r), accountID)
 		if err != nil {
-			log.Printf("handleGetPlayerStats: session stats: %v", err)
+			componentLog("handlers").Warn().Int64("account_id", accountID).Err(err).Msg("fetch session stats failed")
 		}
 	}
 
@@ -89,7 +88,7 @@ func handleGetSolarisHistory(w http.ResponseWriter, r *http.Request) {
 
 	points, err := cmdFetchSolarisHistory(r.Context(), db, accountID)
 	if err != nil {
-		log.Printf("handleGetSolarisHistory: %v", err)
+		componentLog("handlers").Error().Int64("account_id", accountID).Err(err).Msg("fetch solaris history failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}
@@ -114,7 +113,7 @@ func handleGetSessionHistory(w http.ResponseWriter, r *http.Request) {
 	}
 	recs, err := getSessionHistory(r.Context(), globalSessionDB, storeScopeFromCtx(r), accountID, 200)
 	if err != nil {
-		log.Printf("handleGetSessionHistory: %v", err)
+		componentLog("handlers").Error().Int64("account_id", accountID).Err(err).Msg("fetch session history failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}
@@ -133,7 +132,7 @@ func handleGetStatSnapshotHistory(w http.ResponseWriter, r *http.Request) {
 	}
 	snaps, err := getStatSnapshotHistory(r.Context(), globalSessionDB, storeScopeFromCtx(r), accountID, 500)
 	if err != nil {
-		log.Printf("handleGetStatSnapshotHistory: %v", err)
+		componentLog("handlers").Error().Int64("account_id", accountID).Err(err).Msg("fetch stat snapshot history failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}

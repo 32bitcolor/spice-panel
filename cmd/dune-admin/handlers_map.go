@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 )
 
@@ -16,7 +15,7 @@ func handleListMaps(w http.ResponseWriter, r *http.Request) {
 	}
 	maps, err := cmdFetchDistinctMaps(r.Context(), db)
 	if err != nil {
-		log.Printf("handleListMaps: %v", err)
+		componentLog("handlers").Error().Err(err).Msg("fetch distinct maps failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}
@@ -50,7 +49,7 @@ func handleGetMapMarkers(w http.ResponseWriter, r *http.Request) {
 	}
 	markers, err := cmdFetchMapMarkers(r.Context(), db, mapKey)
 	if err != nil {
-		log.Printf("handleGetMapMarkers: %v", err)
+		componentLog("handlers").Error().Str("map_key", mapKey).Err(err).Msg("fetch map markers failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}

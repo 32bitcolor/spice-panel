@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 )
 
@@ -62,7 +61,7 @@ func handleUpdateWebInterfaces(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := saveWebInterfaces(body.Interfaces); err != nil {
-		log.Printf("handleUpdateWebInterfaces: %v", err)
+		componentLog("web_interfaces").Error().Err(err).Msg("could not save web interfaces")
 		jsonErr(w, fmt.Errorf("could not save web interfaces"), http.StatusInternalServerError)
 		return
 	}

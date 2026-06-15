@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -75,6 +73,7 @@ func startServerMarketBot(sc *ServerContext, gcfg appConfig) {
 		return
 	}
 	cacheDB, statePath := serverBotPaths(gcfg, sc.ID)
+	botLog := serverLog("market_bot", sc)
 	botCtx, botCancel := context.WithCancel(context.Background())
 	inst, err := marketbot.Run(botCtx, marketbot.BotConfig{
 		DBPool:       sc.DB,
@@ -87,11 +86,11 @@ func startServerMarketBot(sc *ServerContext, gcfg appConfig) {
 		BuyThreshold: gcfg.MarketBotThresh,
 		MaxBuys:      gcfg.MarketBotMaxBuys,
 		// Attribute interleaved logs from multiple servers' bots to a specific
-		// server + control plane.
-		LogPrefix: serverLogPrefix("market-bot", sc),
+		// server + control plane via structured fields.
+		Logger: *botLog,
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%sstartup failed: %v\n", serverLogPrefix("market-bot", sc), err)
+		botLog.Error().Err(err).Msg("startup failed")
 		botCancel()
 		return
 	}

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
@@ -257,7 +256,7 @@ func handleSaveConfig(w http.ResponseWriter, r *http.Request) {
 		// If reconnect fails (e.g. SSH not yet reachable), the file is still
 		// saved and will take effect on the next restart or manual reconnect.
 		if err := connectAll(); err != nil {
-			log.Printf("handleSaveConfig: reconnect after save: %v", err)
+			componentLog("config").Error().Err(err).Msg("reconnect after save failed")
 		}
 	}
 

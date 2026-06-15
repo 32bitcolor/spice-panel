@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"sort"
 	"strconv"
@@ -54,7 +53,7 @@ func handleGetPlayerSummary(w http.ResponseWriter, r *http.Request) {
 	}
 	stats, err := cmdFetchServerStats(r.Context(), db)
 	if err != nil {
-		log.Printf("handleGetPlayerSummary: %v", err)
+		componentLog("handlers").Error().Err(err).Msg("fetch server stats failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}
@@ -63,7 +62,7 @@ func handleGetPlayerSummary(w http.ResponseWriter, r *http.Request) {
 	// (averageLevel(nil)) rather than failing the whole dashboard.
 	xps, err := cmdFetchCharXPList(r.Context(), db)
 	if err != nil {
-		log.Printf("handleGetPlayerSummary: char xp: %v", err)
+		componentLog("handlers").Warn().Err(err).Msg("fetch char xp list failed")
 	}
 	jsonOK(w, serverSummary{
 		TotalPlayers:      stats.TotalPlayers,
@@ -102,7 +101,7 @@ func handleGetFactionTrends(w http.ResponseWriter, r *http.Request) {
 	}
 	acctFaction, err := cmdFetchAccountFactions(r.Context(), db)
 	if err != nil {
-		log.Printf("handleGetFactionTrends: %v", err)
+		componentLog("handlers").Error().Err(err).Msg("fetch account factions failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}
@@ -111,7 +110,7 @@ func handleGetFactionTrends(w http.ResponseWriter, r *http.Request) {
 	var snaps []daySnap
 	if globalSessionDB != nil {
 		if snaps, err = getDailySnapshots(r.Context(), globalSessionDB, storeScopeFromCtx(r), factionTrendDays); err != nil {
-			log.Printf("handleGetFactionTrends: snapshots: %v", err)
+			componentLog("handlers").Warn().Err(err).Msg("fetch daily snapshots failed")
 		}
 	}
 	jsonOK(w, bucketFactionTrends(snaps, acctFaction, metric))
@@ -814,7 +813,7 @@ func handleDeleteCharacter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if msg.err != nil {
-		log.Printf("handleDeleteCharacter: %v", msg.err)
+		componentLog("handlers").Error().Int64("account_id", req.AccountID).Err(msg.err).Msg("delete character failed")
 		jsonErr(w, msg.err, 500)
 		return
 	}
@@ -2112,7 +2111,7 @@ func handleTeleportCoords(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 	if err != nil {
-		log.Printf("handleTeleportCoords: %v", err)
+		componentLog("handlers").Error().Str("fls_id", req.FlsID).Err(err).Msg("teleport coords failed")
 		jsonErr(w, fmt.Errorf("teleport failed: %w", err), http.StatusInternalServerError)
 		return
 	}

@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -28,7 +27,7 @@ func handleListGuilds(w http.ResponseWriter, r *http.Request) {
 	}
 	guilds, err := cmdFetchGuilds(r.Context(), db)
 	if err != nil {
-		log.Printf("handleListGuilds: %v", err)
+		componentLog("handlers").Error().Err(err).Msg("fetch guilds failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}
@@ -62,7 +61,7 @@ func handleGetGuild(w http.ResponseWriter, r *http.Request) {
 			jsonErr(w, fmt.Errorf("guild not found"), http.StatusNotFound)
 			return
 		}
-		log.Printf("handleGetGuild: %v", err)
+		componentLog("handlers").Error().Int64("guild_id", id).Err(err).Msg("fetch guild detail failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 		return
 	}
@@ -99,7 +98,7 @@ func writeGuildUpdateErr(w http.ResponseWriter, err error) {
 	case errors.Is(err, errGuildNotFound):
 		jsonErr(w, fmt.Errorf("guild not found"), http.StatusNotFound)
 	default:
-		log.Printf("handleUpdateGuild: %v", err)
+		componentLog("handlers").Error().Err(err).Msg("update guild failed")
 		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
 	}
 }
@@ -190,7 +189,7 @@ func handleSetGuildMemberRole(w http.ResponseWriter, r *http.Request) {
 	if err := cmdSetGuildMemberRole(r.Context(), db, id, pid, body.Role); err != nil {
 		// The game procs raise on invalid transitions (e.g. demoting the sitting
 		// admin). Surface a hint; log the detail.
-		log.Printf("handleSetGuildMemberRole: %v", err)
+		componentLog("handlers").Warn().Int64("guild_id", id).Int64("player_id", pid).Err(err).Msg("set guild member role rejected")
 		jsonErr(w, fmt.Errorf("role change rejected — to change the admin, promote another member to admin first"), http.StatusBadRequest)
 		return
 	}
