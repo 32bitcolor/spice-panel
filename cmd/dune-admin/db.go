@@ -21,8 +21,12 @@ import (
 // ── journey-node fetch cache ────────────────────────────────────────────────
 // Journey fetches return ~300-800 rows per character through an SSH tunnel,
 // which makes them visibly slow. A short TTL cache keeps the common
-// "open modal → close → reopen" loop snappy. Mutations call
-// invalidateJourneyCache(accountID) to drop stale entries.
+// "open modal → close → reopen" loop snappy.
+//
+// The key is "<server scope>:journey:<accountID>" — scoped by SERVER first, then
+// the query — so two game servers (separate DBs that can share account ids)
+// never serve each other's journey data. Mutations call invalidateAllJourneyCache
+// to drop stale entries (cheap for this single-user admin tool).
 
 const journeyCacheTTL = 30 * time.Second
 
@@ -33,21 +37,20 @@ type journeyCacheEntry struct {
 
 var (
 	journeyCacheMu sync.RWMutex
-	journeyCache   = map[int64]journeyCacheEntry{}
+	journeyCache   = map[string]journeyCacheEntry{}
 )
 
-func invalidateJourneyCache(accountID int64) {
-	journeyCacheMu.Lock()
-	delete(journeyCache, accountID)
-	journeyCacheMu.Unlock()
+// journeyCacheKey scopes the cache by server then account: "<scope>:journey:<id>".
+func journeyCacheKey(scope string, accountID int64) string {
+	return cacheKey(scope, "journey", strconv.FormatInt(accountID, 10))
 }
 
-// Used by mutations keyed on player_id where we don't have the account_id handy
-// (progression unlock, contract completion). A single-user admin tool, so
-// dropping every entry is cheap.
+// invalidateAllJourneyCache drops every journey entry across all servers. Called
+// after any journey/progression mutation; over-invalidating is cheap here (the
+// cache only accelerates the open→close→reopen loop on a single-user tool).
 func invalidateAllJourneyCache() {
 	journeyCacheMu.Lock()
-	journeyCache = map[int64]journeyCacheEntry{}
+	journeyCache = map[string]journeyCacheEntry{}
 	journeyCacheMu.Unlock()
 }
 
@@ -1869,7 +1872,7 @@ func cmdDeleteCharacter(pool *pgxpool.Pool, accountID int64, reason string) Cmd 
 		if err != nil {
 			return msgMutate{err: err}
 		}
-		invalidateJourneyCache(accountID)
+		invalidateAllJourneyCache()
 		return msgMutate{ok: "Character deleted"}
 	}
 }
@@ -2802,15 +2805,16 @@ func cmdSearchColumns(pool *pgxpool.Pool, term string) Cmd {
 
 // ── journey / progression commands ───────────────────────────────────────────
 
-func cmdFetchJourneyNodes(pool *pgxpool.Pool, accountID int64) Cmd {
+func cmdFetchJourneyNodes(pool *pgxpool.Pool, scope string, accountID int64) Cmd {
 	return func() Msg {
 		if pool == nil {
 			return msgJourney{err: fmt.Errorf("not connected")}
 		}
+		key := journeyCacheKey(scope, accountID)
 
 		// Cache hit?
 		journeyCacheMu.RLock()
-		entry, ok := journeyCache[accountID]
+		entry, ok := journeyCache[key]
 		journeyCacheMu.RUnlock()
 		if ok && time.Since(entry.cached) < journeyCacheTTL {
 			return msgJourney{rows: entry.nodes}
@@ -2844,7 +2848,7 @@ func cmdFetchJourneyNodes(pool *pgxpool.Pool, accountID int64) Cmd {
 			return msgJourney{err: err}
 		}
 		journeyCacheMu.Lock()
-		journeyCache[accountID] = journeyCacheEntry{nodes: nodes, cached: time.Now()}
+		journeyCache[key] = journeyCacheEntry{nodes: nodes, cached: time.Now()}
 		journeyCacheMu.Unlock()
 		return msgJourney{rows: nodes}
 	}

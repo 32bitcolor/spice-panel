@@ -294,7 +294,7 @@ func handleGetJourney(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, fmt.Errorf("invalid accountId"), 400)
 		return
 	}
-	msg, ok := cmdFetchJourneyNodes(dbFromCtx(r), accountID)().(msgJourney)
+	msg, ok := cmdFetchJourneyNodes(dbFromCtx(r), scopeFromReq(r), accountID)().(msgJourney)
 	if !ok {
 		jsonErr(w, fmt.Errorf("internal error"), 500)
 		return
@@ -1196,7 +1196,7 @@ func handleJourneyComplete(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, msg.err, 500)
 		return
 	}
-	invalidateJourneyCache(req.AccountID)
+	invalidateAllJourneyCache()
 	jsonOK(w, map[string]string{"ok": msg.ok})
 }
 
@@ -1227,7 +1227,7 @@ func handleCompleteContract(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, msg.err, 500)
 		return
 	}
-	invalidateJourneyCache(req.AccountID)
+	invalidateAllJourneyCache()
 	jsonOK(w, map[string]string{"ok": msg.ok})
 }
 
@@ -1348,7 +1348,7 @@ func handleCompleteContracts(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, msg.err, 500)
 		return
 	}
-	invalidateJourneyCache(req.AccountID)
+	invalidateAllJourneyCache()
 	jsonOK(w, map[string]string{"ok": msg.ok})
 }
 
@@ -1379,7 +1379,7 @@ func handleReverseContracts(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, msg.err, 500)
 		return
 	}
-	invalidateJourneyCache(req.AccountID)
+	invalidateAllJourneyCache()
 	jsonOK(w, map[string]string{"ok": msg.ok})
 }
 
@@ -1436,7 +1436,7 @@ func handleJourneyReset(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, msg.err, 500)
 		return
 	}
-	invalidateJourneyCache(req.AccountID)
+	invalidateAllJourneyCache()
 	jsonOK(w, map[string]string{"ok": msg.ok})
 }
 
@@ -1466,7 +1466,7 @@ func handleJourneyWipe(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, msg.err, 500)
 		return
 	}
-	invalidateJourneyCache(req.AccountID)
+	invalidateAllJourneyCache()
 	jsonOK(w, map[string]string{"ok": msg.ok})
 }
 

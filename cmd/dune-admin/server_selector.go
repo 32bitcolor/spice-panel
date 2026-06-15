@@ -47,6 +47,16 @@ func serverFromCtx(r *http.Request) *ServerContext {
 	return sc
 }
 
+// scopeFromReq returns the per-server cache/scope key for the request, or
+// "default" when unscoped (legacy single-server / no server context). Used to
+// key per-server caches by server first, then the query.
+func scopeFromReq(r *http.Request) string {
+	if sc := serverFromCtx(r); sc != nil {
+		return sc.ID
+	}
+	return "default"
+}
+
 // dbFromCtx returns the pgx pool for the request's server context. When no
 // server is stashed (middleware not in chain, or empty registry) it falls back
 // to globalDB so existing tests and legacy call-sites keep working during the
