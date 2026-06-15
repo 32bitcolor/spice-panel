@@ -968,6 +968,12 @@ func run(ctx context.Context) error {
 
 	connectAndPrimeTemplates(alreadyConnected)
 
+	// Prewarm hot read caches so the first UI paint (dashboard health) is instant
+	// on a hard refresh, then keep them warm in the background (refresh-ahead).
+	warmer := newCacheWarmer(globalRegistry)
+	prewarmCaches(ctx, warmer)
+	go warmer.run(ctx)
+
 	sessionCancel := startSessionTracking()
 	defer sessionCancel()
 
