@@ -937,6 +937,7 @@ func main() {
 // path — including the server's exit. main() translates a returned error into a
 // non-zero exit code only after run() has fully returned and its defers ran.
 func run(ctx context.Context) error {
+	initLogging()
 	handled, err := runImmediateModes()
 	if handled {
 		if err != nil {
