@@ -153,11 +153,15 @@ func serverScope(id int) string {
 // interleaved from multiple servers stay distinguishable. The trailing space
 // separates the prefix from the message (with log.Lmsgprefix or %s).
 func serverLogPrefix(tag string, sc *ServerContext) string {
-	control := sc.Cfg.Control
+	return fmt.Sprintf("%s[server=%s %s] ", tag, sc.ID, controlOrDefault(sc.Cfg.Control))
+}
+
+// controlOrDefault returns the control-plane name, treating blank as "local".
+func controlOrDefault(control string) string {
 	if control == "" {
-		control = "local"
+		return "local"
 	}
-	return fmt.Sprintf("%s[server=%s %s] ", tag, sc.ID, control)
+	return control
 }
 
 // newServerRegistry constructs an empty registry backed by the given SQLite
