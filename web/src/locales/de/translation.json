@@ -369,7 +369,9 @@
     "deleteSelected": "Ausgewählte löschen",
     "clearSelection": "Auswahl aufheben",
     "noItems": "Noch keine Einträge.",
-    "beta": "Beta"
+    "beta": "Beta",
+    "back": "Zurück",
+    "dismiss": "Schließen"
   },
   "database": {
     "columnColumn": "Spalte",
@@ -670,7 +672,8 @@
     "groups": {
       "economy": "Wirtschaft",
       "operations": "Betrieb",
-      "playerWorld": "Spielerwelt"
+      "playerWorld": "Spielerwelt",
+      "dashboard": "Start"
     },
     "liveMap": "Live-Karte",
     "logs": "Protokolle",
@@ -682,7 +685,8 @@
     "events": "Live-Events",
     "menu": "Navigation",
     "battlepass": "Battlepass",
-    "permissions": "Berechtigungen"
+    "permissions": "Berechtigungen",
+    "dashboard": "Dashboard"
   },
   "players": {
     "actions": {
@@ -1915,6 +1919,37 @@
       "gameProc": "Spielserver-Prozess wird gesucht",
       "containers": "Container werden geprüft",
       "finalize": "Wird abgeschlossen"
+    }
+  },
+  "manage": {
+    "title": "Server verwalten",
+    "serverName": "Servername"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Server und Einrichtung auf einen Blick",
+    "loadFailed": "Serverstatus konnte nicht geladen werden: {{message}}",
+    "running": "Läuft",
+    "offline": "Offline",
+    "playersOnline": "{{count}} online",
+    "view": "Ansehen",
+    "manage": "Verwalten",
+    "empty": {
+      "title": "Noch keine Server",
+      "body": "Füge deinen ersten Spielserver hinzu, um zu starten. Du kannst unten auch Auth oder Discord einrichten — alles optional.",
+      "addServer": "Ersten Server hinzufügen"
+    },
+    "onboarding": {
+      "auth": {
+        "title": "Anmeldung / Auth einrichten",
+        "body": "Eine Anmeldung für den Zugriff aufs Dashboard verlangen. Optional — im vertrauenswürdigen lokalen Netzwerk weglassen.",
+        "cta": "Auth einrichten"
+      },
+      "discord": {
+        "title": "Discord-Bot verbinden",
+        "body": "Benachrichtigungen senden und Rollen auf Berechtigungen abbilden. Optional.",
+        "cta": "Discord verbinden"
+      }
     }
   }
 }

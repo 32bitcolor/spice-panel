@@ -369,7 +369,9 @@
     "deleteSelected": "選択項目を削除",
     "clearSelection": "選択を解除",
     "noItems": "アイテムはまだありません。",
-    "beta": "ベータ"
+    "beta": "ベータ",
+    "back": "戻る",
+    "dismiss": "閉じる"
   },
   "database": {
     "columnColumn": "カラム",
@@ -670,7 +672,8 @@
     "groups": {
       "economy": "エコノミー",
       "operations": "オペレーション",
-      "playerWorld": "プレイヤーワールド"
+      "playerWorld": "プレイヤーワールド",
+      "dashboard": "ホーム"
     },
     "liveMap": "ライブマップ",
     "logs": "ログ",
@@ -682,7 +685,8 @@
     "events": "ライブイベント",
     "menu": "ナビゲーション",
     "battlepass": "バトルパス",
-    "permissions": "権限"
+    "permissions": "権限",
+    "dashboard": "ダッシュボード"
   },
   "players": {
     "actions": {
@@ -1915,6 +1919,37 @@
       "gameProc": "ゲームサーバープロセスを特定中",
       "containers": "コンテナを検査中",
       "finalize": "完了処理中"
+    }
+  },
+  "manage": {
+    "title": "サーバー管理",
+    "serverName": "サーバー名"
+  },
+  "dashboard": {
+    "title": "ダッシュボード",
+    "subtitle": "サーバーと設定をひと目で",
+    "loadFailed": "サーバーの状態を読み込めませんでした: {{message}}",
+    "running": "稼働中",
+    "offline": "オフライン",
+    "playersOnline": "{{count}} 人オンライン",
+    "view": "表示",
+    "manage": "管理",
+    "empty": {
+      "title": "サーバーがまだありません",
+      "body": "最初のゲームサーバーを追加して始めましょう。下で認証や Discord も設定できます（すべて任意）。",
+      "addServer": "最初のサーバーを追加"
+    },
+    "onboarding": {
+      "auth": {
+        "title": "ログイン / 認証を設定",
+        "body": "ダッシュボードへのアクセスにログインを必須にします。任意 — 信頼できるローカルネットワークではオフのままで構いません。",
+        "cta": "認証を設定"
+      },
+      "discord": {
+        "title": "Discord ボットを接続",
+        "body": "通知を送信し、ロールを権限に対応付けます。任意。",
+        "cta": "Discord を接続"
+      }
     }
   }
 }

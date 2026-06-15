@@ -369,7 +369,9 @@
     "deleteSelected": "Seçilenleri sil",
     "clearSelection": "Seçimi temizle",
     "noItems": "Henüz öğe yok.",
-    "beta": "Beta"
+    "beta": "Beta",
+    "back": "Geri",
+    "dismiss": "Kapat"
   },
   "database": {
     "columnColumn": "Sütun",
@@ -670,7 +672,8 @@
     "groups": {
       "economy": "Ekonomi",
       "operations": "Operasyonlar",
-      "playerWorld": "Oyuncu Dünyası"
+      "playerWorld": "Oyuncu Dünyası",
+      "dashboard": "Ana sayfa"
     },
     "liveMap": "Canlı Harita",
     "logs": "Kayıtlar",
@@ -682,7 +685,8 @@
     "events": "Canlı Etkinlikler",
     "menu": "Gezinti",
     "battlepass": "Savaş Geçişi",
-    "permissions": "İzinler"
+    "permissions": "İzinler",
+    "dashboard": "Panel"
   },
   "players": {
     "actions": {
@@ -1915,6 +1919,37 @@
       "gameProc": "Oyun sunucusu süreci bulunuyor",
       "containers": "Konteynerler inceleniyor",
       "finalize": "Tamamlanıyor"
+    }
+  },
+  "manage": {
+    "title": "Sunucuyu yönet",
+    "serverName": "Sunucu adı"
+  },
+  "dashboard": {
+    "title": "Panel",
+    "subtitle": "Sunucular ve kurulum bir bakışta",
+    "loadFailed": "Sunucu durumu yüklenemedi: {{message}}",
+    "running": "Çalışıyor",
+    "offline": "Çevrimdışı",
+    "playersOnline": "{{count}} çevrimiçi",
+    "view": "Görüntüle",
+    "manage": "Yönet",
+    "empty": {
+      "title": "Henüz sunucu yok",
+      "body": "Başlamak için ilk oyun sunucunu ekle. Aşağıdan auth veya Discord da kurabilirsin — hepsi isteğe bağlı.",
+      "addServer": "İlk sunucunu ekle"
+    },
+    "onboarding": {
+      "auth": {
+        "title": "Giriş / auth kur",
+        "body": "Panele erişim için giriş iste. İsteğe bağlı — güvenilir bir yerel ağda kapalı bırak.",
+        "cta": "Auth kur"
+      },
+      "discord": {
+        "title": "Discord botu bağla",
+        "body": "Bildirim gönder ve rolleri izinlere eşle. İsteğe bağlı.",
+        "cta": "Discord bağla"
+      }
     }
   }
 }

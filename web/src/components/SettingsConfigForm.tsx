@@ -263,25 +263,28 @@ const slugify = (name: string): string =>
 
 export const SettingsConfigForm: React.FC<SettingsConfigFormProps> = ({
   saveRef, onSavingChange, activeTab, hideTabBar, skipLoad, onRequestDeleteServer,
-  addMode, addServerName, onConfigChange, prefill,
+  addMode, addServerName, onConfigChange, prefill, globalOnly, serverId, initialTab,
 }) => {
   const { t } = useTranslation()
   const auth = React.useContext(AuthContext)
-  const { activeID, servers } = useActiveServer()
+  const { activeID, servers, refresh: refreshServers } = useActiveServer()
   // Settings-modal mode (vs. wizard): the wizard hides the tab bar and drives
   // navigation via activeTab. Only the modal splits config into global vs
   // per-server and shows the scope toggle + Danger Zone.
   const settingsMode = !hideTabBar
-  // Single-server installs never set an explicit active id; fall back to the
-  // first (only) server so the scope toggle still shows its name and edits
-  // target the right server ("default" for the legacy flat install).
-  const serverID = activeID || servers[0]?.id || 'default'
+  // The Manage-server page targets an explicit serverId; otherwise fall back to
+  // the active server (single-server installs never set an explicit active id).
+  const serverID = serverId || activeID || servers[0]?.id || 'default'
   const activeName = servers.find((s) => s.id === serverID)?.name ?? ''
 
   const [cfg, setCfg] = React.useState<AppConfig>(EMPTY)
+  // Per-server display name (rename); loaded from the server's config.
+  const [serverName, setServerName] = React.useState('')
   const [loading, setLoading] = React.useState(true)
-  const [scope, setScope] = React.useState<'server' | 'admin'>('server')
-  const [internalTab, setInternalTab] = React.useState('control')
+  // Settings (globalOnly) shows the dune-admin scope; Manage server shows the
+  // per-server scope. The two are separate entry points, so there's no toggle.
+  const scope: 'server' | 'admin' = globalOnly ? 'admin' : 'server'
+  const [internalTab, setInternalTab] = React.useState(initialTab ?? (globalOnly ? 'auth' : 'control'))
   const tab = activeTab ?? internalTab
   const [backendUrl, setBackendUrl] = React.useState(() => localStorage.getItem('dune_admin_backend') || '')
 
@@ -321,6 +324,7 @@ export const SettingsConfigForm: React.FC<SettingsConfigFormProps> = ({
       .then(([global, server]) => {
         globalBaseRef.current = global as Partial<AppConfig>
         serverBaseRef.current = server
+        if (server?.name) setServerName(server.name)
         const combined = server
           ? { ...(global as Record<string, unknown>), ...pickPerServer(mergeConfig(server as Record<string, unknown>)) }
           : (global as Record<string, unknown>)
@@ -372,20 +376,25 @@ export const SettingsConfigForm: React.FC<SettingsConfigFormProps> = ({
       await api.servers.add(payload)
       return
     }
-    // Wizard (first-run), or the legacy "default" server: a single flat save
-    // covers both global and per-server fields (and reconnects the default).
-    if (!settingsMode || serverID === 'default') {
+    // First-run wizard: a single flat save creates/edits the default server.
+    if (!settingsMode) {
       await api.config.save(cfg)
       return
     }
-    // Multi-server: save globals first (no per-server reconnect), then the
-    // active server's config (which reconnects it and re-aliases globalDB).
-    const globalPayload = { ...globalBaseRef.current, ...pickGlobal(cfg) } as AppConfig
-    await api.config.save(globalPayload)
+    // Settings (global) scope: save only global fields, preserving everything
+    // else (the flat per-server fields and Servers[] come from the base).
+    if (globalOnly) {
+      await api.config.save({ ...globalBaseRef.current, ...pickGlobal(cfg) } as AppConfig)
+      return
+    }
+    // Manage-server (per-server) scope: save only this server's config + name.
+    // Works for the legacy "default" too — the backend maps it to the flat
+    // config and preserves global settings.
     const serverPayload = {
       ...(serverBaseRef.current ?? {}),
       ...pickPerServer(cfg),
       id: serverID,
+      name: serverName.trim() || activeName,
     } as ServerConfig
     await api.servers.saveConfig(serverID, serverPayload)
   }
@@ -397,14 +406,17 @@ export const SettingsConfigForm: React.FC<SettingsConfigFormProps> = ({
       await persist()
       toast.success(t('settings.configSaved'))
       // Toggling authentication clears the session cookie server-side; reset
-      // the route to the default tab and force a full reload so the SPA
+      // the route to the Dashboard and force a full reload so the SPA
       // re-bootstraps from a clean slate — the login page when enabling, the
-      // Battlegroup tab when disabling — with no stale auth state or route.
+      // Dashboard when disabling — with no stale auth state or route.
       if (authToggled) {
-        window.location.hash = '#/battlegroup'
+        window.location.hash = '#/dashboard'
         window.location.reload()
         return
       }
+      // Re-fetch the server list so a rename (or add) reflects immediately in
+      // the navbar dropdown and the dashboard cards.
+      await refreshServers()
       // Non-toggle save: re-sync auth status (e.g. methods/owners changed).
       await auth.refresh()
     }
@@ -463,34 +475,23 @@ export const SettingsConfigForm: React.FC<SettingsConfigFormProps> = ({
     { id: 'admin-advanced', label: t('settings.tabs.advanced') },
   ]
   const scopedTabs = scope === 'server' ? SERVER_TABS : ADMIN_TABS
-
-  const changeScope = (next: 'server' | 'admin') => {
-    setScope(next)
-    setInternalTab(next === 'server' ? 'control' : 'auth')
-  }
+  // Inline rename: shown in the per-server scope of the Settings/Manage view
+  // (not the wizard, not the global Settings modal).
+  const showNameField = settingsMode && scope === 'server'
 
   return (
     <form className="flex flex-col flex-1 min-h-0 gap-3" onSubmit={(e) => e.preventDefault()} autoComplete="off">
       {/* sr-only (not display:none) — Chrome's credential heuristic skips display:none elements */}
       <input type="text" autoComplete="username" aria-hidden="true" tabIndex={-1} readOnly className="sr-only" />
+      {showNameField && (
+        <Panel className="shrink-0">
+          <FieldRow label={t('manage.serverName', 'Server name')}>
+            <TextInput value={serverName} onChange={setServerName} placeholder={activeName || 'Production'} />
+          </FieldRow>
+        </Panel>
+      )}
       {!hideTabBar && (
-        <div className="shrink-0 flex flex-wrap items-center justify-between gap-2">
-          <Segment
-            selectedKey={scope}
-            onSelectionChange={(k) => changeScope(k === 'admin' ? 'admin' : 'server')}
-            size="sm"
-            className="w-fit"
-          >
-            <Segment.Item id="server">
-              <Segment.Separator />
-              {t('settings.scope.server', 'Server')}
-              {activeName ? `: ${activeName}` : ''}
-            </Segment.Item>
-            <Segment.Item id="admin">
-              <Segment.Separator />
-              {t('settings.scope.admin', 'dune-admin')}
-            </Segment.Item>
-          </Segment>
+        <div className="shrink-0 flex flex-wrap items-center justify-end gap-2">
           <Segment
             selectedKey={tab}
             onSelectionChange={(k) => setInternalTab(String(k))}

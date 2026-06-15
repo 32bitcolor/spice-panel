@@ -373,7 +373,9 @@
     "deleteSelected": "Usuń zaznaczone",
     "clearSelection": "Wyczyść zaznaczenie",
     "noItems": "Brak elementów.",
-    "beta": "Beta"
+    "beta": "Beta",
+    "back": "Wstecz",
+    "dismiss": "Odrzuć"
   },
   "database": {
     "columnColumn": "Kolumna",
@@ -684,7 +686,8 @@
     "groups": {
       "economy": "Gospodarka",
       "operations": "Operacje",
-      "playerWorld": "Świat gracza"
+      "playerWorld": "Świat gracza",
+      "dashboard": "Start"
     },
     "liveMap": "Mapa na żywo",
     "logs": "Logi",
@@ -696,7 +699,8 @@
     "events": "Wydarzenia na żywo",
     "menu": "Nawigacja",
     "battlepass": "Battlepass",
-    "permissions": "Uprawnienia"
+    "permissions": "Uprawnienia",
+    "dashboard": "Pulpit"
   },
   "players": {
     "actions": {
@@ -1961,6 +1965,37 @@
       "gameProc": "Lokalizowanie procesu serwera gry",
       "containers": "Sprawdzanie kontenerów",
       "finalize": "Finalizowanie"
+    }
+  },
+  "manage": {
+    "title": "Zarządzaj serwerem",
+    "serverName": "Nazwa serwera"
+  },
+  "dashboard": {
+    "title": "Pulpit",
+    "subtitle": "Serwery i konfiguracja w skrócie",
+    "loadFailed": "Nie udało się wczytać stanu serwera: {{message}}",
+    "running": "Działa",
+    "offline": "Offline",
+    "playersOnline": "{{count}} online",
+    "view": "Pokaż",
+    "manage": "Zarządzaj",
+    "empty": {
+      "title": "Brak serwerów",
+      "body": "Dodaj pierwszy serwer gry, aby zacząć. Poniżej możesz też skonfigurować auth lub Discord — wszystko opcjonalne.",
+      "addServer": "Dodaj pierwszy serwer"
+    },
+    "onboarding": {
+      "auth": {
+        "title": "Skonfiguruj logowanie / auth",
+        "body": "Wymagaj logowania, aby uzyskać dostęp do pulpitu. Opcjonalne — pozostaw wyłączone w zaufanej sieci lokalnej.",
+        "cta": "Skonfiguruj auth"
+      },
+      "discord": {
+        "title": "Połącz bota Discord",
+        "body": "Wysyłaj powiadomienia i mapuj role na uprawnienia. Opcjonalne.",
+        "cta": "Połącz Discord"
+      }
     }
   }
 }

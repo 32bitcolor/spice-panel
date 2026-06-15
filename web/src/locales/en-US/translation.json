@@ -384,7 +384,9 @@
     "deleteSelected": "Delete selected",
     "clearSelection": "Clear selection",
     "noItems": "No items yet.",
-    "beta": "Beta"
+    "beta": "Beta",
+    "back": "Back",
+    "dismiss": "Dismiss"
   },
   "database": {
     "columnColumn": "Column",
@@ -685,7 +687,8 @@
     "groups": {
       "economy": "Economy",
       "operations": "Operations",
-      "playerWorld": "Player World"
+      "playerWorld": "Player World",
+      "dashboard": "Home"
     },
     "liveMap": "Live Map",
     "logs": "Logs",
@@ -697,7 +700,8 @@
     "events": "Live Events",
     "battlepass": "Battlepass",
     "menu": "Navigation",
-    "permissions": "Permissions"
+    "permissions": "Permissions",
+    "dashboard": "Dashboard"
   },
   "players": {
     "actions": {
@@ -1942,6 +1946,37 @@
       "gameProc": "Locating game server process",
       "containers": "Inspecting containers",
       "finalize": "Finalizing"
+    }
+  },
+  "manage": {
+    "title": "Manage server",
+    "serverName": "Server name"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Servers and setup at a glance",
+    "loadFailed": "Failed to load server health: {{message}}",
+    "running": "Running",
+    "offline": "Offline",
+    "playersOnline": "{{count}} online",
+    "view": "View",
+    "manage": "Manage",
+    "empty": {
+      "title": "No servers yet",
+      "body": "Add your first game server to get started. You can also set up auth or Discord below — all optional.",
+      "addServer": "Add your first server"
+    },
+    "onboarding": {
+      "auth": {
+        "title": "Set up login / auth",
+        "body": "Require a login to access the dashboard. Optional — leave off for a trusted local network.",
+        "cta": "Set up auth"
+      },
+      "discord": {
+        "title": "Connect a Discord bot",
+        "body": "Send notifications and let roles map to permissions. Optional.",
+        "cta": "Connect Discord"
+      }
     }
   }
 }

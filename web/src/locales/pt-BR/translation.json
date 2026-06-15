@@ -371,7 +371,9 @@
     "deleteSelected": "Excluir selecionados",
     "clearSelection": "Limpar seleção",
     "noItems": "Nenhum item ainda.",
-    "beta": "Beta"
+    "beta": "Beta",
+    "back": "Voltar",
+    "dismiss": "Dispensar"
   },
   "database": {
     "columnColumn": "Coluna",
@@ -677,7 +679,8 @@
     "groups": {
       "economy": "Economia",
       "operations": "Operações",
-      "playerWorld": "Mundo do Jogador"
+      "playerWorld": "Mundo do Jogador",
+      "dashboard": "Início"
     },
     "liveMap": "Mapa ao vivo",
     "logs": "Logs",
@@ -689,7 +692,8 @@
     "events": "Eventos ao vivo",
     "menu": "Navegação",
     "battlepass": "Passe de batalha",
-    "permissions": "Permissões"
+    "permissions": "Permissões",
+    "dashboard": "Painel"
   },
   "players": {
     "actions": {
@@ -1938,6 +1942,37 @@
       "gameProc": "Localizando processo do servidor de jogo",
       "containers": "Inspecionando contêineres",
       "finalize": "Finalizando"
+    }
+  },
+  "manage": {
+    "title": "Gerenciar servidor",
+    "serverName": "Nome do servidor"
+  },
+  "dashboard": {
+    "title": "Painel",
+    "subtitle": "Servidores e configuração num relance",
+    "loadFailed": "Falha ao carregar o estado do servidor: {{message}}",
+    "running": "Em execução",
+    "offline": "Offline",
+    "playersOnline": "{{count}} online",
+    "view": "Ver",
+    "manage": "Gerenciar",
+    "empty": {
+      "title": "Nenhum servidor ainda",
+      "body": "Adicione seu primeiro servidor de jogo para começar. Você também pode configurar auth ou Discord abaixo — tudo opcional.",
+      "addServer": "Adicionar seu primeiro servidor"
+    },
+    "onboarding": {
+      "auth": {
+        "title": "Configurar login / auth",
+        "body": "Exigir login para acessar o painel. Opcional — deixe desativado em uma rede local confiável.",
+        "cta": "Configurar auth"
+      },
+      "discord": {
+        "title": "Conectar um bot do Discord",
+        "body": "Envie notificações e mapeie cargos para permissões. Opcional.",
+        "cta": "Conectar Discord"
+      }
     }
   }
 }

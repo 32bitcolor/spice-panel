@@ -371,7 +371,9 @@
     "deleteSelected": "Supprimer la sélection",
     "clearSelection": "Effacer la sélection",
     "noItems": "Aucun élément pour l'instant.",
-    "beta": "Bêta"
+    "beta": "Bêta",
+    "back": "Retour",
+    "dismiss": "Ignorer"
   },
   "database": {
     "columnColumn": "Colonne",
@@ -677,7 +679,8 @@
     "groups": {
       "economy": "Économie",
       "operations": "Opérations",
-      "playerWorld": "Monde des joueurs"
+      "playerWorld": "Monde des joueurs",
+      "dashboard": "Accueil"
     },
     "liveMap": "Carte en direct",
     "logs": "Journaux",
@@ -689,7 +692,8 @@
     "events": "Événements en direct",
     "menu": "Navigation",
     "battlepass": "Passe de combat",
-    "permissions": "Permissions"
+    "permissions": "Permissions",
+    "dashboard": "Tableau de bord"
   },
   "players": {
     "actions": {
@@ -1938,6 +1942,37 @@
       "gameProc": "Localisation du processus du serveur de jeu",
       "containers": "Inspection des conteneurs",
       "finalize": "Finalisation"
+    }
+  },
+  "manage": {
+    "title": "Gérer le serveur",
+    "serverName": "Nom du serveur"
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "subtitle": "Serveurs et configuration en un coup d’œil",
+    "loadFailed": "Échec du chargement de l’état du serveur : {{message}}",
+    "running": "En cours",
+    "offline": "Hors ligne",
+    "playersOnline": "{{count}} en ligne",
+    "view": "Voir",
+    "manage": "Gérer",
+    "empty": {
+      "title": "Aucun serveur pour l’instant",
+      "body": "Ajoutez votre premier serveur de jeu pour commencer. Vous pouvez aussi configurer l’auth ou Discord ci-dessous — tout est optionnel.",
+      "addServer": "Ajouter votre premier serveur"
+    },
+    "onboarding": {
+      "auth": {
+        "title": "Configurer la connexion / auth",
+        "body": "Exiger une connexion pour accéder au tableau de bord. Optionnel — à laisser désactivé sur un réseau local de confiance.",
+        "cta": "Configurer l’auth"
+      },
+      "discord": {
+        "title": "Connecter un bot Discord",
+        "body": "Envoyez des notifications et mappez les rôles aux permissions. Optionnel.",
+        "cta": "Connecter Discord"
+      }
     }
   }
 }

@@ -3,14 +3,18 @@ import { api, getActiveServerID, setActiveServerID } from '../api/client'
 import type { ServerInfo } from '../api/client'
 import { ActiveServerContext } from './activeServerContext'
 import type { ActiveServerContextValue } from './activeServerContext'
+import { AuthContext } from '../auth/context'
 
 export const ActiveServerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const auth = React.useContext(AuthContext)
   const [servers, setServers] = React.useState<ServerInfo[]>([])
   const [activeID, setActiveID] = React.useState(getActiveServerID)
+  const [loading, setLoading] = React.useState(true)
 
   const refresh = React.useCallback(async () => {
     const list = await api.servers.list().catch(() => [] as ServerInfo[])
     setServers(list)
+    setLoading(false)
     // Self-heal a stale persisted active server. localStorage is per-origin, so
     // the Vite dev server (:5173) and the embedded SPA (:8080) keep separate
     // copies; a deleted/recreated server leaves an id that no longer exists in
@@ -24,12 +28,23 @@ export const ActiveServerProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [])
 
+  // Fetch (and re-fetch) the server list once auth has resolved and whenever the
+  // session changes. The provider wraps the auth gate, so its first render runs
+  // before login — fetching then would return an unauthenticated/empty list and
+  // leave the dashboard stale until a manual refresh. Keying on auth.loading +
+  // auth.session guarantees an authenticated fetch right after login (and a
+  // refetch on logout).
+  const hasSession = !!auth.session
   React.useEffect(() => {
+    if (auth.loading) return
     void Promise.resolve().then(refresh)
-  }, [refresh])
+  }, [auth.loading, hasSession, refresh])
 
   const setActive = React.useCallback(async (id: string) => {
-    await api.servers.setActive(id)
+    // Changing the process-wide active server requires server:control; guests
+    // (read-only) still get client-side scoping via the X-Dune-Server header, so
+    // a rejected backend call must not block the view switch.
+    await api.servers.setActive(id).catch(() => {})
     setActiveServerID(id)
     setActiveID(id)
     setServers((prev) => prev.map((s) => ({ ...s, active: s.id === id })))
@@ -44,8 +59,8 @@ export const ActiveServerProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [refresh])
 
   const value = React.useMemo<ActiveServerContextValue>(
-    () => ({ servers, activeID, setActive, removeServer, refresh }),
-    [servers, activeID, setActive, removeServer, refresh],
+    () => ({ servers, activeID, loading, setActive, removeServer, refresh }),
+    [servers, activeID, loading, setActive, removeServer, refresh],
   )
 
   return <ActiveServerContext.Provider value={value}>{children}</ActiveServerContext.Provider>

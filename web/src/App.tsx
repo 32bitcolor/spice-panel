@@ -14,6 +14,7 @@ import { HelpMenu } from './components/HelpMenu'
 import { UserMenu } from './components/UserMenu'
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+const DashboardTab = React.lazy(() => import('./tabs/DashboardTab').then((m) => ({ default: m.DashboardTab })))
 const BattlegroupTab = React.lazy(() => import('./tabs/BattlegroupTab').then((m) => ({ default: m.BattlegroupTab })))
 const LiveMapTab = React.lazy(() => import('./tabs/LiveMapTab').then((m) => ({ default: m.LiveMapTab })))
 const PlayersTab = React.lazy(() => import('./tabs/PlayersTab').then((m) => ({ default: m.PlayersTab })))
@@ -32,7 +33,7 @@ const EventsTab = React.lazy(() => import('./tabs/EventsTab').then((m) => ({ def
 const BattlepassTab = React.lazy(() => import('./tabs/BattlepassTab').then((m) => ({ default: m.BattlepassTab })))
 const PermissionsTab = React.lazy(() => import('./tabs/PermissionsTab').then((m) => ({ default: m.PermissionsTab })))
 import { Icon } from './dune-ui'
-import { DeleteServerModal } from './components/DeleteServerModal'
+import { ManageServerPage } from './components/ManageServerPage'
 import { useActiveServer } from './context/useActiveServer'
 import { AuthContext } from './auth/context'
 import { LoginPage } from './auth/LoginPage'
@@ -45,6 +46,7 @@ import { UpdateProgressModal } from './components/UpdateProgressModal'
 import type { UpdatePhase } from './components/UpdateProgressModal'
 
 const TAB_IDS = [
+  'dashboard',
   'battlegroup',
   'players',
   'database',
@@ -63,7 +65,7 @@ const TAB_IDS = [
   'battlepass',
   'permissions',
 ] as const
-const DEFAULT_TAB: TabId = 'battlegroup'
+const DEFAULT_TAB: TabId = 'dashboard'
 
 const currentTabFromPath = (pathname: string): TabId => {
   const seg = pathname.replace(/^\//, '').split('/')[0]
@@ -72,6 +74,7 @@ const currentTabFromPath = (pathname: string): TabId => {
 
 // Lucide icon per top-level tab, shown in the collapsible sidebar rail.
 const TAB_ICONS: Record<TabId, string> = {
+  dashboard: 'layout-grid',
   battlegroup: 'activity',
   logs: 'scroll-text',
   database: 'database',
@@ -95,6 +98,7 @@ const TAB_ICONS: Record<TabId, string> = {
 // 'owner' is special: only owners (guild owner, configured owners, local
 // account) see the Permissions tab.
 const TAB_CAPABILITIES: Record<TabId, string> = {
+  dashboard: 'server:read',
   battlegroup: 'server:read',
   logs: 'logs:read',
   database: 'database:read',
@@ -155,7 +159,7 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
   const { t, i18n } = useTranslation()
   const [reconnecting, setReconnecting] = React.useState(false)
   const { can, isOwner, enabled: authEnabled } = usePermissions()
-  const { servers, activeID, setActive, removeServer, refresh: refreshServers } = useActiveServer()
+  const { servers, activeID, setActive, refresh: refreshServers } = useActiveServer()
   const [addingServer, setAddingServer] = React.useState(false)
   const prevNeedsSetup = React.useRef<boolean | undefined>(undefined)
   React.useEffect(() => {
@@ -177,18 +181,18 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
     }
   }, [activeID, refreshStatus])
 
-  const [deleteServerOpen, setDeleteServerOpen] = React.useState(false)
-  const [deleteServerID, setDeleteServerID] = React.useState('')
-  const [deletingServer, setDeletingServer] = React.useState(false)
-
   // Whether a tab is visible for the current session. All-true when backend
-  // auth is disabled.
+  // auth is disabled. The Dashboard is always visible (it's the home and the
+  // empty-state/onboarding surface); when no servers are configured every other
+  // tab is hidden so a fresh install shows only the Dashboard.
   const canSeeTab = React.useCallback((key: TabId) => {
+    if (key === 'dashboard') return true
+    if (servers.length === 0) return false
     if (!canSeeTabByControlPlane(key, status?.control)) return false
     const cap = TAB_CAPABILITIES[key]
     if (cap === 'owner') return authEnabled && (isOwner || can('auth:manage'))
     return can(cap)
-  }, [authEnabled, isOwner, can, status?.control])
+  }, [authEnabled, isOwner, can, status?.control, servers.length])
 
   // Re-establish backend connections (DB + control plane) without a service
   // restart — used by the navbar Reconnect button when the DB shows disconnected
@@ -211,6 +215,12 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
   // Left-sidebar navigation, grouped to mirror the product's structure
   // (operator tooling today; a Player Portal group lands here later).
   const NAV_GROUPS: { title: string, items: { key: TabId, label: string }[] }[] = [
+    {
+      title: t('nav.groups.dashboard', 'Home'),
+      items: [
+        { key: 'dashboard' as TabId, label: t('nav.dashboard', 'Dashboard') },
+      ],
+    },
     {
       title: t('nav.groups.operations'),
       items: [
@@ -246,6 +256,20 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
   ]
 
   const [showBackendConfig, setShowBackendConfig] = React.useState(false)
+  // Which settings tab to open on (e.g. dashboard onboarding deep-links to
+  // 'discord' or 'auth'); undefined → the form's default tab.
+  const [settingsTab, setSettingsTab] = React.useState<string | undefined>(undefined)
+  // Bumped whenever the global Settings modal closes, so the Dashboard re-syncs
+  // onboarding state (e.g. the Discord/auth card disappears once configured).
+  const [dashboardRefreshKey, setDashboardRefreshKey] = React.useState(0)
+  const openSettings = (tab?: string) => {
+    setSettingsTab(tab)
+    setShowBackendConfig(true)
+  }
+  const closeSettings = () => {
+    setShowBackendConfig(false)
+    setDashboardRefreshKey((n) => n + 1)
+  }
   const [updateInfo, setUpdateInfo] = React.useState<UpdateCheckResult | null>(null)
   const [showUpdateModal, setShowUpdateModal] = React.useState(false)
   const [updateChecking, setUpdateChecking] = React.useState(false)
@@ -261,12 +285,18 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
     .filter((g) => g.items.length > 0)
   const firstVisibleTab = visibleNavGroups[0]?.items[0]?.key ?? DEFAULT_TAB
 
+  // /manage/{id} is a standalone per-server page (not a tab); allow it through.
+  const manageServerID = location.pathname.startsWith('/manage/')
+    ? decodeURIComponent(location.pathname.slice('/manage/'.length).split('/')[0])
+    : ''
+
   React.useEffect(() => {
+    if (manageServerID) return
     const seg = location.pathname.replace(/^\//, '').split('/')[0]
     if (!seg || !(TAB_IDS as readonly string[]).includes(seg) || !canSeeTab(seg as TabId)) {
       navigate(`/${firstVisibleTab}`, { replace: true })
     }
-  }, [location.pathname, navigate, canSeeTab, firstVisibleTab])
+  }, [location.pathname, navigate, canSeeTab, firstVisibleTab, manageServerID])
 
   const currentTab = currentTabFromPath(location.pathname)
   const pathname = location.pathname
@@ -406,18 +436,16 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
     return <BackendUnreachable onRetry={() => window.location.reload()} />
   }
 
-  // #166: backend is reachable but has no config — show web setup wizard.
-  if (status?.needs_setup) {
-    return <SetupWizard />
-  }
-
-  // "Add server" wizard rendered as a full-screen overlay.
+  // No forced first-run wizard. A fresh install (no servers) lands on the
+  // Dashboard, which surfaces optional onboarding (add server / set up auth /
+  // Discord). The "Add server" wizard is launched on demand from there.
   if (addingServer) {
     return (
       <SetupWizard
         onDone={() => {
           setAddingServer(false)
           void refreshServers()
+          void refreshStatus()
         }}
         onCancel={() => setAddingServer(false)}
       />
@@ -453,7 +481,7 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
           onPress={() => navigate(`/${DEFAULT_TAB}`)}
           aria-label={t('app.goHome')}
         >
-          <img src="/dune-admin-logo-primary.svg" alt="dune-admin" className="h-12 w-auto" />
+          <img src="/dune-admin-logo-primary.svg" alt="dune-admin" className="max-h-12 w-auto" />
           <span
             data-sidebar="label"
             className="text-xl font-bold uppercase text-accent overflow-hidden whitespace-nowrap"
@@ -489,7 +517,7 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
             <Button
               variant="ghost"
               className="text-xs text-muted hover:text-foreground px-0 h-auto min-w-0"
-              onPress={() => setShowBackendConfig(true)}
+              onPress={() => openSettings()}
               aria-label={t('app.openSettings')}
             >
               v
@@ -539,6 +567,17 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
                 </ListBox>
               </Select.Popover>
             </Select>
+            {can('server:control') && (
+              <Button
+                size="sm"
+                variant="ghost"
+                isIconOnly
+                aria-label={t('manage.title', 'Manage server')}
+                onPress={() => navigate(`/manage/${encodeURIComponent(activeID || servers[0]?.id || 'default')}`)}
+              >
+                <Icon name="settings" />
+              </Button>
+            )}
             {can('server:control') && (
               <Button
                 size="sm"
@@ -616,6 +655,13 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
 
   const tabContent = (
     <main className="flex-1 flex flex-col overflow-hidden min-h-0">
+      {renderTab('dashboard', (
+        <DashboardTab
+          onAddServer={() => setAddingServer(true)}
+          onOpenSettings={openSettings}
+          refreshKey={dashboardRefreshKey}
+        />
+      ))}
       {renderTab('battlegroup', <BattlegroupTab />)}
       {renderTab('players', <PlayersTab />)}
       {renderTab('database', <DatabaseTab />)}
@@ -655,12 +701,20 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
         {/* Keyed by activeID so switching servers remounts every tab — each
             re-fetches its data with the new X-Dune-Server header (no reload). */}
         <div key={activeID} className="h-full flex flex-col p-3 overflow-hidden min-h-0">
-          {tabContent}
+          {manageServerID
+            ? (
+                <ManageServerPage
+                  serverId={manageServerID}
+                  canControl={can('server:control')}
+                  onBack={() => navigate('/dashboard')}
+                />
+              )
+            : tabContent}
         </div>
       </AppLayout>
 
       {/* Settings modal — structure mirrors BotControlPanel */}
-      <Modal.Backdrop variant="blur" className="bg-linear-to-t from-(--background)/85 via-(--background)/40 to-transparent" isOpen={showBackendConfig} onOpenChange={(v) => !v && setShowBackendConfig(false)}>
+      <Modal.Backdrop variant="blur" className="bg-linear-to-t from-(--background)/85 via-(--background)/40 to-transparent" isOpen={showBackendConfig} onOpenChange={(v) => !v && closeSettings()}>
         <Modal.Container size="cover" scroll="outside">
           <Modal.Dialog className="p-10 dialog-surface-alt">
             <Modal.CloseTrigger />
@@ -675,7 +729,8 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
                         {status.version}
                       </span>
                     )}
-                    {status.control && status.control !== 'none' && <span>{status.control}</span>}
+                    {/* Control plane is per-server — it belongs on Manage server,
+                        not the global dune-admin Settings modal. */}
                     {status.commit && status.commit !== 'unknown' && (
                       <span className="font-mono opacity-60">{status.commit}</span>
                     )}
@@ -690,16 +745,8 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
                 <SettingsConfigForm
                   saveRef={formSaveRef}
                   onSavingChange={setFormSaving}
-                  onRequestDeleteServer={
-                    can('server:control')
-                      ? () => {
-                          // Single-server installs never set an explicit active
-                          // id; the backend registers it as "default".
-                          setDeleteServerID(activeID || 'default')
-                          setDeleteServerOpen(true)
-                        }
-                      : undefined
-                  }
+                  globalOnly
+                  initialTab={settingsTab}
                 />
               )}
             </Modal.Body>
@@ -751,7 +798,13 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
               <span className="text-xs text-muted">{t('app.changesNote')}</span>
               <Button
                 size="sm"
-                onPress={() => formSaveRef.current?.()}
+                onPress={() => {
+                  // Save & apply, then close. Don't block on slow background work
+                  // (e.g. the Discord bot can take ~10s to connect). An auth
+                  // toggle reloads the page inside save(), so this resolves only
+                  // for non-toggle saves — close the modal then.
+                  void formSaveRef.current?.().then(() => closeSettings())
+                }}
                 isDisabled={formSaving}
               >
                 {formSaving
@@ -843,30 +896,6 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
         onDismiss={() => setUpdateApplying(false)}
       />
 
-      {/* Remove-server confirmation — destructive (10s countdown + type-to-confirm),
-          with per-server data purge. Deleting the active server reassigns active;
-          deleting the last one returns to the Setup Wizard. removeServer refetches
-          the list (reconciling activeID) and we refresh status so the UI reacts
-          without a hard reload. */}
-      <DeleteServerModal
-        open={deleteServerOpen}
-        serverName={servers.find((s) => s.id === deleteServerID)?.name ?? deleteServerID}
-        busy={deletingServer}
-        onConfirm={() => {
-          setDeletingServer(true)
-          removeServer(deleteServerID)
-            .then(() => refreshStatus())
-            .then(() => {
-              setDeleteServerOpen(false)
-              setShowBackendConfig(false)
-            })
-            .catch((e: unknown) => {
-              toast.danger(`${t('servers.removeFailed', 'Remove failed')}: ${e instanceof Error ? e.message : String(e)}`)
-            })
-            .finally(() => setDeletingServer(false))
-        }}
-        onCancel={() => setDeleteServerOpen(false)}
-      />
     </div>
   )
 }

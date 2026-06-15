@@ -261,6 +261,21 @@ export type ServerInfo = {
   active: boolean
 }
 
+// ServerHealth is the dashboard health summary for one registered server,
+// returned by GET /servers/health.
+export type ServerHealth = {
+  id: string
+  name: string
+  active: boolean
+  control: string
+  running: boolean
+  phase: string
+  uptime_seconds: number
+  players_online: number
+  db_connected: boolean
+  error?: string
+}
+
 export type Status = {
   executor: string // "ssh" | "local" | "none"
   control: string // "kubectl" | "docker" | "local" | "none"
@@ -1405,6 +1420,7 @@ export const api = {
   },
   servers: {
     list: () => req<ServerInfo[]>('GET', '/servers'),
+    health: () => req<ServerHealth[]>('GET', '/servers/health'),
     add: (cfg: ServerConfig) =>
       req<ServerInfo>('POST', '/servers', cfg),
     discover: (cfg: ServerConfig) =>

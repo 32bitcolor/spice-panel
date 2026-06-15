@@ -79,4 +79,16 @@ export interface SettingsConfigFormProps {
    * whenever the object identity changes (set once per discovery run).
    */
   prefill?: Partial<AppConfig> | null
+  /**
+   * Settings modal: show ONLY the dune-admin (global) scope — no scope toggle,
+   * no per-server tabs.
+   */
+  globalOnly?: boolean
+  /**
+   * Manage-server page: target this server id for load/save instead of the
+   * active server. Also enables the inline Name (rename) field.
+   */
+  serverId?: string
+  /** Initial tab to open on (e.g. deep-link to 'discord'); still switchable. */
+  initialTab?: string
 }

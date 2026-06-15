@@ -369,7 +369,9 @@
     "deleteSelected": "删除所选",
     "clearSelection": "清除选择",
     "noItems": "暂无项目。",
-    "beta": "测试版"
+    "beta": "测试版",
+    "back": "返回",
+    "dismiss": "忽略"
   },
   "database": {
     "columnColumn": "列",
@@ -670,7 +672,8 @@
     "groups": {
       "economy": "经济",
       "operations": "运营",
-      "playerWorld": "玩家世界"
+      "playerWorld": "玩家世界",
+      "dashboard": "主页"
     },
     "liveMap": "实时地图",
     "logs": "日志",
@@ -682,7 +685,8 @@
     "events": "实时活动",
     "menu": "导航",
     "battlepass": "战斗通行证",
-    "permissions": "权限"
+    "permissions": "权限",
+    "dashboard": "仪表板"
   },
   "players": {
     "actions": {
@@ -1915,6 +1919,37 @@
       "gameProc": "正在定位游戏服务器进程",
       "containers": "正在检查容器",
       "finalize": "正在完成"
+    }
+  },
+  "manage": {
+    "title": "管理服务器",
+    "serverName": "服务器名称"
+  },
+  "dashboard": {
+    "title": "仪表板",
+    "subtitle": "一览服务器与设置",
+    "loadFailed": "无法加载服务器状态：{{message}}",
+    "running": "运行中",
+    "offline": "离线",
+    "playersOnline": "{{count}} 人在线",
+    "view": "查看",
+    "manage": "管理",
+    "empty": {
+      "title": "还没有服务器",
+      "body": "添加你的第一个游戏服务器即可开始。你也可以在下方设置鉴权或 Discord——全部可选。",
+      "addServer": "添加第一个服务器"
+    },
+    "onboarding": {
+      "auth": {
+        "title": "设置登录 / 鉴权",
+        "body": "要求登录才能访问仪表板。可选——在受信任的本地网络中可不启用。",
+        "cta": "设置鉴权"
+      },
+      "discord": {
+        "title": "连接 Discord 机器人",
+        "body": "发送通知并将身份组映射到权限。可选。",
+        "cta": "连接 Discord"
+      }
     }
   }
 }

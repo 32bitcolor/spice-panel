@@ -371,7 +371,9 @@
     "deleteSelected": "Eliminar seleccionados",
     "clearSelection": "Limpiar selección",
     "noItems": "Aún no hay objetos.",
-    "beta": "Beta"
+    "beta": "Beta",
+    "back": "Atrás",
+    "dismiss": "Descartar"
   },
   "database": {
     "columnColumn": "Columna",
@@ -677,7 +679,8 @@
     "groups": {
       "economy": "Economía",
       "operations": "Operaciones",
-      "playerWorld": "Mundo del jugador"
+      "playerWorld": "Mundo del jugador",
+      "dashboard": "Inicio"
     },
     "liveMap": "Mapa en vivo",
     "logs": "Registros",
@@ -689,7 +692,8 @@
     "events": "Eventos en vivo",
     "menu": "Navegación",
     "battlepass": "Pase de batalla",
-    "permissions": "Permisos"
+    "permissions": "Permisos",
+    "dashboard": "Panel"
   },
   "players": {
     "actions": {
@@ -1938,6 +1942,37 @@
       "gameProc": "Localizando proceso del servidor de juego",
       "containers": "Inspeccionando contenedores",
       "finalize": "Finalizando"
+    }
+  },
+  "manage": {
+    "title": "Administrar servidor",
+    "serverName": "Nombre del servidor"
+  },
+  "dashboard": {
+    "title": "Panel",
+    "subtitle": "Servidores y configuración de un vistazo",
+    "loadFailed": "No se pudo cargar el estado del servidor: {{message}}",
+    "running": "En ejecución",
+    "offline": "Desconectado",
+    "playersOnline": "{{count}} en línea",
+    "view": "Ver",
+    "manage": "Administrar",
+    "empty": {
+      "title": "Aún no hay servidores",
+      "body": "Agrega tu primer servidor de juego para empezar. También puedes configurar auth o Discord abajo — todo opcional.",
+      "addServer": "Agregar tu primer servidor"
+    },
+    "onboarding": {
+      "auth": {
+        "title": "Configurar inicio de sesión / auth",
+        "body": "Exigir inicio de sesión para acceder al panel. Opcional — déjalo desactivado en una red local de confianza.",
+        "cta": "Configurar auth"
+      },
+      "discord": {
+        "title": "Conectar un bot de Discord",
+        "body": "Envía notificaciones y asigna roles a permisos. Opcional.",
+        "cta": "Conectar Discord"
+      }
     }
   }
 }
