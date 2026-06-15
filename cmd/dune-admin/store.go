@@ -42,7 +42,18 @@ func initUnifiedStoreOnce() func() {
 	if err := migrateLegacyStores(db, defaultLegacySources()); err != nil {
 		fmt.Fprintf(os.Stderr, "unified store: migration warning: %v\n", err)
 	}
+	migrateColumnStores(db)
 	return func() { _ = globalStore.Close() }
+}
+
+// migrateColumnStores translates the legacy JSON-blob config columns into the
+// typed-column tables, once each (guarded by per-table meta markers). Runs after
+// migrateLegacyStores and before hydrateConfigFromStore. Non-fatal: a failure
+// warns and leaves the marker unset so the next boot retries.
+func migrateColumnStores(db *sql.DB) {
+	if err := migrateSettingsColumns(db); err != nil {
+		fmt.Fprintf(os.Stderr, "unified store: settings column migration warning: %v\n", err)
+	}
 }
 
 // backupPreMigration makes a one-time snapshot of the pre-upgrade SQLite store
@@ -140,6 +151,9 @@ func applyUnifiedSchema(db *sql.DB) error {
 	}
 	if err := initSettingsSchema(db); err != nil {
 		return fmt.Errorf("unified store: settings schema: %w", err)
+	}
+	if err := initSettingsColumnsSchema(db); err != nil {
+		return fmt.Errorf("unified store: settings columns schema: %w", err)
 	}
 	if _, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS meta (

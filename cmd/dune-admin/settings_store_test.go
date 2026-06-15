@@ -68,13 +68,14 @@ func TestSettingsStore_SaveIsUpsert(t *testing.T) {
 		t.Errorf("ListenAddr = %q after second save, want :2 (single-row upsert)", got.ListenAddr)
 	}
 
-	// Exactly one row must exist (CHECK id = 1).
+	// Exactly one row must exist (CHECK id = 1). Settings now live in the typed
+	// settings_* tables; settings_misc is the canonical single row.
 	var n int
-	if err := db.QueryRow(`SELECT COUNT(*) FROM app_settings`).Scan(&n); err != nil {
+	if err := db.QueryRow(`SELECT COUNT(*) FROM settings_misc`).Scan(&n); err != nil {
 		t.Fatalf("count: %v", err)
 	}
 	if n != 1 {
-		t.Errorf("app_settings has %d rows, want 1", n)
+		t.Errorf("settings_misc has %d rows, want 1", n)
 	}
 }
 

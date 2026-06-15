@@ -41,8 +41,23 @@ func globalSettingsOnly(cfg appConfig) appConfig {
 	return cfg
 }
 
-// saveSettings upserts the single global-settings row (id = 1).
+// saveSettings upserts the global settings into the typed settings_* tables
+// (per-server/connection fields stripped via globalSettingsOnly). The legacy
+// app_settings.config_json blob is no longer written.
 func (s *settingsStore) saveSettings(cfg appConfig) error {
+	return saveSettingsColumns(s.db, globalSettingsOnly(cfg))
+}
+
+// loadSettings reads the global settings from the typed settings_* tables.
+// ok=false on first boot (no settings persisted yet).
+func (s *settingsStore) loadSettings() (appConfig, bool, error) {
+	return loadSettingsColumns(s.db)
+}
+
+// saveSettingsBlob writes the legacy app_settings.config_json blob. Retained for
+// migration-source seeding (tests) and as the rollback-safe blob; the live read
+// path uses the typed settings_* tables.
+func (s *settingsStore) saveSettingsBlob(cfg appConfig) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 	blob, err := json.Marshal(globalSettingsOnly(cfg))
 	if err != nil {
@@ -52,26 +67,9 @@ func (s *settingsStore) saveSettings(cfg appConfig) error {
 		`INSERT INTO app_settings (id, config_json, updated_at) VALUES (1, ?, ?)
 		 ON CONFLICT(id) DO UPDATE SET config_json = excluded.config_json, updated_at = excluded.updated_at`,
 		string(blob), now); err != nil {
-		return fmt.Errorf("save settings: %w", err)
+		return fmt.Errorf("save settings blob: %w", err)
 	}
 	return nil
-}
-
-// loadSettings reads the global-settings row. ok=false on first boot (no row).
-func (s *settingsStore) loadSettings() (appConfig, bool, error) {
-	var blob string
-	err := s.db.QueryRow(`SELECT config_json FROM app_settings WHERE id = 1`).Scan(&blob)
-	if errors.Is(err, sql.ErrNoRows) {
-		return appConfig{}, false, nil
-	}
-	if err != nil {
-		return appConfig{}, false, fmt.Errorf("load settings: %w", err)
-	}
-	var cfg appConfig
-	if err := json.Unmarshal([]byte(blob), &cfg); err != nil {
-		return appConfig{}, false, fmt.Errorf("unmarshal settings: %w", err)
-	}
-	return cfg, true, nil
 }
 
 // active server id (string scope form) persisted across restarts via meta.
