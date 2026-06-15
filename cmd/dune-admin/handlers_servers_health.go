@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -45,7 +46,10 @@ func assembleServerHealth(ctx context.Context, sc *ServerContext) serverHealth {
 	defer cancel()
 	st, err := sc.Control.GetStatus(cctx, sc.Executor)
 	if err != nil || st == nil {
-		if err != nil {
+		// A control plane that simply can't report status (e.g. local without
+		// cmd_status) is not an error worth surfacing on the card — leave the
+		// status Unknown. Only real failures populate Error.
+		if err != nil && !strings.Contains(err.Error(), "does not support GetStatus") {
 			h.Error = err.Error()
 		}
 		return h

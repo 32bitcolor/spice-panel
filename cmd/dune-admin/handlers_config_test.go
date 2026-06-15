@@ -46,6 +46,39 @@ func TestHandleGetConfig_MasksServerSecrets(t *testing.T) {
 	}
 }
 
+// A scope=global save on a server-less install must NOT synthesize a "default"
+// server (no gap-fill defaults, no connectAll) — it only persists global fields.
+func TestHandleSaveConfig_GlobalScopeNoPhantomServer(t *testing.T) {
+	t.Setenv("DUNE_ADMIN_CONFIG_DIR", t.TempDir())
+
+	reg := newServerRegistry(nil)
+	origReg := globalRegistry
+	globalRegistry = reg
+	defer func() { globalRegistry = origReg }()
+
+	origCfg := loadedConfig
+	loadedConfig = appConfig{} // no servers, no flat connection
+	defer func() { loadedConfig = origCfg }()
+
+	body, _ := json.Marshal(appConfig{ListenAddr: ":9090"})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/config?scope=global", bytes.NewReader(body))
+	rr := httptest.NewRecorder()
+	handleSaveConfig(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body = %s", rr.Code, rr.Body.String())
+	}
+	if len(globalRegistry.All()) != 0 {
+		t.Errorf("global save created %d server(s); want 0 (no phantom default)", len(globalRegistry.All()))
+	}
+	if loadedConfig.Control != "" || loadedConfig.DBHost != "" {
+		t.Errorf("global save gap-filled connection fields: control=%q db_host=%q", loadedConfig.Control, loadedConfig.DBHost)
+	}
+	if loadedConfig.ListenAddr != ":9090" {
+		t.Errorf("ListenAddr = %q, want :9090", loadedConfig.ListenAddr)
+	}
+}
+
 // A global-settings save in a multi-server install must NOT wipe Servers[],
 // tear down the active server's live connection, or register a spurious
 // "default" server. Per-server config is owned by the /servers endpoints.

@@ -70,6 +70,7 @@ func TestServerRegistry_Remove_Last(t *testing.T) {
 // ── DELETE /api/v1/servers/{id} ───────────────────────────────────────────────
 
 func TestHandleDeleteServer_Success(t *testing.T) {
+	t.Setenv("DUNE_ADMIN_CONFIG_DIR", t.TempDir()) // isolate config writes from the real ~/.dune-admin
 	reg := newServerRegistry(nil)
 	reg.Register(&ServerContext{ID: "s1", Name: "One"})
 	reg.Register(&ServerContext{ID: "s2", Name: "Two"})
@@ -197,6 +198,7 @@ func TestHandleDeleteServer_NotFound(t *testing.T) {
 // ── POST /api/v1/servers ─────────────────────────────────────────────────────
 
 func TestHandleAddServer_Success(t *testing.T) {
+	t.Setenv("DUNE_ADMIN_CONFIG_DIR", t.TempDir()) // isolate config writes from the real ~/.dune-admin
 	reg := newServerRegistry(nil)
 	reg.Register(&ServerContext{ID: "s1", Name: "One"})
 	orig := globalRegistry
@@ -221,6 +223,7 @@ func TestHandleAddServer_Success(t *testing.T) {
 }
 
 func TestHandleAddServer_MissingID(t *testing.T) {
+	t.Setenv("DUNE_ADMIN_CONFIG_DIR", t.TempDir())
 	reg := newServerRegistry(nil)
 	orig := globalRegistry
 	globalRegistry = reg
@@ -237,6 +240,7 @@ func TestHandleAddServer_MissingID(t *testing.T) {
 }
 
 func TestHandleAddServer_DuplicateID(t *testing.T) {
+	t.Setenv("DUNE_ADMIN_CONFIG_DIR", t.TempDir())
 	reg := newServerRegistry(nil)
 	reg.Register(&ServerContext{ID: "s1", Name: "One"})
 	orig := globalRegistry

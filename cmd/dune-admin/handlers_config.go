@@ -173,11 +173,20 @@ func handleSaveConfig(w http.ResponseWriter, r *http.Request) {
 	cfg.Servers = loadedConfig.Servers
 	cfg.DefaultServer = loadedConfig.DefaultServer
 
-	// Fresh-setup / legacy single-server path: gap-fill blank connection fields
-	// with control-plane defaults so leaving a field empty in the wizard uses the
-	// default (mirroring the console wizard) instead of wiping it via applyConfig.
-	// Multi-server installs don't use the flat connection fields, so skip them.
-	if len(cfg.Servers) == 0 {
+	// scope=global is the dune-admin Settings modal: it edits only global settings
+	// (auth, Discord, market-bot tuning, listen addr) and must NOT touch the
+	// connection or create/reconnect any server. Without this, saving global
+	// settings on a server-less install would gap-fill the empty flat config to
+	// "local" defaults and connectAll() a phantom "Default" server.
+	globalScope := r.URL.Query().Get("scope") == "global"
+
+	// The flat-connect path (gap-fill defaults + connectAll) belongs to the
+	// legacy single-server setup only — never a global save, never multi-server.
+	flatConnect := !globalScope && len(cfg.Servers) == 0
+	if flatConnect {
+		// Gap-fill blank connection fields with control-plane defaults so leaving
+		// a field empty in the wizard uses the default (mirroring the console
+		// wizard) instead of wiping it via applyConfig.
 		applyFlatConnectionDefaults(&cfg)
 	}
 
@@ -195,13 +204,6 @@ func handleSaveConfig(w http.ResponseWriter, r *http.Request) {
 	// so we can force a clean slate when it is toggled.
 	wasAuthEnabled := authEnabled(loadedConfig)
 
-	// Multi-server installs keep their per-server DB/control connections in the
-	// registry (managed by the /servers endpoints). Reconnecting here would close
-	// the active server's pool — which is aliased to globalDB — leaving the
-	// registry holding a dead pool, and would register a spurious flat "default"
-	// server. So only the legacy flat install reconnects on a global save.
-	multiServer := len(cfg.Servers) > 0
-
 	applyConfig(cfg)
 
 	// Re-initialize auth state so enabling auth (or adding Discord login)
@@ -209,7 +211,7 @@ func handleSaveConfig(w http.ResponseWriter, r *http.Request) {
 	// honored immediately too — the middleware checks loadedConfig per request.
 	initAuthRuntime(cfg)
 
-	if !multiServer {
+	if flatConnect {
 		// Stop the running bots before closing the DB pool. A running bot holds a
 		// reference to the pool; if we close it first the bot's next tick would
 		// use a closed pool.
