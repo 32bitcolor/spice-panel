@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { Button, Chip, Spinner, toast } from '@heroui/react'
+import { Button, Chip, Skeleton, Spinner, toast } from '@heroui/react'
 import { Icon, Panel, PageHeader, LoadingState } from '../../dune-ui'
 import { api } from '../../api/client'
 import type { ServerHealth } from '../../api/client'
@@ -63,6 +63,10 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   }
 
   const hasServers = servers.length > 0
+  // First-load gate for the per-server health metrics: skeletons only while the
+  // initial health fetch is in flight (no data yet). Background refreshes keep
+  // the real values on screen.
+  const healthFirstLoad = loading && health.length === 0
 
   return (
     <div className="flex flex-col h-full gap-4 min-h-0 overflow-y-auto">
@@ -107,20 +111,36 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                         </span>
                       )}
                     </div>
-                    <Chip size="sm" variant="soft" color={phaseChipColor(h?.running ? 'running' : (h?.phase || 'stopped'))}>
-                      {h ? (h.running ? t('dashboard.running', 'Running') : (h.phase || t('dashboard.offline', 'Offline'))) : '…'}
-                    </Chip>
+                    {healthFirstLoad
+                      ? <Skeleton className="h-5 w-20 rounded-lg" />
+                      : (
+                          <Chip size="sm" variant="soft" color={phaseChipColor(h?.running ? 'running' : (h?.phase || 'stopped'))}>
+                            {h ? (h.running ? t('dashboard.running', 'Running') : (h.phase || t('dashboard.offline', 'Offline'))) : '…'}
+                          </Chip>
+                        )}
                   </div>
 
                   <div className="flex items-center gap-4 text-xs text-muted">
-                    <span className="flex items-center gap-1">
-                      <Icon name="clock" className="size-3" />
-                      {formatUptime(h?.uptime_seconds)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Icon name="users" className="size-3" />
-                      {t('dashboard.playersOnline', '{{count}} online', { count: h?.players_online ?? 0 })}
-                    </span>
+                    {healthFirstLoad
+                      ? (
+                          <>
+                            {/* h-4 matches the text-xs metric line-box (16px). */}
+                            <Skeleton className="h-4 w-16 rounded-lg" />
+                            <Skeleton className="h-4 w-20 rounded-lg" />
+                          </>
+                        )
+                      : (
+                          <>
+                            <span className="flex items-center gap-1">
+                              <Icon name="clock" className="size-3" />
+                              {formatUptime(h?.uptime_seconds)}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Icon name="users" className="size-3" />
+                              {t('dashboard.playersOnline', '{{count}} online', { count: h?.players_online ?? 0 })}
+                            </span>
+                          </>
+                        )}
                   </div>
 
                   {h?.error && <p className="text-xs text-warning">{h.error}</p>}
