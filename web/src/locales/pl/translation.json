@@ -1372,7 +1372,9 @@
       "hostPortHint": "włącza tunel SSH dla całej BD + exec",
       "privateKey": "Ścieżka do klucza prywatnego",
       "privateKeyHint": "ścieżka bezwzględna, puste = autowykrywanie",
-      "user": "Użytkownik"
+      "user": "Użytkownik",
+      "mode": "SSH transport",
+      "modeHint": "library = in-process client; command = OS ssh wrapper (uses ~/.ssh/config, agent, ProxyJump)"
     },
     "tabs": {
       "advanced": "Zaawansowane",

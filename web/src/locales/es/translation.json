@@ -1351,7 +1351,9 @@
       "hostPortHint": "activa el túnel SSH para todo BD + exec",
       "privateKey": "Ruta de clave privada",
       "privateKeyHint": "ruta absoluta, en blanco = detección automática",
-      "user": "Usuario"
+      "user": "Usuario",
+      "mode": "SSH transport",
+      "modeHint": "library = in-process client; command = OS ssh wrapper (uses ~/.ssh/config, agent, ProxyJump)"
     },
     "tabs": {
       "advanced": "Avanzado",

@@ -1330,7 +1330,9 @@
       "hostPortHint": "すべてのDB + execのSSHトンネルを有効化",
       "privateKey": "秘密鍵のパス",
       "privateKeyHint": "絶対パス、空白 = 自動検出",
-      "user": "ユーザー"
+      "user": "ユーザー",
+      "mode": "SSH transport",
+      "modeHint": "library = in-process client; command = OS ssh wrapper (uses ~/.ssh/config, agent, ProxyJump)"
     },
     "tabs": {
       "advanced": "詳細設定",

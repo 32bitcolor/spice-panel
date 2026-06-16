@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AppConfig } from '../../../api/client'
-import { Panel, SectionLabel } from '../../../dune-ui'
+import { Panel, SectionLabel, FieldSelect } from '../../../dune-ui'
 import { FieldRow } from '../fields/FieldRow'
 import { TextInput } from '../fields/TextInput'
 import { TwoColumnGrid } from '../fields/TwoColumnGrid'
@@ -27,6 +27,9 @@ export const SshPanel: React.FC<SshPanelProps> = ({ cfg, set }) => {
           </FieldRow>
           <FieldRow label={t('settings.ssh.privateKey')} hint={t('settings.ssh.privateKeyHint')}>
             <TextInput value={cfg.ssh_key} onChange={set('ssh_key')} placeholder="~/.ssh/id_ed25519" />
+          </FieldRow>
+          <FieldRow label={t('settings.ssh.mode')} hint={t('settings.ssh.modeHint')}>
+            <FieldSelect value={cfg.ssh_mode || 'library'} onChange={set('ssh_mode')} options={['library', 'command']} />
           </FieldRow>
         </TwoColumnGrid>
       </Panel>
