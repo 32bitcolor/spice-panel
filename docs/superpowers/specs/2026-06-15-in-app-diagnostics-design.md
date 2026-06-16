@@ -173,11 +173,13 @@ Tests written first, external deps mocked, race detector clean.
 ## Affected files
 
 New:
+
 - `cmd/dune-admin/redact.go` + `redact_test.go`
 - `cmd/dune-admin/handlers_diagnostics.go` + `handlers_diagnostics_test.go`
 - `web/src/tabs/DiagnosticsTab.tsx`
 
 Modified:
+
 - `cmd/dune-admin/logging.go` (ring sink + `logRing` type, or a sibling `logring.go` with tests)
 - `cmd/dune-admin/server.go` (register four routes under `capDiagnosticsRead`)
 - `cmd/dune-admin/auth_capabilities.go` (add `capDiagnosticsRead` constant + description)

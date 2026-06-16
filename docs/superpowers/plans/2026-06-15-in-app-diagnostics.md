@@ -11,6 +11,7 @@
 **Reference spec:** `docs/superpowers/specs/2026-06-15-in-app-diagnostics-design.md`
 
 **Conventions (read before starting):**
+
 - Everything is `package main` in `cmd/dune-admin/`. Never create sub-packages.
 - TDD: write the failing test first. Run `make test-race` (or `go test -race ./...`) to verify.
 - Run `make verify` before the final commit. Run `make gosec` separately (the pre-push hook gates on it) since this PR touches file paths / zip writing.
@@ -23,12 +24,14 @@
 ## File Structure
 
 New (all in `cmd/dune-admin/`):
+
 - `logring.go` / `logring_test.go` — the `logRing` ring buffer + subscription.
 - `redact.go` / `redact_test.go` — `redactLine` masking rules (security-critical).
 - `diagnostics.go` / `diagnostics_test.go` — `environmentSummary`, `buildEnvironment`, `buildReport`, `writeDiagnosticsBundle`.
 - `handlers_diagnostics.go` / `handlers_diagnostics_test.go` — the four HTTP handlers.
 
 Modified:
+
 - `cmd/dune-admin/logging.go` — wire the ring into `initLogging` via `MultiLevelWriter`.
 - `cmd/dune-admin/auth_capabilities.go` — add `capDiagnosticsRead`.
 - `cmd/dune-admin/server.go` — register four routes.
@@ -43,6 +46,7 @@ Modified:
 ## Task 1: Log ring buffer
 
 **Files:**
+
 - Create: `cmd/dune-admin/logring.go`
 - Test: `cmd/dune-admin/logring_test.go`
 
@@ -54,75 +58,75 @@ The ring receives the JSON event bytes zerolog produces (zerolog always encodes 
 package main
 
 import (
-	"sync"
-	"testing"
+ "sync"
+ "testing"
 
-	"github.com/rs/zerolog"
+ "github.com/rs/zerolog"
 )
 
 func TestLogRingOverflowDropsOldest(t *testing.T) {
-	r := newLogRing(3)
-	for _, m := range []string{"a", "b", "c", "d", "e"} {
-		_, _ = r.WriteLevel(zerolog.InfoLevel, []byte(m+"\n"))
-	}
-	got := r.Snapshot()
-	if len(got) != 3 {
-		t.Fatalf("len = %d, want 3", len(got))
-	}
-	want := []string{"c", "d", "e"}
-	for i, w := range want {
-		if got[i].Line != w {
-			t.Errorf("entry %d = %q, want %q", i, got[i].Line, w)
-		}
-	}
+ r := newLogRing(3)
+ for _, m := range []string{"a", "b", "c", "d", "e"} {
+  _, _ = r.WriteLevel(zerolog.InfoLevel, []byte(m+"\n"))
+ }
+ got := r.Snapshot()
+ if len(got) != 3 {
+  t.Fatalf("len = %d, want 3", len(got))
+ }
+ want := []string{"c", "d", "e"}
+ for i, w := range want {
+  if got[i].Line != w {
+   t.Errorf("entry %d = %q, want %q", i, got[i].Line, w)
+  }
+ }
 }
 
 func TestLogRingCapturesLevelAndTrimsNewline(t *testing.T) {
-	r := newLogRing(10)
-	_, _ = r.WriteLevel(zerolog.WarnLevel, []byte("hello\n"))
-	got := r.Snapshot()
-	if len(got) != 1 || got[0].Line != "hello" || got[0].Level != "warn" {
-		t.Fatalf("got %+v", got)
-	}
+ r := newLogRing(10)
+ _, _ = r.WriteLevel(zerolog.WarnLevel, []byte("hello\n"))
+ got := r.Snapshot()
+ if len(got) != 1 || got[0].Line != "hello" || got[0].Level != "warn" {
+  t.Fatalf("got %+v", got)
+ }
 }
 
 func TestLogRingSnapshotIsCopy(t *testing.T) {
-	r := newLogRing(5)
-	_, _ = r.WriteLevel(zerolog.InfoLevel, []byte("x\n"))
-	s := r.Snapshot()
-	s[0].Line = "mutated"
-	if r.Snapshot()[0].Line != "x" {
-		t.Fatal("Snapshot must return a copy, not aliased backing storage")
-	}
+ r := newLogRing(5)
+ _, _ = r.WriteLevel(zerolog.InfoLevel, []byte("x\n"))
+ s := r.Snapshot()
+ s[0].Line = "mutated"
+ if r.Snapshot()[0].Line != "x" {
+  t.Fatal("Snapshot must return a copy, not aliased backing storage")
+ }
 }
 
 func TestLogRingSubscribeReceivesLiveAndCancelStops(t *testing.T) {
-	r := newLogRing(5)
-	ch, cancel := r.Subscribe()
-	_, _ = r.WriteLevel(zerolog.InfoLevel, []byte("live\n"))
-	if got := <-ch; got.Line != "live" {
-		t.Fatalf("got %q, want live", got.Line)
-	}
-	cancel()
-	// After cancel, the channel is closed and further writes are not delivered.
-	_, _ = r.WriteLevel(zerolog.InfoLevel, []byte("after\n"))
-	if _, open := <-ch; open {
-		t.Fatal("channel should be closed after cancel")
-	}
+ r := newLogRing(5)
+ ch, cancel := r.Subscribe()
+ _, _ = r.WriteLevel(zerolog.InfoLevel, []byte("live\n"))
+ if got := <-ch; got.Line != "live" {
+  t.Fatalf("got %q, want live", got.Line)
+ }
+ cancel()
+ // After cancel, the channel is closed and further writes are not delivered.
+ _, _ = r.WriteLevel(zerolog.InfoLevel, []byte("after\n"))
+ if _, open := <-ch; open {
+  t.Fatal("channel should be closed after cancel")
+ }
 }
 
 func TestLogRingConcurrentWriters(t *testing.T) {
-	r := newLogRing(100)
-	var wg sync.WaitGroup
-	for i := 0; i < 50; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			_, _ = r.WriteLevel(zerolog.InfoLevel, []byte("x\n"))
-			_ = r.Snapshot()
-		}()
-	}
-	wg.Wait()
+ r := newLogRing(100)
+ var wg sync.WaitGroup
+ for i := 0; i < 50; i++ {
+  wg.Add(1)
+  go func() {
+   defer wg.Done()
+   _, _ = r.WriteLevel(zerolog.InfoLevel, []byte("x\n"))
+   _ = r.Snapshot()
+  }()
+ }
+ wg.Wait()
 }
 ```
 
@@ -137,17 +141,17 @@ Expected: FAIL — `undefined: newLogRing`.
 package main
 
 import (
-	"strings"
-	"sync"
+ "strings"
+ "sync"
 
-	"github.com/rs/zerolog"
+ "github.com/rs/zerolog"
 )
 
 // ringLine is one captured log event: the JSON bytes zerolog produced (newline
 // trimmed) plus the level it was emitted at.
 type ringLine struct {
-	Level string `json:"level"`
-	Line  string `json:"line"`
+ Level string `json:"level"`
+ Line  string `json:"line"`
 }
 
 // logRing is a fixed-capacity in-memory ring buffer of recent log events. It
@@ -155,79 +159,79 @@ type ringLine struct {
 // alongside stderr. Writes never block: on overflow the oldest entry is
 // dropped, and slow subscribers drop events rather than stalling the logger.
 type logRing struct {
-	mu      sync.Mutex
-	buf     []ringLine
-	start   int
-	n       int
-	subs    map[int]chan ringLine
-	nextSub int
+ mu      sync.Mutex
+ buf     []ringLine
+ start   int
+ n       int
+ subs    map[int]chan ringLine
+ nextSub int
 }
 
 func newLogRing(capacity int) *logRing {
-	if capacity < 1 {
-		capacity = 1
-	}
-	return &logRing{
-		buf:  make([]ringLine, capacity),
-		subs: make(map[int]chan ringLine),
-	}
+ if capacity < 1 {
+  capacity = 1
+ }
+ return &logRing{
+  buf:  make([]ringLine, capacity),
+  subs: make(map[int]chan ringLine),
+ }
 }
 
 func (r *logRing) Write(p []byte) (int, error) {
-	return r.WriteLevel(zerolog.NoLevel, p)
+ return r.WriteLevel(zerolog.NoLevel, p)
 }
 
 func (r *logRing) WriteLevel(level zerolog.Level, p []byte) (int, error) {
-	entry := ringLine{Level: level.String(), Line: strings.TrimRight(string(p), "\n")}
-	r.mu.Lock()
-	idx := (r.start + r.n) % len(r.buf)
-	r.buf[idx] = entry
-	if r.n < len(r.buf) {
-		r.n++
-	} else {
-		r.start = (r.start + 1) % len(r.buf)
-	}
-	for _, ch := range r.subs {
-		select {
-		case ch <- entry:
-		default: // slow subscriber — drop rather than block logging
-		}
-	}
-	r.mu.Unlock()
-	return len(p), nil
+ entry := ringLine{Level: level.String(), Line: strings.TrimRight(string(p), "\n")}
+ r.mu.Lock()
+ idx := (r.start + r.n) % len(r.buf)
+ r.buf[idx] = entry
+ if r.n < len(r.buf) {
+  r.n++
+ } else {
+  r.start = (r.start + 1) % len(r.buf)
+ }
+ for _, ch := range r.subs {
+  select {
+  case ch <- entry:
+  default: // slow subscriber — drop rather than block logging
+  }
+ }
+ r.mu.Unlock()
+ return len(p), nil
 }
 
 // Snapshot returns a copy of the buffered entries oldest-first.
 func (r *logRing) Snapshot() []ringLine {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	out := make([]ringLine, r.n)
-	for i := 0; i < r.n; i++ {
-		out[i] = r.buf[(r.start+i)%len(r.buf)]
-	}
-	return out
+ r.mu.Lock()
+ defer r.mu.Unlock()
+ out := make([]ringLine, r.n)
+ for i := 0; i < r.n; i++ {
+  out[i] = r.buf[(r.start+i)%len(r.buf)]
+ }
+ return out
 }
 
 // Subscribe returns a channel of live entries and a cancel func that closes it.
 func (r *logRing) Subscribe() (<-chan ringLine, func()) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	id := r.nextSub
-	r.nextSub++
-	ch := make(chan ringLine, 256)
-	r.subs[id] = ch
-	var once sync.Once
-	cancel := func() {
-		once.Do(func() {
-			r.mu.Lock()
-			defer r.mu.Unlock()
-			if c, ok := r.subs[id]; ok {
-				delete(r.subs, id)
-				close(c)
-			}
-		})
-	}
-	return ch, cancel
+ r.mu.Lock()
+ defer r.mu.Unlock()
+ id := r.nextSub
+ r.nextSub++
+ ch := make(chan ringLine, 256)
+ r.subs[id] = ch
+ var once sync.Once
+ cancel := func() {
+  once.Do(func() {
+   r.mu.Lock()
+   defer r.mu.Unlock()
+   if c, ok := r.subs[id]; ok {
+    delete(r.subs, id)
+    close(c)
+   }
+  })
+ }
+ return ch, cancel
 }
 ```
 
@@ -248,6 +252,7 @@ git commit -m "feat(diagnostics): add in-memory log ring buffer"
 ## Task 2: Wire the ring into logging setup
 
 **Files:**
+
 - Modify: `cmd/dune-admin/logging.go`
 - Test: `cmd/dune-admin/logring_test.go` (add one integration test)
 
@@ -257,21 +262,21 @@ Append to `logring_test.go`:
 
 ```go
 func TestInitLoggingCapturesToRing(t *testing.T) {
-	t.Setenv("DIAG_LOG_BUFFER", "50")
-	initLogging()
-	if globalLogRing == nil {
-		t.Fatal("globalLogRing must be initialised by initLogging")
-	}
-	componentLog("test").Info().Msg("ring-capture-probe")
-	found := false
-	for _, e := range globalLogRing.Snapshot() {
-		if strings.Contains(e.Line, "ring-capture-probe") {
-			found = true
-		}
-	}
-	if !found {
-		t.Fatal("log event was not captured in the ring")
-	}
+ t.Setenv("DIAG_LOG_BUFFER", "50")
+ initLogging()
+ if globalLogRing == nil {
+  t.Fatal("globalLogRing must be initialised by initLogging")
+ }
+ componentLog("test").Info().Msg("ring-capture-probe")
+ found := false
+ for _, e := range globalLogRing.Snapshot() {
+  if strings.Contains(e.Line, "ring-capture-probe") {
+   found = true
+  }
+ }
+ if !found {
+  t.Fatal("log event was not captured in the ring")
+ }
 }
 ```
 
@@ -292,27 +297,27 @@ var globalLogRing *logRing
 
 // logBufferSize returns the ring capacity from DIAG_LOG_BUFFER (default 2000).
 func logBufferSize() int {
-	if v := os.Getenv("DIAG_LOG_BUFFER"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 {
-			return n
-		}
-	}
-	return 2000
+ if v := os.Getenv("DIAG_LOG_BUFFER"); v != "" {
+  if n, err := strconv.Atoi(v); err == nil && n > 0 {
+   return n
+  }
+ }
+ return 2000
 }
 
 func initLogging() {
-	zerolog.SetGlobalLevel(parseLogLevel(os.Getenv("LOG_LEVEL")))
+ zerolog.SetGlobalLevel(parseLogLevel(os.Getenv("LOG_LEVEL")))
 
-	var base io.Writer = os.Stderr
-	if !strings.EqualFold(os.Getenv("LOG_FORMAT"), "json") {
-		base = zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "15:04:05"}
-	}
-	globalLogRing = newLogRing(logBufferSize())
-	appLogger = zerolog.New(zerolog.MultiLevelWriter(base, globalLogRing)).
-		With().Timestamp().Logger()
+ var base io.Writer = os.Stderr
+ if !strings.EqualFold(os.Getenv("LOG_FORMAT"), "json") {
+  base = zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "15:04:05"}
+ }
+ globalLogRing = newLogRing(logBufferSize())
+ appLogger = zerolog.New(zerolog.MultiLevelWriter(base, globalLogRing)).
+  With().Timestamp().Logger()
 
-	stdlog.SetFlags(0)
-	stdlog.SetOutput(appLogger)
+ stdlog.SetFlags(0)
+ stdlog.SetOutput(appLogger)
 }
 ```
 
@@ -335,6 +340,7 @@ git commit -m "feat(diagnostics): capture log events into the ring buffer"
 ## Task 3: Redaction rules
 
 **Files:**
+
 - Create: `cmd/dune-admin/redact.go`
 - Test: `cmd/dune-admin/redact_test.go`
 
@@ -348,48 +354,48 @@ package main
 import "testing"
 
 func TestRedactLine(t *testing.T) {
-	cases := []struct {
-		name string
-		in   string
-		want string // substring that MUST appear (redacted form)
-		gone string // substring that MUST NOT appear
-	}{
-		{"ipv4", "dialing 192.168.0.59:8080 now", "[redacted-host]", "192.168.0.59"},
-		{"bearer", `Authorization: Bearer abc.def.ghi`, "[redacted-token]", "abc.def.ghi"},
-		{"service token", `ServiceAuthToken=SECRETVALUE123`, "[redacted-token]", "SECRETVALUE123"},
-		{"kv password", `password=hunter2 extra`, "[redacted-token]", "hunter2"},
-		{"ssh target", `ssh amp@192.168.0.59`, "[redacted-host]", "amp@192.168.0.59"},
-		{"home path", `/Users/icehunter/.dune-admin/config.yaml`, "[redacted-path]", "icehunter"},
-		{"account id", `account_id=1099511628800 done`, "[redacted-id]", "1099511628800"},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			got := redactLine(c.in)
-			if c.want != "" && !contains(got, c.want) {
-				t.Errorf("redactLine(%q) = %q, want substring %q", c.in, got, c.want)
-			}
-			if c.gone != "" && contains(got, c.gone) {
-				t.Errorf("redactLine(%q) = %q, must not contain %q", c.in, got, c.gone)
-			}
-		})
-	}
+ cases := []struct {
+  name string
+  in   string
+  want string // substring that MUST appear (redacted form)
+  gone string // substring that MUST NOT appear
+ }{
+  {"ipv4", "dialing 192.168.0.59:8080 now", "[redacted-host]", "192.168.0.59"},
+  {"bearer", `Authorization: Bearer abc.def.ghi`, "[redacted-token]", "abc.def.ghi"},
+  {"service token", `ServiceAuthToken=SECRETVALUE123`, "[redacted-token]", "SECRETVALUE123"},
+  {"kv password", `password=hunter2 extra`, "[redacted-token]", "hunter2"},
+  {"ssh target", `ssh amp@192.168.0.59`, "[redacted-host]", "amp@192.168.0.59"},
+  {"home path", `/Users/icehunter/.dune-admin/config.yaml`, "[redacted-path]", "icehunter"},
+  {"account id", `account_id=1099511628800 done`, "[redacted-id]", "1099511628800"},
+ }
+ for _, c := range cases {
+  t.Run(c.name, func(t *testing.T) {
+   got := redactLine(c.in)
+   if c.want != "" && !contains(got, c.want) {
+    t.Errorf("redactLine(%q) = %q, want substring %q", c.in, got, c.want)
+   }
+   if c.gone != "" && contains(got, c.gone) {
+    t.Errorf("redactLine(%q) = %q, must not contain %q", c.in, got, c.gone)
+   }
+  })
+ }
 }
 
 func TestRedactLineLeavesSafeTextAlone(t *testing.T) {
-	in := `level=info component=handlers msg="server started"`
-	if got := redactLine(in); got != in {
-		t.Errorf("redactLine altered safe text: %q -> %q", in, got)
-	}
+ in := `level=info component=handlers msg="server started"`
+ if got := redactLine(in); got != in {
+  t.Errorf("redactLine altered safe text: %q -> %q", in, got)
+ }
 }
 
 func contains(s, sub string) bool { return len(sub) == 0 || (len(s) >= len(sub) && indexOf(s, sub) >= 0) }
 func indexOf(s, sub string) int {
-	for i := 0; i+len(sub) <= len(s); i++ {
-		if s[i:i+len(sub)] == sub {
-			return i
-		}
-	}
-	return -1
+ for i := 0; i+len(sub) <= len(s); i++ {
+  if s[i:i+len(sub)] == sub {
+   return i
+  }
+ }
+ return -1
 }
 ```
 
@@ -409,32 +415,32 @@ import "regexp"
 // path rules run before the host rule so their internal host-like substrings
 // are masked under the more specific label.
 type redactRule struct {
-	re   *regexp.Regexp
-	repl string
+ re   *regexp.Regexp
+ repl string
 }
 
 var redactRules = []redactRule{
-	// bearer / authorization tokens
-	{regexp.MustCompile(`(?i)bearer\s+[A-Za-z0-9._\-]+`), "Bearer [redacted-token]"},
-	// ServiceAuthToken / token / key / password / secret = value
-	{regexp.MustCompile(`(?i)(serviceauthtoken|token|api[_-]?key|key|password|passwd|secret)\s*[=:]\s*\S+`), "$1=[redacted-token]"},
-	// numeric account / player / fls ids in key=value form
-	{regexp.MustCompile(`(?i)(account_id|player_id|fls_id|owner_id)\s*[=:]\s*\d+`), "$1=[redacted-id]"},
-	// home directory paths (mask the username segment and below)
-	{regexp.MustCompile(`(?i)(/home/|/Users/|C:\\Users\\)[^\s"']+`), "[redacted-path]"},
-	// user@host ssh targets
-	{regexp.MustCompile(`\b[A-Za-z0-9._\-]+@[A-Za-z0-9.\-]+(:\d+)?\b`), "[redacted-host]"},
-	// host:port and bare IPv4
-	{regexp.MustCompile(`\b\d{1,3}(\.\d{1,3}){3}(:\d+)?\b`), "[redacted-host]"},
+ // bearer / authorization tokens
+ {regexp.MustCompile(`(?i)bearer\s+[A-Za-z0-9._\-]+`), "Bearer [redacted-token]"},
+ // ServiceAuthToken / token / key / password / secret = value
+ {regexp.MustCompile(`(?i)(serviceauthtoken|token|api[_-]?key|key|password|passwd|secret)\s*[=:]\s*\S+`), "$1=[redacted-token]"},
+ // numeric account / player / fls ids in key=value form
+ {regexp.MustCompile(`(?i)(account_id|player_id|fls_id|owner_id)\s*[=:]\s*\d+`), "$1=[redacted-id]"},
+ // home directory paths (mask the username segment and below)
+ {regexp.MustCompile(`(?i)(/home/|/Users/|C:\\Users\\)[^\s"']+`), "[redacted-path]"},
+ // user@host ssh targets
+ {regexp.MustCompile(`\b[A-Za-z0-9._\-]+@[A-Za-z0-9.\-]+(:\d+)?\b`), "[redacted-host]"},
+ // host:port and bare IPv4
+ {regexp.MustCompile(`\b\d{1,3}(\.\d{1,3}){3}(:\d+)?\b`), "[redacted-host]"},
 }
 
 // redactLine masks sensitive content for any artifact that leaves the machine.
 // Defaults to masking on ambiguity (never passes suspicious content through).
 func redactLine(s string) string {
-	for _, rule := range redactRules {
-		s = rule.re.ReplaceAllString(s, rule.repl)
-	}
-	return s
+ for _, rule := range redactRules {
+  s = rule.re.ReplaceAllString(s, rule.repl)
+ }
+ return s
 }
 ```
 
@@ -455,6 +461,7 @@ git commit -m "feat(diagnostics): add redaction rules for exported artifacts"
 ## Task 4: Environment summary (allowlist)
 
 **Files:**
+
 - Create: `cmd/dune-admin/diagnostics.go`
 - Test: `cmd/dune-admin/diagnostics_test.go`
 
@@ -464,38 +471,38 @@ git commit -m "feat(diagnostics): add redaction rules for exported artifacts"
 package main
 
 import (
-	"runtime"
-	"testing"
+ "runtime"
+ "testing"
 )
 
 func TestBuildEnvironmentAllowlist(t *testing.T) {
-	origCfg := loadedConfig
-	enabled := true
-	loadedConfig = appConfig{Control: "amp", AuthEnabled: &enabled, MarketBotEnabled: &enabled}
-	t.Cleanup(func() { loadedConfig = origCfg })
+ origCfg := loadedConfig
+ enabled := true
+ loadedConfig = appConfig{Control: "amp", AuthEnabled: &enabled, MarketBotEnabled: &enabled}
+ t.Cleanup(func() { loadedConfig = origCfg })
 
-	env := buildEnvironment()
-	if env.ControlPlane != "amp" {
-		t.Errorf("ControlPlane = %q, want amp", env.ControlPlane)
-	}
-	if !env.AuthEnabled || !env.MarketBot {
-		t.Errorf("expected auth + market bot enabled, got %+v", env)
-	}
-	if env.GoVersion != runtime.Version() || env.OS != runtime.GOOS {
-		t.Errorf("runtime fields wrong: %+v", env)
-	}
-	if env.Version != AppVersion {
-		t.Errorf("Version = %q, want %q", env.Version, AppVersion)
-	}
+ env := buildEnvironment()
+ if env.ControlPlane != "amp" {
+  t.Errorf("ControlPlane = %q, want amp", env.ControlPlane)
+ }
+ if !env.AuthEnabled || !env.MarketBot {
+  t.Errorf("expected auth + market bot enabled, got %+v", env)
+ }
+ if env.GoVersion != runtime.Version() || env.OS != runtime.GOOS {
+  t.Errorf("runtime fields wrong: %+v", env)
+ }
+ if env.Version != AppVersion {
+  t.Errorf("Version = %q, want %q", env.Version, AppVersion)
+ }
 }
 
 func TestBuildEnvironmentControlDefault(t *testing.T) {
-	origCfg := loadedConfig
-	loadedConfig = appConfig{} // blank control
-	t.Cleanup(func() { loadedConfig = origCfg })
-	if got := buildEnvironment().ControlPlane; got != "local" {
-		t.Errorf("blank control should default to local, got %q", got)
-	}
+ origCfg := loadedConfig
+ loadedConfig = appConfig{} // blank control
+ t.Cleanup(func() { loadedConfig = origCfg })
+ if got := buildEnvironment().ControlPlane; got != "local" {
+  t.Errorf("blank control should default to local, got %q", got)
+ }
 }
 ```
 
@@ -515,27 +522,27 @@ import "runtime"
 // diagnostics artifacts. Adding a field is a deliberate code change — nothing
 // is emitted that is not named here.
 type environmentSummary struct {
-	Version      string `json:"version"`
-	GoVersion    string `json:"go_version"`
-	OS           string `json:"os"`
-	Arch         string `json:"arch"`
-	ControlPlane string `json:"control_plane"`
-	AuthEnabled  bool   `json:"auth_enabled"`
-	MarketBot    bool   `json:"market_bot_enabled"`
-	ServerCount  int    `json:"active_server_count"`
+ Version      string `json:"version"`
+ GoVersion    string `json:"go_version"`
+ OS           string `json:"os"`
+ Arch         string `json:"arch"`
+ ControlPlane string `json:"control_plane"`
+ AuthEnabled  bool   `json:"auth_enabled"`
+ MarketBot    bool   `json:"market_bot_enabled"`
+ ServerCount  int    `json:"active_server_count"`
 }
 
 func buildEnvironment() environmentSummary {
-	return environmentSummary{
-		Version:      AppVersion,
-		GoVersion:    runtime.Version(),
-		OS:           runtime.GOOS,
-		Arch:         runtime.GOARCH,
-		ControlPlane: controlOrDefault(loadedConfig.Control),
-		AuthEnabled:  authEnabled(loadedConfig),
-		MarketBot:    loadedConfig.MarketBotEnabled != nil && *loadedConfig.MarketBotEnabled,
-		ServerCount:  len(globalRegistry.All()),
-	}
+ return environmentSummary{
+  Version:      AppVersion,
+  GoVersion:    runtime.Version(),
+  OS:           runtime.GOOS,
+  Arch:         runtime.GOARCH,
+  ControlPlane: controlOrDefault(loadedConfig.Control),
+  AuthEnabled:  authEnabled(loadedConfig),
+  MarketBot:    loadedConfig.MarketBotEnabled != nil && *loadedConfig.MarketBotEnabled,
+  ServerCount:  len(globalRegistry.All()),
+ }
 }
 ```
 
@@ -556,6 +563,7 @@ git commit -m "feat(diagnostics): add allowlist environment summary"
 ## Task 5: Report body + bundle assembly
 
 **Files:**
+
 - Modify: `cmd/dune-admin/diagnostics.go`
 - Test: `cmd/dune-admin/diagnostics_test.go`
 
@@ -565,76 +573,76 @@ Append to `diagnostics_test.go`:
 
 ```go
 import (
-	"archive/zip"
-	"bytes"
-	"io"
-	"strings"
+ "archive/zip"
+ "bytes"
+ "io"
+ "strings"
 )
 
 func TestBuildReportRedactsAndTrims(t *testing.T) {
-	lines := []ringLine{
-		{Level: "info", Line: "dialing 192.168.0.59:8080"},
-		{Level: "error", Line: "ServiceAuthToken=SECRET123 failed"},
-	}
-	env := environmentSummary{Version: "1.2.3", ControlPlane: "amp"}
+ lines := []ringLine{
+  {Level: "info", Line: "dialing 192.168.0.59:8080"},
+  {Level: "error", Line: "ServiceAuthToken=SECRET123 failed"},
+ }
+ env := environmentSummary{Version: "1.2.3", ControlPlane: "amp"}
 
-	title, body := buildReport(lines, env, 8000)
-	if !strings.Contains(title, "1.2.3") {
-		t.Errorf("title missing version: %q", title)
-	}
-	if strings.Contains(body, "192.168.0.59") || strings.Contains(body, "SECRET123") {
-		t.Fatalf("body leaked sensitive content:\n%s", body)
-	}
-	if !strings.Contains(body, "amp") {
-		t.Errorf("body missing environment summary")
-	}
+ title, body := buildReport(lines, env, 8000)
+ if !strings.Contains(title, "1.2.3") {
+  t.Errorf("title missing version: %q", title)
+ }
+ if strings.Contains(body, "192.168.0.59") || strings.Contains(body, "SECRET123") {
+  t.Fatalf("body leaked sensitive content:\n%s", body)
+ }
+ if !strings.Contains(body, "amp") {
+  t.Errorf("body missing environment summary")
+ }
 }
 
 func TestBuildReportTruncates(t *testing.T) {
-	var lines []ringLine
-	for i := 0; i < 5000; i++ {
-		lines = append(lines, ringLine{Level: "info", Line: "padding line of text"})
-	}
-	_, body := buildReport(lines, environmentSummary{}, 2000)
-	if len(body) > 2000 {
-		t.Errorf("body = %d bytes, want <= 2000", len(body))
-	}
-	if !strings.Contains(body, "truncated") {
-		t.Errorf("oversized body must carry a truncation marker")
-	}
+ var lines []ringLine
+ for i := 0; i < 5000; i++ {
+  lines = append(lines, ringLine{Level: "info", Line: "padding line of text"})
+ }
+ _, body := buildReport(lines, environmentSummary{}, 2000)
+ if len(body) > 2000 {
+  t.Errorf("body = %d bytes, want <= 2000", len(body))
+ }
+ if !strings.Contains(body, "truncated") {
+  t.Errorf("oversized body must carry a truncation marker")
+ }
 }
 
 func TestWriteDiagnosticsBundleContents(t *testing.T) {
-	lines := []ringLine{{Level: "info", Line: "user amp@192.168.0.59 connected"}}
-	env := environmentSummary{Version: "9.9.9", ControlPlane: "local"}
+ lines := []ringLine{{Level: "info", Line: "user amp@192.168.0.59 connected"}}
+ env := environmentSummary{Version: "9.9.9", ControlPlane: "local"}
 
-	var buf bytes.Buffer
-	if err := writeDiagnosticsBundle(&buf, lines, env); err != nil {
-		t.Fatal(err)
-	}
-	zr, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
-	if err != nil {
-		t.Fatal(err)
-	}
-	names := map[string]string{}
-	for _, f := range zr.File {
-		rc, _ := f.Open()
-		b, _ := io.ReadAll(rc)
-		_ = rc.Close()
-		names[f.Name] = string(b)
-	}
-	if _, ok := names["app.log"]; !ok {
-		t.Fatal("bundle missing app.log")
-	}
-	if _, ok := names["environment.txt"]; !ok {
-		t.Fatal("bundle missing environment.txt")
-	}
-	if strings.Contains(names["app.log"], "192.168.0.59") {
-		t.Fatalf("app.log not redacted: %s", names["app.log"])
-	}
-	if !strings.Contains(names["environment.txt"], "9.9.9") {
-		t.Errorf("environment.txt missing version")
-	}
+ var buf bytes.Buffer
+ if err := writeDiagnosticsBundle(&buf, lines, env); err != nil {
+  t.Fatal(err)
+ }
+ zr, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
+ if err != nil {
+  t.Fatal(err)
+ }
+ names := map[string]string{}
+ for _, f := range zr.File {
+  rc, _ := f.Open()
+  b, _ := io.ReadAll(rc)
+  _ = rc.Close()
+  names[f.Name] = string(b)
+ }
+ if _, ok := names["app.log"]; !ok {
+  t.Fatal("bundle missing app.log")
+ }
+ if _, ok := names["environment.txt"]; !ok {
+  t.Fatal("bundle missing environment.txt")
+ }
+ if strings.Contains(names["app.log"], "192.168.0.59") {
+  t.Fatalf("app.log not redacted: %s", names["app.log"])
+ }
+ if !strings.Contains(names["environment.txt"], "9.9.9") {
+  t.Errorf("environment.txt missing version")
+ }
 }
 ```
 
@@ -654,73 +662,73 @@ const reportLogLines = 50
 // buildReport returns a GitHub issue title and a redacted markdown body
 // (environment summary + recent log lines), trimmed to maxBytes.
 func buildReport(lines []ringLine, env environmentSummary, maxBytes int) (title, body string) {
-	title = fmt.Sprintf("[bug] dune-admin %s", env.Version)
+ title = fmt.Sprintf("[bug] dune-admin %s", env.Version)
 
-	var b strings.Builder
-	b.WriteString("## Environment\n\n")
-	b.WriteString(environmentMarkdown(env))
-	b.WriteString("\n## Recent logs\n\n```\n")
+ var b strings.Builder
+ b.WriteString("## Environment\n\n")
+ b.WriteString(environmentMarkdown(env))
+ b.WriteString("\n## Recent logs\n\n```\n")
 
-	start := 0
-	if len(lines) > reportLogLines {
-		start = len(lines) - reportLogLines
-	}
-	for _, e := range lines[start:] {
-		b.WriteString(redactLine(e.Line))
-		b.WriteByte('\n')
-	}
-	b.WriteString("```\n")
+ start := 0
+ if len(lines) > reportLogLines {
+  start = len(lines) - reportLogLines
+ }
+ for _, e := range lines[start:] {
+  b.WriteString(redactLine(e.Line))
+  b.WriteByte('\n')
+ }
+ b.WriteString("```\n")
 
-	body = b.String()
-	if len(body) > maxBytes {
-		marker := "\n... (truncated, see attached bundle)\n```\n"
-		cut := maxBytes - len(marker)
-		if cut < 0 {
-			cut = 0
-		}
-		body = body[:cut] + marker
-	}
-	return title, body
+ body = b.String()
+ if len(body) > maxBytes {
+  marker := "\n... (truncated, see attached bundle)\n```\n"
+  cut := maxBytes - len(marker)
+  if cut < 0 {
+   cut = 0
+  }
+  body = body[:cut] + marker
+ }
+ return title, body
 }
 
 func environmentMarkdown(env environmentSummary) string {
-	return fmt.Sprintf(
-		"| field | value |\n|---|---|\n"+
-			"| version | %s |\n| go | %s |\n| os/arch | %s/%s |\n"+
-			"| control plane | %s |\n| auth enabled | %t |\n"+
-			"| market bot | %t |\n| active servers | %d |\n",
-		env.Version, env.GoVersion, env.OS, env.Arch,
-		env.ControlPlane, env.AuthEnabled, env.MarketBot, env.ServerCount,
-	)
+ return fmt.Sprintf(
+  "| field | value |\n|---|---|\n"+
+   "| version | %s |\n| go | %s |\n| os/arch | %s/%s |\n"+
+   "| control plane | %s |\n| auth enabled | %t |\n"+
+   "| market bot | %t |\n| active servers | %d |\n",
+  env.Version, env.GoVersion, env.OS, env.Arch,
+  env.ControlPlane, env.AuthEnabled, env.MarketBot, env.ServerCount,
+ )
 }
 
 // writeDiagnosticsBundle writes a zip with a redacted app.log and an
 // environment.txt to w.
 func writeDiagnosticsBundle(w io.Writer, lines []ringLine, env environmentSummary) error {
-	zw := zip.NewWriter(w)
+ zw := zip.NewWriter(w)
 
-	logf, err := zw.Create("app.log")
-	if err != nil {
-		return fmt.Errorf("bundle app.log: %w", err)
-	}
-	for _, e := range lines {
-		if _, err := io.WriteString(logf, redactLine(e.Line)+"\n"); err != nil {
-			return fmt.Errorf("write app.log: %w", err)
-		}
-	}
+ logf, err := zw.Create("app.log")
+ if err != nil {
+  return fmt.Errorf("bundle app.log: %w", err)
+ }
+ for _, e := range lines {
+  if _, err := io.WriteString(logf, redactLine(e.Line)+"\n"); err != nil {
+   return fmt.Errorf("write app.log: %w", err)
+  }
+ }
 
-	envf, err := zw.Create("environment.txt")
-	if err != nil {
-		return fmt.Errorf("bundle environment.txt: %w", err)
-	}
-	if _, err := io.WriteString(envf, environmentMarkdown(env)); err != nil {
-		return fmt.Errorf("write environment.txt: %w", err)
-	}
+ envf, err := zw.Create("environment.txt")
+ if err != nil {
+  return fmt.Errorf("bundle environment.txt: %w", err)
+ }
+ if _, err := io.WriteString(envf, environmentMarkdown(env)); err != nil {
+  return fmt.Errorf("write environment.txt: %w", err)
+ }
 
-	if err := zw.Close(); err != nil {
-		return fmt.Errorf("close bundle: %w", err)
-	}
-	return nil
+ if err := zw.Close(); err != nil {
+  return fmt.Errorf("close bundle: %w", err)
+ }
+ return nil
 }
 ```
 
@@ -741,6 +749,7 @@ git commit -m "feat(diagnostics): assemble redacted report body and bundle"
 ## Task 6: Diagnostics capability
 
 **Files:**
+
 - Modify: `cmd/dune-admin/auth_capabilities.go`
 
 - [ ] **Step 1: Add the constant**
@@ -748,7 +757,7 @@ git commit -m "feat(diagnostics): assemble redacted report body and bundle"
 In the capability `const` block (after `capAuthManage`), add:
 
 ```go
-	capDiagnosticsRead  capability = "diagnostics:read"
+ capDiagnosticsRead  capability = "diagnostics:read"
 ```
 
 - [ ] **Step 2: Add the description**
@@ -756,7 +765,7 @@ In the capability `const` block (after `capAuthManage`), add:
 In the `allCapabilities` map, add:
 
 ```go
-	capDiagnosticsRead: "View dune-admin's own logs and report an issue",
+ capDiagnosticsRead: "View dune-admin's own logs and report an issue",
 ```
 
 - [ ] **Step 3: Verify it compiles**
@@ -776,6 +785,7 @@ git commit -m "feat(diagnostics): add diagnostics:read capability"
 ## Task 7: HTTP handlers + routes
 
 **Files:**
+
 - Create: `cmd/dune-admin/handlers_diagnostics.go`
 - Modify: `cmd/dune-admin/server.go`
 - Test: `cmd/dune-admin/handlers_diagnostics_test.go`
@@ -786,74 +796,74 @@ git commit -m "feat(diagnostics): add diagnostics:read capability"
 package main
 
 import (
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
+ "encoding/json"
+ "net/http"
+ "net/http/httptest"
+ "strings"
+ "testing"
 )
 
 func TestHandleDiagnosticsEnvironment(t *testing.T) {
-	origCfg := loadedConfig
-	loadedConfig = appConfig{Control: "docker"}
-	t.Cleanup(func() { loadedConfig = origCfg })
+ origCfg := loadedConfig
+ loadedConfig = appConfig{Control: "docker"}
+ t.Cleanup(func() { loadedConfig = origCfg })
 
-	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/diagnostics/environment", nil)
-	handleDiagnosticsEnvironment(rec, req)
+ rec := httptest.NewRecorder()
+ req := httptest.NewRequest(http.MethodGet, "/api/v1/diagnostics/environment", nil)
+ handleDiagnosticsEnvironment(rec, req)
 
-	if rec.Code != http.StatusOK {
-		t.Fatalf("code = %d, want 200", rec.Code)
-	}
-	var env environmentSummary
-	if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
-		t.Fatal(err)
-	}
-	if env.ControlPlane != "docker" {
-		t.Errorf("ControlPlane = %q, want docker", env.ControlPlane)
-	}
+ if rec.Code != http.StatusOK {
+  t.Fatalf("code = %d, want 200", rec.Code)
+ }
+ var env environmentSummary
+ if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+  t.Fatal(err)
+ }
+ if env.ControlPlane != "docker" {
+  t.Errorf("ControlPlane = %q, want docker", env.ControlPlane)
+ }
 }
 
 func TestHandleDiagnosticsReport(t *testing.T) {
-	globalLogRing = newLogRing(10)
-	_, _ = globalLogRing.WriteLevel(0, []byte("dialing 192.168.0.59:8080\n"))
+ globalLogRing = newLogRing(10)
+ _, _ = globalLogRing.WriteLevel(0, []byte("dialing 192.168.0.59:8080\n"))
 
-	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/diagnostics/report", nil)
-	handleDiagnosticsReport(rec, req)
+ rec := httptest.NewRecorder()
+ req := httptest.NewRequest(http.MethodGet, "/api/v1/diagnostics/report", nil)
+ handleDiagnosticsReport(rec, req)
 
-	if rec.Code != http.StatusOK {
-		t.Fatalf("code = %d, want 200", rec.Code)
-	}
-	var out struct {
-		Title string `json:"title"`
-		Body  string `json:"body"`
-	}
-	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
-		t.Fatal(err)
-	}
-	if strings.Contains(out.Body, "192.168.0.59") {
-		t.Fatalf("report leaked host: %s", out.Body)
-	}
+ if rec.Code != http.StatusOK {
+  t.Fatalf("code = %d, want 200", rec.Code)
+ }
+ var out struct {
+  Title string `json:"title"`
+  Body  string `json:"body"`
+ }
+ if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+  t.Fatal(err)
+ }
+ if strings.Contains(out.Body, "192.168.0.59") {
+  t.Fatalf("report leaked host: %s", out.Body)
+ }
 }
 
 func TestHandleDiagnosticsBundle(t *testing.T) {
-	globalLogRing = newLogRing(10)
-	_, _ = globalLogRing.WriteLevel(0, []byte("ok\n"))
+ globalLogRing = newLogRing(10)
+ _, _ = globalLogRing.WriteLevel(0, []byte("ok\n"))
 
-	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/diagnostics/bundle", nil)
-	handleDiagnosticsBundle(rec, req)
+ rec := httptest.NewRecorder()
+ req := httptest.NewRequest(http.MethodGet, "/api/v1/diagnostics/bundle", nil)
+ handleDiagnosticsBundle(rec, req)
 
-	if rec.Code != http.StatusOK {
-		t.Fatalf("code = %d, want 200", rec.Code)
-	}
-	if ct := rec.Header().Get("Content-Type"); ct != "application/zip" {
-		t.Errorf("Content-Type = %q, want application/zip", ct)
-	}
-	if cd := rec.Header().Get("Content-Disposition"); !strings.Contains(cd, "diagnostics.zip") {
-		t.Errorf("Content-Disposition = %q", cd)
-	}
+ if rec.Code != http.StatusOK {
+  t.Fatalf("code = %d, want 200", rec.Code)
+ }
+ if ct := rec.Header().Get("Content-Type"); ct != "application/zip" {
+  t.Errorf("Content-Type = %q, want application/zip", ct)
+ }
+ if cd := rec.Header().Get("Content-Disposition"); !strings.Contains(cd, "diagnostics.zip") {
+  t.Errorf("Content-Disposition = %q", cd)
+ }
 }
 ```
 
@@ -870,12 +880,12 @@ Create `handlers_diagnostics.go`:
 package main
 
 import (
-	"fmt"
-	"log"
-	"net/http"
-	"time"
+ "fmt"
+ "log"
+ "net/http"
+ "time"
 
-	"github.com/gorilla/websocket"
+ "github.com/gorilla/websocket"
 )
 
 // issueRepo is the upstream repository new issues are filed against,
@@ -888,7 +898,7 @@ const issueRepo = "Icehunter/dune-admin"
 // @Success 200 {object} environmentSummary
 // @Router /api/v1/diagnostics/environment [get]
 func handleDiagnosticsEnvironment(w http.ResponseWriter, r *http.Request) {
-	jsonOK(w, buildEnvironment())
+ jsonOK(w, buildEnvironment())
 }
 
 // @Summary Build a redacted GitHub issue title and body
@@ -897,13 +907,13 @@ func handleDiagnosticsEnvironment(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} map[string]string
 // @Router /api/v1/diagnostics/report [get]
 func handleDiagnosticsReport(w http.ResponseWriter, r *http.Request) {
-	if globalLogRing == nil {
-		jsonErr(w, fmt.Errorf("logging not initialised"), http.StatusServiceUnavailable)
-		return
-	}
-	// ~6KB keeps the prefilled issue URL comfortably under the ~8KB cap.
-	title, body := buildReport(globalLogRing.Snapshot(), buildEnvironment(), 6000)
-	jsonOK(w, map[string]string{"title": title, "body": body, "repo": issueRepo})
+ if globalLogRing == nil {
+  jsonErr(w, fmt.Errorf("logging not initialised"), http.StatusServiceUnavailable)
+  return
+ }
+ // ~6KB keeps the prefilled issue URL comfortably under the ~8KB cap.
+ title, body := buildReport(globalLogRing.Snapshot(), buildEnvironment(), 6000)
+ jsonOK(w, map[string]string{"title": title, "body": body, "repo": issueRepo})
 }
 
 // @Summary Download a redacted diagnostics bundle (zip)
@@ -911,16 +921,16 @@ func handleDiagnosticsReport(w http.ResponseWriter, r *http.Request) {
 // @Produce application/zip
 // @Router /api/v1/diagnostics/bundle [get]
 func handleDiagnosticsBundle(w http.ResponseWriter, r *http.Request) {
-	if globalLogRing == nil {
-		jsonErr(w, fmt.Errorf("logging not initialised"), http.StatusServiceUnavailable)
-		return
-	}
-	w.Header().Set("Content-Type", "application/zip")
-	w.Header().Set("Content-Disposition", `attachment; filename="diagnostics.zip"`)
-	if err := writeDiagnosticsBundle(w, globalLogRing.Snapshot(), buildEnvironment()); err != nil {
-		log.Printf("handleDiagnosticsBundle: %v", err)
-		// Headers/body may be partially written; nothing more we can do safely.
-	}
+ if globalLogRing == nil {
+  jsonErr(w, fmt.Errorf("logging not initialised"), http.StatusServiceUnavailable)
+  return
+ }
+ w.Header().Set("Content-Type", "application/zip")
+ w.Header().Set("Content-Disposition", `attachment; filename="diagnostics.zip"`)
+ if err := writeDiagnosticsBundle(w, globalLogRing.Snapshot(), buildEnvironment()); err != nil {
+  log.Printf("handleDiagnosticsBundle: %v", err)
+  // Headers/body may be partially written; nothing more we can do safely.
+ }
 }
 
 // @Summary Stream dune-admin's own logs (raw) via WebSocket
@@ -928,50 +938,50 @@ func handleDiagnosticsBundle(w http.ResponseWriter, r *http.Request) {
 // @Produce text/plain
 // @Router /api/v1/diagnostics/logs/stream [get]
 func handleDiagnosticsLogStream(w http.ResponseWriter, r *http.Request) {
-	if globalLogRing == nil {
-		http.Error(w, "logging not initialised", http.StatusServiceUnavailable)
-		return
-	}
-	conn, err := wsUpgrader.Upgrade(w, r, nil)
-	if err != nil {
-		return
-	}
-	defer func() { _ = conn.Close() }()
-	_ = conn.SetWriteDeadline(time.Time{})
+ if globalLogRing == nil {
+  http.Error(w, "logging not initialised", http.StatusServiceUnavailable)
+  return
+ }
+ conn, err := wsUpgrader.Upgrade(w, r, nil)
+ if err != nil {
+  return
+ }
+ defer func() { _ = conn.Close() }()
+ _ = conn.SetWriteDeadline(time.Time{})
 
-	// Replay the buffer, then tail live. Subscribe before replaying so no event
-	// emitted between snapshot and subscribe is lost (at worst a line repeats).
-	ch, cancel := globalLogRing.Subscribe()
-	defer cancel()
-	for _, e := range globalLogRing.Snapshot() {
-		if err := conn.WriteMessage(websocket.TextMessage, []byte(e.Line)); err != nil {
-			return
-		}
-	}
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case e, ok := <-ch:
-			if !ok {
-				return
-			}
-			if err := conn.WriteMessage(websocket.TextMessage, []byte(e.Line)); err != nil {
-				return
-			}
-		}
-	}
+ // Replay the buffer, then tail live. Subscribe before replaying so no event
+ // emitted between snapshot and subscribe is lost (at worst a line repeats).
+ ch, cancel := globalLogRing.Subscribe()
+ defer cancel()
+ for _, e := range globalLogRing.Snapshot() {
+  if err := conn.WriteMessage(websocket.TextMessage, []byte(e.Line)); err != nil {
+   return
+  }
+ }
+ for {
+  select {
+  case <-r.Context().Done():
+   return
+  case e, ok := <-ch:
+   if !ok {
+    return
+   }
+   if err := conn.WriteMessage(websocket.TextMessage, []byte(e.Line)); err != nil {
+    return
+   }
+  }
+ }
 }
 ```
 
 In `server.go`, add the routes near the existing logs routes (around line 249):
 
 ```go
-	// ── diagnostics (dune-admin self-logs) ───────────────────────────────────
-	handleAPI(mux, "GET /api/v1/diagnostics/environment", capDiagnosticsRead, handleDiagnosticsEnvironment)
-	handleAPI(mux, "GET /api/v1/diagnostics/report", capDiagnosticsRead, handleDiagnosticsReport)
-	handleAPI(mux, "GET /api/v1/diagnostics/bundle", capDiagnosticsRead, handleDiagnosticsBundle)
-	handleAPI(mux, "GET /api/v1/diagnostics/logs/stream", capDiagnosticsRead, handleDiagnosticsLogStream)
+ // ── diagnostics (dune-admin self-logs) ───────────────────────────────────
+ handleAPI(mux, "GET /api/v1/diagnostics/environment", capDiagnosticsRead, handleDiagnosticsEnvironment)
+ handleAPI(mux, "GET /api/v1/diagnostics/report", capDiagnosticsRead, handleDiagnosticsReport)
+ handleAPI(mux, "GET /api/v1/diagnostics/bundle", capDiagnosticsRead, handleDiagnosticsBundle)
+ handleAPI(mux, "GET /api/v1/diagnostics/logs/stream", capDiagnosticsRead, handleDiagnosticsLogStream)
 ```
 
 These tests call the handlers directly (the established pattern in this codebase), so they exercise handler logic, not the capability middleware. Capability enforcement comes from registering the routes via `handleAPI(..., capDiagnosticsRead, ...)` and is covered by the existing auth-middleware test suite (`auth_middleware_test.go`) — the registration in `server.go` is the assertion that these routes are gated. Owners bypass the matrix (`auth_middleware.go:184`); a session without `diagnostics:read` gets 403. Do not duplicate the middleware test here.
@@ -998,6 +1008,7 @@ git commit -m "feat(diagnostics): add owner-gated diagnostics endpoints"
 ## Task 8: Frontend API client
 
 **Files:**
+
 - Modify: `web/src/api/client.ts`
 
 - [ ] **Step 1: Add types and the namespace**
@@ -1054,6 +1065,7 @@ git commit -m "feat(diagnostics): add diagnostics API client namespace"
 ## Task 9: Diagnostics tab component
 
 **Files:**
+
 - Create: `web/src/tabs/DiagnosticsTab.tsx`
 
 - [ ] **Step 1: Write the component**
@@ -1188,6 +1200,7 @@ git commit -m "feat(diagnostics): add Diagnostics tab component"
 ## Task 10: Register the tab
 
 **Files:**
+
 - Modify: `web/src/types.ts`
 - Modify: `web/src/components/app/nav.ts`
 - Modify: `web/src/components/app/AppRoutes.tsx`
