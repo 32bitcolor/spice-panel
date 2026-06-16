@@ -415,4 +415,3 @@ For design rationale and trade-offs, see the architecture decision records in [`
 ## Guides
 
 - [Discord topologies](docs/discord-topologies.md) — how game servers, Discord guilds, channels, and per-server characters map together (single guild, shared guild, guild-per-server, and mixed).
-- [Server migration](docs/server-migration.md) — moving an install between hosts/control planes.
