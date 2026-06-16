@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"sync"
 	"testing"
 
@@ -69,4 +70,22 @@ func TestLogRingConcurrentWriters(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+}
+
+func TestInitLoggingCapturesToRing(t *testing.T) {
+	t.Setenv("DIAG_LOG_BUFFER", "50")
+	initLogging()
+	if globalLogRing == nil {
+		t.Fatal("globalLogRing must be initialised by initLogging")
+	}
+	componentLog("test").Info().Msg("ring-capture-probe")
+	found := false
+	for _, e := range globalLogRing.Snapshot() {
+		if strings.Contains(e.Line, "ring-capture-probe") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("log event was not captured in the ring")
+	}
 }
