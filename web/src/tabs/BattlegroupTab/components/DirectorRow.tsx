@@ -28,7 +28,7 @@ export const DirectorRow: React.FC<DirectorRowProps> = ({ directorURL }) => {
       <Button size="sm" variant="ghost" isIconOnly aria-label={t('serverHealth.copy')} onPress={copy}>
         <Icon name="copy" />
       </Button>
-      <Button size="sm" variant="outline" onPress={() => window.open('/director/', '_blank', 'noopener')}>
+      <Button size="sm" variant="outline" onPress={() => window.open('/director/', '_blank', 'noopener,noreferrer')}>
         {t('serverHealth.open')}
       </Button>
     </div>
