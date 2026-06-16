@@ -23,7 +23,7 @@ import {
   MAPS, CAT_COLOR, IMAGE_BOUNDS, POLL_MS, IMG_H, IMG_W,
 } from './constants'
 import {
-  worldToLatLng, latLngToWorld, solveBounds, loadCalib, loadFilter, saveFilter, mapUrl,
+  worldToLatLng, latLngToWorld, solveBounds, loadFilter, saveFilter, mapUrl,
 } from './utils'
 import type { SpawnEntry, SpawnFile, CalibPoint, MapCfg, Bounds } from './types'
 
@@ -38,7 +38,7 @@ export const LiveMapTab: React.FC = () => {
   const [updatedLabel, setUpdatedLabel] = React.useState<string>('')
   const [calibrating, setCalibrating] = React.useState(false)
   const [calibPoints, setCalibPoints] = React.useState<CalibPoint[]>([])
-  const [calibOverride, setCalibOverride] = React.useState<Record<string, Bounds>>(() => loadCalib())
+  const [calibOverride, setCalibOverride] = React.useState<Record<string, Bounds>>({})
 
   const [spawns, setSpawns] = React.useState<SpawnEntry[]>([])
   const loadedSpawnKey = React.useRef<string>('')
@@ -120,6 +120,18 @@ export const LiveMapTab: React.FC = () => {
     }
   }, [teleportMode, allPlayers.length])
 
+  // Load per-map calibration from the backend when the map changes.
+  React.useEffect(() => {
+    api.map.calibration.get(mapKey)
+      .then((c) => {
+        setCalibOverride((prev) => ({
+          ...prev,
+          [mapKey]: { minX: c.min_x, maxX: c.max_x, minY: c.min_y, maxY: c.max_y, flipX: c.flip_x, flipY: c.flip_y },
+        }))
+      })
+      .catch(() => { /* 404 or unavailable = no saved calibration, use constants */ })
+  }, [mapKey])
+
   const playerCount = markers.filter((m) => m.type === 'player').length
   const vehicleCount = markers.filter((m) => m.type === 'vehicle').length
   const baseCount = markers.filter((m) => m.type === 'base').length
@@ -160,14 +172,12 @@ export const LiveMapTab: React.FC = () => {
         const next = [...prev, { wx: player.x, wy: player.y, fracX: lng / IMG_W, fracYup: lat / IMG_H }]
         const solved = solveBounds(next)
         if (solved) {
-          setCalibOverride((c) => {
-            const merged = { ...c, [mapKey]: solved }
-            try {
-              localStorage.setItem('dune_admin_livemap_calib', JSON.stringify(merged))
-            }
-            catch { /* quota */ }
-            return merged
-          })
+          setCalibOverride((c) => ({ ...c, [mapKey]: solved }))
+          api.map.calibration.save(mapKey, {
+            min_x: solved.minX, max_x: solved.maxX,
+            min_y: solved.minY, max_y: solved.maxY,
+            flip_x: !!solved.flipX, flip_y: !!solved.flipY,
+          }).catch(() => { /* non-fatal: bounds are still applied in-memory */ })
         }
         return next
       })
@@ -184,10 +194,6 @@ export const LiveMapTab: React.FC = () => {
     setCalibOverride((c) => {
       const merged = { ...c }
       delete merged[mapKey]
-      try {
-        localStorage.setItem('dune_admin_livemap_calib', JSON.stringify(merged))
-      }
-      catch { /* quota */ }
       return merged
     })
   }, [mapKey])

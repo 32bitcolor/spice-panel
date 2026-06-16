@@ -231,6 +231,14 @@ func resolveStoreDBPath() string {
 // it OFF, per-connection).
 func openUnifiedStore(path string) (*sql.DB, error) {
 	memory := path == ":memory:"
+	if !memory {
+		// Ensure the parent directory exists before sql.Open: on a fresh install
+		// (or Windows where no installer creates ~/.dune-admin) SQLite returns
+		// SQLITE_CANTOPEN (error 14) when the directory is absent (issue #233-A).
+		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+			return nil, fmt.Errorf("create store dir: %w", err)
+		}
+	}
 	// In-memory: a file: URI + single connection keeps one isolated DB alive for
 	// the pool's lifetime (plain ":memory:" would give each pooled connection its
 	// own empty DB). The pragma applies to that connection.
@@ -282,6 +290,7 @@ func applyUnifiedSchema(db *sql.DB) error {
 		{"discord_guilds", initDiscordGuildsSchema},
 		{"server_backup_schedule", initServerBackupScheduleSchema},
 		{"server_restart_schedule", initServerRestartScheduleSchema},
+		{"map_calibration", initMapCalibrationSchema},
 	}
 	for _, s := range schemas {
 		if err := s.init(db); err != nil {

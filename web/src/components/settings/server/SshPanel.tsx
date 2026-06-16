@@ -2,6 +2,7 @@ import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AppConfig } from '../../../api/client'
 import { Panel, SectionLabel } from '../../../dune-ui'
+import { TimezoneSelect } from '../../TimezoneSelect'
 import { FieldRow } from '../fields/FieldRow'
 import { TextInput } from '../fields/TextInput'
 import { TwoColumnGrid } from '../fields/TwoColumnGrid'
@@ -27,6 +28,22 @@ export const SshPanel: React.FC<SshPanelProps> = ({ cfg, set }) => {
           </FieldRow>
           <FieldRow label={t('settings.ssh.privateKey')} hint={t('settings.ssh.privateKeyHint')}>
             <TextInput value={cfg.ssh_key} onChange={set('ssh_key')} placeholder="~/.ssh/id_ed25519" />
+          </FieldRow>
+          <FieldRow
+            label={t('settings.ssh.webIfaceHostOverride', 'Web Interface host override')}
+            hint={t('settings.ssh.webIfaceHostOverrideHint', 'Optional. Replaces the SSH host in auto-discovered Web Interface URLs (e.g. kubectl director/file-browser). Leave blank to use the SSH host automatically.')}
+          >
+            <TextInput
+              value={cfg.web_interface_host_override}
+              onChange={set('web_interface_host_override')}
+              placeholder="172.30.0.100"
+            />
+          </FieldRow>
+          <FieldRow
+            label={t('settings.server.timezone', 'Server timezone')}
+            hint={t('settings.server.timezoneHint', 'IANA timezone for activity charts, scheduled restarts, and backups. Leave blank to use the host system time.')}
+          >
+            <TimezoneSelect value={cfg.timezone} onChange={set('timezone')} />
           </FieldRow>
         </TwoColumnGrid>
       </Panel>

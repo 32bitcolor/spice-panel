@@ -94,7 +94,11 @@ type LogSource struct {
 func newControlPlane(name string, cfg appConfig) ControlPlane {
 	switch name {
 	case "kubectl":
-		return &kubectlControl{namespace: cfg.ControlNamespace}
+		return &kubectlControl{
+			namespace:    cfg.ControlNamespace,
+			sshHost:      cfg.SSHHost,
+			hostOverride: cfg.WebInterfaceHostOverride,
+		}
 	case "docker":
 		return &dockerControl{
 			gameserver:  cfg.DockerGameserver,

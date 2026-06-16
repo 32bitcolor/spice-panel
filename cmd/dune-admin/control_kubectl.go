@@ -13,7 +13,9 @@ import (
 // kubectlControl implements ControlPlane using kubectl commands.
 // Commands run through the provided Executor (local or SSH-tunneled).
 type kubectlControl struct {
-	namespace string // e.g. "funcom-seabass-mybg"
+	namespace    string // e.g. "funcom-seabass-mybg"
+	sshHost      string // host (or host:port) of the SSH target — used to rewrite CRD-reported public IPs
+	hostOverride string // optional operator override; takes precedence over sshHost when non-empty
 }
 
 func (c *kubectlControl) Name() string { return "kubectl" }
@@ -96,19 +98,27 @@ func (c *kubectlControl) discoverWebInterfaces(_ context.Context, exec Executor)
 		`%s get battlegroups -n %s -o jsonpath="{.items[0].status.utilities.director.address}|{.items[0].status.utilities.fileBrowser.address}" 2>/dev/null`,
 		kctl, c.namespace))
 	directorAddr, fileBrowserAddr, _ := strings.Cut(strings.TrimSpace(out), "|")
-	return webInterfacesFromAddresses(vmHostIP(), directorAddr, fileBrowserAddr)
+	return webInterfacesFromAddresses(c.vmHostIP(), directorAddr, fileBrowserAddr)
 }
 
-// vmHostIP returns the host portion of the SSH target — the IP the operator uses
-// to reach the game VM. Empty for a local executor (no SSH).
-func vmHostIP() string {
-	if sshHost == "" {
+// vmHostIP returns the host the operator uses to reach the game VM, for
+// rewriting the CRD-reported public IPs in discovered web-interface URLs.
+// Resolution order: hostOverride (operator manual override) → sshHost (per-server
+// SSH config) → "" (local executor, no rewrite). Reading from struct fields
+// instead of the stale process-wide sshHost global fixes the multi-server boot
+// regression where applyConfig blanked the global (issue #234).
+func (c *kubectlControl) vmHostIP() string {
+	h := c.hostOverride
+	if h == "" {
+		h = c.sshHost
+	}
+	if h == "" {
 		return ""
 	}
-	if host, _, err := net.SplitHostPort(sshHost); err == nil {
+	if host, _, err := net.SplitHostPort(h); err == nil {
 		return host
 	}
-	return sshHost
+	return h
 }
 
 // webInterfacesFromAddresses builds the discovered web-interface links from the

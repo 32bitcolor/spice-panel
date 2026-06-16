@@ -207,6 +207,15 @@ export type AppConfig = {
   amp_api_pass: string // masked when non-empty
   amp_api_port: number
   director_url: string
+  // Optional host override for control-plane-discovered Web Interface URLs
+  // (e.g. kubectl director/file-browser). When set it takes precedence over
+  // the SSH host so operators whose SSH jump host differs from the game VM host
+  // can still get correct URLs (issue #234).
+  web_interface_host_override: string
+  // Server-level IANA timezone (e.g. "America/New_York"). Applies to activity
+  // charts, scheduled restarts, and backups. Empty = host-local time.
+  // Schedule-level timezone fields fall back to this when set.
+  timezone: string
   // Market bot (startup config — tuning is managed in the Bot Control panel)
   market_bot_enabled: boolean
   market_bot_cache_db: string
@@ -391,6 +400,16 @@ export type BlueprintRow = {
   placeables: number
   name?: string
 }
+export type MapCalibration = {
+  map_key: string
+  min_x: number
+  max_x: number
+  min_y: number
+  max_y: number
+  flip_x: boolean
+  flip_y: boolean
+}
+
 export type MapMarker = {
   type: string
   id: number
@@ -1301,6 +1320,11 @@ export const api = {
 
   map: {
     markers: (mapKey: string) => req<MapMarker[]>('GET', `/map/markers?map=${encodeURIComponent(mapKey)}`),
+    calibration: {
+      get: (mapKey: string) => req<MapCalibration>('GET', `/map/calibration?map=${encodeURIComponent(mapKey)}`),
+      save: (mapKey: string, c: Omit<MapCalibration, 'map_key'>) =>
+        req<MapCalibration>('PUT', `/map/calibration?map=${encodeURIComponent(mapKey)}`, c),
+    },
   },
 
   logs: {

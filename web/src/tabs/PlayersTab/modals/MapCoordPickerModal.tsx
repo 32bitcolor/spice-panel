@@ -2,35 +2,14 @@ import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Modal, Spinner } from '@heroui/react'
 import { MapContainer, ImageOverlay, useMapEvents } from 'react-leaflet'
-import { CRS, type LatLngBoundsExpression } from 'leaflet'
+import { CRS } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { ClickCapturerProps, MapCoordPickerModalProps } from './types'
+import { MAPS, IMAGE_BOUNDS } from '../../LiveMapTab/constants'
+import { latLngToWorld } from '../../LiveMapTab/utils'
 
-// Mirror the same image space and map config from LiveMapTab.tsx.
-const IMG_W = 1200
-const IMG_H = 1200
-const IMAGE_BOUNDS: LatLngBoundsExpression = [[0, 0], [IMG_H, IMG_W]]
-
-// Hagga Basin calibration — copied from LiveMapTab MAPS constant.
-const HAGGA_BOUNDS = {
-  minX: -437871, maxX: 350539,
-  minY: -462011, maxY: 376267,
-  flipY: true,
-} as const
-
-// Inverse of worldToLatLng: Leaflet lat/lng → world X/Y.
-// lat = fracYup * IMG_H, lng = fracX * IMG_W
-// rawY = flipY ? 1 - fracYup : fracYup  → worldY = rawY * (maxY - minY) + minY
-const latLngToWorld = (lat: number, lng: number): { x: number, y: number } => {
-  const cfg = HAGGA_BOUNDS
-  const fracX = lng / IMG_W
-  const fracYup = lat / IMG_H
-  const rawX = fracX
-  const rawY = cfg.flipY ? 1 - fracYup : fracYup
-  const x = rawX * (cfg.maxX - cfg.minX) + cfg.minX
-  const y = rawY * (cfg.maxY - cfg.minY) + cfg.minY
-  return { x, y }
-}
+// Hagga Basin is the only map with a teleport coord picker for now.
+const HAGGA_CFG = MAPS.find((m) => m.key === 'HaggaBasin')!
 
 // Default Z for picked coordinates — safe height above most Hagga Basin terrain.
 const DEFAULT_Z = 5000
@@ -38,7 +17,7 @@ const DEFAULT_Z = 5000
 const ClickCapturer: React.FC<ClickCapturerProps> = ({ onPick }) => {
   useMapEvents({
     click(e) {
-      const { x, y } = latLngToWorld(e.latlng.lat, e.latlng.lng)
+      const { x, y } = latLngToWorld(e.latlng.lat, e.latlng.lng, HAGGA_CFG)
       onPick(x, y, DEFAULT_Z)
     },
   })

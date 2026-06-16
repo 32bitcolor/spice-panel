@@ -95,6 +95,18 @@ type ServerConfig struct {
 	// (intervals, thresholds, cache base, item data) is global/shared in
 	// appConfig. nil means "not set" → OFF (explicit opt-in per server).
 	MarketBotEnabled *bool `yaml:"market_bot_enabled" json:"market_bot_enabled"`
+
+	// WebInterfaceHostOverride, when non-empty, replaces the auto-derived SSH
+	// host in discovered Web Interface URLs (issue #234). Useful when the SSH
+	// jump host differs from the host that serves the director/file-browser
+	// node ports. Leave blank to use the SSH host automatically.
+	WebInterfaceHostOverride string `yaml:"web_interface_host_override" json:"web_interface_host_override"`
+
+	// Timezone is an IANA tz name (e.g. "America/New_York") applied to all
+	// time-aware features for this server (activity charts, scheduled restarts,
+	// backups). Empty means host-local time. Schedule-level timezone fields fall
+	// back to this when set; this wins over them when non-empty.
+	Timezone string `yaml:"timezone" json:"timezone"`
 }
 
 // ServerContext is the fully-connected runtime for one game server. It is the

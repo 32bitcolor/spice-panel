@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -54,4 +55,53 @@ func handleGetMapMarkers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	jsonOK(w, markers)
+}
+
+func handleGetMapCalibration(w http.ResponseWriter, r *http.Request) {
+	mapKey := r.URL.Query().Get("map")
+	if err := validateMapKey(mapKey); err != nil {
+		jsonErr(w, err, http.StatusBadRequest)
+		return
+	}
+	if globalStore == nil {
+		jsonErr(w, errors.New("store unavailable"), http.StatusServiceUnavailable)
+		return
+	}
+	serverID := storeScopeFromCtx(r)
+	c, ok, err := loadMapCalibration(globalStore, serverID, mapKey)
+	if err != nil {
+		componentLog("handlers").Error().Str("map_key", mapKey).Err(err).Msg("load map calibration failed")
+		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
+		return
+	}
+	if !ok {
+		jsonErr(w, fmt.Errorf("no calibration for %s", mapKey), http.StatusNotFound)
+		return
+	}
+	jsonOK(w, c)
+}
+
+func handlePutMapCalibration(w http.ResponseWriter, r *http.Request) {
+	mapKey := r.URL.Query().Get("map")
+	if err := validateMapKey(mapKey); err != nil {
+		jsonErr(w, err, http.StatusBadRequest)
+		return
+	}
+	if globalStore == nil {
+		jsonErr(w, errors.New("store unavailable"), http.StatusServiceUnavailable)
+		return
+	}
+	var c mapCalibration
+	if err := decode(r, &c); err != nil {
+		jsonErr(w, err, http.StatusBadRequest)
+		return
+	}
+	c.MapKey = mapKey
+	serverID := storeScopeFromCtx(r)
+	if err := saveMapCalibration(globalStore, serverID, c); err != nil {
+		componentLog("handlers").Error().Str("map_key", mapKey).Err(err).Msg("save map calibration failed")
+		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
+		return
+	}
+	jsonOK(w, c)
 }

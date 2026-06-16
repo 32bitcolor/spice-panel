@@ -4,7 +4,7 @@ import { Button, Spinner, Switch, ToggleButton, ToggleButtonGroup, toast } from 
 import { api } from '../api/client'
 import type { ScheduledRestarts, RestartRule } from '../api/client'
 import { Panel, SectionLabel, Icon, NumberInput, TimeInput } from '../dune-ui'
-import { TimezoneSelect } from './TimezoneSelect'
+import { dowLabel } from './dowLabel'
 import { usePermissions } from '../hooks/usePermissions'
 
 const DOW = [0, 1, 2, 3, 4, 5, 6] // Sun..Sat
@@ -74,9 +74,7 @@ export const ScheduledRestartsCard: React.FC = () => {
   const setRuleDays = (i: number, days: number[]) =>
     setRules((r) => r.map((rule, idx) => (idx === i ? { ...rule, days } : rule)))
 
-  // Localized short weekday label (Jan 1 2023 was a Sunday = day 0).
-  const dowLabel = (d: number) =>
-    new Intl.DateTimeFormat(i18n.language, { weekday: 'short' }).format(new Date(Date.UTC(2023, 0, 1 + d)))
+  const label = (d: number) => dowLabel(d, i18n.language)
 
   return (
     <Panel>
@@ -117,7 +115,7 @@ export const ScheduledRestartsCard: React.FC = () => {
                     size="sm"
                   >
                     {DOW.map((d) => (
-                      <ToggleButton key={d} id={String(d)}>{dowLabel(d)}</ToggleButton>
+                      <ToggleButton key={d} id={String(d)}>{label(d)}</ToggleButton>
                     ))}
                   </ToggleButtonGroup>
                   <TimeInput value={rule.time} onChange={(v) => setRuleTime(i, v)} ariaLabel="time" />
@@ -150,10 +148,9 @@ export const ScheduledRestartsCard: React.FC = () => {
                       showButtons={false}
                     />
                   </label>
-                  <label className="flex items-center gap-2 flex-1 min-w-[160px]">
-                    {t('restarts.timezone')}
-                    <TimezoneSelect value={timezone} onChange={setTimezone} className="flex-1" />
-                  </label>
+                  <span className="text-xs text-muted">
+                    {t('restarts.timezoneFromServer', 'Timezone is set in server settings.')}
+                  </span>
                 </div>
               )}
 

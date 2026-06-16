@@ -441,6 +441,8 @@ func serverCfgToAppConfig(sc ServerConfig) appConfig {
 	ac.AmpBackupDir = sc.AmpBackupDir
 	ac.DirectorURL = sc.DirectorURL
 	ac.MarketBotEnabled = sc.MarketBotEnabled
+	ac.WebInterfaceHostOverride = sc.WebInterfaceHostOverride
+	ac.Timezone = sc.Timezone
 	return ac
 }
 

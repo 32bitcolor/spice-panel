@@ -257,3 +257,151 @@ func TestApplyUnifiedSchema_FreshInstall(t *testing.T) {
 		}
 	}
 }
+
+// legacyPartialMigSchemaSQL simulates a DB left in the intermediate state by
+// the reverted 0.40.0 release: welcome_config / give_packs_config have a TEXT
+// server_id (not yet converted to INTEGER) but their blob columns
+// (packages_json / active_versions_json / packs_json) were already dropped.
+// This is the exact shape that produced the "no such column: packages_json"
+// error on upgrade from 0.40.0 → 0.41.1 (issue #233-B).
+const legacyPartialMigSchemaSQL = `
+CREATE TABLE servers (
+	id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL DEFAULT '',
+	position INTEGER NOT NULL DEFAULT 0, created_at TEXT, updated_at TEXT
+);
+CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE welcome_config (
+	server_id TEXT NOT NULL DEFAULT 'default',
+	enabled INTEGER NOT NULL DEFAULT 0, scan_secs INTEGER NOT NULL DEFAULT 30,
+	active_version TEXT NOT NULL DEFAULT '',
+	welcome_message_enabled INTEGER NOT NULL DEFAULT 0, welcome_message TEXT NOT NULL DEFAULT '',
+	welcome_whisper_source_player TEXT NOT NULL DEFAULT '',
+	motd_enabled INTEGER NOT NULL DEFAULT 0, motd_message TEXT NOT NULL DEFAULT '',
+	motd_source_player TEXT NOT NULL DEFAULT '',
+	region_join_enabled INTEGER NOT NULL DEFAULT 0, region_leave_enabled INTEGER NOT NULL DEFAULT 0,
+	region_join_template TEXT NOT NULL DEFAULT '', region_leave_template TEXT NOT NULL DEFAULT '',
+	region_chat_channel TEXT NOT NULL DEFAULT 'whisper', updated_at TEXT NOT NULL DEFAULT '',
+	PRIMARY KEY (server_id)
+);
+CREATE TABLE give_packs_config (
+	server_id TEXT NOT NULL DEFAULT 'default',
+	base_packs_loaded INTEGER NOT NULL DEFAULT 0,
+	updated_at TEXT NOT NULL DEFAULT '',
+	PRIMARY KEY (server_id)
+);
+CREATE TABLE play_sessions (
+	id INTEGER PRIMARY KEY AUTOINCREMENT, account_id INTEGER NOT NULL,
+	started_at TEXT NOT NULL, ended_at TEXT, duration_secs INTEGER
+);
+CREATE TABLE stat_snapshots (
+	id INTEGER PRIMARY KEY AUTOINCREMENT, account_id INTEGER NOT NULL,
+	snapped_at TEXT NOT NULL, char_xp INTEGER, skill_points INTEGER,
+	intel_points INTEGER, combat_xp INTEGER, crafting_xp INTEGER,
+	gathering_xp INTEGER, exploration_xp INTEGER, sabotage_xp INTEGER,
+	solaris_balance INTEGER
+);
+CREATE TABLE welcome_grants (
+	fls_id TEXT NOT NULL, package_version TEXT NOT NULL, account_id INTEGER NOT NULL,
+	character_name TEXT NOT NULL DEFAULT '', status TEXT NOT NULL,
+	granted_at TEXT NOT NULL DEFAULT '', attempts INTEGER NOT NULL DEFAULT 1,
+	last_error TEXT NOT NULL DEFAULT '', detected_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+	PRIMARY KEY (fls_id, package_version, account_id)
+);
+CREATE TABLE event_definitions (
+	id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, type TEXT NOT NULL,
+	enabled INTEGER NOT NULL DEFAULT 0, version INTEGER NOT NULL DEFAULT 1,
+	config_json TEXT NOT NULL DEFAULT '{}', reward_json TEXT NOT NULL DEFAULT '',
+	announce_channel_id TEXT NOT NULL DEFAULT '', announce_template TEXT NOT NULL DEFAULT '',
+	poll_seconds INTEGER NOT NULL DEFAULT 7, jitter_seconds INTEGER NOT NULL DEFAULT 3,
+	created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE TABLE event_award_claims (
+	event_id INTEGER NOT NULL, version INTEGER NOT NULL, account_id INTEGER NOT NULL,
+	status TEXT NOT NULL, claimed_at TEXT NOT NULL DEFAULT '',
+	attempts INTEGER NOT NULL DEFAULT 1, last_error TEXT NOT NULL DEFAULT '',
+	next_attempt_at TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL,
+	PRIMARY KEY (event_id, version, account_id)
+);
+CREATE TABLE battlepass_tiers (
+	id INTEGER PRIMARY KEY AUTOINCREMENT, tier_key TEXT NOT NULL UNIQUE,
+	category TEXT NOT NULL, label TEXT NOT NULL, signal TEXT NOT NULL,
+	signal_key TEXT NOT NULL DEFAULT '', threshold INTEGER NOT NULL DEFAULT 0,
+	intel INTEGER NOT NULL DEFAULT 0, enabled INTEGER NOT NULL DEFAULT 1,
+	created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE TABLE battlepass_claims (
+	tier_key TEXT NOT NULL, account_id INTEGER NOT NULL, status TEXT NOT NULL,
+	intel INTEGER NOT NULL DEFAULT 0, earned_at TEXT NOT NULL DEFAULT '',
+	granted_at TEXT NOT NULL DEFAULT '', attempts INTEGER NOT NULL DEFAULT 0,
+	last_error TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL,
+	PRIMARY KEY (tier_key, account_id)
+);
+CREATE TABLE battlepass_accounts (account_id INTEGER PRIMARY KEY, baselined_at TEXT NOT NULL);
+CREATE TABLE battlepass_grant_ledger (
+	tier_key TEXT NOT NULL, account_id INTEGER NOT NULL,
+	status TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0,
+	last_error TEXT NOT NULL DEFAULT '', next_attempt_at TEXT NOT NULL DEFAULT '',
+	updated_at TEXT NOT NULL, PRIMARY KEY (tier_key, account_id)
+);
+`
+
+// TestMigrateUnifiedRemodel_FromPartialMigration verifies that the remodel
+// migration succeeds on a DB left in the intermediate "0.40.0 partial" state:
+// TEXT server_id on welcome_config / give_packs_config, blob columns already
+// gone. The critical regression was "no such column: packages_json" when
+// convertConfigBlobTablesToInt tried to copy a fixed column list that included
+// those already-dropped columns (issue #233-B).
+func TestMigrateUnifiedRemodel_FromPartialMigration(t *testing.T) {
+	db, err := sql.Open("sqlite", "file::memory:?_pragma=foreign_keys(1)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	db.SetMaxOpenConns(1)
+	t.Cleanup(func() { _ = db.Close() })
+
+	if _, err := db.Exec(legacyPartialMigSchemaSQL); err != nil {
+		t.Fatalf("seed partial schema: %v", err)
+	}
+	if _, err := db.Exec(`INSERT INTO servers(name,position) VALUES ('Default',0)`); err != nil {
+		t.Fatalf("seed server: %v", err)
+	}
+	if _, err := db.Exec(`INSERT INTO welcome_config(server_id,enabled,updated_at) VALUES ('default',0,'')`); err != nil {
+		t.Fatalf("seed welcome_config: %v", err)
+	}
+	if _, err := db.Exec(`INSERT INTO give_packs_config(server_id,base_packs_loaded,updated_at) VALUES ('default',0,'')`); err != nil {
+		t.Fatalf("seed give_packs_config: %v", err)
+	}
+
+	// Production applyUnifiedSchema creates the surrogate-id child tables before
+	// the remodel runs; replicate that here.
+	if err := initWelcomeColumnsSchema(db); err != nil {
+		t.Fatalf("welcome columns schema: %v", err)
+	}
+	if err := initGivePacksColumnsSchema(db); err != nil {
+		t.Fatalf("give columns schema: %v", err)
+	}
+
+	// Must not error or leave welcome_config with TEXT server_id.
+	migrateUnifiedRemodel(db, 1)
+
+	typ, err := columnType(db, "welcome_config", "server_id")
+	if err != nil {
+		t.Fatalf("columnType(welcome_config, server_id): %v", err)
+	}
+	if typ != "INTEGER" {
+		t.Errorf("welcome_config.server_id = %q after partial migration, want INTEGER", typ)
+	}
+
+	typ, err = columnType(db, "give_packs_config", "server_id")
+	if err != nil {
+		t.Fatalf("columnType(give_packs_config, server_id): %v", err)
+	}
+	if typ != "INTEGER" {
+		t.Errorf("give_packs_config.server_id = %q after partial migration, want INTEGER", typ)
+	}
+
+	// Row must survive and be scoped to the default server.
+	if n := countRowsWhere(t, db, "welcome_config", "server_id = ?", 1); n != 1 {
+		t.Errorf("welcome_config: want 1 row scoped to server 1, got %d", n)
+	}
+}

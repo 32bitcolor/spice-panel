@@ -192,7 +192,17 @@ type appConfig struct {
 	AmpAPIUser  string `yaml:"amp_api_user" json:"amp_api_user"`
 	AmpAPIPass  string `yaml:"amp_api_pass" json:"amp_api_pass"`
 	AmpAPIPort  int    `yaml:"amp_api_port" json:"amp_api_port"`
-	DirectorURL string `yaml:"director_url"      json:"director_url"`
+	DirectorURL string `yaml:"director_url" json:"director_url"`
+	// WebInterfaceHostOverride is an optional per-server host that takes
+	// precedence over the SSH host when building auto-discovered Web Interface
+	// URLs (issue #234). Useful when the SSH jump host differs from the host
+	// that serves the director/file-browser node ports.
+	WebInterfaceHostOverride string `yaml:"web_interface_host_override" json:"web_interface_host_override"`
+
+	// Timezone is the server-level IANA tz name (e.g. "America/New_York") used
+	// for activity charts, scheduled restarts, and backups. Empty = host-local.
+	// When set, it takes precedence over any schedule-level timezone setting.
+	Timezone string `yaml:"timezone" json:"timezone"`
 
 	// DB backup tooling (#150). AmpPgBin/AmpPgLib locate the in-container PG17
 	// pg_dump/pg_restore + their shared libs; empty → validated AMP defaults.

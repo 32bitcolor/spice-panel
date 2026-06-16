@@ -40,32 +40,39 @@ export const latLngToWorld = (lat: number, lng: number, cfg: Bounds): { x: numbe
   }
 }
 
+// solveBounds fits a linear world→fraction transform to all calibration points
+// using ordinary least-squares per axis. Requires ≥2 distinct points.
 export const solveBounds = (pts: CalibPoint[]): Bounds | null => {
   if (pts.length < 2) return null
-  const a = pts[0]
-  const b = pts[pts.length - 1]
-  if (b.wx === a.wx || b.wy === a.wy || b.fracX === a.fracX || b.fracYup === a.fracYup) return null
-  const sX = (b.fracX - a.fracX) / (b.wx - a.wx)
-  const iX = a.fracX - sX * a.wx
-  const sY = (b.fracYup - a.fracYup) / (b.wy - a.wy)
-  const iY = a.fracYup - sY * a.wy
+
+  // OLS fit: frac = slope * world + intercept
+  const fitAxis = (worlds: number[], fracs: number[]): { slope: number, intercept: number } | null => {
+    const n = worlds.length
+    const sumW = worlds.reduce((a, b) => a + b, 0)
+    const sumF = fracs.reduce((a, b) => a + b, 0)
+    const sumWW = worlds.reduce((a, b, i) => a + b * worlds[i], 0)
+    const sumWF = worlds.reduce((a, b, i) => a + b * fracs[i], 0)
+    const denom = n * sumWW - sumW * sumW
+    if (Math.abs(denom) < 1e-12) return null
+    const slope = (n * sumWF - sumW * sumF) / denom
+    const intercept = (sumF - slope * sumW) / n
+    return { slope, intercept }
+  }
+
+  const fitX = fitAxis(pts.map((p) => p.wx), pts.map((p) => p.fracX))
+  const fitY = fitAxis(pts.map((p) => p.wy), pts.map((p) => p.fracYup))
+  if (!fitX || !fitY) return null
+
+  const { slope: sX, intercept: iX } = fitX
+  const { slope: sY, intercept: iY } = fitY
+  if (Math.abs(sX) < 1e-12 || Math.abs(sY) < 1e-12) return null
+
   const flipY = sY < 0
   const minX = -iX / sX
   const maxX = (1 - iX) / sX
   const R = flipY ? -1 / sY : 1 / sY
   const minY = flipY ? (iY - 1) * R : -iY * R
   return { minX, maxX, minY, maxY: minY + R, flipY }
-}
-
-const CALIB_LS_KEY = 'dune_admin_livemap_calib'
-
-export const loadCalib = (): Record<string, Bounds> => {
-  try {
-    return JSON.parse(localStorage.getItem(CALIB_LS_KEY) ?? '{}') as Record<string, Bounds>
-  }
-  catch {
-    return {}
-  }
 }
 
 const LIVE_FILTER_DEFAULTS: Record<string, boolean> = {

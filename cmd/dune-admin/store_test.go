@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -202,6 +203,28 @@ func TestMigrateLegacyStores_Idempotent(t *testing.T) {
 	}
 	if got := countRows(t, db, "map_locations"); got != firstLocations {
 		t.Errorf("map_locations duplicated: want %d, got %d", firstLocations, got)
+	}
+}
+
+// TestOpenUnifiedStore_CreatesParentDir verifies that openUnifiedStore creates
+// the parent directory automatically when it does not yet exist. This covers the
+// fresh-install regression on Windows (issue #233-A) where the .dune-admin dir
+// was never MkdirAll'd before the first sql.Open attempt, yielding
+// SQLITE_CANTOPEN (error 14).
+func TestOpenUnifiedStore_CreatesParentDir(t *testing.T) {
+	t.Parallel()
+	base := t.TempDir()
+	nested := filepath.Join(base, "a", "b", "c")
+	dbPath := filepath.Join(nested, "dune-admin.db")
+
+	db, err := openUnifiedStore(dbPath)
+	if err != nil {
+		t.Fatalf("openUnifiedStore in non-existent nested dir: %v", err)
+	}
+	_ = db.Close()
+
+	if _, statErr := os.Stat(nested); os.IsNotExist(statErr) {
+		t.Error("openUnifiedStore: parent directory was not created")
 	}
 }
 

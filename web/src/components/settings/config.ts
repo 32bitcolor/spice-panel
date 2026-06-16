@@ -17,6 +17,8 @@ export const EMPTY: AppConfig = {
   amp_use_container: false, amp_data_root: '',
   amp_api_user: '', amp_api_pass: '', amp_api_port: 0,
   director_url: '',
+  web_interface_host_override: '',
+  timezone: '',
   market_bot_enabled: false,
   market_bot_cache_db: '', market_bot_item_data: '', market_bot_state: '',
   market_bot_buy_interval: '', market_bot_list_interval: '',
@@ -86,6 +88,8 @@ export const PER_SERVER_KEYS: (keyof AppConfig)[] = [
   'amp_instance', 'amp_container', 'amp_user', 'amp_log_path', 'amp_use_container',
   'amp_data_root', 'amp_api_user', 'amp_api_pass', 'amp_api_port',
   'director_url',
+  'web_interface_host_override',
+  'timezone',
   // Market bot enable is PER SERVER (the rest of the bot config is global/shared).
   'market_bot_enabled',
 ]
