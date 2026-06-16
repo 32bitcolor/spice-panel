@@ -1352,8 +1352,8 @@
       "privateKey": "Ruta de clave privada",
       "privateKeyHint": "ruta absoluta, en blanco = detección automática",
       "user": "Usuario",
-      "mode": "SSH transport",
-      "modeHint": "library = in-process client; command = OS ssh wrapper (uses ~/.ssh/config, agent, ProxyJump)"
+      "mode": "Transporte SSH",
+      "modeHint": "library = cliente en proceso; command = envoltorio ssh del SO (usa ~/.ssh/config, agent, ProxyJump)"
     },
     "tabs": {
       "advanced": "Avanzado",

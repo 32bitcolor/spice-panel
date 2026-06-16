@@ -1331,8 +1331,8 @@
       "privateKey": "Özel anahtar yolu",
       "privateKeyHint": "mutlak yol, boş = otomatik algıla",
       "user": "Kullanıcı",
-      "mode": "SSH transport",
-      "modeHint": "library = in-process client; command = OS ssh wrapper (uses ~/.ssh/config, agent, ProxyJump)"
+      "mode": "SSH aktarımı",
+      "modeHint": "library = süreç içi istemci; command = OS ssh sarmalayıcısı (~/.ssh/config, agent, ProxyJump kullanır)"
     },
     "tabs": {
       "advanced": "Gelişmiş",

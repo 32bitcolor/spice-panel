@@ -1373,8 +1373,8 @@
       "privateKey": "Ścieżka do klucza prywatnego",
       "privateKeyHint": "ścieżka bezwzględna, puste = autowykrywanie",
       "user": "Użytkownik",
-      "mode": "SSH transport",
-      "modeHint": "library = in-process client; command = OS ssh wrapper (uses ~/.ssh/config, agent, ProxyJump)"
+      "mode": "Transport SSH",
+      "modeHint": "library = klient w procesie; command = systemowy wrapper ssh (używa ~/.ssh/config, agent, ProxyJump)"
     },
     "tabs": {
       "advanced": "Zaawansowane",

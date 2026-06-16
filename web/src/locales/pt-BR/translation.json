@@ -1352,8 +1352,8 @@
       "privateKey": "Caminho da chave privada",
       "privateKeyHint": "caminho absoluto, em branco = detecção automática",
       "user": "Usuário",
-      "mode": "SSH transport",
-      "modeHint": "library = in-process client; command = OS ssh wrapper (uses ~/.ssh/config, agent, ProxyJump)"
+      "mode": "Transporte SSH",
+      "modeHint": "library = cliente em processo; command = wrapper ssh do SO (usa ~/.ssh/config, agent, ProxyJump)"
     },
     "tabs": {
       "advanced": "Avançado",

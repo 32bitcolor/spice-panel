@@ -1331,8 +1331,8 @@
       "privateKey": "私钥路径",
       "privateKeyHint": "绝对路径，留空 = 自动检测",
       "user": "用户",
-      "mode": "SSH transport",
-      "modeHint": "library = in-process client; command = OS ssh wrapper (uses ~/.ssh/config, agent, ProxyJump)"
+      "mode": "SSH 传输",
+      "modeHint": "library = 进程内客户端；command = 操作系统 ssh 包装器（使用 ~/.ssh/config、agent、ProxyJump）"
     },
     "tabs": {
       "advanced": "高级",

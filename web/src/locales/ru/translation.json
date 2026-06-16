@@ -1373,8 +1373,8 @@
       "privateKey": "Путь к приватному ключу",
       "privateKeyHint": "абсолютный путь, пусто = автоопределение",
       "user": "Пользователь",
-      "mode": "SSH transport",
-      "modeHint": "library = in-process client; command = OS ssh wrapper (uses ~/.ssh/config, agent, ProxyJump)"
+      "mode": "Транспорт SSH",
+      "modeHint": "library = встроенный клиент; command = обёртка системного ssh (использует ~/.ssh/config, agent, ProxyJump)"
     },
     "tabs": {
       "advanced": "Расширенные",
