@@ -45,12 +45,12 @@ export const EMPTY: AppConfig = {
   listen_addr: '', scrip_currency: 0,
 }
 
-// Pointer-backed boolean fields in the Go config: null means "use server
-// default" (effectively true). If the API returns null for these, coerce to
-// true so the checkbox reflects the real server default rather than silently
-// inheriting EMPTY's false and overwriting the default-on value on save.
-// discord_bot_enabled is intentionally excluded: nil means default-off, not default-on.
-export const pointerBoolFields = new Set<keyof AppConfig>(['amp_use_container', 'market_bot_enabled'])
+// Pointer-backed boolean fields whose nil/unset value means ON (default-on).
+// If the API returns null for these, coerce to true so the checkbox reflects
+// the real server default rather than silently writing false on save.
+// market_bot_enabled and discord_bot_enabled are excluded: nil means OFF there
+// (explicit opt-in required — starting a trading bot must never be a side-effect).
+export const pointerBoolFields = new Set<keyof AppConfig>(['amp_use_container'])
 
 export const mergeConfig = (fetched: Record<string, unknown>): AppConfig => {
   const result: AppConfig = { ...EMPTY }

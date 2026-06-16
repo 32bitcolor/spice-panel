@@ -9,6 +9,26 @@ import (
 	"dune-admin/internal/marketbot"
 )
 
+func TestMarketBotEnabled_GlobalNilIsOff(t *testing.T) {
+	tests := []struct {
+		name string
+		in   *bool
+		want bool
+	}{
+		{"nil is off (safe default)", nil, false},
+		{"explicit true", boolPtr(true), true},
+		{"explicit false", boolPtr(false), false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := marketBotEnabled(appConfig{MarketBotEnabled: tt.in})
+			if got != tt.want {
+				t.Errorf("marketBotEnabled(%v) = %v, want %v", tt.in, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestServerMarketBotEnabled(t *testing.T) {
 	tests := []struct {
 		name string

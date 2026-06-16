@@ -45,11 +45,11 @@ func TestResolveEmbeddedMarketBotPaths(t *testing.T) {
 		}
 	})
 
-	t.Run("marketBotEnabled defaults to true when nil", func(t *testing.T) {
+	t.Run("marketBotEnabled defaults to false when nil", func(t *testing.T) {
 		t.Parallel()
-		cfg := appConfig{} // MarketBotEnabled is nil
-		if !marketBotEnabled(cfg) {
-			t.Error("marketBotEnabled should default to true when field is nil")
+		cfg := appConfig{} // MarketBotEnabled is nil — explicit opt-in required
+		if marketBotEnabled(cfg) {
+			t.Error("marketBotEnabled should default to false when field is nil")
 		}
 	})
 

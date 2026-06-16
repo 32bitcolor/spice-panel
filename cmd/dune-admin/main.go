@@ -340,13 +340,11 @@ func defaultServerName() string {
 	return "Default"
 }
 
-// marketBotEnabled returns the effective bot-enabled flag. Missing yaml key →
-// default on (so upgrades enable the feature). Explicit false → off.
+// marketBotEnabled returns the effective bot-enabled flag. Nil/unset → off
+// (explicit opt-in required). This matches serverMarketBotEnabled semantics so
+// a nil value never silently starts the bot during a config round-trip.
 func marketBotEnabled(cfg appConfig) bool {
-	if cfg.MarketBotEnabled == nil {
-		return true
-	}
-	return *cfg.MarketBotEnabled
+	return cfg.MarketBotEnabled != nil && *cfg.MarketBotEnabled
 }
 
 // startWelcomePackageScanner opens the ledger store, seeds the live runtime
