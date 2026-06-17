@@ -20,7 +20,7 @@ import { ZoneGridLayer } from './components/ZoneGridLayer'
 import { FitBoundsController } from './components/FitBoundsController'
 import { FilterPanel } from './components/FilterPanel'
 import {
-  MAPS, CAT_COLOR, IMAGE_BOUNDS, POLL_MS, IMG_H, IMG_W,
+  MAPS, CAT_COLOR, IMAGE_BOUNDS, POLL_MS, IMG_H, IMG_W, CALIB_MIN_WORLD_DIST,
 } from './constants'
 import {
   worldToLatLng, latLngToWorld, solveBounds, loadFilter, saveFilter, mapUrl,
@@ -39,6 +39,10 @@ export const LiveMapTab: React.FC = () => {
   const [calibrating, setCalibrating] = React.useState(false)
   const [calibPoints, setCalibPoints] = React.useState<CalibPoint[]>([])
   const [calibOverride, setCalibOverride] = React.useState<Record<string, Bounds>>({})
+  // Which player marker is the operator anchoring against. Empty = auto (single player).
+  const [calibPlayerId, setCalibPlayerId] = React.useState<string>('')
+  const [calibSaving, setCalibSaving] = React.useState(false)
+  const [calibDirty, setCalibDirty] = React.useState(false)
 
   const [spawns, setSpawns] = React.useState<SpawnEntry[]>([])
   const loadedSpawnKey = React.useRef<string>('')
@@ -62,9 +66,14 @@ export const LiveMapTab: React.FC = () => {
   const [teleporting, setTeleporting] = React.useState(false)
 
   const baseCfg = MAPS.find((m) => m.key === mapKey) ?? MAPS[0]
+  // Live preview of the solved transform from the current points (unsaved).
+  const previewBounds = React.useMemo(() => solveBounds(calibPoints), [calibPoints])
   const effCfg: MapCfg = React.useMemo(
-    () => ({ ...baseCfg, ...(calibOverride[mapKey] ?? {}) }),
-    [baseCfg, calibOverride, mapKey],
+    () => {
+      const override = (calibrating && previewBounds) ? previewBounds : calibOverride[mapKey]
+      return { ...baseCfg, ...(override ?? {}) }
+    },
+    [baseCfg, calibrating, previewBounds, calibOverride, mapKey],
   )
 
   const load = React.useCallback((key: string) => {
@@ -135,6 +144,20 @@ export const LiveMapTab: React.FC = () => {
   const playerCount = markers.filter((m) => m.type === 'player').length
   const vehicleCount = markers.filter((m) => m.type === 'vehicle').length
   const baseCount = markers.filter((m) => m.type === 'base').length
+
+  const playerMarkers = React.useMemo(
+    () => markers.filter((m) => m.type === 'player'),
+    [markers],
+  )
+
+  // The anchor is the explicitly selected player, or the only online player.
+  const calibAnchor = React.useMemo(() => {
+    if (calibPlayerId) {
+      return playerMarkers.find((m) => String(m.id) === calibPlayerId) ?? null
+    }
+    return playerMarkers.length === 1 ? playerMarkers[0] : null
+  }, [playerMarkers, calibPlayerId])
+
   const orderedLive = React.useMemo(
     () => [...markers]
       .sort((a, b) => (a.type === 'player' ? 1 : 0) - (b.type === 'player' ? 1 : 0))
@@ -163,34 +186,47 @@ export const LiveMapTab: React.FC = () => {
 
   const handleMapClick = React.useCallback((lat: number, lng: number) => {
     if (calibrating) {
-      const player = markers.find((m) => m.type === 'player')
-      if (!player) {
+      if (playerMarkers.length === 0) {
         toast.danger(t('liveMap.calibNoPlayer'))
         return
       }
-      setCalibPoints((prev) => {
-        const next = [...prev, { wx: player.x, wy: player.y, fracX: lng / IMG_W, fracYup: lat / IMG_H }]
-        const solved = solveBounds(next)
-        if (solved) {
-          setCalibOverride((c) => ({ ...c, [mapKey]: solved }))
-          api.map.calibration.save(mapKey, {
-            min_x: solved.minX, max_x: solved.maxX,
-            min_y: solved.minY, max_y: solved.maxY,
-            flip_x: !!solved.flipX, flip_y: !!solved.flipY,
-          }).catch(() => { /* non-fatal: bounds are still applied in-memory */ })
-        }
-        return next
-      })
+      if (!calibAnchor) {
+        toast.danger(t('liveMap.calibPickPlayer'))
+        return
+      }
+      // Snapshot the anchor's world coord at click time.
+      const wx = calibAnchor.x
+      const wy = calibAnchor.y
+      const tooClose = calibPoints.some(
+        (p) => Math.hypot(p.wx - wx, p.wy - wy) < CALIB_MIN_WORLD_DIST,
+      )
+      if (tooClose) {
+        toast.danger(t('liveMap.calibTooClose'))
+        return
+      }
+      setCalibPoints((prev) => [...prev, { wx, wy, fracX: lng / IMG_W, fracYup: lat / IMG_H }])
+      setCalibDirty(true)
       return
     }
     if (teleportMode) {
       const { x, y } = latLngToWorld(lat, lng, effCfg)
       setTeleportDest({ x: Math.round(x), y: Math.round(y) })
     }
-  }, [calibrating, teleportMode, markers, mapKey, effCfg, t])
+  }, [calibrating, teleportMode, playerMarkers.length, calibAnchor, calibPoints, effCfg, t])
+
+  const removeCalibPoint = React.useCallback((idx: number) => {
+    setCalibPoints((prev) => prev.filter((_, i) => i !== idx))
+    setCalibDirty(true)
+  }, [])
+
+  const removeLastCalibPoint = React.useCallback(() => {
+    setCalibPoints((prev) => prev.slice(0, -1))
+    setCalibDirty(true)
+  }, [])
 
   const clearCalib = React.useCallback(() => {
     setCalibPoints([])
+    setCalibDirty(false)
     setCalibOverride((c) => {
       const merged = { ...c }
       delete merged[mapKey]
@@ -198,12 +234,59 @@ export const LiveMapTab: React.FC = () => {
     })
   }, [mapKey])
 
+  const saveCalib = React.useCallback(async () => {
+    if (!previewBounds) {
+      toast.danger(t('liveMap.calibCannotSolve'))
+      return
+    }
+    setCalibSaving(true)
+    try {
+      await api.map.calibration.save(mapKey, {
+        min_x: previewBounds.minX, max_x: previewBounds.maxX,
+        min_y: previewBounds.minY, max_y: previewBounds.maxY,
+        flip_x: !!previewBounds.flipX, flip_y: !!previewBounds.flipY,
+      })
+      setCalibOverride((c) => ({ ...c, [mapKey]: previewBounds }))
+      setCalibDirty(false)
+      toast.success(t('liveMap.calibSaved'))
+    }
+    catch (e: unknown) {
+      toast.danger(t('liveMap.calibSaveFailed', { message: e instanceof Error ? e.message : String(e) }))
+    }
+    finally {
+      setCalibSaving(false)
+    }
+  }, [previewBounds, mapKey, t])
+
+  // Reset removes the saved calibration so the map reverts to its built-in
+  // default bounds (from constants), and clears any in-progress points.
+  const resetCalib = React.useCallback(async () => {
+    setCalibSaving(true)
+    try {
+      await api.map.calibration.remove(mapKey)
+      setCalibPoints([])
+      setCalibDirty(false)
+      setCalibOverride((c) => {
+        const merged = { ...c }
+        delete merged[mapKey]
+        return merged
+      })
+      toast.success(t('liveMap.calibReset'))
+    }
+    catch (e: unknown) {
+      toast.danger(t('liveMap.calibResetFailed', { message: e instanceof Error ? e.message : String(e) }))
+    }
+    finally {
+      setCalibSaving(false)
+    }
+  }, [mapKey, t])
+
   const solvedStr = React.useMemo(() => {
-    const b = calibOverride[mapKey]
+    const b = previewBounds ?? calibOverride[mapKey]
     return b
       ? `minX: ${Math.round(b.minX)}, maxX: ${Math.round(b.maxX)}, minY: ${Math.round(b.minY)}, maxY: ${Math.round(b.maxY)}, flipY: ${!!b.flipY}`
       : ''
-  }, [calibOverride, mapKey])
+  }, [previewBounds, calibOverride, mapKey])
 
   const doTeleport = React.useCallback(async () => {
     if (!teleportDest || !teleportFlsId) return
@@ -325,14 +408,23 @@ export const LiveMapTab: React.FC = () => {
             {t('liveMap.teleportMode')}
           </Button>
         )}
-        <Button size="sm" variant={calibrating ? 'primary' : 'outline'} onPress={() => setCalibrating((v) => !v)}>
+        <Button
+          size="sm"
+          variant={calibrating ? 'primary' : 'outline'}
+          onPress={() => {
+            setCalibrating((v) => {
+              if (v) {
+                setCalibPlayerId('')
+                setCalibDirty(false)
+              }
+              return !v
+            })
+          }}
+        >
           <Icon name="crosshair" />
           {' '}
           {t('liveMap.calibrate')}
         </Button>
-        {calibrating && (
-          <Button size="sm" variant="outline" onPress={clearCalib}>{t('liveMap.clear')}</Button>
-        )}
       </div>
 
       <div className="flex flex-wrap gap-4 shrink-0 text-xs text-muted">
@@ -398,10 +490,109 @@ export const LiveMapTab: React.FC = () => {
       )}
 
       {calibrating && (
-        <div className="shrink-0 rounded-[var(--radius)] border border-border bg-surface px-3 py-2 text-xs">
+        <div className="shrink-0 rounded-[var(--radius)] border border-border bg-surface px-3 py-2 text-xs flex flex-col gap-2">
           <div className="text-accent">{t('liveMap.calibActive')}</div>
+
+          {playerMarkers.length === 0 && (
+            <div className="text-danger">{t('liveMap.calibNoPlayer')}</div>
+          )}
+
+          {playerMarkers.length > 1 && (
+            <div className="flex items-center gap-2">
+              <span className="text-muted shrink-0">{t('liveMap.calibAnchorLabel')}</span>
+              <Select
+                aria-label={t('liveMap.calibAnchorLabel')}
+                selectedKey={calibPlayerId}
+                onSelectionChange={(k) => setCalibPlayerId(String(k))}
+                className="w-56"
+              >
+                <Select.Trigger>
+                  <Select.Value />
+                  <Select.Indicator />
+                </Select.Trigger>
+                <Select.Popover>
+                  <ListBox>
+                    {playerMarkers.map((p) => (
+                      <ListBox.Item key={p.id} id={String(p.id)} textValue={p.name}>
+                        {p.name}
+                        <ListBox.ItemIndicator />
+                      </ListBox.Item>
+                    ))}
+                  </ListBox>
+                </Select.Popover>
+              </Select>
+            </div>
+          )}
+
+          {playerMarkers.length === 1 && (
+            <div className="text-muted">
+              {t('liveMap.calibAnchorSingle', { name: playerMarkers[0].name })}
+            </div>
+          )}
+
           <div className="text-muted">{t('liveMap.calibPoints', { n: calibPoints.length })}</div>
-          {solvedStr && <div className="mt-1 font-mono text-foreground break-all">{solvedStr}</div>}
+
+          {calibPoints.length > 0 && (
+            <div className="flex flex-col gap-1">
+              {calibPoints.map((p, i) => (
+                <div key={`cp-${i}`} className="flex items-center gap-2 font-mono">
+                  <span className="text-accent">{`${i + 1}.`}</span>
+                  <span className="text-foreground">
+                    {`wx ${Math.round(p.wx)}, wy ${Math.round(p.wy)}`}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="ml-auto"
+                    onPress={() => removeCalibPoint(i)}
+                  >
+                    ✕
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {solvedStr && <div className="font-mono text-foreground break-all">{solvedStr}</div>}
+          {calibPoints.length >= 2 && !previewBounds && (
+            <div className="text-danger">{t('liveMap.calibCannotSolve')}</div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <Button
+              size="sm"
+              variant="primary"
+              isDisabled={!previewBounds || !calibDirty || calibSaving}
+              onPress={saveCalib}
+            >
+              {calibSaving ? <Spinner size="sm" color="current" /> : t('liveMap.calibSave')}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              isDisabled={calibPoints.length === 0 || calibSaving}
+              onPress={removeLastCalibPoint}
+            >
+              {t('liveMap.calibRemoveLast')}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              isDisabled={calibPoints.length === 0 || calibSaving}
+              onPress={clearCalib}
+            >
+              {t('liveMap.clear')}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="ml-auto text-danger"
+              isDisabled={calibSaving}
+              onPress={resetCalib}
+            >
+              {t('liveMap.calibReset')}
+            </Button>
+          </div>
         </div>
       )}
 

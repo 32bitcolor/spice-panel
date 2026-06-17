@@ -91,6 +91,64 @@ func TestMapCalibration_Upsert(t *testing.T) {
 	}
 }
 
+func TestMapCalibration_Delete(t *testing.T) {
+	t.Parallel()
+	db := openTestCalibStore(t)
+	seedServer(t, db, 1)
+
+	in := mapCalibration{MapKey: "HaggaBasin", MinX: -100, MaxX: 100, MinY: -100, MaxY: 100, FlipY: true}
+	if err := saveMapCalibration(db, 1, in); err != nil {
+		t.Fatalf("saveMapCalibration: %v", err)
+	}
+
+	if err := deleteMapCalibration(db, 1, "HaggaBasin"); err != nil {
+		t.Fatalf("deleteMapCalibration: %v", err)
+	}
+
+	_, ok, err := loadMapCalibration(db, 1, "HaggaBasin")
+	if err != nil {
+		t.Fatalf("load after delete: %v", err)
+	}
+	if ok {
+		t.Error("expected calibration to be gone after delete, got ok=true")
+	}
+}
+
+func TestMapCalibration_DeleteMissingIsNoOp(t *testing.T) {
+	t.Parallel()
+	db := openTestCalibStore(t)
+	seedServer(t, db, 1)
+
+	if err := deleteMapCalibration(db, 1, "HaggaBasin"); err != nil {
+		t.Fatalf("delete of missing calibration should be a no-op, got: %v", err)
+	}
+}
+
+func TestMapCalibration_DeleteServerIsolation(t *testing.T) {
+	t.Parallel()
+	db := openTestCalibStore(t)
+	seedServer(t, db, 1, 2)
+
+	in := mapCalibration{MapKey: "HaggaBasin", MinX: -100, MaxX: 100, MinY: -100, MaxY: 100}
+	if err := saveMapCalibration(db, 1, in); err != nil {
+		t.Fatalf("save srv1: %v", err)
+	}
+	if err := saveMapCalibration(db, 2, in); err != nil {
+		t.Fatalf("save srv2: %v", err)
+	}
+
+	if err := deleteMapCalibration(db, 1, "HaggaBasin"); err != nil {
+		t.Fatalf("delete srv1: %v", err)
+	}
+
+	if _, ok, _ := loadMapCalibration(db, 1, "HaggaBasin"); ok {
+		t.Error("server 1 calibration should be deleted")
+	}
+	if _, ok, _ := loadMapCalibration(db, 2, "HaggaBasin"); !ok {
+		t.Error("server 2 calibration must survive server 1 delete")
+	}
+}
+
 func TestMapCalibration_ServerIsolation(t *testing.T) {
 	t.Parallel()
 	db := openTestCalibStore(t)

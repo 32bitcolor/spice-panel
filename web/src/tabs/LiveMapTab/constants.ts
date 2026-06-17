@@ -11,6 +11,11 @@ const IMG_H = 4096
 const IMAGE_BOUNDS: LatLngBoundsExpression = [[0, 0], [IMG_H, IMG_W]]
 const POLL_MS = 30000
 
+// Minimum separation, in world units (Unreal cm), between two calibration
+// anchors. Points closer than this produce a near-singular least-squares fit,
+// so the UI rejects them and warns the operator to move further away.
+const CALIB_MIN_WORLD_DIST = 50000
+
 const SPRITE_URL = mapUrl('map-data/map-icons.webp')
 const SPRITE_COLS = 11
 const SPRITE_ROWS = 12
@@ -286,6 +291,7 @@ export {
   IMG_H,
   IMAGE_BOUNDS,
   POLL_MS,
+  CALIB_MIN_WORLD_DIST,
   SPRITE_URL,
   SPRITE_COLS,
   SPRITE_ROWS,

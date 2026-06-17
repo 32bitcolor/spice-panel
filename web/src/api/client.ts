@@ -1325,6 +1325,8 @@ export const api = {
       get: (mapKey: string) => req<MapCalibration>('GET', `/map/calibration?map=${encodeURIComponent(mapKey)}`),
       save: (mapKey: string, c: Omit<MapCalibration, 'map_key'>) =>
         req<MapCalibration>('PUT', `/map/calibration?map=${encodeURIComponent(mapKey)}`, c),
+      remove: (mapKey: string) =>
+        req<{ deleted: boolean }>('DELETE', `/map/calibration?map=${encodeURIComponent(mapKey)}`),
     },
   },
 

@@ -105,3 +105,25 @@ func handlePutMapCalibration(w http.ResponseWriter, r *http.Request) {
 	}
 	jsonOK(w, c)
 }
+
+// handleDeleteMapCalibration removes a saved calibration so the map reverts to
+// its built-in default bounds. Deleting a map with no saved calibration is a
+// no-op and still returns 200.
+func handleDeleteMapCalibration(w http.ResponseWriter, r *http.Request) {
+	mapKey := r.URL.Query().Get("map")
+	if err := validateMapKey(mapKey); err != nil {
+		jsonErr(w, err, http.StatusBadRequest)
+		return
+	}
+	if globalStore == nil {
+		jsonErr(w, errors.New("store unavailable"), http.StatusServiceUnavailable)
+		return
+	}
+	serverID := storeScopeFromCtx(r)
+	if err := deleteMapCalibration(globalStore, serverID, mapKey); err != nil {
+		componentLog("handlers").Error().Str("map_key", mapKey).Err(err).Msg("delete map calibration failed")
+		jsonErr(w, fmt.Errorf("internal error"), http.StatusInternalServerError)
+		return
+	}
+	jsonOK(w, map[string]bool{"deleted": true})
+}

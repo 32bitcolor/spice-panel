@@ -464,7 +464,18 @@
     "total": "Total",
     "unsupported": "Live map is not available on this server.",
     "updated": "updated at {{time}}",
-    "vehicles": "Vehicles"
+    "vehicles": "Vehicles",
+    "calibPickPlayer": "Select which player is you",
+    "calibTooClose": "Too close to an existing point — move further away before capturing.",
+    "calibAnchorLabel": "Anchor to:",
+    "calibAnchorSingle": "Anchoring to {{name}}",
+    "calibCannotSolve": "Points are too close or colinear — cannot solve. Capture far-apart points.",
+    "calibSave": "Save calibration",
+    "calibSaved": "Calibration saved",
+    "calibSaveFailed": "Failed to save calibration: {{message}}",
+    "calibRemoveLast": "Remove last point",
+    "calibReset": "Reset to default",
+    "calibResetFailed": "Failed to reset calibration: {{message}}"
   },
   "logs": {
     "antiCheatLabel": "Anti-cheat events",

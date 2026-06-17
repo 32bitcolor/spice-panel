@@ -244,6 +244,7 @@ func buildMux() *http.ServeMux {
 	handleAPI(mux, "GET /api/v1/map/markers", capWorldRead, handleGetMapMarkers)
 	handleAPI(mux, "GET /api/v1/map/calibration", capWorldRead, handleGetMapCalibration)
 	handleAPI(mux, "PUT /api/v1/map/calibration", capWorldWrite, handlePutMapCalibration)
+	handleAPI(mux, "DELETE /api/v1/map/calibration", capWorldWrite, handleDeleteMapCalibration)
 
 	// ── logs ──────────────────────────────────────────────────────────────────
 	handleAPI(mux, "GET /api/v1/logs/pods", capLogsRead, handleLogPods)

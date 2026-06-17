@@ -464,7 +464,18 @@
     "total": "合計",
     "unsupported": "このサーバーではライブマップを利用できません。",
     "updated": "{{time}}に更新",
-    "vehicles": "乗り物"
+    "vehicles": "乗り物",
+    "calibPickPlayer": "どのプレイヤーが自分か選択",
+    "calibTooClose": "既存のポイントに近すぎます — 取得する前にさらに離れてください。",
+    "calibAnchorLabel": "アンカー先:",
+    "calibAnchorSingle": "{{name}} にアンカー中",
+    "calibCannotSolve": "ポイントが近すぎるか一直線上です — 解けません。離れたポイントを取得してください。",
+    "calibSave": "キャリブレーションを保存",
+    "calibSaved": "キャリブレーションを保存しました",
+    "calibSaveFailed": "キャリブレーションの保存に失敗しました: {{message}}",
+    "calibRemoveLast": "最後のポイントを削除",
+    "calibReset": "デフォルトにリセット",
+    "calibResetFailed": "キャリブレーションのリセットに失敗しました: {{message}}"
   },
   "logs": {
     "antiCheatLabel": "アンチチートイベント",

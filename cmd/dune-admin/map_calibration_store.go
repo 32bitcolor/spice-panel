@@ -76,3 +76,16 @@ func saveMapCalibration(db *sql.DB, serverID int, c mapCalibration) error {
 	}
 	return nil
 }
+
+// deleteMapCalibration removes any saved calibration for (serverID, mapKey).
+// It is a no-op (nil error) when no row exists, so callers can use it to reset
+// a map back to its built-in default bounds.
+func deleteMapCalibration(db *sql.DB, serverID int, mapKey string) error {
+	_, err := db.Exec(`
+		DELETE FROM map_calibration
+		WHERE server_id = ? AND map_key = ?`, serverID, mapKey)
+	if err != nil {
+		return fmt.Errorf("delete map calibration: %w", err)
+	}
+	return nil
+}

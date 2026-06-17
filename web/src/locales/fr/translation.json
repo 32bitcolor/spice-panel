@@ -467,7 +467,18 @@
     "total": "Total",
     "unsupported": "La carte en direct n'est pas disponible sur ce serveur.",
     "updated": "mis à jour à {{time}}",
-    "vehicles": "Véhicules"
+    "vehicles": "Véhicules",
+    "calibPickPlayer": "Sélectionne quel joueur tu es",
+    "calibTooClose": "Trop proche d’un point existant — éloigne-toi davantage avant de capturer.",
+    "calibAnchorLabel": "Ancrer à :",
+    "calibAnchorSingle": "Ancrage sur {{name}}",
+    "calibCannotSolve": "Les points sont trop proches ou colinéaires — impossible à résoudre. Capture des points éloignés.",
+    "calibSave": "Enregistrer le calibrage",
+    "calibSaved": "Calibrage enregistré",
+    "calibSaveFailed": "Échec de l’enregistrement du calibrage : {{message}}",
+    "calibRemoveLast": "Supprimer le dernier point",
+    "calibReset": "Réinitialiser par défaut",
+    "calibResetFailed": "Échec de la réinitialisation du calibrage : {{message}}"
   },
   "logs": {
     "antiCheatLabel": "Événements anti-triche",

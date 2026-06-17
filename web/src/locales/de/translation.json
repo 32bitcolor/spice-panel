@@ -464,7 +464,18 @@
     "total": "Gesamt",
     "unsupported": "Live-Karte auf diesem Server nicht verfügbar.",
     "updated": "aktualisiert um {{time}}",
-    "vehicles": "Fahrzeuge"
+    "vehicles": "Fahrzeuge",
+    "calibPickPlayer": "Wähle, welcher Spieler du bist",
+    "calibTooClose": "Zu nah an einem bestehenden Punkt — entferne dich weiter, bevor du erfasst.",
+    "calibAnchorLabel": "Verankern an:",
+    "calibAnchorSingle": "Verankert an {{name}}",
+    "calibCannotSolve": "Punkte sind zu nah oder kollinear — nicht lösbar. Erfasse weit auseinanderliegende Punkte.",
+    "calibSave": "Kalibrierung speichern",
+    "calibSaved": "Kalibrierung gespeichert",
+    "calibSaveFailed": "Kalibrierung konnte nicht gespeichert werden: {{message}}",
+    "calibRemoveLast": "Letzten Punkt entfernen",
+    "calibReset": "Auf Standard zurücksetzen",
+    "calibResetFailed": "Kalibrierung konnte nicht zurückgesetzt werden: {{message}}"
   },
   "logs": {
     "antiCheatLabel": "Anti-Cheat-Ereignisse",

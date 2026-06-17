@@ -464,7 +464,18 @@
     "total": "Toplam",
     "unsupported": "Canlı harita bu sunucuda kullanılamaz.",
     "updated": "{{time}} itibarıyla güncellendi",
-    "vehicles": "Araçlar"
+    "vehicles": "Araçlar",
+    "calibPickPlayer": "Hangi oyuncunun sen olduğunu seç",
+    "calibTooClose": "Mevcut bir noktaya çok yakın — yakalamadan önce daha uzağa git.",
+    "calibAnchorLabel": "Şuna sabitle:",
+    "calibAnchorSingle": "{{name}} oyuncusuna sabitleniyor",
+    "calibCannotSolve": "Noktalar çok yakın veya aynı doğrultuda — çözülemez. Birbirinden uzak noktalar yakala.",
+    "calibSave": "Kalibrasyonu kaydet",
+    "calibSaved": "Kalibrasyon kaydedildi",
+    "calibSaveFailed": "Kalibrasyon kaydedilemedi: {{message}}",
+    "calibRemoveLast": "Son noktayı kaldır",
+    "calibReset": "Varsayılana sıfırla",
+    "calibResetFailed": "Kalibrasyon sıfırlanamadı: {{message}}"
   },
   "logs": {
     "antiCheatLabel": "Hile karşıtı olaylar",

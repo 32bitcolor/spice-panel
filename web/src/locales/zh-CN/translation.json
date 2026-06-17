@@ -464,7 +464,18 @@
     "total": "总计",
     "unsupported": "此服务器不支持实时地图。",
     "updated": "更新于 {{time}}",
-    "vehicles": "载具"
+    "vehicles": "载具",
+    "calibPickPlayer": "选择哪个玩家是你",
+    "calibTooClose": "离已有点太近——捕获前请再远离一些。",
+    "calibAnchorLabel": "锚定到:",
+    "calibAnchorSingle": "正在锚定到 {{name}}",
+    "calibCannotSolve": "点太近或共线——无法求解。请捕获相距较远的点。",
+    "calibSave": "保存校准",
+    "calibSaved": "校准已保存",
+    "calibSaveFailed": "保存校准失败: {{message}}",
+    "calibRemoveLast": "移除最后一个点",
+    "calibReset": "重置为默认",
+    "calibResetFailed": "重置校准失败: {{message}}"
   },
   "logs": {
     "antiCheatLabel": "反作弊事件",

@@ -470,7 +470,18 @@
     "total": "Łącznie",
     "unsupported": "Mapa na żywo nie jest dostępna na tym serwerze.",
     "updated": "zaktualizowano o {{time}}",
-    "vehicles": "Pojazdy"
+    "vehicles": "Pojazdy",
+    "calibPickPlayer": "Wybierz, którym graczem jesteś",
+    "calibTooClose": "Zbyt blisko istniejącego punktu — oddal się przed przechwyceniem.",
+    "calibAnchorLabel": "Zakotwicz do:",
+    "calibAnchorSingle": "Kotwiczenie do {{name}}",
+    "calibCannotSolve": "Punkty są zbyt blisko lub współliniowe — nie można rozwiązać. Przechwyć oddalone punkty.",
+    "calibSave": "Zapisz kalibrację",
+    "calibSaved": "Zapisano kalibrację",
+    "calibSaveFailed": "Nie udało się zapisać kalibracji: {{message}}",
+    "calibRemoveLast": "Usuń ostatni punkt",
+    "calibReset": "Przywróć domyślne",
+    "calibResetFailed": "Nie udało się zresetować kalibracji: {{message}}"
   },
   "logs": {
     "antiCheatLabel": "Zdarzenia antycheat",

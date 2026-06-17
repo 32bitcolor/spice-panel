@@ -467,7 +467,18 @@
     "total": "Total",
     "unsupported": "El mapa en vivo no está disponible en este servidor.",
     "updated": "actualizado a las {{time}}",
-    "vehicles": "Vehículos"
+    "vehicles": "Vehículos",
+    "calibPickPlayer": "Selecciona qué jugador eres",
+    "calibTooClose": "Demasiado cerca de un punto existente — aléjate más antes de capturar.",
+    "calibAnchorLabel": "Anclar a:",
+    "calibAnchorSingle": "Anclando a {{name}}",
+    "calibCannotSolve": "Los puntos están demasiado cerca o son colineales — no se puede resolver. Captura puntos separados.",
+    "calibSave": "Guardar calibración",
+    "calibSaved": "Calibración guardada",
+    "calibSaveFailed": "Error al guardar la calibración: {{message}}",
+    "calibRemoveLast": "Eliminar último punto",
+    "calibReset": "Restablecer a predeterminado",
+    "calibResetFailed": "Error al restablecer la calibración: {{message}}"
   },
   "logs": {
     "antiCheatLabel": "Eventos antitrampas",
