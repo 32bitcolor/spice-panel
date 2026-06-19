@@ -1,9 +1,63 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
+import { useAtomValue } from 'jotai'
 import { EmptyState } from '@heroui-pro/react'
 import { Icon as IconifyIcon } from '@iconify/react'
-import { iconUrl, categoryColor, qualityLabel } from '../../utils/icons'
+import { iconUrl, categoryColor, qualityLabel, BG_PURPLE } from '../../utils/icons'
+import { itemDataSyncAtom } from '../../data/store'
 import type { MarketGridProps } from './types'
+
+// Max volume for bar scaling (most wearable/weapon items top out around 30V)
+const VOL_MAX = 30
+
+// Schematic background — deep purple grid with light-ray bloom (sampled Image #23, darkened ~25%)
+const SCHEMATIC_BG: React.CSSProperties = {
+  background: [
+    'linear-gradient(rgba(175,125,255,0.20) 1px, transparent 1px)',
+    'linear-gradient(90deg, rgba(175,125,255,0.20) 1px, transparent 1px)',
+    'radial-gradient(ellipse at 65% 20%, rgba(200,155,255,0.22) 0%, transparent 55%)',
+    '#1e0838',
+  ].join(', '),
+  backgroundSize: '20px 20px, 20px 20px, 100% 100%, 100% 100%',
+}
+
+// 5-segment arc ring quality indicator.
+// Segments run clockwise from 12 o'clock; filled = gold, empty = dim.
+const SEG_COUNT = 5
+const SEG_DEG = 58 // degrees per arc — 14° gaps between each
+const GAP_DEG = (360 - SEG_COUNT * SEG_DEG) / SEG_COUNT
+
+function arcPath(cx: number, cy: number, r: number, i: number): string {
+  const start = -90 + GAP_DEG / 2 + i * (SEG_DEG + GAP_DEG)
+  const end = start + SEG_DEG
+  const s = (start * Math.PI) / 180
+  const e = (end * Math.PI) / 180
+  const x1 = (cx + r * Math.cos(s)).toFixed(3)
+  const y1 = (cy + r * Math.sin(s)).toFixed(3)
+  const x2 = (cx + r * Math.cos(e)).toFixed(3)
+  const y2 = (cy + r * Math.sin(e)).toFixed(3)
+  return `M ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2}`
+}
+
+export const QualityArc: React.FC<{ quality: number, size?: number }> = ({ quality, size = 20 }) => {
+  const cx = size / 2
+  const cy = size / 2
+  const r = size * 0.34
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden>
+      {Array.from({ length: SEG_COUNT }, (_, i) => (
+        <path
+          key={i}
+          d={arcPath(cx, cy, r, i)}
+          fill="none"
+          stroke={i < quality ? '#d4a843' : 'rgba(255,255,255,0.12)'}
+          strokeWidth={size * 0.115}
+          strokeLinecap="butt"
+        />
+      ))}
+    </svg>
+  )
+}
 
 const RARITY_BORDER: Record<string, string> = {
   common: 'border-border',
@@ -15,18 +69,9 @@ const RARITY_BORDER: Record<string, string> = {
   memento: 'border-rarity-memento/60',
 }
 
-const RARITY_TEXT: Record<string, string> = {
-  common: 'text-foreground',
-  uncommon: 'text-rarity-uncommon',
-  rare: 'text-rarity-rare',
-  epic: 'text-rarity-epic',
-  legendary: 'text-rarity-legendary',
-  unique: 'text-rarity-unique',
-  memento: 'text-rarity-memento',
-}
-
 export const MarketGrid: React.FC<MarketGridProps> = ({ items, onSelect }: MarketGridProps) => {
   const { t } = useTranslation()
+  const itemData = useAtomValue(itemDataSyncAtom)
 
   if (items.length === 0) {
     return (
@@ -50,26 +95,35 @@ export const MarketGrid: React.FC<MarketGridProps> = ({ items, onSelect }: Marke
           const key = `${item.template_id}:${item.quality}`
           const rarity = item.rarity?.toLowerCase()
           const border = RARITY_BORDER[rarity] ?? 'border-border'
-          const textColor = RARITY_TEXT[rarity] ?? 'text-foreground'
           const img = iconUrl(item.template_id, 'thumb')
+          const entry = itemData.items[item.template_id] ?? null
+          // unique rarity = schematic in game data; also check is_schematic for safety
+          const isSchematic = rarity === 'unique' || (entry?.is_schematic ?? false)
+          // named unique set wearables also use the purple background (grid overlay for schematics only)
+          const isNamedSet = !isSchematic && rarity === 'rare' && /Unique/.test(item.template_id)
+          const volume = entry?.volume ?? 0
+          const volPct = volume > 0 ? Math.min(1, volume / VOL_MAX) * 100 : 0
 
           return (
             <button
               key={key}
-              className={`flex flex-col rounded-[var(--radius)] border ${border} bg-surface hover:bg-surface/80 text-left transition-colors overflow-hidden`}
+              className={`group flex flex-col rounded-[var(--radius)] border-2 ${border} bg-surface text-left transition-all overflow-hidden hover:shadow-md`}
               onClick={() => onSelect(item)}
             >
               {/* Icon area */}
               <div
-                className="w-full aspect-square flex items-center justify-center shrink-0"
-                style={{ background: img ? undefined : categoryColor(item.category) }}
+                className="relative w-full aspect-square flex items-center justify-center shrink-0"
+                style={isSchematic
+                  ? SCHEMATIC_BG
+                  : { background: isNamedSet ? BG_PURPLE : categoryColor(item.category, rarity) }}
               >
+                {/* Item image */}
                 {img
                   ? (
                       <img
                         src={img}
                         alt={item.display_name}
-                        className="w-full h-full object-contain p-2"
+                        className="w-full h-full object-contain p-2 transition-transform duration-200 group-hover:scale-105"
                         onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
                       />
                     )
@@ -78,23 +132,49 @@ export const MarketGrid: React.FC<MarketGridProps> = ({ items, onSelect }: Marke
                         {item.display_name.charAt(0)}
                       </span>
                     )}
+
+                {/* Quality arc — top-right corner, only for gradeable items */}
+                {entry?.is_gradeable && (
+                  <div className="absolute top-1 right-1 pointer-events-none">
+                    <QualityArc quality={item.quality} size={20} />
+                  </div>
+                )}
+
+                {/* Left weight/volume bar — teal, scales with volume */}
+                {volume > 0 && (
+                  <div className="absolute left-1.5 bottom-1.5 w-1 rounded-full overflow-hidden" style={{ height: '40%' }}>
+                    <div className="absolute inset-0 bg-white/10" />
+                    <div
+                      className="absolute bottom-0 left-0 right-0 rounded-full"
+                      style={{ height: `${volPct}%`, background: '#4dd0c4' }}
+                    />
+                  </div>
+                )}
+
+                {/* Bottom gradient blending into card body */}
+                <div className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-surface to-transparent pointer-events-none" />
               </div>
 
               {/* Card body */}
-              <div className="p-2 flex flex-col gap-0.5 min-w-0">
-                <span className="text-xs font-medium leading-tight line-clamp-2 text-foreground">
+              <div className="px-2.5 pb-2.5 pt-1 flex flex-col gap-1 min-w-0">
+                <span className="text-xs font-medium leading-snug line-clamp-2 text-foreground">
                   {item.display_name}
                 </span>
-                <div className="flex items-center justify-between gap-1 mt-0.5">
-                  {item.quality > 0 && (
-                    <span className="text-[10px] text-muted truncate">{qualityLabel(item.quality)}</span>
-                  )}
-                  {item.rarity && (
-                    <span className={`text-[10px] capitalize shrink-0 ${textColor}`}>{item.rarity}</span>
+                <div className="flex items-center justify-between gap-1">
+                  {item.quality > 0
+                    ? <span className="text-[10px] text-muted truncate">{qualityLabel(item.quality)}</span>
+                    : <span />}
+                  {rarity && (
+                    <span
+                      className="text-[10px] capitalize font-medium shrink-0"
+                      style={{ color: `var(--rarity-${rarity})` }}
+                    >
+                      {rarity}
+                    </span>
                   )}
                 </div>
-                <div className="flex items-center justify-between gap-1 mt-1">
-                  <span className="text-xs font-mono text-accent font-semibold truncate">
+                <div className="flex items-center justify-between gap-1 pt-1.5 border-t border-border/40 mt-0.5">
+                  <span className="text-sm font-mono text-accent font-semibold truncate">
                     {item.lowest_price.toLocaleString()}
                   </span>
                   <span className="text-[10px] text-muted shrink-0">

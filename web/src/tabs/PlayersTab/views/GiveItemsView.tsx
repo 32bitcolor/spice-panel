@@ -1,20 +1,27 @@
 import * as React from 'react'
 import {
-  Button, Chip, Header, ListBox, SearchField, Select, Separator, Spinner, TextField, toast,
+  Button, Chip, Drawer, Header, ListBox, SearchField, Select, Separator, Spinner, TextField, toast,
 } from '@heroui/react'
 import type { Selection } from '@heroui/react'
 import type { DataGridColumn } from '@heroui-pro/react'
 import { DataGrid } from '@heroui-pro/react'
 import { useTranslation } from 'react-i18next'
+import { useAtomValue } from 'jotai'
 import { api } from '../../../api/client'
 import type { GivePack } from '../../../api/client'
 import { ActionBar, Icon, LoadingState, NumberInput } from '../../../dune-ui'
+import { ItemDetailCard } from '../../../components/ItemDetailCard'
+import { ItemOptionRow } from '../../../components/ItemOptionRow'
+import { iconUrl, categoryColor } from '../../../utils/icons'
+import { itemDataSyncAtom } from '../../../data/store'
+import type { ItemEntry } from '../../../data/store'
 import { retainSkippedStaged } from './giveItemsHelpers'
 import { ManagePacksModal } from '../modals/ManagePacksModal'
 import type { GiveItemsViewProps, GiveResult, StagedItem } from './types'
 
 export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
   const { t } = useTranslation()
+  const itemData = useAtomValue(itemDataSyncAtom)
   const [templates, setTemplates] = React.useState<{ id: string, name: string }[]>([])
   const [packs, setPacks] = React.useState<GivePack[]>([])
   const [loading, setLoading] = React.useState(false)
@@ -27,6 +34,7 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
   const [result, setResult] = React.useState<GiveResult>(null)
   const [manageOpen, setManageOpen] = React.useState(false)
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set())
+  const [detailId, setDetailId] = React.useState<string | null>(null)
 
   const keyCounter = React.useRef(0)
   const nextKey = () => String(keyCounter.current++)
@@ -155,12 +163,7 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
       minWidth: 200,
       allowsResizing: true,
       cell: (item) => (
-        <div className="leading-tight py-0.5">
-          <div className="truncate text-sm">{nameMap.get(item.template) || item.template}</div>
-          {nameMap.get(item.template) && (
-            <div className="font-mono text-[10px] text-muted truncate">{item.template}</div>
-          )}
-        </div>
+        <StagedItemCell templateId={item.template} name={nameMap.get(item.template) || ''} itemData={itemData} />
       ),
     },
     {
@@ -198,17 +201,28 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
     {
       id: 'actions',
       header: '',
-      width: 52,
+      width: 88,
       cell: (item) => (
-        <Button
-          size="sm"
-          variant="danger-soft"
-          isIconOnly
-          onPress={() => removeFromStaged(item._key)}
-          aria-label={t('common.remove')}
-        >
-          <Icon name="trash" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            isIconOnly
+            onPress={() => setDetailId(item.template)}
+            aria-label={t('common.info')}
+          >
+            <Icon name="info" />
+          </Button>
+          <Button
+            size="sm"
+            variant="danger-soft"
+            isIconOnly
+            onPress={() => removeFromStaged(item._key)}
+            aria-label={t('common.remove')}
+          >
+            <Icon name="trash" />
+          </Button>
+        </div>
       ),
     },
   ]
@@ -288,21 +302,14 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
               {filtered.length > 0 && (
                 <div className="absolute z-50 w-full mt-1 rounded-[var(--radius)] border border-border bg-surface overflow-y-auto max-h-52">
                   {filtered.map((tpl) => (
-                    <div
+                    <ItemOptionRow
                       key={tpl.id}
-                      className="px-3 py-1.5 text-xs cursor-pointer hover:bg-surface-hover"
-                      onClick={() => pick(tpl)}
-                    >
-                      <span className="font-mono">{tpl.id}</span>
-                      {tpl.name
-                        ? (
-                            <span className="text-muted">
-                              {' — '}
-                              {tpl.name}
-                            </span>
-                          )
-                        : null}
-                    </div>
+                      id={tpl.id}
+                      name={tpl.name}
+                      entry={itemData.items[tpl.id] ?? null}
+                      onPick={() => pick(tpl)}
+                      onDetail={() => setDetailId(tpl.id)}
+                    />
                   ))}
                 </div>
               )}
@@ -425,6 +432,84 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
         }}
         templates={templates}
       />
+
+      {/* Item detail drawer */}
+      <Drawer.Backdrop
+        variant="opaque"
+        isOpen={!!detailId}
+        onOpenChange={(v) => !v && setDetailId(null)}
+      >
+        <Drawer.Content placement="right">
+          <Drawer.Dialog className="w-[480px] max-w-[95vw] flex flex-col">
+            <Drawer.Header>
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-border w-full">
+                <Drawer.Heading className="font-semibold text-sm text-accent truncate flex-1">
+                  {detailId ? (nameMap.get(detailId) || detailId) : ''}
+                </Drawer.Heading>
+                <Drawer.CloseTrigger />
+              </div>
+            </Drawer.Header>
+            <Drawer.Body className="flex flex-col gap-3 p-3 overflow-y-auto">
+              {detailId && (
+                <ItemDetailCard
+                  templateId={detailId}
+                  name={nameMap.get(detailId)}
+                  entry={itemData.items[detailId] ?? null}
+                />
+              )}
+            </Drawer.Body>
+          </Drawer.Dialog>
+        </Drawer.Content>
+      </Drawer.Backdrop>
     </>
+  )
+}
+
+// Sub-component exported so react-refresh treats it as a stable top-level component.
+// Display-only (no picker semantics) — used in DataGrid template column.
+export const StagedItemCell: React.FC<{
+  templateId: string
+  name: string
+  itemData: { items: Record<string, ItemEntry> }
+}> = ({ templateId, name, itemData }) => {
+  const entry = itemData.items[templateId] ?? null
+  const img = iconUrl(templateId, 'thumb')
+  const rarity = entry?.rarity?.toLowerCase()
+
+  return (
+    <div className="flex items-center gap-2 py-0.5">
+      {/* Thumbnail */}
+      <div
+        className="w-6 h-6 shrink-0 rounded flex items-center justify-center overflow-hidden"
+        style={{ background: categoryColor(entry?.category ?? '', entry?.rarity?.toLowerCase(), templateId) }}
+      >
+        <img
+          src={img ?? undefined}
+          alt=""
+          className="w-full h-full object-contain"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = 'none'
+          }}
+        />
+      </div>
+
+      {/* Name + id */}
+      <div className="flex-1 min-w-0">
+        <div className="text-xs truncate text-foreground">{name || templateId}</div>
+        {name && <div className="font-mono text-[10px] text-muted truncate">{templateId}</div>}
+      </div>
+
+      {/* Tier chip */}
+      {!!entry?.tier && entry.tier > 0 && (
+        <Chip size="sm" variant="soft" className="shrink-0">{`T${entry.tier}`}</Chip>
+      )}
+
+      {/* Rarity chip — inline color overrides Chip's internal text color */}
+      {rarity && (
+        <Chip size="sm" variant="soft" className="shrink-0 capitalize" style={{ color: `var(--rarity-${rarity})` }}>
+          {rarity}
+        </Chip>
+      )}
+    </div>
   )
 }

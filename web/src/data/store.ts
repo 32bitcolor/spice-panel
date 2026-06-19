@@ -51,12 +51,19 @@ export type ItemEntry = {
   tier?: number
   rarity?: string
   is_gradeable?: boolean
+  is_schematic?: boolean
   armor_value?: number
   mitigation?: Record<string, number>
   /** Inventory-load metric (there is no separate weight field — labelled "weight/volume" in UI). */
   volume?: number
   /** Max quantity per inventory slot; slots needed = ceil(qty / stack_max). */
   stack_max?: number
+  /** Lore text from game data (Unreal rich-text tags pre-stripped). */
+  description?: string
+  /** Body-slot derived from category path (head/chest/legs/hands/feet). */
+  slot?: string
+  /** Faction house if the item is faction-specific (Atreides/Harkonnen/etc.). */
+  faction?: string
 }
 
 export type ItemDataFile = {

@@ -7,11 +7,14 @@ import type { Selection } from '@heroui/react'
 import type { DataGridColumn } from '@heroui-pro/react'
 import { DataGrid } from '@heroui-pro/react'
 import { useTranslation } from 'react-i18next'
-import { useAtom } from 'jotai'
+import { useAtom, useAtomValue } from 'jotai'
 import { api } from '../../../api/client'
 import { ActionBar, Icon, LoadingState, NumberInput } from '../../../dune-ui'
 import { CategorizedPackPicker } from '../../../components/CategorizedPackPicker'
-import { packsSyncAtom } from '../../../data/store'
+import { ItemOptionRow } from '../../../components/ItemOptionRow'
+import { iconUrl, categoryColor } from '../../../utils/icons'
+import { packsSyncAtom, itemDataSyncAtom } from '../../../data/store'
+import type { ItemEntry } from '../../../data/store'
 import type { GiveItemsModalProps, GiveResult, StagedItem } from './types'
 
 export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, onClose }) => {
@@ -27,6 +30,7 @@ export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, on
   const [result, setResult] = React.useState<GiveResult>(null)
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set())
   const [packsData] = useAtom(packsSyncAtom)
+  const itemData = useAtomValue(itemDataSyncAtom)
 
   const keyCounter = React.useRef(0)
   const nextKey = () => String(keyCounter.current++)
@@ -140,12 +144,11 @@ export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, on
       minWidth: 200,
       allowsResizing: true,
       cell: (item) => (
-        <div className="leading-tight py-0.5">
-          <div className="truncate text-sm">{nameMap.get(item.template) || item.template}</div>
-          {nameMap.get(item.template) && (
-            <div className="font-mono text-[10px] text-muted truncate">{item.template}</div>
-          )}
-        </div>
+        <ModalStagedItemCell
+          templateId={item.template}
+          name={nameMap.get(item.template) || ''}
+          itemData={itemData}
+        />
       ),
     },
     {
@@ -251,22 +254,13 @@ export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, on
                           {filtered.length > 0 && (
                             <div className="absolute z-50 w-full mt-1 rounded-[var(--radius)] border border-border bg-surface overflow-y-auto max-h-52">
                               {filtered.map((tpl) => (
-                                <div
+                                <ItemOptionRow
                                   key={tpl.id}
-                                  className="px-3 py-1.5 text-xs cursor-pointer hover:bg-surface-hover"
-                                  onClick={() => pick(tpl)}
-                                >
-                                  <span className="font-mono">{tpl.id}</span>
-                                  {tpl.name
-                                    ? (
-                                        <span className="text-muted">
-                                          {' '}
-                                          —
-                                          {tpl.name}
-                                        </span>
-                                      )
-                                    : null}
-                                </div>
+                                  id={tpl.id}
+                                  name={tpl.name}
+                                  entry={itemData.items[tpl.id] ?? null}
+                                  onPick={() => pick(tpl)}
+                                />
                               ))}
                             </div>
                           )}
@@ -383,5 +377,46 @@ export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, on
         </Modal.Dialog>
       </Modal.Container>
     </Modal.Backdrop>
+  )
+}
+
+// Sub-component exported for react-refresh. Display-only thumbnail + name cell for staged items.
+export const ModalStagedItemCell: React.FC<{
+  templateId: string
+  name: string
+  itemData: { items: Record<string, ItemEntry> }
+}> = ({ templateId, name, itemData }) => {
+  const entry = itemData.items[templateId] ?? null
+  const img = iconUrl(templateId, 'thumb')
+  const rarity = entry?.rarity?.toLowerCase()
+
+  return (
+    <div className="flex items-center gap-2 py-0.5">
+      <div
+        className="w-6 h-6 shrink-0 rounded flex items-center justify-center overflow-hidden"
+        style={{ background: categoryColor(entry?.category ?? '', entry?.rarity?.toLowerCase(), templateId) }}
+      >
+        <img
+          src={img ?? undefined}
+          alt=""
+          className="w-full h-full object-contain"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = 'none'
+          }}
+        />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-xs truncate text-foreground">{name || templateId}</div>
+        {name && <div className="font-mono text-[10px] text-muted truncate">{templateId}</div>}
+      </div>
+      {!!entry?.tier && entry.tier > 0 && (
+        <Chip size="sm" variant="soft" className="shrink-0">{`T${entry.tier}`}</Chip>
+      )}
+      {rarity && (
+        <Chip size="sm" variant="soft" className="shrink-0 capitalize" style={{ color: `var(--rarity-${rarity})` }}>
+          {rarity}
+        </Chip>
+      )}
+    </div>
   )
 }

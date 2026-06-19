@@ -386,7 +386,9 @@
     "noItems": "No items yet.",
     "beta": "Beta",
     "back": "Back",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "info": "Info",
+    "details": "Details"
   },
   "database": {
     "columnColumn": "Column",

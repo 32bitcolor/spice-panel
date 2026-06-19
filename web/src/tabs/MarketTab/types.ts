@@ -20,12 +20,6 @@ export type Node = {
   children: Node[]
 }
 
-export type ItemEntry = {
-  is_gradeable?: boolean
-  armor_value?: number
-  mitigation?: Record<string, number>
-}
-
 export interface ItemDetailProps {
   item: MarketItem | null
   onClose: () => void

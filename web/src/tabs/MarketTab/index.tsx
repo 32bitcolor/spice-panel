@@ -25,7 +25,13 @@ export const MarketTab: React.FC = () => {
   const [loading, setLoading] = React.useState(false)
   const [filters, setFilters] = React.useState<MarketFilters>(DEFAULT_FILTERS)
   const [selected, setSelected] = React.useState<MarketItem | null>(null)
-  const [view, setView] = React.useState<MarketView>('table')
+  const [view, setView] = React.useState<MarketView>(
+    () => (localStorage.getItem('market-view') as MarketView | null) ?? 'table',
+  )
+  const handleViewChange = (v: MarketView) => {
+    localStorage.setItem('market-view', v)
+    setView(v)
+  }
   const [botOpen, setBotOpen] = React.useState(false)
   // Show Bot Control whenever the bot is configured (embedded or remote),
   // even if currently disabled/not running.
@@ -98,7 +104,7 @@ export const MarketTab: React.FC = () => {
                 </span>
               )
         )}
-        <ViewToggle view={view} onChange={setView} />
+        <ViewToggle view={view} onChange={handleViewChange} />
         <Button size="sm" variant="ghost" onPress={load} isDisabled={loading}>
           {loading
             ? (
