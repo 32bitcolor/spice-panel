@@ -18,8 +18,6 @@ import { ActionsView } from './views/ActionsView'
 import type { DetailTab } from './types'
 
 const POLL_MS = 30_000
-// Sentinel SideNav key for the server-wide dashboard landing (#130).
-const OVERVIEW_KEY = '__overview__'
 
 export const PlayersTab: React.FC = () => {
   const { t } = useTranslation()
@@ -43,6 +41,7 @@ export const PlayersTab: React.FC = () => {
   const [players, setPlayers] = React.useState<Player[]>([])
   const [loading, setLoading] = React.useState(false)
   const [search, setSearch] = React.useState('')
+  const [statusFilter, setStatusFilter] = React.useState<'all' | 'online' | 'offline'>('all')
   const [selected, setSelected] = React.useState<Player | null>(null)
   const [activeTab, setActiveTab] = React.useState<DetailTab>('overview')
 
@@ -68,22 +67,27 @@ export const PlayersTab: React.FC = () => {
 
   const filtered = React.useMemo(() => {
     const q = search.toLowerCase()
-    return q
+    const searched = q
       ? players.filter((p) =>
           p.name.toLowerCase().includes(q)
           || p.class.toLowerCase().includes(q)
           || p.map.toLowerCase().includes(q),
         )
       : players
-  }, [players, search])
+    const byStatus = statusFilter === 'online'
+      ? searched.filter((p) => p.online_status === 'Online')
+      : statusFilter === 'offline'
+        ? searched.filter((p) => p.online_status !== 'Online')
+        : searched
+    return [...byStatus].sort((a, b) => {
+      const aOn = a.online_status === 'Online' ? 1 : 0
+      const bOn = b.online_status === 'Online' ? 1 : 0
+      return bOn !== aOn ? bOn - aOn : a.name.localeCompare(b.name)
+    })
+  }, [players, search, statusFilter])
 
-  const navItems = React.useMemo(() => [
-    {
-      key: OVERVIEW_KEY,
-      icon: <Icon name="layout-dashboard" />,
-      label: t('players.dashboard.navLabel'),
-    },
-    ...filtered.map((p) => {
+  const navItems = React.useMemo(() =>
+    filtered.map((p) => {
       const statusDotColor = p.online_status === 'Online'
         ? 'bg-success'
         : p.online_status === 'LoggingOut'
@@ -111,18 +115,14 @@ export const PlayersTab: React.FC = () => {
         ),
       }
     }),
-  ], [filtered, t])
+  [filtered])
 
   return (
     <div className="flex h-full min-h-0 gap-3">
       <SideNav
         items={navItems}
-        active={selected ? String(selected.id) : OVERVIEW_KEY}
+        active={selected ? String(selected.id) : null}
         onSelect={(id) => {
-          if (id === OVERVIEW_KEY) {
-            setSelected(null)
-            return
-          }
           const p = players.find((x) => String(x.id) === id)
           if (p) setSelected(p)
         }}
@@ -143,6 +143,30 @@ export const PlayersTab: React.FC = () => {
           </Button>
         )}
         width="w-80"
+        listHeader={(
+          <Segment
+            aria-label={t('players.filter.label')}
+            variant="ghost"
+            size="sm"
+            className="w-full"
+            selectedKey={statusFilter}
+            onSelectionChange={(key) => setStatusFilter(key as 'all' | 'online' | 'offline')}
+          >
+            <Segment.Item id="all">
+              <Segment.Separator />
+              {t('players.filter.all')}
+            </Segment.Item>
+            <Segment.Item id="online">
+              <Segment.Separator />
+              {t('players.filter.online')}
+            </Segment.Item>
+            <Segment.Item id="offline">
+              <Segment.Separator />
+              {t('players.filter.offline')}
+            </Segment.Item>
+          </Segment>
+        )}
+        emptyContent={t('players.filter.empty')}
       >
         <SearchField
           aria-label={t('players.searchLabel')}
@@ -156,6 +180,26 @@ export const PlayersTab: React.FC = () => {
             <SearchField.ClearButton />
           </SearchField.Group>
         </SearchField>
+        <button
+          type="button"
+          onClick={() => setSelected(null)}
+          className={[
+            'w-full flex items-center gap-3 px-3 py-2 h-14 rounded-[var(--radius)] text-sm text-left cursor-pointer transition-colors',
+            !selected
+              ? 'text-[var(--color-focus)] font-semibold'
+              : 'text-foreground hover:bg-[color-mix(in_srgb,var(--accent)_12%,transparent)]',
+          ].join(' ')}
+          style={!selected
+            ? {
+                background: 'linear-gradient(90deg, color-mix(in srgb, var(--accent) 32%, transparent), color-mix(in srgb, var(--accent) 14%, transparent))',
+                boxShadow: 'inset 0 0 18px color-mix(in srgb, var(--accent) 15%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--accent) 55%, transparent)',
+              }
+            : undefined}
+        >
+          <Icon name="layout-dashboard" className="size-4 shrink-0" />
+          <span className="truncate">{t('players.dashboard.navLabel')}</span>
+        </button>
       </SideNav>
 
       {/* Right detail panel */}

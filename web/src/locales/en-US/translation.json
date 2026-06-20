@@ -1185,6 +1185,13 @@
       "noVehiclesFound": "No vehicles found",
       "recovered": "Recovered",
       "vehiclesLabel": "Vehicles"
+    },
+    "filter": {
+      "label": "Filter by status",
+      "all": "All",
+      "online": "Online",
+      "offline": "Offline",
+      "empty": "No players found"
     }
   },
   "server": {

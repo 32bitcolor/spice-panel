@@ -1183,6 +1183,13 @@
       "noVehiclesFound": "Araç bulunamadı",
       "recovered": "Kurtarıldı",
       "vehiclesLabel": "Araçlar"
+    },
+    "filter": {
+      "label": "Filter by status",
+      "all": "All",
+      "online": "Online",
+      "offline": "Offline",
+      "empty": "No players found"
     }
   },
   "server": {

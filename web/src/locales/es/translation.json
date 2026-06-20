@@ -1200,6 +1200,13 @@
       "noVehiclesFound": "No se encontraron vehículos",
       "recovered": "Recuperado",
       "vehiclesLabel": "Vehículos"
+    },
+    "filter": {
+      "label": "Filter by status",
+      "all": "All",
+      "online": "Online",
+      "offline": "Offline",
+      "empty": "No players found"
     }
   },
   "server": {

@@ -1217,6 +1217,13 @@
       "noVehiclesFound": "Транспорт не найден",
       "recovered": "Восстановлен",
       "vehiclesLabel": "Транспорт"
+    },
+    "filter": {
+      "label": "Filter by status",
+      "all": "All",
+      "online": "Online",
+      "offline": "Offline",
+      "empty": "No players found"
     }
   },
   "server": {

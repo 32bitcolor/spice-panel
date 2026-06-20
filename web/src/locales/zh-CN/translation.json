@@ -1183,6 +1183,13 @@
       "noVehiclesFound": "未找到载具",
       "recovered": "已恢复",
       "vehiclesLabel": "载具"
+    },
+    "filter": {
+      "label": "Filter by status",
+      "all": "All",
+      "online": "Online",
+      "offline": "Offline",
+      "empty": "No players found"
     }
   },
   "server": {

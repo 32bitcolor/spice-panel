@@ -1183,6 +1183,13 @@
       "noVehiclesFound": "乗り物が見つかりません",
       "recovered": "回収済み",
       "vehiclesLabel": "乗り物"
+    },
+    "filter": {
+      "label": "Filter by status",
+      "all": "All",
+      "online": "Online",
+      "offline": "Offline",
+      "empty": "No players found"
     }
   },
   "server": {

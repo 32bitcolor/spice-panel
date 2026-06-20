@@ -215,5 +215,10 @@ export type SideNavProps<K extends string> = {
   titleAction?: React.ReactNode
   /** Width of the side nav. Defaults to 240px (w-60). */
   width?: string
+  /** Content rendered above the list (search field, custom nav items, etc.). */
   children?: React.ReactNode
+  /** Content rendered between children and the list (e.g. a filter control). */
+  listHeader?: React.ReactNode
+  /** Shown inside the list area when items is empty. */
+  emptyContent?: React.ReactNode
 }
