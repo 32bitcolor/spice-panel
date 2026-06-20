@@ -40,16 +40,16 @@ export const BotStatusCard: React.FC<BotStatusCardProps> = ({ status }) => {
       <Sep />
       <Stat label={t('market.bot.status.lastBuyTick')}>{fmt(status.last_buy_tick)}</Stat>
       {status.next_list_tick != null && (
-        <>
+        <React.Fragment>
           <Sep />
           <Stat label={t('market.bot.status.nextListTick')}>{fmt(status.next_list_tick)}</Stat>
-        </>
+        </React.Fragment>
       )}
       {status.next_buy_tick != null && (
-        <>
+        <React.Fragment>
           <Sep />
           <Stat label={t('market.bot.status.nextBuyTick')}>{fmt(status.next_buy_tick)}</Stat>
-        </>
+        </React.Fragment>
       )}
     </div>
   )
