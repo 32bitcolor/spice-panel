@@ -55,3 +55,8 @@ export type MarketSearchProps = {
   onChange: (f: MarketFilters) => void
   onReset: () => void
 }
+
+export type QualityArcProps = {
+  quality: number
+  size?: number
+}

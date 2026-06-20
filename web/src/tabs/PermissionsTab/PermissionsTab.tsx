@@ -2,52 +2,10 @@ import * as React from 'react'
 import { Button, Chip, Spinner, Switch, toast } from '@heroui/react'
 import { Segment } from '@heroui-pro/react'
 import { useTranslation } from 'react-i18next'
-import { authApi } from '../api/client'
-import type { AuthLocalUser, PermissionsData } from '../api/client'
-import { ConfirmDialog, FieldInput, Icon, PageHeader, SectionLabel } from '../dune-ui'
-
-// CapabilityGrid renders the switch matrix for one principal (role, pseudo
-// role, or local user). Capabilities in `inherited` are granted by a higher
-// link in the cascade (the Default row) — they show locked-on and can only be
-// changed where they originate.
-const CapabilityGrid: React.FC<{
-  capabilities: PermissionsData['capabilities']
-  selected: string[]
-  inherited?: string[]
-  onToggle: (cap: string, on: boolean) => void
-}> = ({ capabilities, selected, inherited = [], onToggle }) => {
-  const { t } = useTranslation()
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-2">
-      {capabilities.map((cap) => {
-        const isInherited = inherited.includes(cap.id)
-        return (
-          <Switch
-            key={cap.id}
-            size="sm"
-            isSelected={isInherited || selected.includes(cap.id)}
-            isDisabled={isInherited}
-            onChange={(on: boolean) => onToggle(cap.id, on)}
-            className="items-start"
-          >
-            <Switch.Control className="mt-0.5"><Switch.Thumb /></Switch.Control>
-            <Switch.Content className="flex flex-col min-w-0">
-              <span className="font-mono text-xs text-foreground">
-                {cap.id}
-                {isInherited && <span className="ml-1 text-[10px] text-muted">{t('permissions.inherited')}</span>}
-              </span>
-              <span className="text-xs text-muted">
-                {/* Localized description; the backend's English text is the
-                    fallback for capabilities added after this translation set. */}
-                {t(`permissions.caps.${cap.id.replace(':', '_')}` as never, { defaultValue: cap.description })}
-              </span>
-            </Switch.Content>
-          </Switch>
-        )
-      })}
-    </div>
-  )
-}
+import { authApi } from '../../api/client'
+import type { AuthLocalUser, PermissionsData } from '../../api/client'
+import { ConfirmDialog, FieldInput, Icon, PageHeader, SectionLabel } from '../../dune-ui'
+import { CapabilityGrid } from './CapabilityGrid'
 
 // PermissionsTab is the editor for the role→capability matrix and local
 // dashboard users. Accessible to owners and sessions with auth:manage.
@@ -248,11 +206,11 @@ export const PermissionsTab: React.FC = () => {
             {saving
               ? <Spinner size="sm" color="current" />
               : (
-                  <>
+                  <React.Fragment>
                     <Icon name="save" />
                     {' '}
                     {t('common.save')}
-                  </>
+                  </React.Fragment>
                 )}
           </Button>
         </PageHeader>
@@ -307,11 +265,11 @@ export const PermissionsTab: React.FC = () => {
               {creating
                 ? <Spinner size="sm" color="current" />
                 : (
-                    <>
+                    <React.Fragment>
                       <Icon name="user-plus" />
                       {' '}
                       {t('permissions.addUser')}
-                    </>
+                    </React.Fragment>
                   )}
             </Button>
           </div>

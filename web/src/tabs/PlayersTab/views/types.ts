@@ -1,4 +1,5 @@
 import type { Player, GivePack } from '../../../api/client'
+import type { ItemEntry } from '../../../data/store'
 
 export interface GiveItemsViewProps {
   player: Player
@@ -20,4 +21,10 @@ export type VehicleKey = 'class' | 'location' | 'chassis' | 'name' | 'type' | 'a
 
 export interface VehiclesViewProps {
   player: Player
+}
+
+export interface StagedItemCellProps {
+  templateId: string
+  name: string
+  itemData: { items: Record<string, ItemEntry> }
 }

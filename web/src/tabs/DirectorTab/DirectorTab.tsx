@@ -1,9 +1,10 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Spinner, toast } from '@heroui/react'
-import { api, ApiError } from '../api/client'
-import type { DirectorConfig } from '../api/client'
-import { PageHeader, Panel, SectionLabel, Icon, FieldInput, FieldSelect } from '../dune-ui'
+import { api, ApiError } from '../../api/client'
+import type { DirectorConfig } from '../../api/client'
+import { PageHeader, Panel, SectionLabel, Icon } from '../../dune-ui'
+import { DirectorEditor } from './DirectorEditor'
 import type { FieldKind } from './types'
 
 // ── field-type inference (#157) ──────────────────────────────────────────────
@@ -11,6 +12,7 @@ import type { FieldKind } from './types'
 // + comment (data-driven, no hardcoded enum tables): booleans → a dropdown,
 // numbers → a number input, and enums from either a "Alternatives: a, b, c"
 // comment or the distinct values used across the [InstancingModes] section.
+
 const numberRe = /^-?\d+(\.\d+)?$/
 
 const parseAlternatives = (comment?: string): string[] => {
@@ -28,42 +30,6 @@ const fieldKind = (
   if (v === 'true' || v === 'false') return { kind: 'bool' }
   if (numberRe.test(value.trim())) return { kind: 'number' }
   return { kind: 'text' }
-}
-
-const DirectorEditor: React.FC<{
-  kind: FieldKind
-  value: string
-  ariaLabel: string
-  onChange: (v: string) => void
-}> = ({ kind, value, ariaLabel, onChange }) => {
-  if (kind.kind === 'bool') {
-    return (
-      <FieldSelect
-        className="w-full"
-        value={value.trim().toLowerCase()}
-        onChange={onChange}
-        options={['true', 'false']}
-        ariaLabel={ariaLabel}
-      />
-    )
-  }
-  if (kind.kind === 'enum') {
-    // Keep the current value selectable even if it isn't in the derived option set.
-    const opts = kind.options.includes(value) ? kind.options : [value, ...kind.options]
-    return (
-      <FieldSelect
-        className="w-full"
-        value={value}
-        onChange={onChange}
-        options={opts}
-        ariaLabel={ariaLabel}
-      />
-    )
-  }
-  if (kind.kind === 'number') {
-    return <FieldInput type="number" className="w-full" value={value} onChange={onChange} />
-  }
-  return <FieldInput className="w-full" value={value} onChange={onChange} />
 }
 
 // DirectorTab (#147): view/edit the Battlegroup Director config

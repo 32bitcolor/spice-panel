@@ -1,28 +1,15 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Modal, Spinner } from '@heroui/react'
-import { MapContainer, ImageOverlay, useMapEvents } from 'react-leaflet'
+import { MapContainer, ImageOverlay } from 'react-leaflet'
 import { CRS } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import type { ClickCapturerProps, MapCoordPickerModalProps } from './types'
-import { MAPS, IMAGE_BOUNDS } from '../../LiveMapTab/constants'
-import { latLngToWorld } from '../../LiveMapTab/utils'
-
-// Hagga Basin is the only map with a teleport coord picker for now.
-const HAGGA_CFG = MAPS.find((m) => m.key === 'HaggaBasin')!
+import type { MapCoordPickerModalProps } from './types'
+import { IMAGE_BOUNDS } from '../../LiveMapTab/constants'
+import { ClickCapturer } from './ClickCapturer'
 
 // Default Z for picked coordinates — safe height above most Hagga Basin terrain.
 const DEFAULT_Z = 5000
-
-const ClickCapturer: React.FC<ClickCapturerProps> = ({ onPick }) => {
-  useMapEvents({
-    click(e) {
-      const { x, y } = latLngToWorld(e.latlng.lat, e.latlng.lng, HAGGA_CFG)
-      onPick(x, y, DEFAULT_Z)
-    },
-  })
-  return null
-}
 
 export const MapCoordPickerModal: React.FC<MapCoordPickerModalProps> = ({ onPick, onClose }) => {
   const [picked, setPicked] = React.useState<{ x: number, y: number, z: number } | null>(null)

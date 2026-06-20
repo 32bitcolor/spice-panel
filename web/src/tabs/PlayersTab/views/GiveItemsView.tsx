@@ -12,11 +12,10 @@ import type { GivePack } from '../../../api/client'
 import { ActionBar, Icon, LoadingState, NumberInput } from '../../../dune-ui'
 import { ItemDetailCard } from '../../../components/ItemDetailCard'
 import { ItemOptionRow } from '../../../components/ItemOptionRow'
-import { iconUrl, categoryColor } from '../../../utils/icons'
 import { itemDataSyncAtom } from '../../../data/store'
-import type { ItemEntry } from '../../../data/store'
 import { retainSkippedStaged } from './giveItemsHelpers'
 import { ManagePacksModal } from '../modals/ManagePacksModal'
+import { StagedItemCell } from './StagedItemCell'
 import type { GiveItemsViewProps, GiveResult, StagedItem } from './types'
 
 export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
@@ -462,54 +461,5 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
         </Drawer.Content>
       </Drawer.Backdrop>
     </>
-  )
-}
-
-// Sub-component exported so react-refresh treats it as a stable top-level component.
-// Display-only (no picker semantics) — used in DataGrid template column.
-export const StagedItemCell: React.FC<{
-  templateId: string
-  name: string
-  itemData: { items: Record<string, ItemEntry> }
-}> = ({ templateId, name, itemData }) => {
-  const entry = itemData.items[templateId] ?? null
-  const img = iconUrl(templateId, 'thumb')
-  const rarity = entry?.rarity?.toLowerCase()
-
-  return (
-    <div className="flex items-center gap-2 py-0.5">
-      {/* Thumbnail */}
-      <div
-        className="w-6 h-6 shrink-0 rounded flex items-center justify-center overflow-hidden"
-        style={{ background: categoryColor(entry?.category ?? '', entry?.rarity?.toLowerCase(), templateId) }}
-      >
-        <img
-          src={img ?? undefined}
-          alt=""
-          className="w-full h-full object-contain"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = 'none'
-          }}
-        />
-      </div>
-
-      {/* Name + id */}
-      <div className="flex-1 min-w-0">
-        <div className="text-xs truncate text-foreground">{name || templateId}</div>
-        {name && <div className="font-mono text-[10px] text-muted truncate">{templateId}</div>}
-      </div>
-
-      {/* Tier chip */}
-      {!!entry?.tier && entry.tier > 0 && (
-        <Chip size="sm" variant="soft" className="shrink-0">{`T${entry.tier}`}</Chip>
-      )}
-
-      {/* Rarity chip — inline color overrides Chip's internal text color */}
-      {rarity && (
-        <Chip size="sm" variant="soft" className="shrink-0 capitalize" style={{ color: `var(--rarity-${rarity})` }}>
-          {rarity}
-        </Chip>
-      )}
-    </div>
   )
 }

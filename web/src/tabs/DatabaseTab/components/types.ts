@@ -1,3 +1,5 @@
+import type * as React from 'react'
+
 export type TableData = { headers: string[], rows: string[][] }
 
 export interface TableSearchInputProps {
@@ -7,4 +9,9 @@ export interface TableSearchInputProps {
   tableNames: string[]
   ariaLabel: string
   placeholder: string
+}
+
+export interface BackupsViewProps {
+  onRefreshRef?: React.MutableRefObject<(() => void) | null>
+  headerContent?: React.ReactNode | undefined
 }
