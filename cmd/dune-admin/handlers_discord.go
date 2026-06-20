@@ -580,6 +580,9 @@ func discordRolesFetcher(wantGuild string) (guildRolesFetchFn, string) {
 		if wantGuild != "" {
 			guildID = wantGuild
 		}
+		if guildID == "" {
+			return nil, ""
+		}
 		return func(id string) ([]*discordgo.Role, error) {
 			return sess.GuildRoles(id)
 		}, guildID

@@ -645,21 +645,80 @@ func TestDeriveServerState(t *testing.T) {
 }
 
 func TestAggregateMapCounts(t *testing.T) {
-	servers := []ServerRow{
-		{Map: "Hagga Basin", Players: 3},
-		{Map: "Hagga Basin", Players: 2},
-		{Map: "Deep Desert", Players: 1},
-		{Map: "", Players: 4}, // unknown map name
-	}
-	got := aggregateMapCounts(servers)
+	t.Parallel()
 
-	want := map[string]int{"Hagga Basin": 5, "Deep Desert": 1, "Unknown": 4}
-	if len(got) != len(want) {
-		t.Fatalf("got %d maps, want %d: %+v", len(got), len(want), got)
-	}
-	for _, mc := range got {
-		if want[mc.Map] != mc.Players {
-			t.Errorf("map %q = %d, want %d", mc.Map, mc.Players, want[mc.Map])
+	check := func(t *testing.T, got []mapPlayerCount, want map[string]int) {
+		t.Helper()
+		if len(got) != len(want) {
+			t.Fatalf("got %d maps, want %d: %+v", len(got), len(want), got)
+		}
+		for _, mc := range got {
+			v, ok := want[mc.Map]
+			if !ok {
+				t.Errorf("unexpected label %q", mc.Map)
+				continue
+			}
+			if mc.Players != v {
+				t.Errorf("label %q players = %d, want %d", mc.Map, mc.Players, v)
+			}
 		}
 	}
+
+	t.Run("two partitions same map, no director label", func(t *testing.T) {
+		t.Parallel()
+		servers := []ServerRow{
+			{Map: "Survival_1", Partition: 1, Players: 3},
+			{Map: "Survival_2", Partition: 2, Players: 2},
+			{Map: "DeepDesert", Players: 1},
+			{Map: "", Players: 4},
+		}
+		check(t, aggregateMapCounts(servers), map[string]int{
+			"Hagga Basin #1": 3,
+			"Hagga Basin #2": 2,
+			"Deep Desert":    1,
+			"Unknown":        4,
+		})
+	})
+
+	t.Run("director labels present, used verbatim", func(t *testing.T) {
+		t.Parallel()
+		servers := []ServerRow{
+			{Map: "Survival_1", Sietch: "Survival_1", Partition: 1, Players: 12},
+			{Map: "Survival_2", Sietch: "Survival_2", Partition: 2, Players: 8},
+			{Map: "DeepDesert", Players: 3},
+		}
+		check(t, aggregateMapCounts(servers), map[string]int{
+			"Survival_1":  12,
+			"Survival_2":  8,
+			"Deep Desert": 3,
+		})
+	})
+
+	t.Run("single partition no director label, no suffix", func(t *testing.T) {
+		t.Parallel()
+		servers := []ServerRow{
+			{Map: "Survival_1", Partition: 1, Players: 5},
+		}
+		got := aggregateMapCounts(servers)
+		if len(got) != 1 {
+			t.Fatalf("got %d maps, want 1: %+v", len(got), got)
+		}
+		if got[0].Map != "Hagga Basin" {
+			t.Errorf("label = %q, want %q", got[0].Map, "Hagga Basin")
+		}
+		if got[0].Players != 5 {
+			t.Errorf("players = %d, want 5", got[0].Players)
+		}
+	})
+
+	t.Run("unknown map name buckets as Unknown", func(t *testing.T) {
+		t.Parallel()
+		servers := []ServerRow{
+			{Map: "", Players: 4},
+		}
+		got := aggregateMapCounts(servers)
+		if len(got) != 1 || got[0].Map != "Unknown" || got[0].Players != 4 {
+			t.Errorf("got %+v, want [{Unknown 4}]", got)
+		}
+	})
 }

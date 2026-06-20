@@ -154,24 +154,71 @@ func deriveServerState(status *BattlegroupStatus, err error) serverState {
 	return serverStateBooting
 }
 
-// aggregateMapCounts sums per-partition player counts by map name, returning a
-// stable, descending-by-population slice. Blank map names bucket as "Unknown".
+// partitionLabel returns the display label for a single ServerRow. The
+// director-supplied Sietch name is preferred; falls back to the pretty map
+// name; falls back to "Unknown".
+func partitionLabel(s ServerRow) string {
+	if s.Sietch != "" {
+		return s.Sietch
+	}
+	if label := prettyRegionName(s.Map); label != "" {
+		return label
+	}
+	return "Unknown"
+}
+
+type partitionRow struct {
+	baseLabel string
+	players   int
+	partition int
+}
+
+// groupByLabel buckets rows by base label, preserving first-occurrence order,
+// and sorts each group by partition index for deterministic #N suffix assignment.
+func groupByLabel(rows []partitionRow) ([]string, map[string][]partitionRow) {
+	order := make([]string, 0, len(rows))
+	groups := make(map[string][]partitionRow, len(rows))
+	for _, r := range rows {
+		if _, seen := groups[r.baseLabel]; !seen {
+			order = append(order, r.baseLabel)
+		}
+		groups[r.baseLabel] = append(groups[r.baseLabel], r)
+	}
+	for k := range groups {
+		sort.Slice(groups[k], func(i, j int) bool {
+			return groups[k][i].partition < groups[k][j].partition
+		})
+	}
+	return order, groups
+}
+
+// aggregateMapCounts returns one entry per partition, labeled by the
+// director-supplied Sietch name when available, otherwise by the pretty map
+// name. When multiple partitions share the same base label (e.g. several
+// "Hagga Basin" shards with no director label), a " #N" suffix is appended
+// using 1-based position ordered by Partition index. Single-partition groups
+// keep the bare label. Output is sorted players-desc, label-asc.
 func aggregateMapCounts(servers []ServerRow) []mapPlayerCount {
-	totals := map[string]int{}
+	rows := make([]partitionRow, 0, len(servers))
 	for _, s := range servers {
-		name := prettyRegionName(s.Map)
-		if name == "" {
-			name = prettyRegionName(s.Sietch)
-		}
-		if name == "" {
-			name = "Unknown"
-		}
-		totals[name] += s.Players
+		rows = append(rows, partitionRow{baseLabel: partitionLabel(s), players: s.Players, partition: s.Partition})
 	}
-	out := make([]mapPlayerCount, 0, len(totals))
-	for name, players := range totals {
-		out = append(out, mapPlayerCount{Map: name, Players: players})
+
+	order, groups := groupByLabel(rows)
+
+	out := make([]mapPlayerCount, 0, len(rows))
+	for _, base := range order {
+		group := groups[base]
+		multi := len(group) > 1
+		for i, r := range group {
+			label := base
+			if multi {
+				label = fmt.Sprintf("%s #%d", base, i+1)
+			}
+			out = append(out, mapPlayerCount{Map: label, Players: r.players})
+		}
 	}
+
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].Players != out[j].Players {
 			return out[i].Players > out[j].Players

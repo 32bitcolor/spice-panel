@@ -169,7 +169,8 @@ func discordPostOpen(dg *discordgo.Session, cfg appConfig) {
 
 	// globalDiscordGuildID keeps the seed/legacy guild for role-picker fallback.
 	setDiscordState(dg, cfg.DiscordGuildID)
-	componentLog("discord").Info().Str("guild_id", cfg.DiscordGuildID).Msg("bot connected")
+	guilds := listConfiguredGuilds()
+	componentLog("discord").Info().Int("guilds", len(guilds)).Msg("bot connected")
 	// No "bot connected" announce — it spams the channel on every (re)connect.
 	// Live connection status is surfaced by the persistent status embed (#188).
 }
@@ -595,5 +596,5 @@ func statusSummaryForServer(ctx context.Context, serverID int) (string, error) {
 
 // ── Pointer helpers ───────────────────────────────────────────────────────────
 
-func int64Ptr(v int64) *int64       { return &v }
-func float64Ptr(v float64) *float64 { return &v }
+func int64Ptr(v int64) *int64       { p := new(int64); *p = v; return p }
+func float64Ptr(v float64) *float64 { p := new(float64); *p = v; return p }
