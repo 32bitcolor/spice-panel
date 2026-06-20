@@ -69,8 +69,73 @@ export const ActionsView: React.FC<ActionsViewProps> = ({ player }) => {
       .catch((e: unknown) => toast.danger(e instanceof Error ? e.message : String(e)))
   }, [player.id, player.faction_id, setPartitions, setCharXPCurrent, setAllPlayers])
 
+  const renderSection = (): React.ReactNode => {
+    switch (section) {
+      case 'resources': return <ResourcesSection player={player} />
+      case 'specs': return <SpecsSection player={player} />
+      case 'progression': return <ProgressionSection player={player} />
+      case 'contracts': return <ContractsSection player={player} />
+      case 'journey': return <JourneySection player={player} />
+      case 'admin': return (
+        <AdminSection
+          player={player}
+          onManageLocations={() => setShowManageLocations(true)}
+          onTeleportPicker={(cb) => {
+            teleportPickerCb.current = cb
+            setShowTeleportPicker(true)
+          }}
+          onSpawnPicker={(cb) => {
+            spawnPickerCb.current = cb
+            setShowSpawnPicker(true)
+          }}
+        />
+      )
+      case 'tags': return <TagsSection player={player} />
+      case 'history': return <HistorySection player={player} />
+      case 'experimental': return <ExperimentalSection player={player} />
+    }
+  }
+
+  const renderManageLocationsModal = (): React.ReactNode => {
+    if (!showManageLocations) return null
+    return (
+      <ManageLocationsModal
+        onClose={(updated) => {
+          if (updated) setPartitions(updated)
+          setShowManageLocations(false)
+        }}
+      />
+    )
+  }
+
+  const renderTeleportPicker = (): React.ReactNode => {
+    if (!showTeleportPicker) return null
+    return (
+      <MapCoordPickerModal
+        onPick={(x, y, z) => {
+          teleportPickerCb.current?.(x, y, z)
+          setShowTeleportPicker(false)
+        }}
+        onClose={() => setShowTeleportPicker(false)}
+      />
+    )
+  }
+
+  const renderSpawnPicker = (): React.ReactNode => {
+    if (!showSpawnPicker) return null
+    return (
+      <MapCoordPickerModal
+        onPick={(x, y, z) => {
+          spawnPickerCb.current?.(x, y, z)
+          setShowSpawnPicker(false)
+        }}
+        onClose={() => setShowSpawnPicker(false)}
+      />
+    )
+  }
+
   return (
-    <>
+    <React.Fragment>
       <div className="flex flex-row h-full min-h-0 gap-3">
         {/* Vertical section nav (HeroUI Pro ListView via SideNav). */}
         <SideNav
@@ -81,28 +146,7 @@ export const ActionsView: React.FC<ActionsViewProps> = ({ player }) => {
         />
 
         <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
-          {section === 'resources' && <ResourcesSection player={player} />}
-          {section === 'specs' && <SpecsSection player={player} />}
-          {section === 'progression' && <ProgressionSection player={player} />}
-          {section === 'contracts' && <ContractsSection player={player} />}
-          {section === 'journey' && <JourneySection player={player} />}
-          {section === 'admin' && (
-            <AdminSection
-              player={player}
-              onManageLocations={() => setShowManageLocations(true)}
-              onTeleportPicker={(cb) => {
-                teleportPickerCb.current = cb
-                setShowTeleportPicker(true)
-              }}
-              onSpawnPicker={(cb) => {
-                spawnPickerCb.current = cb
-                setShowSpawnPicker(true)
-              }}
-            />
-          )}
-          {section === 'tags' && <TagsSection player={player} />}
-          {section === 'history' && <HistorySection player={player} />}
-          {section === 'experimental' && <ExperimentalSection player={player} />}
+          {renderSection()}
         </div>
       </div>
 
@@ -119,32 +163,9 @@ export const ActionsView: React.FC<ActionsViewProps> = ({ player }) => {
         onCancel={() => setConfirmPending(null)}
       />
 
-      {showManageLocations && (
-        <ManageLocationsModal
-          onClose={(updated) => {
-            if (updated) setPartitions(updated)
-            setShowManageLocations(false)
-          }}
-        />
-      )}
-      {showTeleportPicker && (
-        <MapCoordPickerModal
-          onPick={(x, y, z) => {
-            teleportPickerCb.current?.(x, y, z)
-            setShowTeleportPicker(false)
-          }}
-          onClose={() => setShowTeleportPicker(false)}
-        />
-      )}
-      {showSpawnPicker && (
-        <MapCoordPickerModal
-          onPick={(x, y, z) => {
-            spawnPickerCb.current?.(x, y, z)
-            setShowSpawnPicker(false)
-          }}
-          onClose={() => setShowSpawnPicker(false)}
-        />
-      )}
-    </>
+      {renderManageLocationsModal()}
+      {renderTeleportPicker()}
+      {renderSpawnPicker()}
+    </React.Fragment>
   )
 }

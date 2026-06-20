@@ -40,6 +40,22 @@ export const UpdateProgressModal: React.FC<Props> = ({ isOpen, phase, errorMessa
   const isError = phase === 'error'
   const currentIndex = phaseIndex(phase)
 
+  const renderDismissFooter = (): React.ReactNode => {
+    if (!onDismiss) return null
+    return (
+      <Modal.Footer className="flex justify-end">
+        <Button
+          size="sm"
+          variant="ghost"
+          onPress={onDismiss}
+          isDisabled={!isError && phase !== 'waitingLong' && phase !== 'ready'}
+        >
+          {t('app.updateProgress.dismiss')}
+        </Button>
+      </Modal.Footer>
+    )
+  }
+
   return (
     <Modal.Backdrop
       variant="blur"
@@ -103,18 +119,7 @@ export const UpdateProgressModal: React.FC<Props> = ({ isOpen, phase, errorMessa
             )}
           </Modal.Body>
 
-          {onDismiss && (
-            <Modal.Footer className="flex justify-end">
-              <Button
-                size="sm"
-                variant="ghost"
-                onPress={onDismiss}
-                isDisabled={!isError && phase !== 'waitingLong' && phase !== 'ready'}
-              >
-                {t('app.updateProgress.dismiss')}
-              </Button>
-            </Modal.Footer>
-          )}
+          {renderDismissFooter()}
         </Modal.Dialog>
       </Modal.Container>
     </Modal.Backdrop>

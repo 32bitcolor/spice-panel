@@ -38,6 +38,13 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({ player }) => {
       .finally(() => setLoading(false))
   }, [player.controller_id])
 
+  const renderVehicleTypeChips = (v: VehicleRow): React.ReactNode => (
+    <div className="flex gap-1">
+      {v.is_backup ? <Chip size="sm" color="accent" variant="soft">{t('players.vehicles.backup')}</Chip> : null}
+      {v.is_recovered ? <Chip size="sm" color="warning" variant="soft">{t('players.vehicles.recovered')}</Chip> : null}
+    </div>
+  )
+
   if (loading) {
     return <LoadingState size="md" />
   }
@@ -82,12 +89,7 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({ player }) => {
               )
             case 'name': return <span className="text-muted">{v.vehicle_name || '—'}</span>
             case 'type':
-              return (
-                <div className="flex gap-1">
-                  {v.is_backup && <Chip size="sm" color="accent" variant="soft">{t('players.vehicles.backup')}</Chip>}
-                  {v.is_recovered && <Chip size="sm" color="warning" variant="soft">{t('players.vehicles.recovered')}</Chip>}
-                </div>
-              )
+              return renderVehicleTypeChips(v)
             case 'actions':
               return !v.is_backup
                 ? (

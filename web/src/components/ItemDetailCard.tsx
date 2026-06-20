@@ -5,10 +5,8 @@ import { unwrap } from 'jotai/utils'
 import { DataTable, Panel, SectionLabel } from '../dune-ui'
 import { iconUrl, categoryColor, qualityLabel } from '../utils/icons'
 import { qualityDataAtom } from '../data/store'
+import type { ItemEntry } from '../data/store'
 import type { MarketListing } from '../api/client'
-import type { ItemDetailCardProps, MarketDetail } from './types'
-import { Row } from './ItemDetailCard.Row'
-import { MitigationBar } from './ItemDetailCard.MitigationBar'
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -40,7 +38,24 @@ const RARITY_BORDER: Record<string, string> = {
 
 const qualityDataSync = unwrap(qualityDataAtom, () => null)
 
-export type { MarketDetail, ItemDetailCardProps }
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+export type MarketDetail = {
+  lowestPrice: number
+  totalStock: number
+  botStock: number
+  listingCount: number
+  listings: MarketListing[]
+  listingsLoading: boolean
+}
+
+export type ItemDetailCardProps = {
+  templateId: string
+  /** Display name override (e.g. from the templates list). Falls back to entry.name then templateId. */
+  name?: string
+  entry: ItemEntry | null
+  market?: MarketDetail
+}
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
@@ -62,6 +77,162 @@ export const ItemDetailCard: React.FC<ItemDetailCardProps> = ({ templateId, name
     return acc
   }, {})
   const qualities = Object.keys(byQuality).map(Number).sort((a, b) => a - b)
+
+  const renderRarityChips = (): React.ReactNode => (
+    <React.Fragment>
+      {rarity
+        ? (
+            <Chip size="sm" variant="soft" className="capitalize" style={{ color: `var(--rarity-${rarity})` }}>
+              {rarity}
+            </Chip>
+          )
+        : null}
+      {entry?.tier && entry.tier > 0
+        ? (
+            <Chip size="sm" variant="soft">
+              {`T${entry.tier}`}
+            </Chip>
+          )
+        : null}
+      {entry?.is_schematic
+        ? (
+            <Chip size="sm" variant="soft">
+              Schematic
+            </Chip>
+          )
+        : null}
+    </React.Fragment>
+  )
+
+  const renderItemInfoPanel = (): React.ReactNode => {
+    if (!entry?.category && !entry?.slot && !entry?.faction && !market) return null
+    return (
+      <Panel>
+        <SectionLabel>Item Info</SectionLabel>
+        {entry?.category
+          ? <Row label="Category" value={entry.category} wrap />
+          : null}
+        {entry?.slot
+          ? <Row label="Slot" value={entry.slot} />
+          : null}
+        {entry?.faction
+          ? <Row label="Faction" value={entry.faction} />
+          : null}
+        {market
+          ? (
+              <React.Fragment>
+                <Row label="Total Stock" value={market.totalStock.toLocaleString()} />
+                <Row label="Bot Stock" value={market.botStock.toLocaleString()} />
+                <Row label="Listings" value={String(market.listingCount)} />
+                <Row label="Lowest Price" value={market.lowestPrice.toLocaleString()} accent />
+              </React.Fragment>
+            )
+          : null}
+      </Panel>
+    )
+  }
+
+  const renderArmorPanel = (): React.ReactNode => {
+    if (!isArmor) return null
+    return (
+      <Panel>
+        <SectionLabel>Armor Stats</SectionLabel>
+        {isGradeable
+          ? (
+              <React.Fragment>
+                <div className="text-xs text-muted mb-2">Armor Value by Quality</div>
+                {(qualityData?.armor ?? []).map((mult, i) => (
+                  <Row
+                    key={i}
+                    label={QUALITY_LABELS[i] ?? `Q${i}`}
+                    value={String(Math.round(entry!.armor_value! * mult))}
+                  />
+                ))}
+              </React.Fragment>
+            )
+          : (
+              <Row label="Armor Value" value={String(entry!.armor_value)} />
+            )}
+        {entry?.mitigation && Object.keys(entry.mitigation).length > 0 && (
+          <React.Fragment>
+            <div className="text-xs text-muted mt-2 mb-1">Resistances</div>
+            {Object.entries(entry.mitigation).map(([k, v]) => (
+              <MitigationBar key={k} label={MITIGATION_LABELS[k] ?? k} value={v} />
+            ))}
+          </React.Fragment>
+        )}
+      </Panel>
+    )
+  }
+
+  const renderWeaponPanel = (): React.ReactNode => {
+    if (!isWeapon || !isGradeable) return null
+    return (
+      <Panel>
+        <SectionLabel>Weapon Quality Scaling</SectionLabel>
+        <div className="text-xs text-muted mb-2">Damage multiplier by quality</div>
+        {(qualityData?.weapon_damage ?? []).map((mult, i) => (
+          <Row
+            key={i}
+            label={QUALITY_LABELS[i] ?? `Q${i}`}
+            value={`${mult.toFixed(2)}×`}
+          />
+        ))}
+      </Panel>
+    )
+  }
+
+  const renderMarketPanel = (): React.ReactNode => {
+    if (market === undefined) return null
+    return (
+      <Panel>
+        <SectionLabel>Active Listings</SectionLabel>
+        {market.listingsLoading
+          ? (
+              <div className="flex justify-center py-4"><Spinner size="sm" /></div>
+            )
+          : listings.length === 0
+            ? (
+                <p className="text-xs text-muted">No active listings.</p>
+              )
+            : (
+                <div className="flex flex-col gap-3">
+                  {qualities.map((q) => (
+                    <div key={q}>
+                      <div className="text-xs font-medium text-muted mb-1">{qualityLabel(q)}</div>
+                      <DataTable<MarketListing, 'seller' | 'stock' | 'price'>
+                        aria-label={`Active Listings — ${qualityLabel(q)}`}
+                        columns={[
+                          { key: 'seller', label: 'Seller', isRowHeader: true },
+                          { key: 'stock', label: 'Stock', align: 'end', width: 80 },
+                          { key: 'price', label: 'Price', align: 'end', width: 100 },
+                        ]}
+                        rows={byQuality[q]}
+                        rowId={(l) => String(l.order_id)}
+                        initialSort={{ column: 'price', direction: 'ascending' }}
+                        sortValue={(l, k) => (k === 'seller' ? l.owner_name : l[k])}
+                        renderCell={(l, k) => {
+                          switch (k) {
+                            case 'seller':
+                              return (
+                                <span className={`truncate block ${l.owner_type === 'bot' ? 'text-accent' : 'text-foreground'}`}>
+                                  {l.owner_name}
+                                </span>
+                              )
+                            case 'stock':
+                              return <span className="text-muted tabular-nums">{l.stock.toLocaleString()}</span>
+                            case 'price':
+                              return <span className="font-mono">{l.price.toLocaleString()}</span>
+                          }
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+      </Panel>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -94,21 +265,7 @@ export const ItemDetailCard: React.FC<ItemDetailCardProps> = ({ templateId, name
           <div className="font-semibold text-sm text-foreground leading-tight">{displayName}</div>
           <div className="font-mono text-[10px] text-muted leading-none">{templateId}</div>
           <div className="flex flex-wrap gap-1 mt-0.5">
-            {rarity && (
-              <Chip size="sm" variant="soft" className="capitalize" style={{ color: `var(--rarity-${rarity})` }}>
-                {rarity}
-              </Chip>
-            )}
-            {!!entry?.tier && entry.tier > 0 && (
-              <Chip size="sm" variant="soft">
-                {`T${entry.tier}`}
-              </Chip>
-            )}
-            {entry?.is_schematic && (
-              <Chip size="sm" variant="soft">
-                Schematic
-              </Chip>
-            )}
+            {renderRarityChips()}
           </div>
         </div>
       </div>
@@ -119,118 +276,43 @@ export const ItemDetailCard: React.FC<ItemDetailCardProps> = ({ templateId, name
       )}
 
       {/* Item Info Panel — only rendered when it has at least one row */}
-      {(entry?.category || entry?.slot || entry?.faction || market) && (
-        <Panel>
-          <SectionLabel>Item Info</SectionLabel>
-          {entry?.category && <Row label="Category" value={entry.category} wrap />}
-          {entry?.slot && <Row label="Slot" value={entry.slot} />}
-          {entry?.faction && <Row label="Faction" value={entry.faction} />}
-          {market && (
-            <>
-              <Row label="Total Stock" value={market.totalStock.toLocaleString()} />
-              <Row label="Bot Stock" value={market.botStock.toLocaleString()} />
-              <Row label="Listings" value={String(market.listingCount)} />
-              <Row label="Lowest Price" value={market.lowestPrice.toLocaleString()} accent />
-            </>
-          )}
-        </Panel>
-      )}
+      {renderItemInfoPanel()}
 
       {/* Armor Stats */}
-      {isArmor && (
-        <Panel>
-          <SectionLabel>Armor Stats</SectionLabel>
-          {isGradeable
-            ? (
-                <>
-                  <div className="text-xs text-muted mb-2">Armor Value by Quality</div>
-                  {(qualityData?.armor ?? []).map((mult, i) => (
-                    <Row
-                      key={i}
-                      label={QUALITY_LABELS[i] ?? `Q${i}`}
-                      value={String(Math.round(entry!.armor_value! * mult))}
-                    />
-                  ))}
-                </>
-              )
-            : (
-                <Row label="Armor Value" value={String(entry!.armor_value)} />
-              )}
-          {entry?.mitigation && Object.keys(entry.mitigation).length > 0 && (
-            <>
-              <div className="text-xs text-muted mt-2 mb-1">Resistances</div>
-              {Object.entries(entry.mitigation).map(([k, v]) => (
-                <MitigationBar key={k} label={MITIGATION_LABELS[k] ?? k} value={v} />
-              ))}
-            </>
-          )}
-        </Panel>
-      )}
+      {renderArmorPanel()}
 
       {/* Weapon Quality Scaling */}
-      {isWeapon && isGradeable && (
-        <Panel>
-          <SectionLabel>Weapon Quality Scaling</SectionLabel>
-          <div className="text-xs text-muted mb-2">Damage multiplier by quality</div>
-          {(qualityData?.weapon_damage ?? []).map((mult, i) => (
-            <Row
-              key={i}
-              label={QUALITY_LABELS[i] ?? `Q${i}`}
-              value={`${mult.toFixed(2)}×`}
-            />
-          ))}
-        </Panel>
-      )}
+      {renderWeaponPanel()}
 
       {/* Active Listings (market only) */}
-      {market !== undefined && (
-        <Panel>
-          <SectionLabel>Active Listings</SectionLabel>
-          {market.listingsLoading
-            ? (
-                <div className="flex justify-center py-4"><Spinner size="sm" /></div>
-              )
-            : listings.length === 0
-              ? (
-                  <p className="text-xs text-muted">No active listings.</p>
-                )
-              : (
-                  <div className="flex flex-col gap-3">
-                    {qualities.map((q) => (
-                      <div key={q}>
-                        <div className="text-xs font-medium text-muted mb-1">{qualityLabel(q)}</div>
-                        <DataTable<MarketListing, 'seller' | 'stock' | 'price'>
-                          aria-label={`Active Listings — ${qualityLabel(q)}`}
-                          columns={[
-                            { key: 'seller', label: 'Seller', isRowHeader: true },
-                            { key: 'stock', label: 'Stock', align: 'end', width: 80 },
-                            { key: 'price', label: 'Price', align: 'end', width: 100 },
-                          ]}
-                          rows={byQuality[q]}
-                          rowId={(l) => String(l.order_id)}
-                          initialSort={{ column: 'price', direction: 'ascending' }}
-                          sortValue={(l, k) => (k === 'seller' ? l.owner_name : l[k])}
-                          renderCell={(l, k) => {
-                            switch (k) {
-                              case 'seller':
-                                return (
-                                  <span className={`truncate block ${l.owner_type === 'bot' ? 'text-accent' : 'text-foreground'}`}>
-                                    {l.owner_name}
-                                  </span>
-                                )
-                              case 'stock':
-                                return <span className="text-muted tabular-nums">{l.stock.toLocaleString()}</span>
-                              case 'price':
-                                return <span className="font-mono">{l.price.toLocaleString()}</span>
-                            }
-                          }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-        </Panel>
-      )}
+      {renderMarketPanel()}
+    </div>
+  )
+}
+
+// ── Sub-components ─────────────────────────────────────────────────────────────
+
+const Row: React.FC<{ label: string, value: string, accent?: boolean, wrap?: boolean }> = ({
+  label, value, accent, wrap,
+}) => (
+  <div className={`flex text-xs py-0.5 ${wrap ? 'flex-col gap-0.5' : 'items-center justify-between'}`}>
+    <span className="text-muted shrink-0">{label}</span>
+    <span className={accent ? 'font-mono text-accent font-semibold' : 'text-foreground'}>{value}</span>
+  </div>
+)
+
+const MitigationBar: React.FC<{ label: string, value: number }> = ({ label, value }) => {
+  const pct = Math.round(value * 100)
+  return (
+    <div className="flex items-center gap-2 text-xs py-0.5">
+      <span className="text-muted shrink-0 w-20">{label}</span>
+      <div className="flex-1 h-1.5 rounded-full bg-surface-secondary overflow-hidden">
+        <div className="h-full bg-accent rounded-full" style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-muted tabular-nums w-8 text-right">
+        {pct}
+        %
+      </span>
     </div>
   )
 }

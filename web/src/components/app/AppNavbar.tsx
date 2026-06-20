@@ -40,6 +40,164 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ status, reconnecting, onRe
   const setManageServerId = useSetAtom(manageServerIdAtom)
   const setUpdatePromptOpen = useSetAtom(updatePromptOpenAtom)
 
+  const renderVersionButton = (): React.ReactNode => {
+    if (!status?.version) return null
+    return (
+      <Button
+        variant="ghost"
+        className="text-xs text-muted hover:text-foreground px-0 h-auto min-w-0"
+        onPress={() => onOpenSettings()}
+        aria-label={t('app.openSettings')}
+      >
+        v
+        {status.version}
+      </Button>
+    )
+  }
+
+  const renderUpdateBadge = (): React.ReactNode => {
+    if (!updateInfo?.needs_update) return null
+    return (
+      <Button
+        variant="ghost"
+        onPress={() => setUpdatePromptOpen(true)}
+        aria-label={t('app.updateAvailable')}
+        className="cursor-pointer p-0 h-auto min-w-0"
+      >
+        <Chip size="sm" color="warning" variant="soft">
+          ↑
+          {' '}
+          {updateInfo.latest.replace(/^v/, '')}
+        </Chip>
+      </Button>
+    )
+  }
+
+  const renderServerSelector = (): React.ReactNode => {
+    if (servers.length === 0) return null
+    return (
+      <div className="flex items-center gap-1">
+        {/* Always render the dropdown when there is ≥1 server so the navbar
+            layout doesn't jump when a second server is added. */}
+        <Select
+          aria-label="Active server"
+          className="w-40"
+          selectedKey={String(activeID || servers[0]?.id || '')}
+          onSelectionChange={(id) => {
+            const next = Number(id)
+            if (next && next !== activeID) void setActive(next)
+          }}
+        >
+          <Select.Trigger>
+            <Select.Value />
+            <Select.Indicator />
+          </Select.Trigger>
+          <Select.Popover>
+            <ListBox>
+              {servers.map((s) => (
+                <ListBox.Item key={s.id} id={String(s.id)} textValue={s.name}>
+                  {s.name}
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
+              ))}
+            </ListBox>
+          </Select.Popover>
+        </Select>
+        {renderManageServerButton()}
+        {renderAddServerButton()}
+      </div>
+    )
+  }
+
+  const renderManageServerButton = (): React.ReactNode => {
+    if (!can('server:control')) return null
+    return (
+      <Button
+        size="sm"
+        variant="ghost"
+        isIconOnly
+        aria-label={t('manage.title', 'Manage server')}
+        onPress={() => setManageServerId(activeID || servers[0]?.id || 0)}
+      >
+        <Icon name="settings" />
+      </Button>
+    )
+  }
+
+  const renderAddServerButton = (): React.ReactNode => {
+    if (!can('server:control')) return null
+    return (
+      <Button
+        size="sm"
+        variant="ghost"
+        isIconOnly
+        aria-label="Add server"
+        onPress={() => setAddServerOpen(true)}
+      >
+        <Icon name="plus" />
+      </Button>
+    )
+  }
+
+  const renderSshBadge = (): React.ReactNode => {
+    if (servers.length === 0 || status?.executor !== 'ssh') return null
+    return <ConnectionBadge label="SSH" connected={status.ssh_connected} />
+  }
+
+  const renderDbBadge = (): React.ReactNode => {
+    if (servers.length === 0) return null
+    return <ConnectionBadge label="DB" connected={status?.db_connected ?? false} />
+  }
+
+  const renderReconnectButton = (): React.ReactNode => {
+    if (servers.length === 0 || !can('server:control') || !status || status.db_connected) return null
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        isDisabled={reconnecting}
+        onPress={onReconnect}
+      >
+        {reconnecting ? t('app.reconnecting') : t('app.reconnect')}
+      </Button>
+    )
+  }
+
+  const renderSettingsButton = (): React.ReactNode => {
+    if (!can('config:read')) return null
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        aria-label={t('app.configureBackend')}
+        onPress={() => setSettingsOpen((v) => !v)}
+        className={settingsOpen ? 'text-accent border-accent' : ''}
+      >
+        <Icon name="settings" />
+        {' '}
+        {t('app.settings')}
+      </Button>
+    )
+  }
+
+  const renderClerkAuth = (): React.ReactNode => {
+    if (!hasClerk) return null
+    return (
+      <React.Fragment>
+        <Show when="signed-out">
+          <SignInButton>
+            <Button size="sm" variant="outline">
+              {t('app.signIn')}
+            </Button>
+          </SignInButton>
+        </Show>
+        <Show when="signed-in">
+          <UserButton />
+        </Show>
+      </React.Fragment>
+    )
+  }
+
   return (
     <Navbar position="sticky" maxWidth="full">
       <Navbar.Header>
@@ -52,103 +210,20 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ status, reconnecting, onRe
           {servers.length > 0 && status?.db_host && status.control !== 'kubectl' && (
             <span className="text-xs text-muted">{status.db_host}</span>
           )}
-          {status?.version && (
-            <Button
-              variant="ghost"
-              className="text-xs text-muted hover:text-foreground px-0 h-auto min-w-0"
-              onPress={() => onOpenSettings()}
-              aria-label={t('app.openSettings')}
-            >
-              v
-              {status.version}
-            </Button>
-          )}
-          {updateInfo?.needs_update && (
-            <Button
-              variant="ghost"
-              onPress={() => setUpdatePromptOpen(true)}
-              aria-label={t('app.updateAvailable')}
-              className="cursor-pointer p-0 h-auto min-w-0"
-            >
-              <Chip size="sm" color="warning" variant="soft">
-                ↑
-                {' '}
-                {updateInfo.latest.replace(/^v/, '')}
-              </Chip>
-            </Button>
-          )}
+          {renderVersionButton()}
+          {renderUpdateBadge()}
         </div>
 
-        {servers.length > 0 && (
-          <div className="flex items-center gap-1">
-            {/* Always render the dropdown when there is ≥1 server so the navbar
-                layout doesn't jump when a second server is added. */}
-            <Select
-              aria-label="Active server"
-              className="w-40"
-              selectedKey={String(activeID || servers[0]?.id || '')}
-              onSelectionChange={(id) => {
-                const next = Number(id)
-                if (next && next !== activeID) void setActive(next)
-              }}
-            >
-              <Select.Trigger>
-                <Select.Value />
-                <Select.Indicator />
-              </Select.Trigger>
-              <Select.Popover>
-                <ListBox>
-                  {servers.map((s) => (
-                    <ListBox.Item key={s.id} id={String(s.id)} textValue={s.name}>
-                      {s.name}
-                      <ListBox.ItemIndicator />
-                    </ListBox.Item>
-                  ))}
-                </ListBox>
-              </Select.Popover>
-            </Select>
-            {can('server:control') && (
-              <Button
-                size="sm"
-                variant="ghost"
-                isIconOnly
-                aria-label={t('manage.title', 'Manage server')}
-                onPress={() => setManageServerId(activeID || servers[0]?.id || 0)}
-              >
-                <Icon name="settings" />
-              </Button>
-            )}
-            {can('server:control') && (
-              <Button
-                size="sm"
-                variant="ghost"
-                isIconOnly
-                aria-label="Add server"
-                onPress={() => setAddServerOpen(true)}
-              >
-                <Icon name="plus" />
-              </Button>
-            )}
-          </div>
-        )}
+        {renderServerSelector()}
 
         <Navbar.Spacer />
 
         <Navbar.Content>
           {/* Connection badges + reconnect only make sense with a server
               configured — hide them on a fresh/empty install. */}
-          {servers.length > 0 && status?.executor === 'ssh' && <ConnectionBadge label="SSH" connected={status.ssh_connected} />}
-          {servers.length > 0 && <ConnectionBadge label="DB" connected={status?.db_connected ?? false} />}
-          {servers.length > 0 && can('server:control') && status && !status.db_connected && (
-            <Button
-              size="sm"
-              variant="outline"
-              isDisabled={reconnecting}
-              onPress={onReconnect}
-            >
-              {reconnecting ? t('app.reconnecting') : t('app.reconnect')}
-            </Button>
-          )}
+          {renderSshBadge()}
+          {renderDbBadge()}
+          {renderReconnectButton()}
           {status?.pod_ns && (
             <span className="text-xs text-muted">
               ns:
@@ -160,36 +235,11 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ status, reconnecting, onRe
           <ThemeSelector />
           <LanguageSelector />
 
-          {can('config:read') && (
-            <Button
-              size="sm"
-              variant="outline"
-              aria-label={t('app.configureBackend')}
-              onPress={() => setSettingsOpen((v) => !v)}
-              className={settingsOpen ? 'text-accent border-accent' : ''}
-            >
-              <Icon name="settings" />
-              {' '}
-              {t('app.settings')}
-            </Button>
-          )}
+          {renderSettingsButton()}
 
           <UserMenu />
 
-          {hasClerk && (
-            <>
-              <Show when="signed-out">
-                <SignInButton>
-                  <Button size="sm" variant="outline">
-                    {t('app.signIn')}
-                  </Button>
-                </SignInButton>
-              </Show>
-              <Show when="signed-in">
-                <UserButton />
-              </Show>
-            </>
-          )}
+          {renderClerkAuth()}
         </Navbar.Content>
       </Navbar.Header>
     </Navbar>
