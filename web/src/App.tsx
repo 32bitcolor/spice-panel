@@ -220,7 +220,7 @@ const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }) => {
       >
         {/* Keyed by activeID so switching servers remounts every tab — each
             re-fetches its data with the new X-Dune-Server header (no reload). */}
-        <div key={activeID} className="h-full flex flex-col p-3 overflow-hidden min-h-0">
+        <div key={activeID} className="h-full flex flex-col overflow-hidden min-h-0">
           <AppRoutes
             currentTab={currentTab}
             status={status}

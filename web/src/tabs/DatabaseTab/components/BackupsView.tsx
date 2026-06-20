@@ -173,9 +173,10 @@ const ScheduleCard: React.FC = () => {
 // ── Backups view ─────────────────────────────────────────────────────────────
 interface BackupsViewProps {
   onRefreshRef?: React.MutableRefObject<(() => void) | null>
+  headerContent?: React.ReactNode | undefined
 }
 
-export const BackupsView: React.FC<BackupsViewProps> = ({ onRefreshRef }) => {
+export const BackupsView: React.FC<BackupsViewProps> = ({ onRefreshRef, headerContent }) => {
   const { t } = useTranslation()
   const { can } = usePermissions()
   const [backups, setBackups] = React.useState<DBBackupFile[]>([])
@@ -244,7 +245,9 @@ export const BackupsView: React.FC<BackupsViewProps> = ({ onRefreshRef }) => {
 
   return (
     <div className="h-full min-h-0 flex flex-col gap-3">
-      <PageHeader title={t('database.sections.backups')} />
+      <PageHeader title={t('database.sections.backups')}>
+        {headerContent}
+      </PageHeader>
 
       <div className="rounded-[var(--radius)] px-3 py-2 text-sm flex items-start gap-2 bg-warning/10 text-warning border border-warning/40 shrink-0">
         <Icon name="triangle-alert" className="size-4 mt-0.5 shrink-0" />

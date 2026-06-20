@@ -305,19 +305,23 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
   const body = section === 'backups'
     ? (
         <>
-          <div className="flex justify-end items-center gap-1 shrink-0">
-            {sectionNav}
-            <Button
-              size="sm"
-              variant="ghost"
-              isIconOnly
-              onPress={() => backupsRefreshRef.current?.()}
-              aria-label={t('database.refreshLabel')}
-            >
-              <Icon name="refresh-cw" />
-            </Button>
-          </div>
-          <BackupsView onRefreshRef={backupsRefreshRef} />
+          <BackupsView
+            onRefreshRef={backupsRefreshRef}
+            headerContent={(
+              <div className="flex justify-end items-center gap-1 shrink-0">
+                {sectionNav}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  isIconOnly
+                  onPress={() => backupsRefreshRef.current?.()}
+                  aria-label={t('database.refreshLabel')}
+                >
+                  <Icon name="refresh-cw" />
+                </Button>
+              </div>
+            )}
+          />
         </>
       )
     : innerContent
