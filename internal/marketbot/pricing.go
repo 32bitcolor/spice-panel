@@ -267,53 +267,59 @@ func UniqueSchematicsMask(category string) (mask int32, depth int16, ok bool) {
 }
 
 // CategoryMask computes category_mask and category_depth from an item's category path.
-// Uses confirmed codes from player orders; returns mask=0 for unknown segments so
-// callers can skip the listing rather than inserting a conflicting guessed mask.
-func CategoryMask(category string, idx [4][]string) (mask int32, depth int16) {
+// Returns ok=true iff every path segment was found in a known code table (depth3Parent
+// or knownCodes). ok=false means at least one segment was unrecognised — callers must
+// skip the listing rather than inserting a guessed mask that conflicts with player-order
+// masks. Critically, mask=0 with ok=true is valid: it means the item legitimately encodes
+// to all-zero bits (e.g. items/garment/lightarmor/head = GARMENTS▸LIGHT ARMOR▸HEAD).
+func CategoryMask(category string, idx [4][]string) (mask int32, depth int16, ok bool) {
 	if category == "" {
-		return 0, 0
+		return 0, 0, false
 	}
 	parts := strings.Split(category, "/")
 	n := len(parts)
 	if n > 4 {
 		n = 4
 	}
-	depth = int16(n - 1)
-	if depth < 0 {
-		depth = 0
+	if n < 2 {
+		// Root-only path ("items") has no category depth — not listable.
+		return 0, 0, false
 	}
+	depth = int16(n - 1)
 
 	// Melee weapons: item-data.json has items/weapons/shortblades (depth-2) but
 	// the game uses items/weapons/melee/shortblades (depth-3). Remap the mask.
 	if n >= 3 && parts[1] == "weapons" {
-		if remap, ok := weaponPathRemap[parts[2]]; ok {
+		if remap, found := weaponPathRemap[parts[2]]; found {
 			depth = 3
 			mask = int32(knownCodes[1]["weapons"])<<24 | int32(remap[0])<<16 | int32(remap[1])<<8
-			return mask, depth
+			return mask, depth, true
 		}
 	}
 
+	allFound := true
 	for i := 1; i < n; i++ { // skip i=0 (root "items", always 0)
 		seg := parts[i]
 		code := byte(0)
 		found := false
 		// depth-3: check parent context first to resolve same-name conflicts
 		if i == 3 && len(parts) >= 3 {
-			if c, ok := depth3Parent[[2]string{parts[2], seg}]; ok {
+			if c, hit := depth3Parent[[2]string{parts[2], seg}]; hit {
 				code, found = c, true
 			}
 		}
 		if !found {
-			if c, ok := knownCodes[i][seg]; ok {
+			if c, hit := knownCodes[i][seg]; hit {
 				code, found = c, true
 			}
 		}
-		// Unknown segment: code stays 0 — callers skip the listing rather than
-		// inserting a guessed mask that conflicts with player-order masks.
+		if !found {
+			allFound = false
+		}
 		// Bit layout: depth1→bits24-31, depth2→bits16-23, depth3→bits8-15 (confirmed)
 		mask |= int32(code) << uint((4-i)*8)
 	}
-	return mask, depth
+	return mask, depth, allFound
 }
 
 // computePrice returns the base listing price for an item.

@@ -568,7 +568,8 @@ func (e *Exchange) refreshCategoryCache(ctx context.Context) {
 // Precedence:
 //  1. Live player-derived cache (authoritative — prevents snapshot conflicts).
 //  2. UniqueSchematicsMask for schematics with a known unique section.
-//  3. CategoryMask with confirmed codes only (mask=0 → ok=false, skip).
+//  3. CategoryMask with confirmed codes only (ok=false if any segment unknown).
+//     mask=0 with ok=true is valid: light-armor helmets legitimately encode to 0.
 func (e *Exchange) categoryFor(item CatalogItem) (mask int32, depth int16, ok bool) {
 	// 1. Authoritative: reuse the mask real player orders already use for this
 	// template so the snapshot never sees conflicting (template, mask) pairs.
@@ -581,9 +582,10 @@ func (e *Exchange) categoryFor(item CatalogItem) (mask int32, depth int16, ok bo
 			return m, d, true
 		}
 	}
-	// 3. Known category codes only — returns mask=0 for any unknown segment.
+	// 3. Known category codes only — ok=false if any segment was unrecognised.
+	// mask=0 with ok=true is valid (e.g. light-armor helmets legitimately encode to 0).
 	if item.Category != "" {
-		if m, d := CategoryMask(item.Category, e.segIdx); m != 0 {
+		if m, d, mok := CategoryMask(item.Category, e.segIdx); mok {
 			return m, d, true
 		}
 	}
@@ -1040,6 +1042,8 @@ func (e *Exchange) ListTick(ctx context.Context, catalog []CatalogItem) {
 	}
 
 	// Batch insert new listings.
+	e.log.Debug().Int("pending", len(pending)).Int("current_slots", len(current)).
+		Int("listings_per_grade", snap.ListingsPerGrade).Msg("list tick: pending")
 	if len(pending) > 0 {
 		c, e2 := e.createListingsBatch(ctx, pending, snap)
 		created += c

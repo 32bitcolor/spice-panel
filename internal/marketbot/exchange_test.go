@@ -557,6 +557,33 @@ func TestCategoryFor_UnknownCategorySegmentReturnsNotOK(t *testing.T) {
 	}
 }
 
+func TestCategoryFor_LightHelmetAllZeroMaskListsOK(t *testing.T) {
+	t.Parallel()
+
+	// Light-armor helmets encode to mask=0x00000000, depth=3 (garment=0, lightarmor=0, head=0).
+	// This is a valid, fully-resolved category — the bot must list them, not skip them.
+	catalog := []CatalogItem{{Category: "items/garment/lightarmor/head"}}
+	e := &Exchange{
+		categories: map[string]categoryEntry{},
+		segIdx:     buildSegmentIndex(catalog),
+	}
+
+	item := CatalogItem{
+		TemplateID: "item.armor.lighthelmet",
+		Category:   "items/garment/lightarmor/head",
+	}
+	mask, depth, ok := e.categoryFor(item)
+	if !ok {
+		t.Fatal("categoryFor returned ok=false for items/garment/lightarmor/head — light helmets must be listed")
+	}
+	if mask != 0 {
+		t.Errorf("mask = 0x%08X, want 0x00000000 (GARMENTS▸LIGHT ARMOR▸HEAD encodes to all-zero bits)", uint32(mask))
+	}
+	if depth != 3 {
+		t.Errorf("depth = %d, want 3", depth)
+	}
+}
+
 func TestDetectExchangeID(t *testing.T) {
 	errNoRows := pgx.ErrNoRows
 	panicFn := func() (int64, error) { panic("should not be called") }

@@ -9,8 +9,9 @@ import (
 
 // TestNormalizeGrantQuality covers the quality-clamping and schematic-blocking rules.
 func TestNormalizeGrantQuality(t *testing.T) {
-	t.Parallel()
-
+	// Must NOT call t.Parallel() here: this function modifies the package-level
+	// itemData global, and running concurrently with TestProcessGiveItems_SchematicBlocked
+	// (which does the same) would cause a data race.
 	minQual := int64(3)
 	oldItemData := itemData
 	itemData = itemDataFile{
@@ -214,8 +215,7 @@ func TestItemRuleGradeableFields(t *testing.T) {
 // TestProcessGiveItems_SchematicBlocked verifies schematics produce a skippedItem
 // and are never sent to the DB or RMQ.
 func TestProcessGiveItems_SchematicBlocked(t *testing.T) {
-	t.Parallel()
-
+	// Must NOT call t.Parallel() here: modifies the package-level itemData global.
 	minQ := int64(3)
 	oldItemData := itemData
 	itemData = itemDataFile{

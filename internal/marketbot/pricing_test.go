@@ -169,7 +169,8 @@ func TestCategoryMask(t *testing.T) {
 		{"items/misc/refinedresources", 5, 1, 0, 0x05010000},
 		{"items/misc/components", 5, 2, 0, 0x05020000},
 		{"items/misc/rawresources", 5, 3, 0, 0x05030000},
-		// GARMENTS
+		// GARMENTS — note: lightarmor/head is the crux case: all codes are 0, mask=0x00000000 with ok=true
+		{"items/garment/lightarmor/head", 0, 0, 0, 0x00000000},
 		{"items/garment/lightarmor/chest", 0, 0, 1, 0x00000100},
 		{"items/garment/heavyarmor/head", 0, 1, 0, 0x00010000},
 		// VEHICLES
@@ -186,11 +187,14 @@ func TestCategoryMask(t *testing.T) {
 	idx := buildSegmentIndex(catalog)
 
 	for _, tc := range cases {
-		mask, _ := CategoryMask(tc.category, idx)
+		mask, _, ok := CategoryMask(tc.category, idx)
 		d1 := byte((mask >> 24) & 0xFF)
 		d2 := byte((mask >> 16) & 0xFF)
 		d3 := byte((mask >> 8) & 0xFF)
 		d0 := byte(mask & 0xFF)
+		if !ok {
+			t.Errorf("%-50s got ok=false — all segments are known, expected ok=true", tc.category)
+		}
 		if mask != tc.wantMask {
 			t.Errorf("%-50s got=0x%08X want=0x%08X [d1=%d d2=%d d3=%d d0=%d]",
 				tc.category, uint32(mask), uint32(tc.wantMask), d1, d2, d3, d0)
@@ -213,9 +217,12 @@ func TestCategoryMask_UnknownSegmentReturnsZero(t *testing.T) {
 	unknownCategory := "items/totallynewtype/unknownsub"
 	idx := buildSegmentIndex(nil) // empty — nothing to index
 
-	mask, _ := CategoryMask(unknownCategory, idx)
+	mask, _, ok := CategoryMask(unknownCategory, idx)
 	if mask != 0 {
 		t.Errorf("CategoryMask(%q) = 0x%08X, want 0 — unknown segments must not produce alphabetical guesses",
 			unknownCategory, uint32(mask))
+	}
+	if ok {
+		t.Errorf("CategoryMask(%q) returned ok=true for unknown segments, want ok=false", unknownCategory)
 	}
 }
