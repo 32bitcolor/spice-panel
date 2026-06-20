@@ -10,14 +10,7 @@ import { usePermissions } from '../../hooks/usePermissions'
 import { formatUptime } from '../BattlegroupTab/uptime'
 import { phaseChipColor } from '../BattlegroupTab/helpers'
 import { OnboardingCards } from './OnboardingCards'
-
-export interface DashboardTabProps {
-  onAddServer: () => void
-  onOpenSettings: (tab?: string) => void
-  onManageServer: (id: number) => void
-  /** Bumped when the settings modal closes, so onboarding state re-syncs. */
-  refreshKey?: number
-}
+import type { DashboardTabProps } from './types'
 
 export const DashboardTab: React.FC<DashboardTabProps> = ({
   onAddServer, onOpenSettings, onManageServer, refreshKey,

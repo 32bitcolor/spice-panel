@@ -1,3 +1,11 @@
+export interface DashboardTabProps {
+  onAddServer: () => void
+  onOpenSettings: (tab?: string) => void
+  onManageServer: (id: number) => void
+  /** Bumped when the settings modal closes, so onboarding state re-syncs. */
+  refreshKey?: number
+}
+
 export interface HelpCardProps {
   icon: string
   title: string

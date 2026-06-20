@@ -12,10 +12,7 @@ import { RewardIcon } from './RewardIcons'
 import { TrackView } from './TrackView'
 import { ConfigView } from './views/ConfigView'
 import { ProgressView } from './views/ProgressView'
-
-type Section = 'pending' | 'progress' | 'catalog' | 'track' | 'config'
-type TierKey = 'label' | 'category' | 'requirement' | 'intel' | 'rewards' | 'earned' | 'granted' | 'enabled' | 'actions'
-type PendingKey = 'name' | 'tier_label' | 'intel' | 'items' | 'actions'
+import type { Section, TierKey, PendingKey } from './types'
 
 const CATEGORY_ALL = 'all'
 const CATEGORY_ORDER = ['level', 'story', 'side_quest', 'faction', 'exploration', 'achievement']
