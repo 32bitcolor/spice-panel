@@ -1,4 +1,6 @@
 import * as React from 'react'
+import type { MarketListing } from '../api/client'
+import type { ItemEntry } from '../data/store'
 
 export interface TimezoneSelectProps {
   value: string
@@ -43,4 +45,33 @@ export interface RolePickerProps {
   roles: DiscordRole[]
   label: string
   hint?: string
+}
+
+export interface ItemDetailCardRowProps {
+  label: string
+  value: string
+  accent?: boolean
+  wrap?: boolean
+}
+
+export interface MitigationBarProps {
+  label: string
+  value: number
+}
+
+export type MarketDetail = {
+  lowestPrice: number
+  totalStock: number
+  botStock: number
+  listingCount: number
+  listings: MarketListing[]
+  listingsLoading: boolean
+}
+
+export type ItemDetailCardProps = {
+  templateId: string
+  /** Display name override (e.g. from the templates list). Falls back to entry.name then templateId. */
+  name?: string
+  entry: ItemEntry | null
+  market?: MarketDetail
 }

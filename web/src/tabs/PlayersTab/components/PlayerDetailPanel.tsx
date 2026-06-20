@@ -8,7 +8,8 @@ import { DiscordBadge } from './DiscordBadge'
 import { SolarisChart } from './SolarisChart'
 import { SessionChart } from './SessionChart'
 import { XPChart } from './XPChart'
-import type { PlayerDetailPanelProps, StatRowProps } from './types'
+import type { PlayerDetailPanelProps } from './types'
+import { StatRow } from './StatRow'
 
 const fmtSolaris = (n: number): string => {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -21,15 +22,6 @@ const fmtDuration = (s: number): string => {
   const h = Math.floor(s / 3600)
   const m = Math.floor((s % 3600) / 60)
   return h > 0 ? `${h}h ${m}m` : `${m}m`
-}
-
-const StatRow: React.FC<StatRowProps> = ({ label, value }) => {
-  return (
-    <div className="flex items-center justify-between py-1 border-b border-border/30 last:border-0">
-      <span className="text-sm text-muted">{label}</span>
-      <span className="text-sm font-semibold">{value}</span>
-    </div>
-  )
 }
 
 export const PlayerDetailPanel: React.FC<PlayerDetailPanelProps> = ({ player }) => {

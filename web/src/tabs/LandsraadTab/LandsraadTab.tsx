@@ -2,17 +2,11 @@ import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Chip, Spinner, toast } from '@heroui/react'
 import { EmptyState } from '@heroui-pro/react'
-import { api } from '../api/client'
-import type { LandsraadOverview, LandsraadTask } from '../api/client'
-import { DataTable, Icon, PageHeader, Panel, SectionLabel, type Column } from '../dune-ui'
-import type { TaskKey, FieldProps } from './types'
-
-const Field: React.FC<FieldProps> = ({ label, value }) => (
-  <div>
-    <div className="text-xs text-muted">{label}</div>
-    <div className="text-foreground">{value}</div>
-  </div>
-)
+import { api } from '../../api/client'
+import type { LandsraadOverview, LandsraadTask } from '../../api/client'
+import { DataTable, Icon, PageHeader, Panel, SectionLabel, type Column } from '../../dune-ui'
+import type { TaskKey } from '../types'
+import { Field } from './Field'
 
 export const LandsraadTab: React.FC = () => {
   const { t } = useTranslation()
@@ -58,11 +52,11 @@ export const LandsraadTab: React.FC = () => {
           {loading
             ? <Spinner size="sm" color="current" />
             : (
-                <>
+                <React.Fragment>
                   <Icon name="refresh-cw" />
                   {' '}
                   {t('common.refresh')}
-                </>
+                </React.Fragment>
               )}
         </Button>
       </PageHeader>
@@ -72,7 +66,7 @@ export const LandsraadTab: React.FC = () => {
           <SectionLabel>{t('landsraad.currentTerm')}</SectionLabel>
           {term
             ? (
-                <>
+                <React.Fragment>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2 text-sm">
                     <Field label={t('landsraad.term.id')} value={`#${term.term_id}`} />
                     <Field
@@ -87,7 +81,7 @@ export const LandsraadTab: React.FC = () => {
                   {term.test_term && (
                     <Chip size="sm" variant="soft" color="warning" className="mt-2">{t('landsraad.testTerm')}</Chip>
                   )}
-                </>
+                </React.Fragment>
               )
             : <div className="text-xs text-muted mt-2">{t('landsraad.noTerm')}</div>}
         </Panel>

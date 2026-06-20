@@ -6,18 +6,9 @@ import { api } from '../../../api/client'
 import type { FactionStat, FactionTrends, ServerSummary } from '../../../api/client'
 import { DataTable, PageHeader, Panel, SectionLabel } from '../../../dune-ui'
 import type { Column } from '../../../dune-ui'
-import type { FactionCol, StatProps } from './types'
-
-const Sep: React.FC = () => <div className="w-px h-8 bg-border mx-3 shrink-0" />
-
-const Stat: React.FC<StatProps> = ({ label, children }) => {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">{label}</span>
-      <span className="text-sm font-mono text-foreground">{children}</span>
-    </div>
-  )
-}
+import type { FactionCol } from './types'
+import { Sep } from './Sep'
+import { Stat } from './Stat'
 
 // Faction line colors keyed by name (recharts can't read CSS tokens at render).
 // Atreides green, Harkonnen red, Smuggler spice-amber; unaffiliated (None /

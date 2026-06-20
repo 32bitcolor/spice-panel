@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { Chip, Tooltip } from '@heroui/react'
 import type { BattlepassTier, BattlepassTierCounts } from '../../api/client'
 import { Icon } from '../../dune-ui'
+import { CardArt } from './CardArt'
+import { ThemeIcon } from './ThemeIcon'
 
 const CATEGORY_ORDER = ['level', 'story', 'side_quest', 'faction', 'exploration', 'achievement']
 
@@ -21,14 +23,6 @@ const THEME_FOLDERS: Record<string, string> = {
   harkonnen: 'harkonnen',
   fremen: 'fremen',
   atreides: 'atredies',
-}
-
-// Theme folder → filename prefix for icon SVGs (differs from folder for harkonnen/atredies).
-const THEME_ICON_PREFIX: Record<string, string> = {
-  spice: 'spice',
-  harkonnen: 'harko',
-  fremen: 'fremen',
-  atredies: 'atreides',
 }
 
 // Category → card asset basename (one SVG per theme folder).
@@ -63,7 +57,7 @@ const PANEL_CENTER: Record<string, string> = {
 }
 const PANEL_CENTER_DEFAULT = '81%'
 
-// useThemeFolder tracks data-theme on <html> so the cards swap with the theme.
+// useThemeFolder tracks data-theme on <html> so cards swap with the theme.
 const useThemeFolder = (): string => {
   const read = () => THEME_FOLDERS[document.documentElement.getAttribute('data-theme') ?? ''] ?? 'spice'
   const [folder, setFolder] = React.useState(read)
@@ -95,29 +89,6 @@ const itemCount = (tier: BattlepassTier): number => {
   catch {
     return 0
   }
-}
-
-/** Pre-normalized theme card art (1500×2500, edge-to-edge). */
-const CardArt: React.FC<{ folder: string, file: string }> = ({ folder, file }) => (
-  <img
-    src={`/theme/${folder}/${file}.svg`}
-    alt=""
-    draggable={false}
-    className="absolute inset-0 w-full h-full select-none object-contain"
-  />
-)
-
-/** Small theme-aware icon from the named SVG set (e.g. intel_token, reward, level). */
-const ThemeIcon: React.FC<{ folder: string, name: string, className?: string }> = ({ folder, name, className }) => {
-  const prefix = THEME_ICON_PREFIX[folder] ?? folder
-  return (
-    <img
-      src={`/theme/${folder}/${prefix}_${name}.svg`}
-      alt=""
-      draggable={false}
-      className={className ?? 'size-3'}
-    />
-  )
 }
 
 /** Battlepass track: themed category cards up top (Level selected by

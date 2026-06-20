@@ -10,15 +10,10 @@ import { ActionBar, FieldInput, FieldSelect, Icon, NumberInput, SectionLabel } f
 import { ManagePacksModal } from '../../PlayersTab/modals/ManagePacksModal'
 import { CategorizedPackPicker } from '../../../components/CategorizedPackPicker'
 import type { KeyedRewardItem } from '../../EventsTab/types'
+import { FormSection } from './FormSection'
 
 const SIGNAL_OPTIONS: BattlepassSignal[] = ['level', 'journey_node', 'player_tag']
 const CATEGORY_OPTIONS = ['level', 'story', 'side_quest', 'faction', 'exploration', 'achievement']
-
-const FormSection: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => (
-  <div className={`flex flex-col gap-3 rounded-[var(--radius)] border border-border bg-surface-secondary p-4 dune-lift ${className ?? ''}`}>
-    {children}
-  </div>
-)
 
 export interface TierEditorModalProps {
   isOpen: boolean
