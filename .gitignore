@@ -56,3 +56,4 @@ deploy/k8s/dune-admin.rendered.yaml
 Samples-Ideas/
 tmp/dune-admin
 .worktrees
+.claude/worktrees/
