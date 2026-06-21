@@ -11,7 +11,8 @@ import { api } from '../../../../../api/client'
 import type { JourneyNode } from '../../../../../api/client'
 import { busyAtom, nodesAtom, nodesLoadedAtom } from '../store'
 import { useRun, useGate } from '../hooks/useActions'
-import type { FilterTab, JourneySectionProps } from './types'
+import type { JourneySectionProps } from './interfaces'
+import type { FilterTab } from './types'
 
 export const JourneySection: React.FC<JourneySectionProps> = ({ player }) => {
   const { t } = useTranslation()
@@ -43,36 +44,25 @@ export const JourneySection: React.FC<JourneySectionProps> = ({ player }) => {
     Promise.resolve().then(() => setSelectedKeys(new Set()))
   }, [filterTab, nodeSearch])
 
-  const filteredNodes = React.useMemo(() => {
-    let result = nodes
-    if (filterTab === 'done') result = result.filter((n) => n.is_complete)
-    else if (filterTab === 'revealed') result = result.filter((n) => n.is_revealed)
-    else if (filterTab === 'reward') result = result.filter((n) => n.has_pending_reward)
-    if (nodeSearch) {
-      const q = nodeSearch.toLowerCase()
-      result = result.filter((n) => n.node_id.toLowerCase().includes(q))
-    }
-    return result
-  }, [nodes, filterTab, nodeSearch])
+  let filteredNodes = nodes
+  if (filterTab === 'done') filteredNodes = filteredNodes.filter((n) => n.is_complete)
+  else if (filterTab === 'revealed') filteredNodes = filteredNodes.filter((n) => n.is_revealed)
+  else if (filterTab === 'reward') filteredNodes = filteredNodes.filter((n) => n.has_pending_reward)
+  if (nodeSearch) {
+    const _nsq = nodeSearch.toLowerCase()
+    filteredNodes = filteredNodes.filter((n) => n.node_id.toLowerCase().includes(_nsq))
+  }
 
   const selectedCount = selectedKeys === 'all'
     ? filteredNodes.length
     : (selectedKeys as Set<string>).size
 
-  const selectedNodes = React.useMemo(() => {
-    if (selectedKeys === 'all') return filteredNodes
-    const keys = selectedKeys as Set<string>
-    return filteredNodes.filter((n) => keys.has(n.node_id))
-  }, [selectedKeys, filteredNodes])
+  const selectedNodes = selectedKeys === 'all'
+    ? filteredNodes
+    : filteredNodes.filter((n) => (selectedKeys as Set<string>).has(n.node_id))
 
-  const incompleteSelected = React.useMemo(
-    () => selectedNodes.filter((n) => !n.is_complete),
-    [selectedNodes],
-  )
-  const completeSelected = React.useMemo(
-    () => selectedNodes.filter((n) => n.is_complete),
-    [selectedNodes],
-  )
+  const incompleteSelected = selectedNodes.filter((n) => !n.is_complete)
+  const completeSelected = selectedNodes.filter((n) => n.is_complete)
 
   const handleWipeAllJourney = () => {
     gate(
@@ -132,7 +122,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({ player }) => {
   }
 
   return (
-    <>
+    <React.Fragment>
       <div className="h-full flex flex-col gap-2">
         <div className="flex items-center gap-2 shrink-0 min-h-8">
           <SectionLabel>{t('players.actions.journey.title')}</SectionLabel>
@@ -309,6 +299,6 @@ export const JourneySection: React.FC<JourneySectionProps> = ({ player }) => {
           </Button>
         </ActionBar.Suffix>
       </ActionBar>
-    </>
+    </React.Fragment>
   )
 }

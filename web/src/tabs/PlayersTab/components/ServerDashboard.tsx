@@ -6,18 +6,9 @@ import { api } from '../../../api/client'
 import type { FactionStat, FactionTrends, ServerSummary } from '../../../api/client'
 import { DataTable, PageHeader, Panel, SectionLabel } from '../../../dune-ui'
 import type { Column } from '../../../dune-ui'
-import type { FactionCol, StatProps } from './types'
-
-const Sep: React.FC = () => <div className="w-px h-8 bg-border mx-3 shrink-0" />
-
-const Stat: React.FC<StatProps> = ({ label, children }) => {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">{label}</span>
-      <span className="text-sm font-mono text-foreground">{children}</span>
-    </div>
-  )
-}
+import type { FactionCol } from './types'
+import { Sep } from './Sep'
+import { Stat } from './Stat'
 
 // Faction line colors keyed by name (recharts can't read CSS tokens at render).
 // Atreides green, Harkonnen red, Smuggler spice-amber; unaffiliated (None /
@@ -77,31 +68,31 @@ export const ServerDashboard: React.FC = () => {
 
   // Mirror PlayersTab.loadPlayers: defer setLoading into a microtask so it is
   // not a synchronous setState inside the effect (react-hooks/set-state-in-effect).
-  const load = React.useCallback(() => {
+  const load = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => api.players.summary())
       .then(setSummary)
       .catch((e: unknown) => toast.danger(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false))
-  }, [])
+  }
 
   React.useEffect(() => {
     load()
-  }, [load])
+  }, [])
 
   // Faction-growth trends; re-fetched when the metric toggles. Deferred setState
   // (same pattern as load) to satisfy react-hooks/set-state-in-effect.
-  const loadTrends = React.useCallback(() => {
+  const loadTrends = (): void => {
     Promise.resolve()
       .then(() => api.players.factionTrends(metric))
       .then(setTrends)
       .catch(() => {})
-  }, [metric])
+  }
 
   React.useEffect(() => {
     loadTrends()
-  }, [loadTrends])
+  }, [metric]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto pr-3">
@@ -119,7 +110,7 @@ export const ServerDashboard: React.FC = () => {
             </div>
           )
         : (
-            <>
+            <React.Fragment>
               <Panel>
                 <div className="flex items-center flex-wrap gap-0">
                   <Stat label={t('players.dashboard.totalPlayers')}>{summary.total_players.toLocaleString()}</Stat>
@@ -223,7 +214,7 @@ export const ServerDashboard: React.FC = () => {
                 {!trends || trends.points.length === 0
                   ? <p className="text-muted text-sm">{t('players.dashboard.noPlayers')}</p>
                   : (
-                      <>
+                      <React.Fragment>
                         <div className="flex flex-wrap gap-x-3 gap-y-1">
                           {trends.factions.map((fac, i) => (
                             <div key={fac} className="flex items-center gap-1.5">
@@ -269,10 +260,10 @@ export const ServerDashboard: React.FC = () => {
                             )}
                           />
                         </AreaChart>
-                      </>
+                      </React.Fragment>
                     )}
               </Panel>
-            </>
+            </React.Fragment>
           )}
     </div>
   )

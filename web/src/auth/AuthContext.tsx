@@ -15,7 +15,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState(false)
 
-  const refresh = React.useCallback(async () => {
+  const refresh = async (): Promise<void> => {
     try {
       setStatus(await authApi.status())
       setError(false)
@@ -28,11 +28,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     finally {
       setLoading(false)
     }
-  }, [])
+  }
 
   React.useEffect(() => {
     void Promise.resolve().then(refresh)
-  }, [refresh])
+  }, [])
 
   // Session expired mid-use (cookie TTL, kicked from guild): drop to login.
   React.useEffect(() => {
@@ -43,21 +43,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onExpired)
   }, [])
 
-  const login = React.useCallback(async (username: string, password: string) => {
+  const login = async (username: string, password: string): Promise<void> => {
     await authApi.login(username, password)
     await refresh()
-  }, [refresh])
+  }
 
-  const logout = React.useCallback(async () => {
+  const logout = async (): Promise<void> => {
     try {
       await authApi.logout()
     }
     finally {
       await refresh()
     }
-  }, [refresh])
+  }
 
-  const value = React.useMemo<AuthContextValue>(() => ({
+  const value: AuthContextValue = {
     enabled: status.enabled,
     methods: status.methods,
     session: status.session,
@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     logout,
     refresh,
-  }), [status, loading, error, login, logout, refresh])
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

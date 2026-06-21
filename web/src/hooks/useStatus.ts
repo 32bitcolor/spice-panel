@@ -1,7 +1,8 @@
 import * as React from 'react'
 import { ApiError, api } from '../api/client'
 import type { Status } from '../api/client'
-import type { ConnState, StatusResult } from './types'
+import type { StatusResult } from './interfaces'
+import type { ConnState } from './types'
 
 export type { ConnState, StatusResult }
 
@@ -10,7 +11,7 @@ export const useStatus = (): StatusResult => {
   const [state, setState] = React.useState<ConnState>('loading')
   const everConnected = React.useRef(false)
 
-  const poll = React.useCallback(async () => {
+  const poll = async (): Promise<void> => {
     try {
       const s = await api.status()
       everConnected.current = true
@@ -34,7 +35,7 @@ export const useStatus = (): StatusResult => {
         setState('error')
       }
     }
-  }, [])
+  }
 
   React.useEffect(() => {
     // Defer the first poll a microtask so the synchronous setState-in-effect
@@ -42,7 +43,7 @@ export const useStatus = (): StatusResult => {
     void Promise.resolve().then(poll)
     const id = setInterval(() => void poll(), 5000)
     return () => clearInterval(id)
-  }, [poll])
+  }, [])
 
   return { status, state, refresh: poll }
 }

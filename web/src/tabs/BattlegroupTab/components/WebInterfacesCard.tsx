@@ -1,77 +1,24 @@
 import * as React from 'react'
-import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Skeleton, Spinner, toast } from '@heroui/react'
 import { Icon, FieldInput } from '../../../dune-ui'
-import { copyText } from '../../../utils/clipboard'
 import { api } from '../../../api/client'
 import type { Status, WebInterface } from '../../../api/client'
 import { HealthCard } from './HealthCard'
-
-const InterfaceRow: React.FC<{ item: WebInterface }> = ({ item }) => {
-  const { t } = useTranslation()
-  const copy = () => {
-    copyText(item.url).then((ok) =>
-      (ok ? toast.success(t('serverHealth.copied')) : toast.danger(t('serverHealth.copyFailed'))))
-  }
-  return (
-    <div className="flex items-center gap-2">
-      <Icon name="external-link" className="size-4 text-accent" />
-      <div className="flex flex-col min-w-0 flex-1">
-        <span className="text-sm font-semibold">{item.label}</span>
-        <span className="text-xs text-muted font-mono truncate">{item.url}</span>
-      </div>
-      <Button size="sm" variant="ghost" isIconOnly aria-label={t('serverHealth.copy')} onPress={copy}>
-        <Icon name="copy" />
-      </Button>
-      <Button size="sm" variant="outline" onPress={() => window.open(item.url, '_blank', 'noopener')}>
-        {t('serverHealth.open')}
-      </Button>
-    </div>
-  )
-}
-
-// DirectorRow is the automatic, read-only entry shown when director_url is set:
-// the Director usually binds to loopback on the host, so "Open" goes through the
-// same-origin /director/ reverse proxy. The configured target is shown for context.
-const DirectorRow: React.FC<{ directorURL: string }> = ({ directorURL }) => {
-  const { t } = useTranslation()
-  const copy = () => {
-    copyText(`${window.location.origin}/director/`).then((ok) =>
-      (ok ? toast.success(t('serverHealth.copied')) : toast.danger(t('serverHealth.copyFailed'))))
-  }
-  return (
-    <div className="flex items-center gap-2">
-      <Icon name="external-link" className="size-4 text-accent" />
-      <div className="flex flex-col min-w-0 flex-1">
-        <span className="text-sm font-semibold">
-          {t('serverHealth.director')}
-          {' '}
-          <span className="text-xs font-normal text-muted">{t('serverHealth.directorProxied')}</span>
-        </span>
-        <span className="text-xs text-muted font-mono truncate">{directorURL}</span>
-      </div>
-      <Button size="sm" variant="ghost" isIconOnly aria-label={t('serverHealth.copy')} onPress={copy}>
-        <Icon name="copy" />
-      </Button>
-      <Button size="sm" variant="outline" onPress={() => window.open('/director/', '_blank', 'noopener')}>
-        {t('serverHealth.open')}
-      </Button>
-    </div>
-  )
-}
+import { InterfaceRow } from './InterfaceRow'
+import { DirectorRow } from './DirectorRow'
 
 export const WebInterfacesCard: React.FC<{ status: Status | null }> = ({ status }) => {
   const { t } = useTranslation()
-  const [items, setItems] = useState<WebInterface[]>([])
-  const [discovered, setDiscovered] = useState<WebInterface[]>([])
-  const [draft, setDraft] = useState<WebInterface[]>([])
-  const [editing, setEditing] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [items, setItems] = React.useState<WebInterface[]>([])
+  const [discovered, setDiscovered] = React.useState<WebInterface[]>([])
+  const [draft, setDraft] = React.useState<WebInterface[]>([])
+  const [editing, setEditing] = React.useState(false)
+  const [loading, setLoading] = React.useState(true)
+  const [saving, setSaving] = React.useState(false)
   const director = status?.director_url
 
-  const load = useCallback(() => {
+  const load = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => api.webInterfaces.get())
@@ -82,11 +29,11 @@ export const WebInterfacesCard: React.FC<{ status: Status | null }> = ({ status 
       .catch((e: unknown) =>
         toast.danger(t('serverHealth.ifaceLoadFailed', { message: e instanceof Error ? e.message : String(e) })))
       .finally(() => setLoading(false))
-  }, [t])
+  }
 
-  useEffect(() => {
+  React.useEffect(() => {
     load()
-  }, [load])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const startEdit = () => {
     setDraft(items.length ? items.map((i) => ({ ...i })) : [{ label: '', url: '' }])

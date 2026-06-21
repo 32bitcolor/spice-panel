@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import * as React from 'react'
 import { ListView } from '@heroui-pro/react'
 
 import type { SideNavProps } from './types'
@@ -7,11 +7,11 @@ const ROW_HEIGHT = 56
 
 export const SideNav = <K extends string>({
   items, active, onSelect, title, titleAction, width, children, listHeader, emptyContent,
-}: SideNavProps<K>) => {
+}: SideNavProps<K>): React.ReactElement => {
   const w = width ?? 'w-60'
-  const wrapperRef = useRef<HTMLDivElement>(null)
+  const wrapperRef = React.useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (active == null) return
     const idx = items.findIndex((i) => i.key === active)
     if (idx < 0) return

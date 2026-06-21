@@ -7,7 +7,8 @@ import { api } from '../api/client'
 import type { GuildSummary, GuildDetail } from '../api/client'
 import { DataTable, Icon, PageHeader, SectionLabel, type Column } from '../dune-ui'
 import { usePermissions } from '../hooks/usePermissions'
-import type { GuildsTabKey, GuildsTabProps } from './types'
+import type { GuildsTabKey } from './types'
+import type { GuildsTabProps } from './interfaces'
 
 // Faction names are the stable dune.factions enum (Atreides/Harkonnen/None/
 // Smuggler), so colour-coding by name is safe. Unknown/None → default.
@@ -35,7 +36,7 @@ export const GuildsTab: React.FC<GuildsTabProps> = ({ isSignedIn = true }) => {
   const [saving, setSaving] = React.useState(false)
   const [roleBusy, setRoleBusy] = React.useState(false)
 
-  const load = React.useCallback(() => {
+  const load = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => api.guilds.list())
@@ -43,11 +44,11 @@ export const GuildsTab: React.FC<GuildsTabProps> = ({ isSignedIn = true }) => {
       .catch((e: unknown) =>
         toast.danger(t('guilds.failedToLoad', { message: e instanceof Error ? e.message : String(e) })))
       .finally(() => setLoading(false))
-  }, [t])
+  }
 
   React.useEffect(() => {
     load()
-  }, [load])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const applyDetail = (d: GuildDetail) => {
     setDetail(d)
@@ -112,11 +113,11 @@ export const GuildsTab: React.FC<GuildsTabProps> = ({ isSignedIn = true }) => {
           {loading
             ? <Spinner size="sm" color="current" />
             : (
-                <>
+                <React.Fragment>
                   <Icon name="refresh-cw" />
                   {' '}
                   {t('common.refresh')}
-                </>
+                </React.Fragment>
               )}
         </Button>
       </PageHeader>
@@ -197,7 +198,7 @@ export const GuildsTab: React.FC<GuildsTabProps> = ({ isSignedIn = true }) => {
                 </div>
               )}
               {!detailLoading && detail && (
-                <>
+                <React.Fragment>
                   {canManage
                     ? (
                         <div className="flex flex-col gap-3">
@@ -291,7 +292,7 @@ export const GuildsTab: React.FC<GuildsTabProps> = ({ isSignedIn = true }) => {
                           </div>
                         )}
                   </div>
-                </>
+                </React.Fragment>
               )}
             </Modal.Body>
           </Modal.Dialog>

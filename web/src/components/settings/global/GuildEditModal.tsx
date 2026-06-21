@@ -4,23 +4,12 @@ import { Button, Modal, Spinner, toast } from '@heroui/react'
 import { api } from '../../../api/client'
 import type { DiscordGuild, DiscordGuildOption } from '../../../api/client'
 import { Icon, Panel, SectionLabel } from '../../../dune-ui'
-import type { DiscordRole } from '../../types'
+import type { DiscordRole } from '../../interfaces'
 import { FieldRow } from '../fields/FieldRow'
 import { TextInput } from '../fields/TextInput'
 import { SearchableSelect } from '../fields/SearchableSelect'
 import { RolePicker } from '../fields/RolePicker'
-
-export interface GuildEditModalProps {
-  open: boolean
-  /** When editing, the existing guild; null when adding a new one. */
-  existing: DiscordGuild | null
-  /** Guild ids already configured — hidden from the add dropdown and rejected on
-   *  save so the same guild can't be configured twice. */
-  takenGuildIds?: string[]
-  onClose: () => void
-  /** Called after a successful upsert so the parent can reload its list. */
-  onSaved: () => void
-}
+import type { GuildEditModalProps } from './interfaces'
 
 const emptyGuild = (): DiscordGuild => ({
   guild_id: '',
@@ -58,7 +47,7 @@ export const GuildEditModal: React.FC<GuildEditModalProps> = ({
     if (open) Promise.resolve().then(() => setG(existing ?? emptyGuild()))
   }, [open, existing])
 
-  const loadRoles = React.useCallback((guildId: string) => {
+  const loadRoles = (guildId: string): void => {
     const id = guildId.trim()
     if (!id) {
       Promise.resolve().then(() => setRoles([]))
@@ -70,23 +59,21 @@ export const GuildEditModal: React.FC<GuildEditModalProps> = ({
       .then(setRoles)
       .catch(() => setRoles([]))
       .finally(() => setRolesLoading(false))
-  }, [])
+  }
 
   React.useEffect(() => {
     if (open) loadRoles(existing?.guild_id ?? '')
-  }, [open, existing, loadRoles])
+  }, [open, existing])
 
   const setRoleCsv = (key: 'roles_viewer' | 'roles_economy' | 'roles_admin') => (v: string) =>
     setG((prev) => ({ ...prev, [key]: v }))
 
   // The add dropdown only offers guilds that aren't already configured (the one
   // being edited stays listed so it can be re-selected).
-  const guildOptions = React.useMemo(() => {
-    const taken = new Set(takenGuildIds.filter((id) => id !== existing?.guild_id))
-    return availGuilds
-      .filter((x) => !taken.has(x.id))
-      .map((x) => ({ id: x.id, label: `${x.name} (${x.id})` }))
-  }, [availGuilds, takenGuildIds, existing])
+  const taken = new Set(takenGuildIds.filter((id) => id !== existing?.guild_id))
+  const guildOptions = availGuilds
+    .filter((x) => !taken.has(x.id))
+    .map((x) => ({ id: x.id, label: `${x.name} (${x.id})` }))
 
   const save = () => {
     const guildId = g.guild_id.trim()
@@ -197,18 +184,18 @@ export const GuildEditModal: React.FC<GuildEditModalProps> = ({
             <Button size="sm" onPress={save} isDisabled={saving}>
               {saving
                 ? (
-                    <>
+                    <React.Fragment>
                       <Spinner size="sm" color="current" />
                       {' '}
                       {t('common.saving')}
-                    </>
+                    </React.Fragment>
                   )
                 : (
-                    <>
+                    <React.Fragment>
                       <Icon name="save" />
                       {' '}
                       {t('common.save')}
-                    </>
+                    </React.Fragment>
                   )}
             </Button>
             <Button size="sm" variant="tertiary" slot="close" onPress={onClose}>

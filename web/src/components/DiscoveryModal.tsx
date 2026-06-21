@@ -3,17 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Modal, Spinner } from '@heroui/react'
 import { Icon } from '../dune-ui'
 import { api } from '../api/client'
-import type { AppConfig, ServerConfig } from '../api/client'
-
-export interface DiscoveryModalProps {
-  open: boolean
-  /** Connection settings to probe (control plane + SSH). */
-  config: ServerConfig
-  /** Called with the discovered values once all steps complete. */
-  onDone: (discovered: Partial<AppConfig>) => void
-  /** Called if the user dismisses before completion. */
-  onSkip: () => void
-}
+import type { DiscoveryModalProps } from './interfaces'
 
 // Per-control-plane step labels. The backend does the work in one call; these
 // steps are revealed sequentially with a short delay so the process reads as
@@ -36,6 +26,17 @@ export const DiscoveryModal: React.FC<DiscoveryModalProps> = ({ open, config, on
   const [current, setCurrent] = React.useState(0)
   const [failed, setFailed] = React.useState(false)
 
+  // Stable refs so the effect only re-triggers on `open` change, not on prop
+  // identity churn (config/onDone/steps all change on each render).
+  const configRef = React.useRef(config)
+  const onDoneRef = React.useRef(onDone)
+  const stepsRef = React.useRef(steps)
+  React.useLayoutEffect(() => {
+    configRef.current = config
+    onDoneRef.current = onDone
+    stepsRef.current = steps
+  })
+
   // Run discovery once per open. The single API call runs while the step list
   // animates; we apply results after both finish.
   React.useEffect(() => {
@@ -47,8 +48,8 @@ export const DiscoveryModal: React.FC<DiscoveryModalProps> = ({ open, config, on
     })
 
     const run = async () => {
-      const apiCall = api.servers.discover(config).catch(() => null)
-      for (let i = 0; i < steps.length; i++) {
+      const apiCall = api.servers.discover(configRef.current).catch(() => null)
+      for (let i = 0; i < stepsRef.current.length; i++) {
         if (cancelled) return
         await Promise.resolve().then(() => setCurrent(i))
         await sleep(STEP_MS)
@@ -59,16 +60,15 @@ export const DiscoveryModal: React.FC<DiscoveryModalProps> = ({ open, config, on
         setFailed(true)
         // Still let the wizard proceed — values can be filled manually.
         await sleep(800)
-        if (!cancelled) onDone({})
+        if (!cancelled) onDoneRef.current({})
         return
       }
-      onDone(result)
+      onDoneRef.current(result)
     }
     void run()
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   return (

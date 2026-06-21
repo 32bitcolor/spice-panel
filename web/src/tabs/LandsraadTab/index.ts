@@ -1,0 +1,1 @@
+export { LandsraadTab } from './LandsraadTab'

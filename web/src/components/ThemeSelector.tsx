@@ -16,7 +16,7 @@ export const ThemeSelector: React.FC = () => {
   }
 
   return (
-    <>
+    <React.Fragment>
       <Button
         isIconOnly
         variant="ghost"
@@ -63,6 +63,6 @@ export const ThemeSelector: React.FC = () => {
           </Dropdown.Menu>
         </Dropdown.Popover>
       </Dropdown>
-    </>
+    </React.Fragment>
   )
 }

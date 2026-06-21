@@ -11,11 +11,7 @@ import { TextInput } from '../fields/TextInput'
 import { SearchableSelect } from '../fields/SearchableSelect'
 import { CheckboxField } from '../fields/CheckboxField'
 import { TwoColumnGrid } from '../fields/TwoColumnGrid'
-
-export interface ServerDiscordPanelProps {
-  /** The persisted server (id > 0) whose single Discord link is edited here. */
-  serverId: number
-}
+import type { ServerDiscordPanelProps } from './interfaces'
 
 const emptyLink = (serverId: number): DiscordServerLink => ({
   server_id: serverId,
@@ -42,7 +38,7 @@ export const ServerDiscordPanel: React.FC<ServerDiscordPanelProps> = ({ serverId
   const [guildNames, setGuildNames] = React.useState<Record<string, string>>({})
   const [channels, setChannels] = React.useState<DiscordChannelOption[]>([])
 
-  const load = React.useCallback(() => {
+  const load = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => api.discord.servers.list())
@@ -54,11 +50,11 @@ export const ServerDiscordPanel: React.FC<ServerDiscordPanelProps> = ({ serverId
       .catch((e: unknown) =>
         toast.danger(t('discordGuilds.loadFailed', { message: e instanceof Error ? e.message : String(e) })))
       .finally(() => setLoading(false))
-  }, [t, serverId])
+  }
 
   React.useEffect(() => {
     load()
-  }, [load])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Configured guilds (added in Settings → Guilds) populate the guild dropdown;
   // the bot's guild membership supplies human names for the labels. Both are
@@ -222,18 +218,18 @@ export const ServerDiscordPanel: React.FC<ServerDiscordPanelProps> = ({ serverId
           <Button size="sm" onPress={save} isDisabled={saving || loading}>
             {saving
               ? (
-                  <>
+                  <React.Fragment>
                     <Spinner size="sm" color="current" />
                     {' '}
                     {t('common.saving')}
-                  </>
+                  </React.Fragment>
                 )
               : (
-                  <>
+                  <React.Fragment>
                     <Icon name="save" />
                     {' '}
                     {t('common.save')}
-                  </>
+                  </React.Fragment>
                 )}
           </Button>
           {hasLink && (

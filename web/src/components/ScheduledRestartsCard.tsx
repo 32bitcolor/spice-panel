@@ -31,7 +31,7 @@ export const ScheduledRestartsCard: React.FC = () => {
     setRules(d.rules ?? [])
   }
 
-  const load = React.useCallback(() => {
+  const load = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => api.scheduledRestarts.get())
@@ -39,11 +39,11 @@ export const ScheduledRestartsCard: React.FC = () => {
       .catch((e: unknown) =>
         toast.danger(t('restarts.failedToLoad', { message: e instanceof Error ? e.message : String(e) })))
       .finally(() => setLoading(false))
-  }, [t])
+  }
 
   React.useEffect(() => {
     load()
-  }, [load])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const save = () => {
     setSaving(true)
@@ -91,7 +91,7 @@ export const ScheduledRestartsCard: React.FC = () => {
       {loading
         ? <div className="py-4 flex justify-center"><Spinner size="sm" color="current" /></div>
         : (
-            <>
+            <React.Fragment>
               <div className="text-sm mb-3">
                 {enabled && data?.next_restart
                   ? (
@@ -164,7 +164,7 @@ export const ScheduledRestartsCard: React.FC = () => {
                   </Button>
                 </div>
               )}
-            </>
+            </React.Fragment>
           )}
     </Panel>
   )

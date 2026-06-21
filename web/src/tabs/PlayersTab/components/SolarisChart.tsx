@@ -2,7 +2,7 @@ import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { AreaChart } from '@heroui-pro/react'
 import { SectionLabel } from '../../../dune-ui'
-import type { SolarisChartProps, SolarisPoint } from './types'
+import type { SolarisChartProps, SolarisPoint } from './interfaces'
 
 const fmtSolaris = (n: number): string => {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -33,22 +33,21 @@ export const SolarisChart: React.FC<SolarisChartProps> = ({ data }) => {
     })
   }
 
-  const points = React.useMemo<SolarisPoint[]>(() => {
-    const snaps = data.filter((s) => s.solaris_balance != null)
-    if (snaps.length === 0) return []
-    let cumEarned = 0
-    let cumSpent = 0
-    return snaps.map((s, i) => {
-      const balance = s.solaris_balance as number
-      if (i > 0) {
-        const prev = snaps[i - 1].solaris_balance as number
-        const delta = balance - prev
-        if (delta > 0) cumEarned += delta
-        else if (delta < 0) cumSpent += -delta
-      }
-      return { time: s.snapped_at, balance, cum_earned: cumEarned, cum_spent: cumSpent }
-    })
-  }, [data])
+  const _snaps = data.filter((s) => s.solaris_balance != null)
+  let _cumEarned = 0
+  let _cumSpent = 0
+  const points: SolarisPoint[] = _snaps.length === 0
+    ? []
+    : _snaps.map((s, i) => {
+        const balance = s.solaris_balance as number
+        if (i > 0) {
+          const prev = _snaps[i - 1].solaris_balance as number
+          const delta = balance - prev
+          if (delta > 0) _cumEarned += delta
+          else if (delta < 0) _cumSpent += -delta
+        }
+        return { time: s.snapped_at, balance, cum_earned: _cumEarned, cum_spent: _cumSpent }
+      })
 
   if (points.length === 0) {
     return (

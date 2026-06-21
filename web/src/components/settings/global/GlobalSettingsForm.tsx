@@ -10,14 +10,8 @@ import { AuthPanel } from './AuthPanel'
 import { DiscordPanel } from './DiscordPanel'
 import { GuildsPanel } from './GuildsPanel'
 import { AdminAdvancedPanel } from './AdminAdvancedPanel'
-import type { DiscordRole } from '../../types'
-
-export interface GlobalSettingsFormProps {
-  saveRef?: React.MutableRefObject<(() => Promise<void>) | null>
-  onSavingChange?: (saving: boolean) => void
-  /** Initial tab to open on (e.g. deep-link to 'discord'); still switchable. */
-  initialTab?: string
-}
+import type { DiscordRole } from '../../interfaces'
+import type { GlobalSettingsFormProps } from './interfaces'
 
 // GlobalSettingsForm edits the dune-admin (global) configuration: auth, the
 // Discord bot, and admin-level advanced settings. Loads via api.config.get();
@@ -50,21 +44,21 @@ export const GlobalSettingsForm: React.FC<GlobalSettingsFormProps> = ({ saveRef,
       .finally(() => setLoading(false))
   }, [t])
 
-  const loadDiscordRoles = React.useCallback(() => {
+  const loadDiscordRoles = (): void => {
     setRolesLoading(true)
     api.discord.roles()
       .then(setDiscordRoles)
       .catch(() => setDiscordRoles([]))
       .finally(() => setRolesLoading(false))
-  }, [])
+  }
 
   React.useEffect(() => {
     Promise.resolve().then(loadDiscordRoles)
-  }, [loadDiscordRoles])
+  }, [])
 
   React.useEffect(() => {
     if (tab === 'auth') Promise.resolve().then(loadDiscordRoles)
-  }, [tab, loadDiscordRoles])
+  }, [tab])
 
   const set = (key: keyof AppConfig) => (v: string) =>
     setCfg((prev) => ({

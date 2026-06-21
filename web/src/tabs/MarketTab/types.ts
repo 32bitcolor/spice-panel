@@ -20,18 +20,6 @@ export type Node = {
   children: Node[]
 }
 
-export interface ItemDetailProps {
-  item: MarketItem | null
-  onClose: () => void
-}
-
-export interface RowProps {
-  label: string
-  value: string
-  accent?: boolean
-  wrap?: boolean
-}
-
 export type MarketGridProps = {
   items: MarketItem[]
   onSelect: (item: MarketItem) => void
@@ -54,4 +42,9 @@ export type MarketSearchProps = {
   filters: MarketFilters
   onChange: (f: MarketFilters) => void
   onReset: () => void
+}
+
+export type QualityArcProps = {
+  quality: number
+  size?: number
 }

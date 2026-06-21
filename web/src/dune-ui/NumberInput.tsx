@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Label, NumberField } from '@heroui/react'
-import type { NumberInputProps } from './types'
+import type { NumberInputProps } from './interfaces'
 
 export const NumberInput: React.FC<NumberInputProps> = ({
   value,
@@ -16,18 +16,19 @@ export const NumberInput: React.FC<NumberInputProps> = ({
   showButtons = true,
   formatOptions,
 }) => {
+  const fieldClassName = prefix ? 'flex-1 min-w-0' : className
   const field = (
     <NumberField
       value={value}
       onChange={(v) => onChange(v ?? min ?? 0)}
-      minValue={min}
-      maxValue={max}
+      {...(min !== undefined ? { minValue: min } : {})}
+      {...(max !== undefined ? { maxValue: max } : {})}
       step={step}
-      isDisabled={isDisabled}
-      aria-label={ariaLabel ?? label ?? prefix}
+      {...(isDisabled !== undefined ? { isDisabled } : {})}
+      aria-label={ariaLabel ?? label ?? prefix ?? ''}
       variant="secondary"
-      className={prefix ? 'flex-1 min-w-0' : className}
-      formatOptions={formatOptions}
+      {...(fieldClassName !== undefined ? { className: fieldClassName } : {})}
+      {...(formatOptions !== undefined ? { formatOptions } : {})}
     >
       {label && <Label className="text-xs text-muted">{label}</Label>}
       <NumberField.Group

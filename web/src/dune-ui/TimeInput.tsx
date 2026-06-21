@@ -41,8 +41,8 @@ export const TimeInput: React.FC<TimeInputProps> = ({ value, onChange, ariaLabel
         onChange={handleTimeChange}
         hourCycle={12}
         granularity="minute"
-        aria-label={ariaLabel}
-        isDisabled={isDisabled}
+        {...(ariaLabel !== undefined ? { 'aria-label': ariaLabel } : {})}
+        {...(isDisabled !== undefined ? { isDisabled } : {})}
       >
         <TimeField.Group variant="secondary">
           <TimeField.Input>
@@ -61,7 +61,7 @@ export const TimeInput: React.FC<TimeInputProps> = ({ value, onChange, ariaLabel
         selectedKeys={[isAM ? 'am' : 'pm']}
         onSelectionChange={handlePeriodChange}
         size="sm"
-        isDisabled={isDisabled}
+        {...(isDisabled !== undefined ? { isDisabled } : {})}
       >
         <ToggleButton id="am">AM</ToggleButton>
         <ToggleButton id="pm">PM</ToggleButton>

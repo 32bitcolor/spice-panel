@@ -5,7 +5,8 @@ import {
 } from '@heroui/react'
 import { api } from '../../../api/client'
 import { Icon, LoadingState, NumberInput } from '../../../dune-ui'
-import type { AddItemsModalProps, AddResult } from './types'
+import type { AddItemsModalProps } from './interfaces'
+import type { AddResult } from './types'
 
 export const AddItemsModal: React.FC<AddItemsModalProps> = ({
   container, open, onClose, onSuccess, onRefresh,
@@ -39,13 +40,12 @@ export const AddItemsModal: React.FC<AddItemsModalProps> = ({
       .finally(() => setLoading(false))
   }, [open])
 
-  const filtered = React.useMemo(() => {
-    if (!query) return []
-    const q = query.toLowerCase()
-    return templates
-      .filter((tmpl) => tmpl.id.toLowerCase().includes(q) || tmpl.name.toLowerCase().includes(q))
-      .slice(0, 100)
-  }, [templates, query])
+  const _aimq = query.toLowerCase()
+  const filtered = !query
+    ? []
+    : templates
+        .filter((tmpl) => tmpl.id.toLowerCase().includes(_aimq) || tmpl.name.toLowerCase().includes(_aimq))
+        .slice(0, 100)
 
   const pick = (tmpl: { id: string, name: string }) => {
     setSelected(tmpl.id)
@@ -110,7 +110,7 @@ export const AddItemsModal: React.FC<AddItemsModalProps> = ({
                   <LoadingState size="sm" />
                 )
               : (
-                  <>
+                  <React.Fragment>
                     <div className="flex items-end gap-3 shrink-0">
                       <TextField className="flex-1 min-w-0" aria-label={t('storage.addModal.templateLabel')}>
                         <div className="relative w-full">
@@ -176,7 +176,7 @@ export const AddItemsModal: React.FC<AddItemsModalProps> = ({
                     </div>
 
                     {staged.length > 0 && (
-                      <>
+                      <React.Fragment>
                         <div className="flex flex-col gap-1 overflow-y-auto flex-1 min-h-0">
                           {staged.map((item, idx) => (
                             <div
@@ -211,7 +211,7 @@ export const AddItemsModal: React.FC<AddItemsModalProps> = ({
                             </div>
                           ))}
                         </div>
-                      </>
+                      </React.Fragment>
                     )}
 
                     {result && (
@@ -232,7 +232,7 @@ export const AddItemsModal: React.FC<AddItemsModalProps> = ({
                         ))}
                       </div>
                     )}
-                  </>
+                  </React.Fragment>
                 )}
           </Modal.Body>
           <Modal.Footer>

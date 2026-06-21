@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'
 import type { BotConfig } from '../../../api/client'
 import { FieldInput, NumberInput, Panel, SectionLabel } from '../../../dune-ui'
-import type { BotConfigEditorProps, ConfigEditorHandle, FieldProps } from './types'
+import type { BotConfigEditorProps } from './types'
+import type { ConfigEditorHandle } from './interfaces'
+import { Field } from './Field'
 
 const thresholdToPercent = (t: number): number => {
   return Math.round(t * 100)
@@ -219,21 +221,3 @@ const BotConfigEditorComponent = React.forwardRef<
 })
 
 export const BotConfigEditor = BotConfigEditorComponent
-
-const Field: React.FC<FieldProps> = ({ label, hint, children }) => {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <label className="text-xs text-muted">
-        {label}
-        {hint && (
-          <span className="text-muted/60 ml-1">
-            (
-            {hint}
-            )
-          </span>
-        )}
-      </label>
-      {children}
-    </div>
-  )
-}

@@ -5,28 +5,16 @@ import type { Selection } from '@heroui/react'
 import type { DataGridColumn } from '@heroui-pro/react'
 import { DataGrid } from '@heroui-pro/react'
 import { api } from '../../../api/client'
-import type { BattlepassSignal, BattlepassTier, GivePack } from '../../../api/client'
+import type { BattlepassSignal, GivePack } from '../../../api/client'
 import { ActionBar, FieldInput, FieldSelect, Icon, NumberInput, SectionLabel } from '../../../dune-ui'
 import { ManagePacksModal } from '../../PlayersTab/modals/ManagePacksModal'
 import { CategorizedPackPicker } from '../../../components/CategorizedPackPicker'
-import type { KeyedRewardItem } from '../../EventsTab/types'
+import type { KeyedRewardItem } from '../../EventsTab/interfaces'
+import { FormSection } from './FormSection'
+import type { TierEditorModalProps } from './interfaces'
 
 const SIGNAL_OPTIONS: BattlepassSignal[] = ['level', 'journey_node', 'player_tag']
 const CATEGORY_OPTIONS = ['level', 'story', 'side_quest', 'faction', 'exploration', 'achievement']
-
-const FormSection: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => (
-  <div className={`flex flex-col gap-3 rounded-[var(--radius)] border border-border bg-surface-secondary p-4 dune-lift ${className ?? ''}`}>
-    {children}
-  </div>
-)
-
-export interface TierEditorModalProps {
-  isOpen: boolean
-  onClose: () => void
-  /** Existing tier to edit, or null to open in create mode. */
-  tier: BattlepassTier | null
-  onSaved: () => void
-}
 
 /** Edit or create a battlepass tier. In edit mode tier_key is read-only (claims
  *  are keyed by it — editing would orphan them). In create mode all fields are
@@ -105,18 +93,14 @@ export const TierEditorModal: React.FC<TierEditorModalProps> = ({ isOpen, onClos
     api.givePacks.config().then((cfg) => setPacks(cfg.packs)).catch(() => {})
   }, [isOpen, tier])
 
-  const nameMap = React.useMemo(
-    () => new Map(templates.map((tpl) => [tpl.id, tpl.name])),
-    [templates],
-  )
+  const nameMap = new Map(templates.map((tpl) => [tpl.id, tpl.name]))
 
-  const filteredTemplates = React.useMemo(() => {
-    const q = templateQuery.trim().toLowerCase()
-    if (!q || selectedTemplate) return []
-    return templates
-      .filter((tpl) => tpl.id.toLowerCase().includes(q) || tpl.name.toLowerCase().includes(q))
-      .slice(0, 10)
-  }, [templates, templateQuery, selectedTemplate])
+  const _tq = templateQuery.trim().toLowerCase()
+  const filteredTemplates = !_tq || selectedTemplate
+    ? []
+    : templates
+        .filter((tpl) => tpl.id.toLowerCase().includes(_tq) || tpl.name.toLowerCase().includes(_tq))
+        .slice(0, 10)
 
   const pickTemplate = (tpl: { id: string, name: string }) => {
     setSelectedTemplate(tpl.id)
@@ -274,7 +258,7 @@ export const TierEditorModal: React.FC<TierEditorModalProps> = ({ isOpen, onClos
   ]
 
   return (
-    <>
+    <React.Fragment>
       {/* Hidden (not stacked) while Manage Packs is open — stacked sibling
           modals fight over the React Aria overlay and the top one goes inert.
           Component stays mounted, so unsaved edits survive the swap. */}
@@ -546,6 +530,6 @@ export const TierEditorModal: React.FC<TierEditorModalProps> = ({ isOpen, onClos
         }}
         templates={templates}
       />
-    </>
+    </React.Fragment>
   )
 }

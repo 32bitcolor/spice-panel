@@ -4,7 +4,7 @@ import { EmptyState } from '@heroui-pro/react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'
 import type { BattlepassClaim, BattlepassTier, Player } from '../../../api/client'
-import type { RewardItem } from '../../EventsTab/types'
+import type { RewardItem } from '../../EventsTab/interfaces'
 import { DataTable, Icon, SideNav, type Column } from '../../../dune-ui'
 
 type ClaimKey = 'tier_key' | 'status' | 'intel' | 'earned_at' | 'granted_at' | 'last_error'
@@ -53,7 +53,7 @@ export const ProgressView: React.FC = () => {
   const [claimsLoading, setClaimsLoading] = React.useState(false)
   const [tierMap, setTierMap] = React.useState<Map<string, BattlepassTier>>(new Map())
 
-  const loadPlayers = React.useCallback(() => {
+  const loadPlayers = (): void => {
     Promise.resolve()
       .then(() => setPlayersLoading(true))
       .then(() => Promise.all([api.players.list(), api.battlepass.tiers()]))
@@ -65,63 +65,54 @@ export const ProgressView: React.FC = () => {
         toast.danger(t('battlepass.failedToLoad', { message: e instanceof Error ? e.message : String(e) }))
       })
       .finally(() => setPlayersLoading(false))
-  }, [t])
+  }
 
   React.useEffect(() => {
     loadPlayers()
-  }, [loadPlayers])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const loadClaims = React.useCallback(
-    (player: Player) => {
-      setSelected(player)
-      setClaimsLoading(true)
-      api.battlepass
-        .progress(player.account_id)
-        .then((p) => setClaims(p.claims))
-        .catch((e: unknown) => {
-          toast.danger(t('battlepass.failedToLoad', { message: e instanceof Error ? e.message : String(e) }))
-        })
-        .finally(() => setClaimsLoading(false))
-    },
-    [t],
-  )
+  const loadClaims = (player: Player): void => {
+    setSelected(player)
+    setClaimsLoading(true)
+    api.battlepass
+      .progress(player.account_id)
+      .then((p) => setClaims(p.claims))
+      .catch((e: unknown) => {
+        toast.danger(t('battlepass.failedToLoad', { message: e instanceof Error ? e.message : String(e) }))
+      })
+      .finally(() => setClaimsLoading(false))
+  }
 
-  const filtered = React.useMemo(() => {
-    const q = search.toLowerCase()
-    return q
-      ? players.filter((p) => p.name.toLowerCase().includes(q) || String(p.account_id).includes(q))
-      : players
-  }, [players, search])
+  const _pq = search.toLowerCase()
+  const filtered = _pq
+    ? players.filter((p) => p.name.toLowerCase().includes(_pq) || String(p.account_id).includes(_pq))
+    : players
 
-  const navItems = React.useMemo(
-    () =>
-      filtered.map((p) => {
-        const dotColor = p.online_status === 'Online'
-          ? 'bg-success'
-          : p.online_status === 'LoggingOut'
-            ? 'bg-warning'
-            : 'bg-muted/40'
-        return {
-          key: String(p.account_id),
-          icon: (active: boolean) => (
-            <div className="relative w-8 h-8 shrink-0">
-              <div className="w-full h-full rounded-4xl overflow-hidden bg-surface-secondary flex items-center justify-center [transform:translateZ(0)]">
-                {p.discord_avatar
-                  ? <img src={p.discord_avatar} alt={p.name} className="w-full h-full object-cover" />
-                  : <Icon name="user" className="size-3.5 text-muted" />}
-              </div>
-              <span
-                className={`absolute bottom-0 right-0 z-[1] size-3 rounded-full border-2 ${dotColor}`}
-                style={{ borderColor: active ? 'var(--accent)' : 'var(--surface)' }}
-              />
-            </div>
-          ),
-          label: p.name,
-          sublabel: `#${p.account_id}`,
-        }
-      }),
-    [filtered],
-  )
+  const navItems = filtered.map((p) => {
+    const dotColor = p.online_status === 'Online'
+      ? 'bg-success'
+      : p.online_status === 'LoggingOut'
+        ? 'bg-warning'
+        : 'bg-muted/40'
+    return {
+      key: String(p.account_id),
+      icon: (active: boolean) => (
+        <div className="relative w-8 h-8 shrink-0">
+          <div className="w-full h-full rounded-4xl overflow-hidden bg-surface-secondary flex items-center justify-center [transform:translateZ(0)]">
+            {p.discord_avatar
+              ? <img src={p.discord_avatar} alt={p.name} className="w-full h-full object-cover" />
+              : <Icon name="user" className="size-3.5 text-muted" />}
+          </div>
+          <span
+            className={`absolute bottom-0 right-0 z-[1] size-3 rounded-full border-2 ${dotColor}`}
+            style={{ borderColor: active ? 'var(--accent)' : 'var(--surface)' }}
+          />
+        </div>
+      ),
+      label: p.name,
+      sublabel: `#${p.account_id}`,
+    }
+  })
 
   const CLAIM_COLUMNS: Column<ClaimKey>[] = [
     { key: 'tier_key', label: t('battlepass.claims.tier'), minWidth: 260 },
@@ -172,7 +163,7 @@ export const ProgressView: React.FC = () => {
       <div className="flex-1 min-w-0 flex flex-col min-h-0">
         {selected
           ? (
-              <>
+              <React.Fragment>
                 <div className="shrink-0 flex items-center gap-2 pb-3">
                   <span className="font-semibold text-accent">{selected.name}</span>
                   <span className="text-muted text-xs font-mono">
@@ -279,7 +270,7 @@ export const ProgressView: React.FC = () => {
                     }}
                   />
                 </div>
-              </>
+              </React.Fragment>
             )
           : (
               <div className="flex-1 flex items-center justify-center">

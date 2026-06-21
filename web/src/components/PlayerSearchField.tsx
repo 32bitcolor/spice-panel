@@ -5,28 +5,7 @@ import { SearchField, toast } from '@heroui/react'
 import { api } from '../api/client'
 import type { Player } from '../api/client'
 import { useDebounce } from '../hooks/useDebounce'
-
-export interface PlayerSearchFieldProps {
-  /** Called with the full player row — consumers pick the ID they need
-   *  (account_id, fls_id, or actor id). */
-  onSelect: (player: Player) => void
-  ariaLabel: string
-  placeholder?: string
-  className?: string
-  /** Pre-loaded player list. When omitted the field lazily loads
-   *  api.players.list() on first focus. */
-  players?: Player[]
-  /** Max suggestions rendered (default 10) — keeps the dropdown cheap even
-   *  with thousands of players. */
-  resultLimit?: number
-  /** Exclude players from suggestions (e.g. the current player). */
-  filter?: (player: Player) => boolean
-  /** Clear the input after picking (default: show the picked name). */
-  clearOnSelect?: boolean
-  /** Called when the user empties the input (clear button or deleting the
-   *  text) — lets consumers drop their current selection. */
-  onClear?: () => void
-}
+import type { PlayerSearchFieldProps } from './interfaces'
 
 /**
  * Debounced player search with a capped suggestion dropdown. The canonical
@@ -71,7 +50,7 @@ export const PlayerSearchField: React.FC<PlayerSearchFieldProps> = ({
     setPortalTarget(dialog ?? document.body)
   }, [])
 
-  const roster = React.useMemo(() => players ?? loaded ?? [], [players, loaded])
+  const roster = players ?? loaded ?? []
 
   const ensureLoaded = () => {
     if (players || loaded || loading) return
@@ -85,14 +64,12 @@ export const PlayerSearchField: React.FC<PlayerSearchFieldProps> = ({
       .finally(() => setLoading(false))
   }
 
-  const matches = React.useMemo(() => {
-    const base = filter ? roster.filter(filter) : roster
-    const q = debouncedQuery.trim().toLowerCase()
-    const hits = q
-      ? base.filter((p) => p.name.toLowerCase().includes(q) || String(p.account_id).includes(q))
-      : base
-    return hits.slice(0, resultLimit)
-  }, [roster, filter, debouncedQuery, resultLimit])
+  const base = filter ? roster.filter(filter) : roster
+  const q = debouncedQuery.trim().toLowerCase()
+  const hits = q
+    ? base.filter((p) => p.name.toLowerCase().includes(q) || String(p.account_id).includes(q))
+    : base
+  const matches = hits.slice(0, resultLimit)
 
   const pick = (p: Player) => {
     setQuery(clearOnSelect ? '' : p.name)

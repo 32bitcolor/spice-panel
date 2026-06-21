@@ -5,7 +5,7 @@ import { api } from '../../../api/client'
 import { Panel, SectionLabel, Icon } from '../../../dune-ui'
 import { SOURCE_FILE, LAYER_STYLE, SOURCE_PRIORITY } from '../constants'
 import { linesToText, groupLinesByKey, shortSection } from '../utils'
-import type { RawSectionPanelProps } from './types'
+import type { RawSectionPanelProps } from './interfaces'
 
 export const RawSectionPanel: React.FC<RawSectionPanelProps> = ({ sections, onSaved }) => {
   const { t } = useTranslation()
@@ -96,15 +96,15 @@ export const RawSectionPanel: React.FC<RawSectionPanelProps> = ({ sections, onSa
         >
           {editing
             ? (
-                <>
+                <React.Fragment>
                   <Button size="sm" variant="ghost" onPress={cancel} isDisabled={saving}>{t('server.collapse')}</Button>
                   <Button size="sm" onPress={save} isDisabled={saving}>
                     {saving ? <Spinner size="sm" color="current" /> : t('common.save')}
                   </Button>
-                </>
+                </React.Fragment>
               )
             : !collapsed && (
-                <>
+                <React.Fragment>
                   {userSec && (
                     <Tooltip>
                       <Tooltip.Trigger>
@@ -134,7 +134,7 @@ export const RawSectionPanel: React.FC<RawSectionPanelProps> = ({ sections, onSa
                   >
                     <Icon name="x" className="w-3.5 h-3.5" />
                   </Button>
-                </>
+                </React.Fragment>
               )}
         </div>
       </div>

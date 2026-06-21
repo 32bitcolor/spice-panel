@@ -1,7 +1,9 @@
 import * as React from 'react'
 import { Chip } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
-import type { BotStatusCardProps, StatProps } from './types'
+import type { BotStatusCardProps } from './interfaces'
+import { Sep } from './Sep'
+import { Stat } from './Stat'
 
 const fmt = (ts: string | null | undefined): string => {
   if (!ts) return '—'
@@ -38,28 +40,17 @@ export const BotStatusCard: React.FC<BotStatusCardProps> = ({ status }) => {
       <Sep />
       <Stat label={t('market.bot.status.lastBuyTick')}>{fmt(status.last_buy_tick)}</Stat>
       {status.next_list_tick != null && (
-        <>
+        <React.Fragment>
           <Sep />
           <Stat label={t('market.bot.status.nextListTick')}>{fmt(status.next_list_tick)}</Stat>
-        </>
+        </React.Fragment>
       )}
       {status.next_buy_tick != null && (
-        <>
+        <React.Fragment>
           <Sep />
           <Stat label={t('market.bot.status.nextBuyTick')}>{fmt(status.next_buy_tick)}</Stat>
-        </>
+        </React.Fragment>
       )}
-    </div>
-  )
-}
-
-const Sep: React.FC = () => <div className="w-px h-8 bg-border mx-3 shrink-0" />
-
-const Stat: React.FC<StatProps> = ({ label, danger, children }) => {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">{label}</span>
-      <span className={`text-sm font-mono ${danger ? 'text-danger' : 'text-foreground'}`}>{children}</span>
     </div>
   )
 }

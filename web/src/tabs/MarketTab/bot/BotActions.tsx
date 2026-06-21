@@ -55,7 +55,7 @@ export const BotActions: React.FC<BotActionsProps> = ({ status, onRefresh }) => 
   const dormant = status?.mode === 'none'
 
   return (
-    <>
+    <React.Fragment>
       <div className="flex items-center gap-2 flex-wrap">
         {dormant
           ? (
@@ -64,7 +64,7 @@ export const BotActions: React.FC<BotActionsProps> = ({ status, onRefresh }) => 
               </span>
             )
           : (
-              <>
+              <React.Fragment>
                 <Button
                   size="sm"
                   variant="outline"
@@ -92,7 +92,7 @@ export const BotActions: React.FC<BotActionsProps> = ({ status, onRefresh }) => 
                   {busy === 'restart' ? <Spinner size="sm" color="current" /> : <Icon name="refresh-cw" />}
                   {t('market.bot.actions.reinitialize')}
                 </Button>
-              </>
+              </React.Fragment>
             )}
 
         <Button
@@ -114,6 +114,6 @@ export const BotActions: React.FC<BotActionsProps> = ({ status, onRefresh }) => 
         onConfirm={runCleanup}
         onCancel={() => setConfirmOpen(false)}
       />
-    </>
+    </React.Fragment>
   )
 }

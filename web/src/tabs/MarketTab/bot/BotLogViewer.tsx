@@ -22,7 +22,7 @@ export const BotLogViewer: React.FC<BotLogViewerProps> = ({ active = false }) =>
     }
   }, [lines, autoScroll])
 
-  const startFlush = React.useCallback(() => {
+  const startFlush = (): void => {
     if (timerRef.current) return
     timerRef.current = setInterval(() => {
       if (bufRef.current.length > 0) {
@@ -33,16 +33,16 @@ export const BotLogViewer: React.FC<BotLogViewerProps> = ({ active = false }) =>
         })
       }
     }, 200)
-  }, [])
+  }
 
-  const stopFlush = React.useCallback(() => {
+  const stopFlush = (): void => {
     if (timerRef.current) {
       clearInterval(timerRef.current)
       timerRef.current = null
     }
-  }, [])
+  }
 
-  const connect = React.useCallback(() => {
+  const connect = (): void => {
     if (wsRef.current) {
       wsRef.current.close()
       wsRef.current = null
@@ -96,9 +96,9 @@ export const BotLogViewer: React.FC<BotLogViewerProps> = ({ active = false }) =>
         setError(t('market.bot.log.backendUnreachable'))
         setConnState('error')
       })
-  }, [startFlush, stopFlush, t])
+  }
 
-  const disconnect = React.useCallback(() => {
+  const disconnect = (): void => {
     if (wsRef.current) {
       wsRef.current.close(1000)
       wsRef.current = null
@@ -108,17 +108,16 @@ export const BotLogViewer: React.FC<BotLogViewerProps> = ({ active = false }) =>
       setConnState('idle')
       setError(null)
     })
-  }, [stopFlush])
+  }
 
   React.useEffect(() => {
     if (active) void connect()
     else disconnect()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active])
+  }, [active]) // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(() => () => {
     disconnect()
-  }, [disconnect])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const stateLabel = {
     idle: t('market.bot.log.idle'),

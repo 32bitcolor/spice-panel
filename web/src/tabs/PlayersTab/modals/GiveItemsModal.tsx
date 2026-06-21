@@ -12,10 +12,10 @@ import { api } from '../../../api/client'
 import { ActionBar, Icon, LoadingState, NumberInput } from '../../../dune-ui'
 import { CategorizedPackPicker } from '../../../components/CategorizedPackPicker'
 import { ItemOptionRow } from '../../../components/ItemOptionRow'
-import { iconUrl, categoryColor } from '../../../utils/icons'
 import { packsSyncAtom, itemDataSyncAtom } from '../../../data/store'
-import type { ItemEntry } from '../../../data/store'
-import type { GiveItemsModalProps, GiveResult, StagedItem } from './types'
+import type { GiveItemsModalProps } from './interfaces'
+import type { GiveResult, StagedItem } from './types'
+import { ModalStagedItemCell } from './ModalStagedItemCell'
 
 export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, onClose }) => {
   const { t } = useTranslation()
@@ -53,22 +53,18 @@ export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, on
       .finally(() => setLoading(false))
   }, [open])
 
-  const nameMap = React.useMemo(() => new Map(templates.map((tpl) => [tpl.id, tpl.name])), [templates])
+  const nameMap = new Map(templates.map((tpl) => [tpl.id, tpl.name]))
 
-  const filtered = React.useMemo(() => {
-    if (!query) return []
-    const q = query.toLowerCase()
-    return templates
-      .filter((tpl) => tpl.id.toLowerCase().includes(q) || tpl.name.toLowerCase().includes(q))
-      .slice(0, 100)
-  }, [templates, query])
+  const _giq = query.toLowerCase()
+  const filtered = !query
+    ? []
+    : templates
+        .filter((tpl) => tpl.id.toLowerCase().includes(_giq) || tpl.name.toLowerCase().includes(_giq))
+        .slice(0, 100)
 
-  const packOptions = React.useMemo(
-    () => Object.entries(packsData.packs).map(([id, pack]) => ({
-      id, name: pack.name, category: pack.category, tier: pack.tier,
-    })),
-    [packsData],
-  )
+  const packOptions = Object.entries(packsData.packs).map(([id, pack]) => ({
+    id, name: pack.name, category: pack.category, tier: pack.tier,
+  }))
 
   const pick = (tpl: { id: string, name: string }) => {
     setSelected(tpl.id)
@@ -217,7 +213,7 @@ export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, on
                   <LoadingState size="sm" />
                 )
               : (
-                  <>
+                  <React.Fragment>
                     {/* Load Pack */}
                     <CategorizedPackPicker
                       packs={packOptions}
@@ -331,7 +327,7 @@ export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, on
                         ))}
                       </div>
                     )}
-                  </>
+                  </React.Fragment>
                 )}
           </Modal.Body>
           <Modal.Footer>
@@ -377,46 +373,5 @@ export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, on
         </Modal.Dialog>
       </Modal.Container>
     </Modal.Backdrop>
-  )
-}
-
-// Sub-component exported for react-refresh. Display-only thumbnail + name cell for staged items.
-export const ModalStagedItemCell: React.FC<{
-  templateId: string
-  name: string
-  itemData: { items: Record<string, ItemEntry> }
-}> = ({ templateId, name, itemData }) => {
-  const entry = itemData.items[templateId] ?? null
-  const img = iconUrl(templateId, 'thumb')
-  const rarity = entry?.rarity?.toLowerCase()
-
-  return (
-    <div className="flex items-center gap-2 py-0.5">
-      <div
-        className="w-6 h-6 shrink-0 rounded flex items-center justify-center overflow-hidden"
-        style={{ background: categoryColor(entry?.category ?? '', entry?.rarity?.toLowerCase(), templateId) }}
-      >
-        <img
-          src={img ?? undefined}
-          alt=""
-          className="w-full h-full object-contain"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = 'none'
-          }}
-        />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-xs truncate text-foreground">{name || templateId}</div>
-        {name && <div className="font-mono text-[10px] text-muted truncate">{templateId}</div>}
-      </div>
-      {!!entry?.tier && entry.tier > 0 && (
-        <Chip size="sm" variant="soft" className="shrink-0">{`T${entry.tier}`}</Chip>
-      )}
-      {rarity && (
-        <Chip size="sm" variant="soft" className="shrink-0 capitalize" style={{ color: `var(--rarity-${rarity})` }}>
-          {rarity}
-        </Chip>
-      )}
-    </div>
   )
 }

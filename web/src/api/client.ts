@@ -65,7 +65,7 @@ export class ApiError extends Error {
 // the login page without every caller handling it.
 export const AUTH_EXPIRED_EVENT = 'dune-auth-expired'
 
-function notifyAuthExpired() {
+function notifyAuthExpired(): void {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT))
   }
@@ -99,7 +99,7 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
   const res = await fetch(`${apiBase}${path}`, {
     method,
     headers,
-    body: body ? JSON.stringify(body) : undefined,
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     credentials: 'include',
   })
   if (!res.ok) {
@@ -693,13 +693,13 @@ export type MarketStats = {
   unique_items: number
 }
 export type MarketItemsParams = {
-  search?: string
-  category?: string
-  tier?: number
-  rarity?: string
-  owner?: 'bot' | 'player'
-  page?: number
-  limit?: number
+  search?: string | undefined
+  category?: string | undefined
+  tier?: number | undefined
+  rarity?: string | undefined
+  owner?: 'bot' | 'player' | undefined
+  page?: number | undefined
+  limit?: number | undefined
 }
 export type MarketItemsResponse = {
   items: MarketItem[]
@@ -1077,7 +1077,7 @@ export const authApi = {
   },
   users: {
     list: () => req<AuthLocalUser[]>('GET', '/auth/users'),
-    save: (username: string, body: { password?: string, capabilities: string[], enabled: boolean }) =>
+    save: (username: string, body: { password?: string | undefined, capabilities: string[], enabled: boolean }) =>
       req<{ status: string }>('PUT', `/auth/users/${encodeURIComponent(username)}`, body),
     remove: (username: string) =>
       req<{ status: string }>('DELETE', `/auth/users/${encodeURIComponent(username)}`),

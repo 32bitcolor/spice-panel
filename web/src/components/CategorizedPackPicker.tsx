@@ -1,16 +1,7 @@
 import * as React from 'react'
 import { Header, ListBox, Select, Separator } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
-
-/** Minimal shape needed to render a pack in the categorized picker. The full
- *  GivePack (with items) and the PacksData entry are both structurally
- *  assignable to this. */
-export interface PackOption {
-  id: string
-  name: string
-  category: string
-  tier: number
-}
+import type { PackOption, CategorizedPackPickerProps } from './interfaces'
 
 /** Group packs by category, sort each group by tier, and return category
  *  entries sorted by localeCompare. Pure helper — mirrors the original
@@ -31,13 +22,6 @@ export function groupPacksByCategory(
   return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b))
 }
 
-export interface CategorizedPackPickerProps {
-  packs: PackOption[]
-  /** Called with the selected pack id. */
-  onSelectPack: (id: string) => void
-  className?: string
-}
-
 /** Pack picker rendered as a categorized Select → Popover → ListBox, with one
  *  ListBox.Section per category (header = category name, dashes → spaces).
  *  Selection is fire-and-forget: the Select never holds a value, so the same
@@ -46,7 +30,7 @@ export const CategorizedPackPicker: React.FC<CategorizedPackPickerProps> = ({
   packs, onSelectPack, className,
 }) => {
   const { t } = useTranslation()
-  const grouped = React.useMemo(() => groupPacksByCategory(packs), [packs])
+  const grouped = groupPacksByCategory(packs)
 
   return (
     <Select
@@ -54,7 +38,7 @@ export const CategorizedPackPicker: React.FC<CategorizedPackPickerProps> = ({
       placeholder={t('players.give.loadPack')}
       selectedKey={null}
       onSelectionChange={(k) => { if (k) onSelectPack(String(k)) }}
-      className={className}
+      {...(className !== undefined ? { className } : {})}
     >
       <Select.Trigger>
         <Select.Value />

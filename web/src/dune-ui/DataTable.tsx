@@ -39,7 +39,7 @@ export const DataTable = <T extends object, K extends string>({
   selectedKeys,
   onSelectionChange,
   pageSize,
-}: DataTableProps<T, K>) => {
+}: DataTableProps<T, K>): React.ReactElement => {
   const renderCellRef = React.useRef(renderCell)
   const sortValueRef = React.useRef(sortValue)
   const onRowActionRef = React.useRef(onRowAction)
@@ -62,25 +62,22 @@ export const DataTable = <T extends object, K extends string>({
     rowsRef.current = pagedRows
   })
 
-  const columnKey = columns
-    .map((c) => [c.key, c.label, c.width, c.minWidth, c.sortable, c.isRowHeader, c.pinned, c.align].join(':'))
-    .join('|')
-
   const hasExplicitRowHeader = columns.some((c) => c.isRowHeader)
 
-  const gridColumns = React.useMemo<DataGridColumn<T>[]>(() => columns.map((col, i) => {
+  const gridColumns: DataGridColumn<T>[] = columns.map((col, i) => {
     const sortable = col.sortable !== false
     const colKey = col.key as K
+    const resolvedWidth = typeof col.width === 'string' && col.width.endsWith('fr') ? undefined : col.width
     return {
       id: col.key,
       header: col.label,
       isRowHeader: col.isRowHeader ?? (!hasExplicitRowHeader && i === 0),
       allowsSorting: sortable,
       // DataGrid virtualizer resolves columns in JS — CSS fr units aren't supported; omit so the column auto-stretches
-      width: typeof col.width === 'string' && col.width.endsWith('fr') ? undefined : col.width,
-      minWidth: col.minWidth,
-      pinned: col.pinned,
-      align: col.align,
+      ...(resolvedWidth !== undefined ? { width: resolvedWidth } : {}),
+      ...(col.minWidth !== undefined ? { minWidth: col.minWidth } : {}),
+      ...(col.pinned !== undefined ? { pinned: col.pinned } : {}),
+      ...(col.align !== undefined ? { align: col.align } : {}),
       cell: (row: T) => {
         const maxWidth = typeof col.width === 'number' ? col.width : undefined
         return col.align === 'end' || col.key === 'actions'
@@ -103,8 +100,7 @@ export const DataTable = <T extends object, K extends string>({
         },
       }),
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- columnKey fingerprints structure; callbacks live in refs
-  }), [columnKey, hasExplicitRowHeader])
+  })
 
   if (loading) {
     return (
@@ -123,36 +119,40 @@ export const DataTable = <T extends object, K extends string>({
     )
   }
 
+  const gridClassName = pageSize ? 'h-full' : className
+  const gridContentClassName = pageSize ? undefined : contentClassName
+  const gridScrollClassName = pageSize ? 'h-full overflow-auto' : scrollContainerClassName
+
   const grid = (
     <HeroDataGrid
       aria-label={ariaLabel}
       columns={gridColumns}
       data={pagedRows}
       getRowId={rowId}
-      className={pageSize ? 'h-full' : className}
-      contentClassName={pageSize ? undefined : contentClassName}
-      scrollContainerClassName={pageSize ? 'h-full overflow-auto' : scrollContainerClassName}
+      {...(gridClassName !== undefined ? { className: gridClassName } : {})}
+      {...(gridContentClassName !== undefined ? { contentClassName: gridContentClassName } : {})}
+      {...(gridScrollClassName !== undefined ? { scrollContainerClassName: gridScrollClassName } : {})}
       virtualized={pageSize ? false : virtualized}
       rowHeight={rowHeight}
       headingHeight={36}
       selectionMode={selectionMode ?? 'none'}
       showSelectionCheckboxes={selectionMode === 'multiple'}
-      selectedKeys={selectedKeys}
-      onSelectionChange={onSelectionChange}
-      renderEmptyState={emptyState ? () => <>{emptyState}</> : undefined}
-      defaultSortDescriptor={
-        initialSort
-          ? { column: initialSort.column, direction: initialSort.direction }
-          : undefined
-      }
-      onRowAction={
-        onRowAction
-          ? (key: string | number) => {
+      {...(selectedKeys !== undefined ? { selectedKeys } : {})}
+      {...(onSelectionChange !== undefined ? { onSelectionChange } : {})}
+      {...(emptyState !== undefined
+        ? { renderEmptyState: () => <React.Fragment>{emptyState}</React.Fragment> }
+        : {})}
+      {...(initialSort !== undefined
+        ? { defaultSortDescriptor: { column: initialSort.column, direction: initialSort.direction } }
+        : {})}
+      {...(onRowAction !== undefined
+        ? {
+            onRowAction: (key: string | number) => {
               const row = rowsRef.current.find((r) => String(rowId(r)) === String(key))
               if (row) onRowActionRef.current?.(row)
-            }
-          : undefined
-      }
+            },
+          }
+        : {})}
     />
   )
 

@@ -12,12 +12,12 @@ import type { GivePack } from '../../../api/client'
 import { ActionBar, Icon, LoadingState, NumberInput } from '../../../dune-ui'
 import { ItemDetailCard } from '../../../components/ItemDetailCard'
 import { ItemOptionRow } from '../../../components/ItemOptionRow'
-import { iconUrl, categoryColor } from '../../../utils/icons'
 import { itemDataSyncAtom } from '../../../data/store'
-import type { ItemEntry } from '../../../data/store'
 import { retainSkippedStaged } from './giveItemsHelpers'
 import { ManagePacksModal } from '../modals/ManagePacksModal'
-import type { GiveItemsViewProps, GiveResult, StagedItem } from './types'
+import { StagedItemCell } from './StagedItemCell'
+import type { GiveItemsViewProps } from './interfaces'
+import type { GiveResult, StagedItem } from './types'
 
 export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
   const { t } = useTranslation()
@@ -39,7 +39,7 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
   const keyCounter = React.useRef(0)
   const nextKey = () => String(keyCounter.current++)
 
-  const loadData = React.useCallback(() => {
+  const loadData = (): void => {
     setLoading(true)
     setQuery('')
     setSelected('')
@@ -57,33 +57,29 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [])
+  }
 
   React.useEffect(() => {
     void Promise.resolve().then(() => loadData())
-  }, [player.id, loadData])
+  }, [player.id])
 
-  const nameMap = React.useMemo(() => new Map(templates.map((tpl) => [tpl.id, tpl.name])), [templates])
+  const nameMap = new Map(templates.map((tpl) => [tpl.id, tpl.name]))
 
-  const filtered = React.useMemo(() => {
-    if (!query) return []
-    const q = query.toLowerCase()
-    return templates
-      .filter((tpl) => tpl.id.toLowerCase().includes(q) || tpl.name.toLowerCase().includes(q))
-      .slice(0, 100)
-  }, [templates, query])
+  const _gvq = query.toLowerCase()
+  const filtered = !query
+    ? []
+    : templates
+        .filter((tpl) => tpl.id.toLowerCase().includes(_gvq) || tpl.name.toLowerCase().includes(_gvq))
+        .slice(0, 100)
 
-  const groupedPacks = React.useMemo(() => {
-    const groups: Record<string, { id: string, name: string, tier: number }[]> = {}
-    for (const pack of packs) {
-      if (!groups[pack.category]) groups[pack.category] = []
-      groups[pack.category].push({ id: pack.id, name: pack.name, tier: pack.tier })
-    }
-    for (const cat of Object.keys(groups)) {
-      groups[cat].sort((a, b) => a.tier - b.tier)
-    }
-    return groups
-  }, [packs])
+  const groupedPacks: Record<string, { id: string, name: string, tier: number }[]> = {}
+  for (const pack of packs) {
+    if (!groupedPacks[pack.category]) groupedPacks[pack.category] = []
+    groupedPacks[pack.category].push({ id: pack.id, name: pack.name, tier: pack.tier })
+  }
+  for (const cat of Object.keys(groupedPacks)) {
+    groupedPacks[cat].sort((a, b) => a.tier - b.tier)
+  }
 
   const pick = (tpl: { id: string, name: string }) => {
     setSelected(tpl.id)
@@ -232,7 +228,7 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
   }
 
   return (
-    <>
+    <React.Fragment>
       <div className="flex flex-col h-full min-h-0 gap-3">
         <div className="flex items-center gap-2 shrink-0">
           <Select
@@ -461,55 +457,6 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
           </Drawer.Dialog>
         </Drawer.Content>
       </Drawer.Backdrop>
-    </>
-  )
-}
-
-// Sub-component exported so react-refresh treats it as a stable top-level component.
-// Display-only (no picker semantics) — used in DataGrid template column.
-export const StagedItemCell: React.FC<{
-  templateId: string
-  name: string
-  itemData: { items: Record<string, ItemEntry> }
-}> = ({ templateId, name, itemData }) => {
-  const entry = itemData.items[templateId] ?? null
-  const img = iconUrl(templateId, 'thumb')
-  const rarity = entry?.rarity?.toLowerCase()
-
-  return (
-    <div className="flex items-center gap-2 py-0.5">
-      {/* Thumbnail */}
-      <div
-        className="w-6 h-6 shrink-0 rounded flex items-center justify-center overflow-hidden"
-        style={{ background: categoryColor(entry?.category ?? '', entry?.rarity?.toLowerCase(), templateId) }}
-      >
-        <img
-          src={img ?? undefined}
-          alt=""
-          className="w-full h-full object-contain"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = 'none'
-          }}
-        />
-      </div>
-
-      {/* Name + id */}
-      <div className="flex-1 min-w-0">
-        <div className="text-xs truncate text-foreground">{name || templateId}</div>
-        {name && <div className="font-mono text-[10px] text-muted truncate">{templateId}</div>}
-      </div>
-
-      {/* Tier chip */}
-      {!!entry?.tier && entry.tier > 0 && (
-        <Chip size="sm" variant="soft" className="shrink-0">{`T${entry.tier}`}</Chip>
-      )}
-
-      {/* Rarity chip — inline color overrides Chip's internal text color */}
-      {rarity && (
-        <Chip size="sm" variant="soft" className="shrink-0 capitalize" style={{ color: `var(--rarity-${rarity})` }}>
-          {rarity}
-        </Chip>
-      )}
-    </div>
+    </React.Fragment>
   )
 }

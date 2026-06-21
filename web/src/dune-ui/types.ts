@@ -35,7 +35,7 @@ export type DataTableProps<T, K extends string> = {
   /** Rendered when `rows` is empty. */
   'emptyState'?: React.ReactNode
   /** Shows skeleton rows instead of data while true. */
-  'loading'?: boolean
+  'loading'?: boolean | undefined
   /** Number of skeleton rows while loading. Defaults to 5. */
   'skeletonRows'?: number
   /** Called when a row is clicked / activated. */
@@ -58,7 +58,7 @@ export type DataTableProps<T, K extends string> = {
    */
   'rowHeight'?: number
   /** Row selection mode. Defaults to 'none'. */
-  'selectionMode'?: 'none' | 'single' | 'multiple'
+  'selectionMode'?: 'none' | 'single' | 'multiple' | undefined
   /** Controlled selected row keys. */
   'selectedKeys'?: Selection
   /** Callback when selection changes. */
@@ -67,20 +67,11 @@ export type DataTableProps<T, K extends string> = {
   'pageSize'?: number
 }
 
-export interface FieldSelectProps {
-  value: string
-  onChange: (v: string) => void
-  options: string[]
-  className?: string
-  ariaLabel?: string
-  isDisabled?: boolean
-}
-
 export type ConfirmDialogProps = {
   open: boolean
   title: string
   description: React.ReactNode
-  confirmLabel?: string
+  confirmLabel?: string | undefined
   onConfirm: () => void
   onCancel: () => void
 }
@@ -98,7 +89,7 @@ export type IconProps = {
   /** Lucide icon name (without the `lucide:` prefix), e.g. "refresh-cw". */
   name: string
   /** Optional size class — defaults to `size-4` (1rem square). */
-  className?: string
+  className?: string | undefined
 }
 
 export type DropzoneProps = {
@@ -117,35 +108,10 @@ export type DropzoneProps = {
   className?: string
 }
 
-export interface FieldInputProps {
-  value: string
-  onChange: (v: string) => void
-  placeholder?: string
-  type?: 'text' | 'number' | 'password' | 'email' | 'url'
-  className?: string
-  ariaLabel?: string
-  isDisabled?: boolean
-}
-
 export type SectionDividerProps = {
   title: React.ReactNode
   /** Optional action buttons rendered on the right side of the divider. */
   children?: React.ReactNode
-}
-
-export interface NumberInputProps {
-  value: number
-  onChange: (value: number) => void
-  min?: number
-  max?: number
-  step?: number
-  label?: string
-  prefix?: string
-  ariaLabel?: string
-  isDisabled?: boolean
-  className?: string
-  showButtons?: boolean
-  formatOptions?: Intl.NumberFormatOptions
 }
 
 export type LoadingStateProps = {
@@ -154,10 +120,6 @@ export type LoadingStateProps = {
   /** Fill available height with flex-1 (use inside a flex column). */
   fill?: boolean
   className?: string
-}
-
-export interface SectionLabelProps {
-  children: React.ReactNode
 }
 
 export type PageHeaderProps = {

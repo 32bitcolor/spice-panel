@@ -6,7 +6,8 @@ import { Icon as IconifyIcon } from '@iconify/react'
 import { api, getWsBase } from '../api/client'
 import type { LogPod, CheatEntry } from '../api/client'
 import { DataTable, Icon, LoadingState, SideNav, type Column } from '../dune-ui'
-import type { ActiveView, NavKey, CheatKey, LogsTabProps } from './types'
+import type { ActiveView, NavKey, CheatKey } from './types'
+import type { LogsTabProps } from './interfaces'
 
 export const LogsTab: React.FC<LogsTabProps> = ({ control }) => {
   const { t } = useTranslation()
@@ -38,20 +39,20 @@ export const LogsTab: React.FC<LogsTabProps> = ({ control }) => {
   const flushTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null)
   const logContainerRef = React.useRef<HTMLPreElement | null>(null)
 
-  const loadPods = React.useCallback(() => {
+  const loadPods = (): void => {
     Promise.resolve()
       .then(() => setPodsLoading(true))
       .then(() => api.logs.pods())
       .then(setPods)
       .catch((e: unknown) => toast.danger(t('logs.failedToLoad', { message: e instanceof Error ? e.message : String(e) })))
       .finally(() => setPodsLoading(false))
-  }, [t])
+  }
 
   React.useEffect(() => {
     loadPods()
-  }, [loadPods])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const startFlush = React.useCallback(() => {
+  const startFlush = (): void => {
     if (flushTimerRef.current) return
     flushTimerRef.current = setInterval(() => {
       if (linesRef.current.length > 0) {
@@ -62,14 +63,14 @@ export const LogsTab: React.FC<LogsTabProps> = ({ control }) => {
         linesRef.current = []
       }
     }, 200)
-  }, [])
+  }
 
-  const stopFlush = React.useCallback(() => {
+  const stopFlush = (): void => {
     if (flushTimerRef.current) {
       clearInterval(flushTimerRef.current)
       flushTimerRef.current = null
     }
-  }, [])
+  }
 
   React.useEffect(() => {
     if (autoScroll && logContainerRef.current) {
@@ -77,7 +78,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ control }) => {
     }
   }, [displayLines, autoScroll])
 
-  const connectPod = React.useCallback((pod: LogPod) => {
+  const connectPod = (pod: LogPod): void => {
     if (wsRef.current) {
       wsRef.current.close()
       wsRef.current = null
@@ -110,20 +111,20 @@ export const LogsTab: React.FC<LogsTabProps> = ({ control }) => {
         linesRef.current = []
       }
     }
-  }, [startFlush, stopFlush, t])
+  }
 
-  const disconnect = React.useCallback(() => {
+  const disconnect = (): void => {
     if (wsRef.current) {
       wsRef.current.close()
       wsRef.current = null
     }
     stopFlush()
     setConnected(false)
-  }, [stopFlush])
+  }
 
   React.useEffect(() => () => {
     disconnect()
-  }, [disconnect])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const exportLogs = () => {
     const blob = new Blob([displayLines.join('\n')], { type: 'text/plain' })
@@ -190,7 +191,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ control }) => {
       <div className="flex-1 flex flex-col overflow-hidden gap-3 min-h-0">
         {activeView === 'cheats'
           ? (
-              <>
+              <React.Fragment>
                 <div className="flex items-center gap-3 shrink-0">
                   <h3 className="text-base font-semibold text-accent flex-1">{t('logs.antiCheatTitle')}</h3>
                   <span className="text-xs text-muted">
@@ -200,11 +201,11 @@ export const LogsTab: React.FC<LogsTabProps> = ({ control }) => {
                     {cheatsLoading
                       ? <Spinner size="sm" color="current" />
                       : (
-                          <>
+                          <React.Fragment>
                             <Icon name="refresh-cw" />
                             {' '}
                             {t('common.refresh')}
-                          </>
+                          </React.Fragment>
                         )}
                   </Button>
                 </div>
@@ -252,10 +253,10 @@ export const LogsTab: React.FC<LogsTabProps> = ({ control }) => {
                         }}
                       />
                     )}
-              </>
+              </React.Fragment>
             )
           : (
-              <>
+              <React.Fragment>
                 <div className="flex items-center gap-3 shrink-0">
                   <Chip
                     size="sm"
@@ -323,7 +324,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ control }) => {
                         : t('logs.selectFromPanel', { label: itemLabel }))
                     : displayLines.join('\n')}
                 </pre>
-              </>
+              </React.Fragment>
             )}
       </div>
     </div>

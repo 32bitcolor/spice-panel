@@ -6,7 +6,8 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'
 import type { InventoryItem, VehicleRow } from '../../../api/client'
 import { DataTable, Icon, LoadingState, Panel, SectionLabel, type Column } from '../../../dune-ui'
-import type { ItemKey, VehicleKey, InventoryModalProps } from './types'
+import type { InventoryModalProps } from './interfaces'
+import type { ItemKey, VehicleKey } from './types'
 
 export const InventoryModal: React.FC<InventoryModalProps> = ({ player, open, onClose }) => {
   const { t } = useTranslation()
@@ -99,6 +100,22 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({ player, open, on
     }
   }
 
+  const renderRepairButton = (item: InventoryItem): React.ReactNode => {
+    if (item.max_durability === 'N/A') return null
+    return (
+      <Button size="sm" variant="ghost" onPress={() => handleRepair(item)}>
+        {t('players.inventory.repair')}
+      </Button>
+    )
+  }
+
+  const renderVehicleTypeChips = (v: VehicleRow): React.ReactNode => (
+    <div className="flex gap-1">
+      {v.is_backup ? <Chip size="sm" color="accent" variant="soft">{t('players.vehicles.backup')}</Chip> : null}
+      {v.is_recovered ? <Chip size="sm" color="warning" variant="soft">{t('players.vehicles.recovered')}</Chip> : null}
+    </div>
+  )
+
   return (
     <Modal.Backdrop variant="blur" className="bg-linear-to-t from-(--background)/85 via-(--background)/40 to-transparent" isOpen={open} onOpenChange={(v) => !v && onClose()}>
       <Modal.Container size="cover" scroll="outside">
@@ -172,9 +189,7 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({ player, open, on
                             case 'actions':
                               return (
                                 <div className="flex gap-1">
-                                  {i.max_durability !== 'N/A' && (
-                                    <Button size="sm" variant="ghost" onPress={() => handleRepair(i)}>{t('players.inventory.repair')}</Button>
-                                  )}
+                                  {renderRepairButton(i)}
                                   <Button isIconOnly size="sm" variant="danger-soft" aria-label={t('common.delete')} onPress={() => handleDelete(i.id)}><Icon name="trash" /></Button>
                                 </div>
                               )
@@ -225,12 +240,7 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({ player, open, on
                               )
                             case 'name': return <span className="text-muted">{v.vehicle_name || '–'}</span>
                             case 'type':
-                              return (
-                                <div className="flex gap-1">
-                                  {v.is_backup && <Chip size="sm" color="accent" variant="soft">{t('players.vehicles.backup')}</Chip>}
-                                  {v.is_recovered && <Chip size="sm" color="warning" variant="soft">{t('players.vehicles.recovered')}</Chip>}
-                                </div>
-                              )
+                              return renderVehicleTypeChips(v)
                             case 'actions':
                               return !v.is_backup
                                 ? (

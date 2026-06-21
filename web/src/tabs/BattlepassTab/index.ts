@@ -1,0 +1,1 @@
+export { BattlepassTab } from './BattlepassTab'

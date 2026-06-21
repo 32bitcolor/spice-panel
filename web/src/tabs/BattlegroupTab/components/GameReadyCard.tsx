@@ -6,7 +6,7 @@ import type { BGInfo, ServerRow } from '../types'
 import { allServersReady } from '../helpers'
 import { HealthCard } from './HealthCard'
 
-type GameReadyCardProps = { bg?: BGInfo, servers: ServerRow[], loading?: boolean }
+type GameReadyCardProps = { bg?: BGInfo | undefined, servers: ServerRow[], loading?: boolean | undefined }
 
 export const GameReadyCard: React.FC<GameReadyCardProps> = ({ bg, servers, loading }) => {
   const { t } = useTranslation()

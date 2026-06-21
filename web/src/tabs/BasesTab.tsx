@@ -6,7 +6,8 @@ import { api, ApiError } from '../api/client'
 import type { BaseRow } from '../api/client'
 import { DataTable, Icon, PageHeader, type Column } from '../dune-ui'
 import { usePermissions } from '../hooks/usePermissions'
-import type { BasesTabKey, BasesTabProps } from './types'
+import type { BasesTabKey } from './types'
+import type { BasesTabProps } from './interfaces'
 
 export const BasesTab: React.FC<BasesTabProps> = ({ isSignedIn = true }) => {
   const { t } = useTranslation()
@@ -24,7 +25,7 @@ export const BasesTab: React.FC<BasesTabProps> = ({ isSignedIn = true }) => {
     { key: 'actions', label: '', width: 120, sortable: false },
   ]
 
-  const load = React.useCallback(() => {
+  const load = (): void => {
     Promise.resolve()
       .then(() => {
         setLoading(true)
@@ -37,11 +38,11 @@ export const BasesTab: React.FC<BasesTabProps> = ({ isSignedIn = true }) => {
         else toast.danger(t('bases.failedToLoad', { message: e instanceof Error ? e.message : String(e) }))
       })
       .finally(() => setLoading(false))
-  }, [t])
+  }
 
   React.useEffect(() => {
     load()
-  }, [load])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="flex flex-col h-full gap-3 min-h-0">
@@ -69,11 +70,11 @@ export const BasesTab: React.FC<BasesTabProps> = ({ isSignedIn = true }) => {
                 <Spinner size="sm" color="current" />
               )
             : (
-                <>
+                <React.Fragment>
                   <Icon name="refresh-cw" />
                   {' '}
                   {t('common.refresh')}
-                </>
+                </React.Fragment>
               )}
         </Button>
       </PageHeader>

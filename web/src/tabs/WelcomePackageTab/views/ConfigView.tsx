@@ -41,11 +41,11 @@ export const ConfigView: React.FC<ConfigViewProps> = ({
           {loading
             ? <Spinner size="sm" color="current" />
             : (
-                <>
+                <React.Fragment>
                   <Icon name="refresh-cw" />
                   {' '}
                   {t('common.refresh')}
-                </>
+                </React.Fragment>
               )}
         </Button>
       </PageHeader>
@@ -273,22 +273,22 @@ export const ConfigView: React.FC<ConfigViewProps> = ({
             {saving
               ? <Spinner size="sm" color="current" />
               : (
-                  <>
+                  <React.Fragment>
                     <Icon name="save" />
                     {' '}
                     {t('welcome.saveConfig')}
-                  </>
+                  </React.Fragment>
                 )}
           </Button>
           <Button size="sm" variant="outline" onPress={() => setConfirmRun(true)} isDisabled={running}>
             {running
               ? <Spinner size="sm" color="current" />
               : (
-                  <>
+                  <React.Fragment>
                     <Icon name="play" />
                     {' '}
                     {t('welcome.runNow')}
-                  </>
+                  </React.Fragment>
                 )}
           </Button>
           <DiffStatus diff={configDiff} />

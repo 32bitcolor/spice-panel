@@ -8,7 +8,7 @@ import { SectionLabel } from '../../../../../dune-ui'
 import { api } from '../../../../../api/client'
 import { busyAtom, contractCatalogAtom, contractCatalogLoadedAtom, contractCatalogErrorAtom, nodesLoadedAtom } from '../store'
 import { useRun } from '../hooks/useActions'
-import type { ContractsSectionProps } from './types'
+import type { ContractsSectionProps } from './interfaces'
 
 export const ContractsSection: React.FC<ContractsSectionProps> = ({ player }) => {
   const { t } = useTranslation()
@@ -57,6 +57,50 @@ export const ContractsSection: React.FC<ContractsSectionProps> = ({ player }) =>
   const handleContractToggle = (id: string, picked: boolean) => {
     setSelectedContracts((prev) =>
       picked ? prev.filter((x) => x !== id) : [...prev, id])
+  }
+
+  const renderContractList = (): React.ReactNode => {
+    const q = contractSearch.trim().toLowerCase()
+    const matches = contractCatalog.filter((c) =>
+      q === '' || c.id.toLowerCase().includes(q)
+      || (c.alias && c.alias.toLowerCase().includes(q)))
+    if (matches.length === 0) {
+      return (
+        <EmptyState size="sm">
+          <EmptyState.Header>
+            <EmptyState.Media variant="icon">
+              <IconifyIcon icon="gravity-ui:magnifier" className="size-5" />
+            </EmptyState.Media>
+            <EmptyState.Title>{t('players.actions.contracts.noMatching')}</EmptyState.Title>
+          </EmptyState.Header>
+        </EmptyState>
+      )
+    }
+    return matches.map((c) => {
+      const id = c.alias || c.id
+      const picked = selectedContracts.includes(id)
+      return (
+        <button
+          key={c.id}
+          type="button"
+          onClick={() => handleContractToggle(id, picked)}
+          className={'flex w-full items-center justify-between px-2 py-1 '
+            + 'text-xs font-mono hover:bg-surface '
+            + (picked ? 'bg-surface text-accent' : 'bg-transparent text-foreground')}
+        >
+          <span>
+            {picked ? '✓ ' : '  '}
+            {id}
+          </span>
+          <span className="text-muted">
+            {c.tag_count === 1
+              ? t('players.actions.contracts.tagCount', { count: c.tag_count })
+              : t('players.actions.contracts.tagCountPlural',
+                  { count: c.tag_count })}
+          </span>
+        </button>
+      )
+    })
   }
 
   return (
@@ -135,49 +179,7 @@ export const ContractsSection: React.FC<ContractsSectionProps> = ({ player }) =>
 
       {contractCatalogLoaded && !contractCatalogError && (
         <div className="flex-1 min-h-0 overflow-y-auto rounded border border-border bg-surface-alt">
-          {(() => {
-            const q = contractSearch.trim().toLowerCase()
-            const matches = contractCatalog.filter((c) =>
-              q === '' || c.id.toLowerCase().includes(q)
-              || (c.alias && c.alias.toLowerCase().includes(q)))
-            if (matches.length === 0) {
-              return (
-                <EmptyState size="sm">
-                  <EmptyState.Header>
-                    <EmptyState.Media variant="icon">
-                      <IconifyIcon icon="gravity-ui:magnifier" className="size-5" />
-                    </EmptyState.Media>
-                    <EmptyState.Title>{t('players.actions.contracts.noMatching')}</EmptyState.Title>
-                  </EmptyState.Header>
-                </EmptyState>
-              )
-            }
-            return matches.map((c) => {
-              const id = c.alias || c.id
-              const picked = selectedContracts.includes(id)
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => handleContractToggle(id, picked)}
-                  className={'flex w-full items-center justify-between px-2 py-1 '
-                    + 'text-xs font-mono hover:bg-surface '
-                    + (picked ? 'bg-surface text-accent' : 'bg-transparent text-foreground')}
-                >
-                  <span>
-                    {picked ? '✓ ' : '  '}
-                    {id}
-                  </span>
-                  <span className="text-muted">
-                    {c.tag_count === 1
-                      ? t('players.actions.contracts.tagCount', { count: c.tag_count })
-                      : t('players.actions.contracts.tagCountPlural',
-                          { count: c.tag_count })}
-                  </span>
-                </button>
-              )
-            })
-          })()}
+          {renderContractList()}
         </div>
       )}
     </div>

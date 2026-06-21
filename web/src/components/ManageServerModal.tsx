@@ -5,16 +5,7 @@ import { Icon } from '../dune-ui'
 import { ServerSettingsForm } from './settings/server/ServerSettingsForm'
 import { DeleteServerModal } from './DeleteServerModal'
 import { useActiveServer } from '../context/useActiveServer'
-
-export interface ManageServerModalProps {
-  open: boolean
-  serverId: number
-  /** Whether the session may delete/control servers. */
-  canControl: boolean
-  onClose: () => void
-  /** Called after the server is deleted (so the app can refresh status). */
-  onDeleted?: () => void
-}
+import type { ManageServerModalProps } from './interfaces'
 
 // Per-server settings as a modal overlay (rename + control/SSH/DB/broker/advanced
 // + delete). Keyed by serverId in state — not a route — so the URL never carries
@@ -36,7 +27,7 @@ export const ManageServerModal: React.FC<ManageServerModalProps> = ({
   }
 
   return (
-    <>
+    <React.Fragment>
       <Modal.Backdrop variant="blur" className="bg-linear-to-t from-(--background)/85 via-(--background)/40 to-transparent" isOpen={open} onOpenChange={(v) => !v && onClose()}>
         <Modal.Container size="cover" scroll="outside">
           <Modal.Dialog className="p-10 dialog-surface-alt">
@@ -63,18 +54,18 @@ export const ManageServerModal: React.FC<ManageServerModalProps> = ({
               <Button size="sm" onPress={handleSave} isDisabled={saving}>
                 {saving
                   ? (
-                      <>
+                      <React.Fragment>
                         <Spinner size="sm" color="current" />
                         {' '}
                         {t('common.saving')}
-                      </>
+                      </React.Fragment>
                     )
                   : (
-                      <>
+                      <React.Fragment>
                         <Icon name="save" />
                         {' '}
                         {t('app.saveApply')}
-                      </>
+                      </React.Fragment>
                     )}
               </Button>
               <Button size="sm" variant="tertiary" onPress={onClose}>
@@ -104,6 +95,6 @@ export const ManageServerModal: React.FC<ManageServerModalProps> = ({
         }}
         onCancel={() => setDeleteOpen(false)}
       />
-    </>
+    </React.Fragment>
   )
 }

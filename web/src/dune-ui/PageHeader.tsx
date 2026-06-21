@@ -14,11 +14,11 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, onRefre
         <div className="flex items-center gap-2 shrink-0">
           {children}
           {onRefresh != null && (
-            <Button size="sm" variant="ghost" onPress={onRefresh} isDisabled={loading}>
+            <Button size="sm" variant="ghost" onPress={onRefresh} {...(loading !== undefined ? { isDisabled: loading } : {})}>
               {loading
                 ? <Spinner size="sm" color="current" />
                 : (
-                    <>
+                    <React.Fragment>
                       {countdown != null && (
                         <span className="w-7 text-right tabular-nums text-muted/60 text-xs">
                           {countdown}
@@ -26,7 +26,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, onRefre
                         </span>
                       )}
                       <Icon name="refresh-cw" />
-                    </>
+                    </React.Fragment>
                   )}
             </Button>
           )}

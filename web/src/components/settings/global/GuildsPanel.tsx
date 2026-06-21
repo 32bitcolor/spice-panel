@@ -30,7 +30,7 @@ export const GuildsPanel: React.FC = () => {
 
   const selectionCount = selectedKeys === 'all' ? guilds.length : (selectedKeys as Set<string>).size
 
-  const load = React.useCallback(() => {
+  const load = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => Promise.all([api.discord.guilds.list(), api.discord.servers.list(), api.servers.list()]))
@@ -42,11 +42,11 @@ export const GuildsPanel: React.FC = () => {
       .catch((e: unknown) =>
         toast.danger(t('discordGuilds.loadFailed', { message: e instanceof Error ? e.message : String(e) })))
       .finally(() => setLoading(false))
-  }, [t])
+  }
 
   React.useEffect(() => {
     load()
-  }, [load])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const openAdd = () => {
     setEditing(null)
@@ -99,7 +99,7 @@ export const GuildsPanel: React.FC = () => {
   ]
 
   return (
-    <>
+    <React.Fragment>
       <div className="flex flex-col h-full gap-3 min-h-0">
         <PageHeader title={t('discordGuilds.title')} subtitle={t('discordGuilds.subtitle')}>
           <Button size="sm" variant="ghost" onPress={load} isDisabled={loading}>
@@ -219,6 +219,6 @@ export const GuildsPanel: React.FC = () => {
           </Button>
         </ActionBar.Suffix>
       </ActionBar>
-    </>
+    </React.Fragment>
   )
 }

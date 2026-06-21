@@ -1,12 +1,12 @@
 import * as React from 'react'
 import { useMap } from 'react-leaflet'
 import { IMAGE_BOUNDS } from '../constants'
-import type { FitBoundsControllerProps } from '../types'
+import type { FitBoundsControllerProps } from '../interfaces'
 
-export const FitBoundsController: React.FC<FitBoundsControllerProps> = ({ fitRef }) => {
+export const FitBoundsController: React.FC<FitBoundsControllerProps> = ({ onRegisterFit }) => {
   const map = useMap()
   React.useEffect(() => {
-    fitRef.current = () => map.fitBounds(IMAGE_BOUNDS, { animate: true })
-  }, [map, fitRef])
+    onRegisterFit(() => map.fitBounds(IMAGE_BOUNDS, { animate: true }))
+  }, [onRegisterFit, map])
   return null
 }

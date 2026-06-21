@@ -35,10 +35,10 @@ export const useAutoRefresh = (
     }
   }, [intervalMs, secsTotal])
 
-  const refresh = React.useCallback(() => {
+  const refresh = (): void => {
     fnRef.current()
     setCountdown(secsTotal)
-  }, [secsTotal])
+  }
 
   return { countdown, refresh }
 }

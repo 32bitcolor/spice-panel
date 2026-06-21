@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Button, Modal, Spinner } from '@heroui/react'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../dune-ui'
+import type { UpdateProgressModalProps } from './app/interfaces'
 
 export type UpdatePhase
   = 'downloading'
@@ -12,13 +13,6 @@ export type UpdatePhase
     | 'waitingLong'
     | 'ready'
     | 'error'
-
-interface Props {
-  isOpen: boolean
-  phase: UpdatePhase
-  errorMessage?: string
-  onDismiss?: () => void
-}
 
 const PHASE_ORDER: UpdatePhase[] = [
   'downloading',
@@ -35,10 +29,26 @@ const phaseIndex = (phase: UpdatePhase): number => {
   return PHASE_ORDER.indexOf(phase)
 }
 
-export const UpdateProgressModal: React.FC<Props> = ({ isOpen, phase, errorMessage, onDismiss }) => {
+export const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({ isOpen, phase, errorMessage, onDismiss }) => {
   const { t } = useTranslation()
   const isError = phase === 'error'
   const currentIndex = phaseIndex(phase)
+
+  const renderDismissFooter = (): React.ReactNode => {
+    if (!onDismiss) return null
+    return (
+      <Modal.Footer className="flex justify-end">
+        <Button
+          size="sm"
+          variant="ghost"
+          onPress={onDismiss}
+          isDisabled={!isError && phase !== 'waitingLong' && phase !== 'ready'}
+        >
+          {t('app.updateProgress.dismiss')}
+        </Button>
+      </Modal.Footer>
+    )
+  }
 
   return (
     <Modal.Backdrop
@@ -103,18 +113,7 @@ export const UpdateProgressModal: React.FC<Props> = ({ isOpen, phase, errorMessa
             )}
           </Modal.Body>
 
-          {onDismiss && (
-            <Modal.Footer className="flex justify-end">
-              <Button
-                size="sm"
-                variant="ghost"
-                onPress={onDismiss}
-                isDisabled={!isError && phase !== 'waitingLong' && phase !== 'ready'}
-              >
-                {t('app.updateProgress.dismiss')}
-              </Button>
-            </Modal.Footer>
-          )}
+          {renderDismissFooter()}
         </Modal.Dialog>
       </Modal.Container>
     </Modal.Backdrop>

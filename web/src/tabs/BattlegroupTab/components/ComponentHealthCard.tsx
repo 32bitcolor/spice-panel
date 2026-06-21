@@ -7,7 +7,12 @@ import { phaseColor, bgUptimeSeconds } from '../helpers'
 import { formatUptime } from '../uptime'
 import { HealthCard } from './HealthCard'
 
-type ComponentHealthCardProps = { bg?: BGInfo, servers: ServerRow[], status: Status | null, loading?: boolean }
+type ComponentHealthCardProps = {
+  bg?: BGInfo | undefined
+  servers: ServerRow[]
+  status: Status | null
+  loading?: boolean | undefined
+}
 
 export const ComponentHealthCard: React.FC<ComponentHealthCardProps> = ({ bg, servers, status, loading }) => {
   const { t } = useTranslation()

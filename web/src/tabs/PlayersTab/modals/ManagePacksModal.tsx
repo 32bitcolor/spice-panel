@@ -7,7 +7,9 @@ import { useTranslation } from 'react-i18next'
 import { Icon, NumberInput, ActionBar } from '../../../dune-ui'
 import { api } from '../../../api/client'
 import type { GivePack, GivePackItem } from '../../../api/client'
-import type { ManagePacksModalProps, PackDiff, KeyedItem, KeyedPack } from './types'
+import type { ManagePacksModalProps } from './interfaces'
+import type { PackDiff, KeyedItem, KeyedPack } from './types'
+import { DiffStatus } from './DiffStatus'
 
 const stripKey = ({ template, qty, quality }: KeyedItem): GivePackItem => {
   return { template, qty, quality }
@@ -15,24 +17,6 @@ const stripKey = ({ template, qty, quality }: KeyedItem): GivePackItem => {
 
 const stripPackKeys = (pack: KeyedPack): GivePack => {
   return { ...pack, items: pack.items.map(stripKey) }
-}
-
-const DiffStatus: React.FC<{ diff: PackDiff }> = ({ diff }) => {
-  const parts: { key: string, text: string, cls: string }[] = []
-  if (diff.added > 0) parts.push({ key: 'added', text: `${diff.added} added`, cls: 'text-success' })
-  if (diff.updated > 0) parts.push({ key: 'updated', text: `${diff.updated} updated`, cls: 'text-warning' })
-  if (diff.removed > 0) parts.push({ key: 'removed', text: `${diff.removed} removed`, cls: 'text-danger' })
-  if (parts.length === 0) return null
-  return (
-    <span className="text-xs flex items-center gap-1">
-      {parts.map((p, i) => (
-        <span key={p.key} className="flex items-center gap-1">
-          {i > 0 && <span className="text-muted">·</span>}
-          <span className={p.cls}>{p.text}</span>
-        </span>
-      ))}
-    </span>
-  )
 }
 
 export const ManagePacksModal: React.FC<ManagePacksModalProps> = ({
@@ -62,7 +46,7 @@ export const ManagePacksModal: React.FC<ManagePacksModalProps> = ({
   const keyCounter = React.useRef(0)
   const nextKey = () => String(keyCounter.current++)
 
-  const loadPacks = React.useCallback(() => {
+  const loadPacks = (): void => {
     setLoading(true)
     api.givePacks.config()
       .then((cfg) => {
@@ -77,12 +61,12 @@ export const ManagePacksModal: React.FC<ManagePacksModalProps> = ({
       })
       .catch((e) => toast.danger(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false))
-  }, [])
+  }
 
   React.useEffect(() => {
     if (!isOpen) return
     void Promise.resolve().then(loadPacks)
-  }, [isOpen, loadPacks])
+  }, [isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const packsRef = React.useRef(packs)
   React.useEffect(() => {
@@ -107,34 +91,32 @@ export const ManagePacksModal: React.FC<ManagePacksModalProps> = ({
     }
   }, [selectedID])
 
-  const nameMap = React.useMemo(() => new Map(templates.map((tpl) => [tpl.id, tpl.name])), [templates])
+  const nameMap = new Map(templates.map((tpl) => [tpl.id, tpl.name]))
 
-  const sortedPacks = React.useMemo(
-    () => [...packs].sort((a, b) => a.category.localeCompare(b.category) || a.tier - b.tier),
-    [packs],
-  )
+  const sortedPacks = [...packs].sort((a, b) => a.category.localeCompare(b.category) || a.tier - b.tier)
 
-  const groupedPacks = React.useMemo(() => {
-    const groups: Record<string, KeyedPack[]> = {}
-    for (const p of sortedPacks) {
-      if (!groups[p.category]) groups[p.category] = []
-      groups[p.category].push(p)
-    }
-    return Object.entries(groups)
-  }, [sortedPacks])
+  const _packGroups: Record<string, KeyedPack[]> = {}
+  for (const p of sortedPacks) {
+    if (!_packGroups[p.category]) _packGroups[p.category] = []
+    _packGroups[p.category].push(p)
+  }
+  const groupedPacks = Object.entries(_packGroups)
 
-  const packDiff = React.useMemo((): PackDiff => {
-    const savedIds = new Set(savedPacks.map((p) => p.id))
-    const currentIds = new Set(packs.map((p) => p.id))
-    const savedMap = new Map(savedPacks.map((p) => [p.id, p]))
-    const added = packs.filter((p) => !savedIds.has(p.id)).length
-    const removed = savedPacks.filter((p) => !currentIds.has(p.id)).length
-    const updated = packs.filter((p) => {
-      if (!savedIds.has(p.id)) return false
-      return JSON.stringify(stripPackKeys(p)) !== JSON.stringify(savedMap.get(p.id))
-    }).length
-    return { added, updated, removed, isDirty: added + updated + removed > 0 }
-  }, [packs, savedPacks])
+  const _savedIds = new Set(savedPacks.map((p) => p.id))
+  const _currentIds = new Set(packs.map((p) => p.id))
+  const _savedMap = new Map(savedPacks.map((p) => [p.id, p]))
+  const _added = packs.filter((p) => !_savedIds.has(p.id)).length
+  const _removed = savedPacks.filter((p) => !_currentIds.has(p.id)).length
+  const _updated = packs.filter((p) => {
+    if (!_savedIds.has(p.id)) return false
+    return JSON.stringify(stripPackKeys(p)) !== JSON.stringify(_savedMap.get(p.id))
+  }).length
+  const packDiff: PackDiff = {
+    added: _added,
+    updated: _updated,
+    removed: _removed,
+    isDirty: _added + _updated + _removed > 0,
+  }
 
   const selectedPack = packs.find((p) => p.id === selectedID)
   const items: KeyedItem[] = selectedPack?.items ?? []
@@ -143,13 +125,12 @@ export const ManagePacksModal: React.FC<ManagePacksModalProps> = ({
     setPacks(packs.map((p) => (p.id === selectedID ? { ...p, items: next } : p)))
   }
 
-  const addFiltered = React.useMemo(() => {
-    if (!addQuery) return []
-    const q = addQuery.toLowerCase()
-    return templates
-      .filter((tpl) => tpl.id.toLowerCase().includes(q) || tpl.name.toLowerCase().includes(q))
-      .slice(0, 100)
-  }, [templates, addQuery])
+  const _aq = addQuery.toLowerCase()
+  const addFiltered = !addQuery
+    ? []
+    : templates
+        .filter((tpl) => tpl.id.toLowerCase().includes(_aq) || tpl.name.toLowerCase().includes(_aq))
+        .slice(0, 100)
 
   const pickTemplate = (tpl: { id: string, name: string }) => {
     setAddSelected(tpl.id)

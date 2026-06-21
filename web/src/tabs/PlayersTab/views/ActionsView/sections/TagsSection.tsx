@@ -10,7 +10,7 @@ import { AddTagsPanel } from '../components/AddTagsPanel'
 import { api } from '../../../../../api/client'
 import { busyAtom } from '../store'
 import { useRun } from '../hooks/useActions'
-import type { TagsSectionProps } from './types'
+import type { TagsSectionProps } from './interfaces'
 
 export const TagsSection: React.FC<TagsSectionProps> = ({ player }) => {
   const { t } = useTranslation()
@@ -77,7 +77,7 @@ export const TagsSection: React.FC<TagsSectionProps> = ({ player }) => {
           onAdd={(tag) => setPendingTags((prev) => [...prev, tag])}
         />
         {pendingTags.length > 0 && (
-          <>
+          <React.Fragment>
             <div className="flex flex-col gap-1 mt-1">
               {pendingTags.map((tag) => (
                 <div
@@ -100,7 +100,7 @@ export const TagsSection: React.FC<TagsSectionProps> = ({ player }) => {
             <Button size="sm" isDisabled={busy} onPress={handleAddTags}>
               {t('players.actions.tags.addCount', { count: pendingTags.length })}
             </Button>
-          </>
+          </React.Fragment>
         )}
       </div>
 

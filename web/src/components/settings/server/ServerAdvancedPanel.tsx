@@ -1,70 +1,20 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@heroui/react'
-import type { AppConfig } from '../../../api/client'
 import { Icon, Panel, SectionLabel } from '../../../dune-ui'
 import { FieldRow } from '../fields/FieldRow'
 import { TextInput } from '../fields/TextInput'
-import { CheckboxField } from '../fields/CheckboxField'
 import { TwoColumnGrid } from '../fields/TwoColumnGrid'
+import { MarketBotPanel } from './MarketBotPanel'
+import { PathsPanel } from './PathsPanel'
+import type { ServerAdvancedPanelProps } from './interfaces'
 
 // Three rendering variants for the per-server "advanced" surface:
 //  - 'add'        add-server wizard step: market bot only (per-server only)
 //  - 'first-run'  first-run wizard step: listen+director, paths, market bot,
 //                 backend-URL override (no apply/reset — wizard hides them)
 //  - 'manage'     settings/manage tab: director, paths, market bot, danger zone
-export type ServerAdvancedVariant = 'add' | 'first-run' | 'manage'
-
-export interface ServerAdvancedPanelProps {
-  variant: ServerAdvancedVariant
-  cfg: AppConfig
-  set: (key: keyof AppConfig) => (v: string) => void
-  setBool: (key: keyof AppConfig) => (v: boolean) => void
-  backendUrl: string
-  setBackendUrl: (v: string) => void
-  activeName: string
-  onRequestDeleteServer?: () => void
-}
-
-interface MarketBotPanelProps {
-  cfg: AppConfig
-  setBool: (key: keyof AppConfig) => (v: boolean) => void
-}
-
-const MarketBotPanel: React.FC<MarketBotPanelProps> = ({ cfg, setBool }) => {
-  const { t } = useTranslation()
-  return (
-    <Panel>
-      <SectionLabel>{t('settings.sections.marketBot', 'Market Bot')}</SectionLabel>
-      <CheckboxField
-        label={t('settings.marketBot.enabled', 'Enable market bot for this server')}
-        hint={t('settings.marketBot.enabledHint', 'Runs the embedded market bot against this server. Tuning is shared across servers and lives in the Market tab.')}
-        checked={cfg.market_bot_enabled}
-        onChange={setBool('market_bot_enabled')}
-      />
-    </Panel>
-  )
-}
-
-const PathsPanel: React.FC<{ cfg: AppConfig, set: (key: keyof AppConfig) => (v: string) => void }> = ({ cfg, set }) => {
-  const { t } = useTranslation()
-  return (
-    <Panel>
-      <SectionLabel>{t('settings.sections.paths')}</SectionLabel>
-      <TwoColumnGrid>
-        <FieldRow label={t('settings.adv.backupDir')}>
-          <TextInput value={cfg.backup_dir} onChange={set('backup_dir')} placeholder="/path/to/backups" />
-        </FieldRow>
-        <FieldRow label={t('settings.adv.serverIniDir')} hint={t('settings.adv.serverIniDirHint')}>
-          <TextInput value={cfg.server_ini_dir} onChange={set('server_ini_dir')} placeholder="/path/to/server/state" />
-        </FieldRow>
-        <FieldRow label={t('settings.adv.defaultIniDir')} hint={t('settings.adv.defaultIniDirHint')}>
-          <TextInput value={cfg.default_ini_dir} onChange={set('default_ini_dir')} placeholder="/path/to/game/Config" />
-        </FieldRow>
-      </TwoColumnGrid>
-    </Panel>
-  )
-}
+export type { ServerAdvancedVariant } from './types'
 
 export const ServerAdvancedPanel: React.FC<ServerAdvancedPanelProps> = ({
   variant, cfg, set, setBool, backendUrl, setBackendUrl, activeName, onRequestDeleteServer,
