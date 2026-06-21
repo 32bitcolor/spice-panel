@@ -1,6 +1,6 @@
 import * as React from 'react'
 import {
-  Button, Chip, Drawer, Header, ListBox, SearchField, Select, Separator, Spinner, TextField, toast,
+  Button, Chip, Header, ListBox, SearchField, Select, Separator, Spinner, TextField, toast,
 } from '@heroui/react'
 import type { Selection } from '@heroui/react'
 import type { DataGridColumn } from '@heroui-pro/react'
@@ -10,12 +10,12 @@ import { useAtomValue } from 'jotai'
 import { api } from '../../../api/client'
 import type { GivePack } from '../../../api/client'
 import { ActionBar, Icon, LoadingState, NumberInput } from '../../../dune-ui'
-import { ItemDetailCard } from '../../../components/ItemDetailCard'
+import { ItemDetailDrawer } from '../../../components/ItemDetailDrawer'
 import { ItemOptionRow } from '../../../components/ItemOptionRow'
+import { StagedItemCell } from '../../../components/StagedItemCell'
 import { itemDataSyncAtom } from '../../../data/store'
 import { retainSkippedStaged } from './giveItemsHelpers'
 import { ManagePacksModal } from '../modals/ManagePacksModal'
-import { StagedItemCell } from './StagedItemCell'
 import type { GiveItemsViewProps } from './interfaces'
 import type { GiveResult, StagedItem } from './types'
 
@@ -159,7 +159,7 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
       minWidth: 200,
       allowsResizing: true,
       cell: (item) => (
-        <StagedItemCell templateId={item.template} name={nameMap.get(item.template) || ''} itemData={itemData} />
+        <StagedItemCell templateId={item.template} name={nameMap.get(item.template) || ''} entry={itemData.items[item.template] ?? null} />
       ),
     },
     {
@@ -429,34 +429,11 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
         templates={templates}
       />
 
-      {/* Item detail drawer */}
-      <Drawer.Backdrop
-        variant="opaque"
-        isOpen={!!detailId}
-        onOpenChange={(v) => !v && setDetailId(null)}
-      >
-        <Drawer.Content placement="right">
-          <Drawer.Dialog className="w-[480px] max-w-[95vw] flex flex-col">
-            <Drawer.Header>
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-border w-full">
-                <Drawer.Heading className="font-semibold text-sm text-accent truncate flex-1">
-                  {detailId ? (nameMap.get(detailId) || detailId) : ''}
-                </Drawer.Heading>
-                <Drawer.CloseTrigger />
-              </div>
-            </Drawer.Header>
-            <Drawer.Body className="flex flex-col gap-3 p-3 overflow-y-auto">
-              {detailId && (
-                <ItemDetailCard
-                  templateId={detailId}
-                  name={nameMap.get(detailId)}
-                  entry={itemData.items[detailId] ?? null}
-                />
-              )}
-            </Drawer.Body>
-          </Drawer.Dialog>
-        </Drawer.Content>
-      </Drawer.Backdrop>
+      <ItemDetailDrawer
+        templateId={detailId}
+        name={detailId !== null ? nameMap.get(detailId) : undefined}
+        onClose={() => setDetailId(null)}
+      />
     </React.Fragment>
   )
 }

@@ -6,10 +6,14 @@ import {
 import type { Selection } from '@heroui/react'
 import { EmptyState } from '@heroui-pro/react'
 import { Icon as IconifyIcon } from '@iconify/react'
+import { useAtomValue } from 'jotai'
 import { api } from '../../api/client'
 import type { InventoryItem } from '../../api/client'
 import { ActionBar, DataTable, Icon, LoadingState, PageHeader, SideNav, type Column } from '../../dune-ui'
 import { usePermissions } from '../../hooks/usePermissions'
+import { ItemDetailDrawer } from '../../components/ItemDetailDrawer'
+import { ItemIcon } from '../../components/ItemIcon'
+import { itemDataSyncAtom } from '../../data/store'
 import { AddItemsModal } from './components/AddItemsModal'
 import type { Container, ItemKey } from './types'
 
@@ -35,7 +39,7 @@ export const StorageTab: React.FC = () => {
     { key: 'stack_size', label: t('storage.columns.stack'), width: 100 },
     { key: 'quality', label: t('storage.columns.quality'), width: 100 },
     { key: 'durability', label: t('storage.columns.durability'), width: 130 },
-    { key: 'actions', label: '', width: 52, sortable: false },
+    { key: 'actions', label: '', width: 88, sortable: false },
   ]
   const ITEM_COLUMNS = ALL_ITEM_COLUMNS.filter((c) => canWorldWrite || c.key !== 'actions')
 
@@ -47,6 +51,8 @@ export const StorageTab: React.FC = () => {
   const [showAdd, setShowAdd] = React.useState(false)
   const [search, setSearch] = React.useState('')
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set())
+  const [detailId, setDetailId] = React.useState<string | null>(null)
+  const itemData = useAtomValue(itemDataSyncAtom)
 
   const load = (): void => {
     Promise.resolve()
@@ -225,6 +231,7 @@ export const StorageTab: React.FC = () => {
                           <DataTable<InventoryItem, ItemKey>
                             aria-label={t('storage.ariaLabel')}
                             className="min-h-0 max-h-full"
+                            rowHeight={56}
                             columns={ITEM_COLUMNS}
                             rows={items}
                             rowId={(i) => String(i.id)}
@@ -250,27 +257,48 @@ export const StorageTab: React.FC = () => {
                             renderCell={(i, key) => {
                               switch (key) {
                                 case 'id': return <span className="font-mono text-muted">{i.id}</span>
-                                case 'template':
+                                case 'template': {
+                                  const entry = itemData.items[i.template_id] ?? null
                                   return (
-                                    <span className="inline-flex flex-col">
-                                      <span>{i.name || i.template_id}</span>
-                                      {i.name && <span className="text-xs font-mono text-muted">{i.template_id}</span>}
+                                    <span className="inline-flex items-center gap-2">
+                                      <ItemIcon
+                                        templateId={i.template_id}
+                                        category={entry?.category ?? undefined}
+                                        rarity={entry?.rarity ?? undefined}
+                                        name={i.name || undefined}
+                                      />
+                                      <span className="inline-flex flex-col min-w-0">
+                                        <span className="text-xs font-medium truncate text-foreground">{i.name || i.template_id}</span>
+                                        {i.name && <span className="text-[10px] font-mono text-muted truncate">{i.template_id}</span>}
+                                      </span>
                                     </span>
                                   )
+                                }
                                 case 'stack_size': return <span>{i.stack_size}</span>
                                 case 'quality': return <span>{i.quality}</span>
                                 case 'durability': return <span className="text-muted">{i.durability}</span>
                                 case 'actions':
                                   return (
-                                    <Button
-                                      isIconOnly
-                                      size="sm"
-                                      variant="danger-soft"
-                                      aria-label={t('storage.remove')}
-                                      onPress={() => handleDeleteItem(i.id)}
-                                    >
-                                      <Icon name="trash" />
-                                    </Button>
+                                    <div className="flex items-center gap-1">
+                                      <Button
+                                        isIconOnly
+                                        size="sm"
+                                        variant="ghost"
+                                        aria-label={t('common.info')}
+                                        onPress={() => setDetailId(i.template_id)}
+                                      >
+                                        <Icon name="info" />
+                                      </Button>
+                                      <Button
+                                        isIconOnly
+                                        size="sm"
+                                        variant="danger-soft"
+                                        aria-label={t('storage.remove')}
+                                        onPress={() => handleDeleteItem(i.id)}
+                                      >
+                                        <Icon name="trash" />
+                                      </Button>
+                                    </div>
                                   )
                               }
                             }}
@@ -314,6 +342,11 @@ export const StorageTab: React.FC = () => {
           onRefresh={() => selectContainer(selected)}
         />
       )}
+      <ItemDetailDrawer
+        templateId={detailId}
+        name={detailId !== null ? (items.find((it) => it.template_id === detailId)?.name ?? undefined) : undefined}
+        onClose={() => setDetailId(null)}
+      />
     </div>
   )
 }

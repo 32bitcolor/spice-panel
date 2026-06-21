@@ -1,5 +1,6 @@
 import * as React from 'react'
 import type { AppConfig, Player, ServerConfig } from '../api/client'
+import type { ItemEntry } from '../data/store'
 
 export interface ItemDetailCardRowProps {
   label: string
@@ -128,4 +129,29 @@ export interface RolePickerProps {
   roles: DiscordRole[]
   label: string
   hint?: string | undefined
+}
+
+export interface ItemIconProps {
+  templateId: string
+  category?: string | undefined
+  rarity?: string | undefined
+  /** Used as fallback letter when no CDN icon URL is available. */
+  name?: string | undefined
+  /** Tailwind size classes — defaults to `'w-6 h-6'`. Use `'w-7 h-7'` for search-result rows. */
+  sizeClassName?: string | undefined
+}
+
+export interface StagedItemCellProps {
+  templateId: string
+  /** Display name; pass `''` when unknown — cell falls back to templateId. */
+  name: string
+  entry: ItemEntry | null
+}
+
+export interface ItemDetailDrawerProps {
+  /** The template ID to display; `null` closes the drawer. */
+  templateId: string | null
+  /** Display name shown in the drawer header; falls back to templateId when absent. */
+  name?: string | undefined
+  onClose: () => void
 }

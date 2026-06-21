@@ -11,11 +11,12 @@ import { useAtom, useAtomValue } from 'jotai'
 import { api } from '../../../api/client'
 import { ActionBar, Icon, LoadingState, NumberInput } from '../../../dune-ui'
 import { CategorizedPackPicker } from '../../../components/CategorizedPackPicker'
+import { ItemDetailDrawer } from '../../../components/ItemDetailDrawer'
 import { ItemOptionRow } from '../../../components/ItemOptionRow'
+import { StagedItemCell } from '../../../components/StagedItemCell'
 import { packsSyncAtom, itemDataSyncAtom } from '../../../data/store'
 import type { GiveItemsModalProps } from './interfaces'
 import type { GiveResult, StagedItem } from './types'
-import { ModalStagedItemCell } from './ModalStagedItemCell'
 
 export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, onClose }) => {
   const { t } = useTranslation()
@@ -29,6 +30,7 @@ export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, on
   const [submitting, setSubmitting] = React.useState(false)
   const [result, setResult] = React.useState<GiveResult>(null)
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set())
+  const [detailId, setDetailId] = React.useState<string | null>(null)
   const [packsData] = useAtom(packsSyncAtom)
   const itemData = useAtomValue(itemDataSyncAtom)
 
@@ -140,10 +142,10 @@ export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, on
       minWidth: 200,
       allowsResizing: true,
       cell: (item) => (
-        <ModalStagedItemCell
+        <StagedItemCell
           templateId={item.template}
           name={nameMap.get(item.template) || ''}
-          itemData={itemData}
+          entry={itemData.items[item.template] ?? null}
         />
       ),
     },
@@ -182,196 +184,214 @@ export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, on
     {
       id: 'actions',
       header: '',
-      width: 52,
+      width: 88,
       cell: (item) => (
-        <Button
-          size="sm"
-          variant="danger-soft"
-          isIconOnly
-          onPress={() => removeFromStaged(item._key)}
-          aria-label={t('common.remove')}
-        >
-          <Icon name="trash" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            isIconOnly
+            onPress={() => setDetailId(item.template)}
+            aria-label={t('common.info')}
+          >
+            <Icon name="info" />
+          </Button>
+          <Button
+            size="sm"
+            variant="danger-soft"
+            isIconOnly
+            onPress={() => removeFromStaged(item._key)}
+            aria-label={t('common.remove')}
+          >
+            <Icon name="trash" />
+          </Button>
+        </div>
       ),
     },
   ]
 
   return (
-    <Modal.Backdrop variant="blur" className="bg-linear-to-t from-(--background)/85 via-(--background)/40 to-transparent" isOpen={open} onOpenChange={(v) => !v && onClose()}>
-      <Modal.Container size="cover" scroll="outside">
-        <Modal.Dialog className="p-10">
-          <Modal.CloseTrigger />
-          <Modal.Header>
-            <Modal.Heading className="text-accent">
-              {t('players.give.modalTitle', { name: player.name })}
-            </Modal.Heading>
-          </Modal.Header>
-          <Modal.Body className="flex flex-col gap-3 h-[80vh] min-h-0">
-            {loading
-              ? (
-                  <LoadingState size="sm" />
-                )
-              : (
-                  <React.Fragment>
-                    {/* Load Pack */}
-                    <CategorizedPackPicker
-                      packs={packOptions}
-                      onSelectPack={(id) => {
-                        const pack = packsData.packs[id]
-                        if (pack) {
-                          setStaged((prev) => [
-                            ...prev,
-                            ...pack.items.map((item) => ({ ...item, _key: nextKey() })),
-                          ])
-                        }
-                      }}
-                      className="w-full shrink-0"
-                    />
-
-                    {/* Template + Qty + Quality + Add */}
-                    <div className="flex items-end gap-3 shrink-0">
-                      <TextField className="flex-1 min-w-0" aria-label={t('players.inventory.columns.template')}>
-                        <div className="relative w-full">
-                          <SearchField
-                            className="w-full"
-                            value={query}
-                            onChange={(v) => {
-                              setQuery(v)
-                              setSelected('')
-                            }}
-                          >
-                            <SearchField.Group>
-                              <SearchField.SearchIcon />
-                              <SearchField.Input placeholder={t('players.give.searchTemplates')} />
-                              <SearchField.ClearButton />
-                            </SearchField.Group>
-                          </SearchField>
-                          {filtered.length > 0 && (
-                            <div className="absolute z-50 w-full mt-1 rounded-[var(--radius)] border border-border bg-surface overflow-y-auto max-h-52">
-                              {filtered.map((tpl) => (
-                                <ItemOptionRow
-                                  key={tpl.id}
-                                  id={tpl.id}
-                                  name={tpl.name}
-                                  entry={itemData.items[tpl.id] ?? null}
-                                  onPick={() => pick(tpl)}
-                                />
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </TextField>
-                      <NumberInput
-                        prefix={t('players.give.qty')}
-                        ariaLabel={t('players.give.qty')}
-                        min={1}
-                        value={qty}
-                        onChange={setQty}
-                        className="w-56 shrink-0"
+    <React.Fragment>
+      <Modal.Backdrop variant="blur" className="bg-linear-to-t from-(--background)/85 via-(--background)/40 to-transparent" isOpen={open} onOpenChange={(v) => !v && onClose()}>
+        <Modal.Container size="cover" scroll="outside">
+          <Modal.Dialog className="p-10">
+            <Modal.CloseTrigger />
+            <Modal.Header>
+              <Modal.Heading className="text-accent">
+                {t('players.give.modalTitle', { name: player.name })}
+              </Modal.Heading>
+            </Modal.Header>
+            <Modal.Body className="flex flex-col gap-3 h-[80vh] min-h-0">
+              {loading
+                ? (
+                    <LoadingState size="sm" />
+                  )
+                : (
+                    <React.Fragment>
+                      {/* Load Pack */}
+                      <CategorizedPackPicker
+                        packs={packOptions}
+                        onSelectPack={(id) => {
+                          const pack = packsData.packs[id]
+                          if (pack) {
+                            setStaged((prev) => [
+                              ...prev,
+                              ...pack.items.map((item) => ({ ...item, _key: nextKey() })),
+                            ])
+                          }
+                        }}
+                        className="w-full shrink-0"
                       />
-                      <NumberInput
-                        prefix={t('players.give.quality')}
-                        ariaLabel={t('players.give.quality')}
-                        min={0}
-                        value={quality}
-                        onChange={setQuality}
-                        className="w-56 shrink-0"
-                      />
-                      <Button size="sm" onPress={addToStaged} isDisabled={!selected} className="shrink-0">
-                        <Icon name="plus" />
-                        {' '}
-                        {t('players.give.add')}
-                      </Button>
-                    </div>
 
-                    {/* Quality>0 is a live-state limitation of the game: the item
+                      {/* Template + Qty + Quality + Add */}
+                      <div className="flex items-end gap-3 shrink-0">
+                        <TextField className="flex-1 min-w-0" aria-label={t('players.inventory.columns.template')}>
+                          <div className="relative w-full">
+                            <SearchField
+                              className="w-full"
+                              value={query}
+                              onChange={(v) => {
+                                setQuery(v)
+                                setSelected('')
+                              }}
+                            >
+                              <SearchField.Group>
+                                <SearchField.SearchIcon />
+                                <SearchField.Input placeholder={t('players.give.searchTemplates')} />
+                                <SearchField.ClearButton />
+                              </SearchField.Group>
+                            </SearchField>
+                            {filtered.length > 0 && (
+                              <div className="absolute z-50 w-full mt-1 rounded-[var(--radius)] border border-border bg-surface overflow-y-auto max-h-52">
+                                {filtered.map((tpl) => (
+                                  <ItemOptionRow
+                                    key={tpl.id}
+                                    id={tpl.id}
+                                    name={tpl.name}
+                                    entry={itemData.items[tpl.id] ?? null}
+                                    onPick={() => pick(tpl)}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </TextField>
+                        <NumberInput
+                          prefix={t('players.give.qty')}
+                          ariaLabel={t('players.give.qty')}
+                          min={1}
+                          value={qty}
+                          onChange={setQty}
+                          className="w-56 shrink-0"
+                        />
+                        <NumberInput
+                          prefix={t('players.give.quality')}
+                          ariaLabel={t('players.give.quality')}
+                          min={0}
+                          value={quality}
+                          onChange={setQuality}
+                          className="w-56 shrink-0"
+                        />
+                        <Button size="sm" onPress={addToStaged} isDisabled={!selected} className="shrink-0">
+                          <Icon name="plus" />
+                          {' '}
+                          {t('players.give.add')}
+                        </Button>
+                      </div>
+
+                      {/* Quality>0 is a live-state limitation of the game: the item
                         is written to the DB but only materializes after the player
                         relogs, and may land outside their free inventory slots (#207). */}
-                    {(quality > 0 || staged.some((s) => s.quality > 0)) && (
-                      <div className="shrink-0 flex items-start gap-2 rounded-[var(--radius)] px-3 py-2 bg-surface border border-warning/40 text-xs text-muted">
-                        <Icon name="triangle-alert" className="text-warning shrink-0 mt-0.5" />
-                        <span>{t('players.give.qualityWarning')}</span>
-                      </div>
-                    )}
+                      {(quality > 0 || staged.some((s) => s.quality > 0)) && (
+                        <div className="shrink-0 flex items-start gap-2 rounded-[var(--radius)] px-3 py-2 bg-surface border border-warning/40 text-xs text-muted">
+                          <Icon name="triangle-alert" className="text-warning shrink-0 mt-0.5" />
+                          <span>{t('players.give.qualityWarning')}</span>
+                        </div>
+                      )}
 
-                    {/* Staged items DataGrid */}
-                    {staged.length > 0 && (
-                      <DataGrid
-                        aria-label={t('players.give.modalTitle', { name: player.name })}
-                        columns={columns}
-                        data={staged}
-                        getRowId={(item) => item._key}
-                        selectedKeys={selectedKeys}
-                        selectionMode="multiple"
-                        showSelectionCheckboxes
-                        onSelectionChange={setSelectedKeys}
-                        className="flex-1 min-h-0"
-                        scrollContainerClassName="h-full overflow-y-auto"
-                        allowsColumnResize
-                      />
-                    )}
+                      {/* Staged items DataGrid */}
+                      {staged.length > 0 && (
+                        <DataGrid
+                          aria-label={t('players.give.modalTitle', { name: player.name })}
+                          columns={columns}
+                          data={staged}
+                          getRowId={(item) => item._key}
+                          selectedKeys={selectedKeys}
+                          selectionMode="multiple"
+                          showSelectionCheckboxes
+                          onSelectionChange={setSelectedKeys}
+                          className="flex-1 min-h-0"
+                          scrollContainerClassName="h-full overflow-y-auto"
+                          allowsColumnResize
+                        />
+                      )}
 
-                    {result && (
-                      <div className="text-xs shrink-0 rounded-[var(--radius)] px-3 py-2 bg-surface border border-border">
-                        {result.given.length > 0 && (
-                          <div className="text-success">
-                            {t('players.give.gave')}
-                            {result.given.join(', ')}
-                          </div>
-                        )}
-                        {result.skipped.map((s, i) => (
-                          <div key={i} className="text-danger">
-                            {t('players.give.skipped', { template: s.template, reason: s.reason })}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </React.Fragment>
-                )}
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="tertiary" size="sm" slot="close">{t('common.cancel')}</Button>
-            <Button size="sm" onPress={handleSubmit} isDisabled={submitting || staged.length === 0}>
-              {submitting ? <Spinner size="sm" color="current" /> : <Icon name="gift" />}
-              {' '}
-              {t('players.give.giveCount', { count: staged.length })}
-            </Button>
-          </Modal.Footer>
-          {/* Inside the dialog: outside it, React Aria's modal underlay
+                      {result && (
+                        <div className="text-xs shrink-0 rounded-[var(--radius)] px-3 py-2 bg-surface border border-border">
+                          {result.given.length > 0 && (
+                            <div className="text-success">
+                              {t('players.give.gave')}
+                              {result.given.join(', ')}
+                            </div>
+                          )}
+                          {result.skipped.map((s, i) => (
+                            <div key={i} className="text-danger">
+                              {t('players.give.skipped', { template: s.template, reason: s.reason })}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </React.Fragment>
+                  )}
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="tertiary" size="sm" slot="close">{t('common.cancel')}</Button>
+              <Button size="sm" onPress={handleSubmit} isDisabled={submitting || staged.length === 0}>
+                {submitting ? <Spinner size="sm" color="current" /> : <Icon name="gift" />}
+                {' '}
+                {t('players.give.giveCount', { count: staged.length })}
+              </Button>
+            </Modal.Footer>
+            {/* Inside the dialog: outside it, React Aria's modal underlay
               makes the bar inert (no hover, clicks fall through). */}
-          <ActionBar aria-label={t('players.give.modalTitle', { name: player.name })} isOpen={selectionCount > 0}>
-            <ActionBar.Prefix>
-              <Chip size="sm" className="shrink-0 tabular-nums">{selectionCount}</Chip>
-            </ActionBar.Prefix>
-            <Separator />
-            <ActionBar.Content>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-danger"
-                onPress={handleBulkDelete}
-                aria-label={t('common.deleteSelected')}
-              >
-                <Icon name="trash-2" />
-                <span className="action-bar__label">{t('common.deleteSelected')}</span>
-              </Button>
-            </ActionBar.Content>
-            <Separator />
-            <ActionBar.Suffix>
-              <Button
-                isIconOnly
-                size="sm"
-                variant="ghost"
-                onPress={() => setSelectedKeys(new Set())}
-                aria-label={t('common.clearSelection')}
-              >
-                <Icon name="x" />
-              </Button>
-            </ActionBar.Suffix>
-          </ActionBar>
-        </Modal.Dialog>
-      </Modal.Container>
-    </Modal.Backdrop>
+            <ActionBar aria-label={t('players.give.modalTitle', { name: player.name })} isOpen={selectionCount > 0}>
+              <ActionBar.Prefix>
+                <Chip size="sm" className="shrink-0 tabular-nums">{selectionCount}</Chip>
+              </ActionBar.Prefix>
+              <Separator />
+              <ActionBar.Content>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-danger"
+                  onPress={handleBulkDelete}
+                  aria-label={t('common.deleteSelected')}
+                >
+                  <Icon name="trash-2" />
+                  <span className="action-bar__label">{t('common.deleteSelected')}</span>
+                </Button>
+              </ActionBar.Content>
+              <Separator />
+              <ActionBar.Suffix>
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="ghost"
+                  onPress={() => setSelectedKeys(new Set())}
+                  aria-label={t('common.clearSelection')}
+                >
+                  <Icon name="x" />
+                </Button>
+              </ActionBar.Suffix>
+            </ActionBar>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+      <ItemDetailDrawer
+        templateId={detailId}
+        name={detailId !== null ? nameMap.get(detailId) : undefined}
+        onClose={() => setDetailId(null)}
+      />
+    </React.Fragment>
   )
 }

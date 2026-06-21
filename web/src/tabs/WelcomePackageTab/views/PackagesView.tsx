@@ -9,6 +9,9 @@ import { usePermissions } from '../../../hooks/usePermissions'
 import { itemDataSyncAtom } from '../../../data/store'
 import { ActionBar, Icon, NumberInput, PageHeader } from '../../../dune-ui'
 import type { WelcomePackage } from '../../../api/client'
+import { ItemDetailDrawer } from '../../../components/ItemDetailDrawer'
+import { ItemOptionRow } from '../../../components/ItemOptionRow'
+import { StagedItemCell } from '../../../components/StagedItemCell'
 import { DiffStatus } from '../components/DiffStatus'
 import type { PackagesViewProps, KeyedItem } from './types'
 
@@ -34,6 +37,7 @@ export const PackagesView: React.FC<PackagesViewProps> = ({
   const [addQty, setAddQty] = React.useState(1)
   const [addQuality, setAddQuality] = React.useState(0)
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set())
+  const [detailId, setDetailId] = React.useState<string | null>(null)
 
   const keyCounter = React.useRef(0)
   const nextKey = () => String(keyCounter.current++)
@@ -146,12 +150,11 @@ export const PackagesView: React.FC<PackagesViewProps> = ({
       minWidth: 200,
       allowsResizing: true,
       cell: (item) => (
-        <div className="leading-tight py-0.5">
-          <div className="truncate text-sm">{nameMap.get(item.template) || item.template}</div>
-          {nameMap.get(item.template) && (
-            <div className="font-mono text-[10px] text-muted truncate">{item.template}</div>
-          )}
-        </div>
+        <StagedItemCell
+          templateId={item.template}
+          name={nameMap.get(item.template) || ''}
+          entry={itemData.items[item.template] ?? null}
+        />
       ),
     },
     {
@@ -219,21 +222,30 @@ export const PackagesView: React.FC<PackagesViewProps> = ({
     {
       id: 'actions',
       header: '',
-      width: 52,
+      width: 88,
       cell: (item) => (
-        can('welcome:manage')
-          ? (
-              <Button
-                size="sm"
-                variant="danger-soft"
-                isIconOnly
-                onPress={() => removeItem(item._key)}
-                aria-label={t('welcome.removeItem')}
-              >
-                <Icon name="trash" />
-              </Button>
-            )
-          : null
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            isIconOnly
+            onPress={() => setDetailId(item.template)}
+            aria-label={t('common.info')}
+          >
+            <Icon name="info" />
+          </Button>
+          {can('welcome:manage') && (
+            <Button
+              size="sm"
+              variant="danger-soft"
+              isIconOnly
+              onPress={() => removeItem(item._key)}
+              aria-label={t('welcome.removeItem')}
+            >
+              <Icon name="trash" />
+            </Button>
+          )}
+        </div>
       ),
     },
   ]
@@ -348,21 +360,14 @@ export const PackagesView: React.FC<PackagesViewProps> = ({
             {addFiltered.length > 0 && (
               <div className="absolute z-50 w-full mt-1 rounded-[var(--radius)] border border-border bg-surface overflow-y-auto max-h-52">
                 {addFiltered.map((tpl) => (
-                  <div
+                  <ItemOptionRow
                     key={tpl.id}
-                    className="px-3 py-1.5 text-xs cursor-pointer hover:bg-surface-hover"
-                    onClick={() => pickTemplate(tpl)}
-                  >
-                    <span className="font-mono">{tpl.id}</span>
-                    {tpl.name
-                      ? (
-                          <span className="text-muted">
-                            {' — '}
-                            {tpl.name}
-                          </span>
-                        )
-                      : null}
-                  </div>
+                    id={tpl.id}
+                    name={tpl.name}
+                    entry={itemData.items[tpl.id] ?? null}
+                    onPick={() => pickTemplate(tpl)}
+                    onDetail={() => setDetailId(tpl.id)}
+                  />
                 ))}
               </div>
             )}
@@ -462,6 +467,12 @@ export const PackagesView: React.FC<PackagesViewProps> = ({
           </Button>
         </ActionBar.Suffix>
       </ActionBar>
+
+      <ItemDetailDrawer
+        templateId={detailId}
+        name={detailId !== null ? nameMap.get(detailId) : undefined}
+        onClose={() => setDetailId(null)}
+      />
     </div>
   )
 }

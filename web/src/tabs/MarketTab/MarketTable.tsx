@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { EmptyState } from '@heroui-pro/react'
 import { Icon as IconifyIcon } from '@iconify/react'
 import type { MarketItem } from '../../api/client'
+import { ItemIcon } from '../../components/ItemIcon'
 import { qualityLabel } from '../../utils/icons'
 import type { MarketTableKey, MarketTableProps } from './types'
 
@@ -36,6 +37,7 @@ export const MarketTable: React.FC<MarketTableProps> = ({ items, onSelect }) => 
     <DataTable<MarketItem, MarketTableKey>
       aria-label={t('market.table.ariaLabel')}
       className="min-h-0 max-h-full"
+      rowHeight={56}
       columns={COLUMNS}
       rows={items}
       rowId={(it) => `${it.template_id}:${it.quality}`}
@@ -67,7 +69,20 @@ export const MarketTable: React.FC<MarketTableProps> = ({ items, onSelect }) => 
       renderCell={(it, key) => {
         switch (key) {
           case 'display_name':
-            return <span className="font-medium">{it.display_name || it.template_id}</span>
+            return (
+              <span className="inline-flex items-center gap-2">
+                <ItemIcon
+                  templateId={it.template_id}
+                  category={it.category}
+                  rarity={it.rarity}
+                  name={it.display_name || undefined}
+                />
+                <span className="inline-flex flex-col min-w-0">
+                  <span className="text-xs font-medium truncate text-foreground">{it.display_name || it.template_id}</span>
+                  <span className="font-mono text-[10px] text-muted truncate">{it.template_id}</span>
+                </span>
+              </span>
+            )
           case 'quality':
             return it.quality > 0
               ? <span className="text-xs text-muted">{qualityLabel(it.quality)}</span>

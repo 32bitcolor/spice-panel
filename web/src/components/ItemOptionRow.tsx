@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Chip } from '@heroui/react'
 import { Icon } from '../dune-ui'
-import { iconUrl, categoryColor } from '../utils/icons'
+import { ItemIcon } from './ItemIcon'
 import type { ItemEntry } from '../data/store'
 
 export type ItemOptionRowProps = {
@@ -14,7 +14,6 @@ export type ItemOptionRowProps = {
 }
 
 export const ItemOptionRow: React.FC<ItemOptionRowProps> = ({ id, name, entry, onPick, onDetail }) => {
-  const img = iconUrl(id, 'thumb')
   const rarity = entry?.rarity?.toLowerCase()
 
   return (
@@ -22,28 +21,13 @@ export const ItemOptionRow: React.FC<ItemOptionRowProps> = ({ id, name, entry, o
       className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-surface-hover"
       onClick={onPick}
     >
-      {/* Thumbnail */}
-      <div
-        className="w-7 h-7 shrink-0 rounded flex items-center justify-center overflow-hidden"
-        style={{ background: categoryColor(entry?.category ?? '', entry?.rarity?.toLowerCase(), id) }}
-      >
-        {img
-          ? (
-              <img
-                src={img}
-                alt=""
-                className="w-full h-full object-contain"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = 'none'
-                }}
-              />
-            )
-          : (
-              <span className="text-[10px] text-white/30 font-bold uppercase select-none">
-                {(name || id).charAt(0)}
-              </span>
-            )}
-      </div>
+      <ItemIcon
+        templateId={id}
+        category={entry?.category}
+        rarity={entry?.rarity}
+        name={name || undefined}
+        sizeClassName="w-7 h-7"
+      />
 
       {/* Name + id */}
       <div className="flex-1 min-w-0">

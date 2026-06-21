@@ -4,9 +4,14 @@ import { Button, Chip, Modal, SearchField, Separator, Switch, TextField, toast }
 import type { Selection } from '@heroui/react'
 import type { DataGridColumn } from '@heroui-pro/react'
 import { DataGrid } from '@heroui-pro/react'
+import { useAtomValue } from 'jotai'
 import { api } from '../../../api/client'
 import type { BattlepassSignal, GivePack } from '../../../api/client'
 import { ActionBar, FieldInput, FieldSelect, Icon, NumberInput, SectionLabel } from '../../../dune-ui'
+import { ItemDetailDrawer } from '../../../components/ItemDetailDrawer'
+import { ItemOptionRow } from '../../../components/ItemOptionRow'
+import { StagedItemCell } from '../../../components/StagedItemCell'
+import { itemDataSyncAtom } from '../../../data/store'
 import { ManagePacksModal } from '../../PlayersTab/modals/ManagePacksModal'
 import { CategorizedPackPicker } from '../../../components/CategorizedPackPicker'
 import type { KeyedRewardItem } from '../../EventsTab/interfaces'
@@ -45,6 +50,8 @@ export const TierEditorModal: React.FC<TierEditorModalProps> = ({ isOpen, onClos
   const [selectedTemplate, setSelectedTemplate] = React.useState('')
   const [itemQty, setItemQty] = React.useState(1)
   const [itemQuality, setItemQuality] = React.useState(0)
+  const [detailId, setDetailId] = React.useState<string | null>(null)
+  const itemData = useAtomValue(itemDataSyncAtom)
   const keyCounter = React.useRef(0)
   const nextKey = () => `k${++keyCounter.current}`
 
@@ -199,12 +206,11 @@ export const TierEditorModal: React.FC<TierEditorModalProps> = ({ isOpen, onClos
       minWidth: 200,
       allowsResizing: true,
       cell: (item) => (
-        <div className="leading-tight py-0.5">
-          <div className="truncate text-sm">{nameMap.get(item.template) || item.template}</div>
-          {nameMap.get(item.template) && (
-            <div className="font-mono text-[10px] text-muted truncate">{item.template}</div>
-          )}
-        </div>
+        <StagedItemCell
+          templateId={item.template}
+          name={nameMap.get(item.template) || ''}
+          entry={itemData.items[item.template] ?? null}
+        />
       ),
     },
     {
@@ -242,17 +248,28 @@ export const TierEditorModal: React.FC<TierEditorModalProps> = ({ isOpen, onClos
     {
       id: 'actions',
       header: '',
-      width: 52,
+      width: 88,
       cell: (item) => (
-        <Button
-          size="sm"
-          variant="danger-soft"
-          isIconOnly
-          onPress={() => removeRewardItem(item._key)}
-          aria-label={t('common.remove')}
-        >
-          <Icon name="trash" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            isIconOnly
+            onPress={() => setDetailId(item.template)}
+            aria-label={t('common.info')}
+          >
+            <Icon name="info" />
+          </Button>
+          <Button
+            size="sm"
+            variant="danger-soft"
+            isIconOnly
+            onPress={() => removeRewardItem(item._key)}
+            aria-label={t('common.remove')}
+          >
+            <Icon name="trash" />
+          </Button>
+        </div>
       ),
     },
   ]
@@ -411,19 +428,14 @@ export const TierEditorModal: React.FC<TierEditorModalProps> = ({ isOpen, onClos
                       {filteredTemplates.length > 0 && (
                         <div className="absolute z-[200] w-full mt-1 rounded-[var(--radius)] border border-border bg-surface overflow-y-auto max-h-48">
                           {filteredTemplates.map((tpl) => (
-                            <div
+                            <ItemOptionRow
                               key={tpl.id}
-                              className="px-3 py-1.5 text-xs cursor-pointer hover:bg-surface-hover"
-                              onClick={() => pickTemplate(tpl)}
-                            >
-                              <span className="font-mono">{tpl.id}</span>
-                              {tpl.name && (
-                                <span className="text-muted">
-                                  {' — '}
-                                  {tpl.name}
-                                </span>
-                              )}
-                            </div>
+                              id={tpl.id}
+                              name={tpl.name}
+                              entry={itemData.items[tpl.id] ?? null}
+                              onPick={() => pickTemplate(tpl)}
+                              onDetail={() => setDetailId(tpl.id)}
+                            />
                           ))}
                         </div>
                       )}
@@ -529,6 +541,12 @@ export const TierEditorModal: React.FC<TierEditorModalProps> = ({ isOpen, onClos
           setManagePacksOpen(false)
         }}
         templates={templates}
+      />
+
+      <ItemDetailDrawer
+        templateId={detailId}
+        name={detailId !== null ? nameMap.get(detailId) : undefined}
+        onClose={() => setDetailId(null)}
       />
     </React.Fragment>
   )

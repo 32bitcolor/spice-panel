@@ -4,9 +4,13 @@ import type { Selection } from '@heroui/react'
 import { EmptyState } from '@heroui-pro/react'
 import { Icon as IconifyIcon } from '@iconify/react'
 import { useTranslation } from 'react-i18next'
+import { useAtomValue } from 'jotai'
 import { api } from '../../../api/client'
 import type { InventoryItem } from '../../../api/client'
 import { ActionBar, DataTable, Icon, LoadingState, SectionLabel, type Column } from '../../../dune-ui'
+import { ItemDetailDrawer } from '../../../components/ItemDetailDrawer'
+import { ItemIcon } from '../../../components/ItemIcon'
+import { itemDataSyncAtom } from '../../../data/store'
 import { usePermissions } from '../../../hooks/usePermissions'
 import type { InventoryViewProps } from './interfaces'
 import type { ItemKey } from './types'
@@ -15,9 +19,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ player }) => {
   const { t } = useTranslation()
   const { can } = usePermissions()
   const canPlayersWrite = can('players:write')
+  const itemData = useAtomValue(itemDataSyncAtom)
   const [items, setItems] = React.useState<InventoryItem[]>([])
   const [loading, setLoading] = React.useState(false)
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set())
+  const [detailId, setDetailId] = React.useState<string | null>(null)
 
   const ALL_ITEM_COLUMNS: Column<ItemKey>[] = [
     { key: 'template', label: t('players.inventory.columns.template'), isRowHeader: true },
@@ -134,6 +140,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ player }) => {
       <DataTable<InventoryItem, ItemKey>
         aria-label={t('players.inventory.title')}
         className="min-h-0 max-h-full"
+        rowHeight={56}
         columns={ITEM_COLUMNS}
         rows={items}
         rowId={(i) => String(i.id)}
@@ -162,9 +169,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ player }) => {
           switch (key) {
             case 'template':
               return (
-                <span className="inline-flex flex-col">
-                  <span className="font-semibold">{i.name || i.template_id}</span>
-                  {i.name && <span className="font-mono text-muted text-[10px]">{i.template_id}</span>}
+                <span className="inline-flex items-center gap-2">
+                  <ItemIcon
+                    templateId={i.template_id}
+                    category={itemData.items[i.template_id]?.category}
+                    rarity={itemData.items[i.template_id]?.rarity}
+                    name={i.name || undefined}
+                  />
+                  <span className="inline-flex flex-col min-w-0">
+                    <span className="text-xs truncate text-foreground">{i.name || i.template_id}</span>
+                    {i.name && <span className="font-mono text-muted text-[10px] truncate">{i.template_id}</span>}
+                  </span>
                 </span>
               )
             case 'stack': return <span className="text-muted">{i.stack_size}</span>
@@ -179,6 +194,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ player }) => {
             case 'actions':
               return (
                 <div className="flex gap-1">
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="ghost"
+                    aria-label={t('common.info')}
+                    onPress={() => setDetailId(i.template_id)}
+                  >
+                    <Icon name="info" />
+                  </Button>
                   {i.max_durability !== 'N/A' && (
                     <Button size="sm" variant="ghost" onPress={() => handleRepair(i)}>{t('players.inventory.repair')}</Button>
                   )}
@@ -208,6 +232,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ player }) => {
           </ActionBar.Suffix>
         </ActionBar>
       )}
+
+      <ItemDetailDrawer
+        templateId={detailId}
+        name={detailId !== null ? (items.find((it) => it.template_id === detailId)?.name ?? detailId) : undefined}
+        onClose={() => setDetailId(null)}
+      />
     </div>
   )
 }

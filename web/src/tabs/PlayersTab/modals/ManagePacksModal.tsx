@@ -4,9 +4,14 @@ import type { Selection } from '@heroui/react'
 import type { DataGridColumn } from '@heroui-pro/react'
 import { DataGrid } from '@heroui-pro/react'
 import { useTranslation } from 'react-i18next'
+import { useAtomValue } from 'jotai'
 import { Icon, NumberInput, ActionBar } from '../../../dune-ui'
 import { api } from '../../../api/client'
 import type { GivePack, GivePackItem } from '../../../api/client'
+import { ItemDetailDrawer } from '../../../components/ItemDetailDrawer'
+import { ItemOptionRow } from '../../../components/ItemOptionRow'
+import { StagedItemCell } from '../../../components/StagedItemCell'
+import { itemDataSyncAtom } from '../../../data/store'
 import type { ManagePacksModalProps } from './interfaces'
 import type { PackDiff, KeyedItem, KeyedPack } from './types'
 import { DiffStatus } from './DiffStatus'
@@ -42,6 +47,9 @@ export const ManagePacksModal: React.FC<ManagePacksModalProps> = ({
   const [addSelected, setAddSelected] = React.useState('')
   const [addQty, setAddQty] = React.useState(1)
   const [addQuality, setAddQuality] = React.useState(0)
+  const [detailId, setDetailId] = React.useState<string | null>(null)
+
+  const itemData = useAtomValue(itemDataSyncAtom)
 
   const keyCounter = React.useRef(0)
   const nextKey = () => String(keyCounter.current++)
@@ -232,12 +240,11 @@ export const ManagePacksModal: React.FC<ManagePacksModalProps> = ({
       minWidth: 200,
       allowsResizing: true,
       cell: (item) => (
-        <div className="leading-tight py-0.5">
-          <div className="truncate text-sm">{nameMap.get(item.template) || item.template}</div>
-          {nameMap.get(item.template) && (
-            <div className="font-mono text-[10px] text-muted truncate">{item.template}</div>
-          )}
-        </div>
+        <StagedItemCell
+          templateId={item.template}
+          name={nameMap.get(item.template) || ''}
+          entry={itemData.items[item.template] ?? null}
+        />
       ),
     },
     {
@@ -275,17 +282,28 @@ export const ManagePacksModal: React.FC<ManagePacksModalProps> = ({
     {
       id: 'actions',
       header: '',
-      width: 52,
+      width: 88,
       cell: (item) => (
-        <Button
-          size="sm"
-          variant="danger-soft"
-          isIconOnly
-          onPress={() => removeItem(item._key)}
-          aria-label={t('players.givePacks.removeItem')}
-        >
-          <Icon name="trash" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            isIconOnly
+            onPress={() => setDetailId(item.template)}
+            aria-label={t('common.info')}
+          >
+            <Icon name="info" />
+          </Button>
+          <Button
+            size="sm"
+            variant="danger-soft"
+            isIconOnly
+            onPress={() => removeItem(item._key)}
+            aria-label={t('players.givePacks.removeItem')}
+          >
+            <Icon name="trash" />
+          </Button>
+        </div>
       ),
     },
   ]
@@ -293,243 +311,245 @@ export const ManagePacksModal: React.FC<ManagePacksModalProps> = ({
   if (!isOpen) return null
 
   return (
-    <Modal.Backdrop variant="blur" className="bg-linear-to-t from-(--background)/85 via-(--background)/40 to-transparent" isOpen onOpenChange={(v) => { if (!v) onClose() }}>
-      <Modal.Container size="cover" scroll="outside">
-        <Modal.Dialog className="p-10 dialog-surface-alt">
-          <Modal.CloseTrigger />
-          <Modal.Header>
-            <Modal.Heading className="text-accent">{t('players.givePacks.title')}</Modal.Heading>
-          </Modal.Header>
-          <Modal.Body className="flex flex-col gap-4 h-[80vh] min-h-0">
-            {loading
-              ? <Spinner size="sm" color="current" />
-              : (
-                  <div className="flex flex-col h-full min-h-0 gap-3">
+    <React.Fragment>
+      <Modal.Backdrop variant="blur" className="bg-linear-to-t from-(--background)/85 via-(--background)/40 to-transparent" isOpen onOpenChange={(v) => { if (!v) onClose() }}>
+        <Modal.Container size="cover" scroll="outside">
+          <Modal.Dialog className="p-10 dialog-surface-alt">
+            <Modal.CloseTrigger />
+            <Modal.Header>
+              <Modal.Heading className="text-accent">{t('players.givePacks.title')}</Modal.Heading>
+            </Modal.Header>
+            <Modal.Body className="flex flex-col gap-4 h-[80vh] min-h-0">
+              {loading
+                ? <Spinner size="sm" color="current" />
+                : (
+                    <div className="flex flex-col h-full min-h-0 gap-3">
 
-                    {packDiff.isDirty && (
-                      <div className="shrink-0 rounded-[var(--radius)] px-4 py-2 text-xs font-medium bg-warning/10 border border-warning/40 text-warning flex items-center gap-2">
-                        <Icon name="triangle-alert" />
-                        <span>You have unsaved changes — click Save Config to persist them.</span>
-                      </div>
-                    )}
-
-                    {/* Pack picker + metadata */}
-                    <div className="flex flex-wrap items-end gap-2 shrink-0 pb-1 border-b border-border">
-                      <Select
-                        aria-label={t('players.givePacks.editingPack')}
-                        selectedKey={selectedID || null}
-                        onSelectionChange={(k) => setSelectedID(k ? String(k) : '')}
-                        className="w-56"
-                      >
-                        <Select.Trigger>
-                          <Select.Value>
-                            {!selectedID
-                              ? '— select —'
-                              : selectedPack
-                                ? `${selectedPack.category} — ${selectedPack.name}`
-                                : selectedID}
-                          </Select.Value>
-                          <Select.Indicator />
-                        </Select.Trigger>
-                        <Select.Popover>
-                          <ListBox>
-                            <ListBox.Item key="_none" id="" textValue="— select —">
-                              — select —
-                              <ListBox.ItemIndicator />
-                            </ListBox.Item>
-                            {groupedPacks.map(([cat, catPacks], i) => (
-                              <ListBox.Section key={cat}>
-                                <Header>{cat}</Header>
-                                {catPacks.map((p) => (
-                                  <ListBox.Item key={p.id} id={p.id} textValue={`${cat} — ${p.name}`}>
-                                    {p.name}
-                                    <ListBox.ItemIndicator />
-                                  </ListBox.Item>
-                                ))}
-                                {i < groupedPacks.length - 1 && <Separator />}
-                              </ListBox.Section>
-                            ))}
-                          </ListBox>
-                        </Select.Popover>
-                      </Select>
-                      {selectedID && (
-                        <Button size="sm" variant="ghost" onPress={() => deletePack(selectedID)} aria-label={t('players.givePacks.deletePack')}>
-                          <Icon name="trash-2" />
-                        </Button>
-                      )}
-                      <Button size="sm" variant="ghost" onPress={clearPackForm} aria-label={t('players.givePacks.newPack')}>
-                        <Icon name="file-plus" />
-                        {' '}
-                        {t('players.givePacks.newPack')}
-                      </Button>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs text-muted">{t('players.givePacks.packId')}</span>
-                        <Input
-                          className="w-28"
-                          aria-label={t('players.givePacks.packId')}
-                          placeholder={t('players.givePacks.packId')}
-                          value={formID}
-                          onChange={(e) => setFormID(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === 'Enter') applyPack() }}
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs text-muted">{t('players.givePacks.packName')}</span>
-                        <Input
-                          className="w-24"
-                          aria-label={t('players.givePacks.packName')}
-                          placeholder={t('players.givePacks.packName')}
-                          value={formName}
-                          onChange={(e) => setFormName(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === 'Enter') applyPack() }}
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs text-muted">{t('players.givePacks.category')}</span>
-                        <Input
-                          className="w-28"
-                          aria-label={t('players.givePacks.category')}
-                          placeholder={t('players.givePacks.category')}
-                          value={formCategory}
-                          onChange={(e) => setFormCategory(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === 'Enter') applyPack() }}
-                        />
-                      </div>
-                      <NumberInput label={t('players.givePacks.tier')} ariaLabel={t('players.givePacks.tier')} min={1} value={formTier} onChange={setFormTier} className="w-24" />
-                      <Button
-                        size="sm"
-                        onPress={applyPack}
-                        isDisabled={!formID.trim() || !formName.trim() || !formCategory.trim()}
-                      >
-                        <Icon name={isUpdating ? 'check' : 'plus'} />
-                        {' '}
-                        {isUpdating ? t('players.givePacks.updatePack') : t('players.givePacks.addPack')}
-                      </Button>
-                    </div>
-
-                    {/* Item add row */}
-                    {selectedID && (
-                      <div className="flex items-center gap-2 shrink-0">
-                        <div className="relative flex-1">
-                          <SearchField
-                            value={addQuery}
-                            onChange={(v) => {
-                              setAddQuery(v)
-                              setAddSelected('')
-                            }}
-                            className="w-full"
-                          >
-                            <SearchField.Group>
-                              <SearchField.SearchIcon />
-                              <SearchField.Input placeholder={t('players.givePacks.searchTemplates')} />
-                              <SearchField.ClearButton />
-                            </SearchField.Group>
-                          </SearchField>
-                          {addFiltered.length > 0 && (
-                            <div className="absolute z-50 w-full mt-1 rounded-[var(--radius)] border border-border bg-surface overflow-y-auto max-h-52">
-                              {addFiltered.map((tpl) => (
-                                <div
-                                  key={tpl.id}
-                                  className="px-3 py-1.5 text-xs cursor-pointer hover:bg-surface-hover"
-                                  onClick={() => pickTemplate(tpl)}
-                                >
-                                  <span className="font-mono">{tpl.id}</span>
-                                  {tpl.name && (
-                                    <span className="text-muted">
-                                      {' — '}
-                                      {tpl.name}
-                                    </span>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                      {packDiff.isDirty && (
+                        <div className="shrink-0 rounded-[var(--radius)] px-4 py-2 text-xs font-medium bg-warning/10 border border-warning/40 text-warning flex items-center gap-2">
+                          <Icon name="triangle-alert" />
+                          <span>You have unsaved changes — click Save Config to persist them.</span>
                         </div>
-                        <NumberInput prefix={t('players.give.qty')} ariaLabel={t('players.give.qty')} min={1} value={addQty} onChange={setAddQty} className="w-48 shrink-0" />
-                        <NumberInput prefix={t('players.give.quality')} ariaLabel={t('players.give.quality')} min={0} value={addQuality} onChange={setAddQuality} className="w-48 shrink-0" />
-                        <Button size="sm" onPress={addItem} isDisabled={!addSelected} className="shrink-0">
-                          <Icon name="plus" />
+                      )}
+
+                      {/* Pack picker + metadata */}
+                      <div className="flex flex-wrap items-end gap-2 shrink-0 pb-1 border-b border-border">
+                        <Select
+                          aria-label={t('players.givePacks.editingPack')}
+                          selectedKey={selectedID || null}
+                          onSelectionChange={(k) => setSelectedID(k ? String(k) : '')}
+                          className="w-56"
+                        >
+                          <Select.Trigger>
+                            <Select.Value>
+                              {!selectedID
+                                ? '— select —'
+                                : selectedPack
+                                  ? `${selectedPack.category} — ${selectedPack.name}`
+                                  : selectedID}
+                            </Select.Value>
+                            <Select.Indicator />
+                          </Select.Trigger>
+                          <Select.Popover>
+                            <ListBox>
+                              <ListBox.Item key="_none" id="" textValue="— select —">
+                                — select —
+                                <ListBox.ItemIndicator />
+                              </ListBox.Item>
+                              {groupedPacks.map(([cat, catPacks], i) => (
+                                <ListBox.Section key={cat}>
+                                  <Header>{cat}</Header>
+                                  {catPacks.map((p) => (
+                                    <ListBox.Item key={p.id} id={p.id} textValue={`${cat} — ${p.name}`}>
+                                      {p.name}
+                                      <ListBox.ItemIndicator />
+                                    </ListBox.Item>
+                                  ))}
+                                  {i < groupedPacks.length - 1 && <Separator />}
+                                </ListBox.Section>
+                              ))}
+                            </ListBox>
+                          </Select.Popover>
+                        </Select>
+                        {selectedID && (
+                          <Button size="sm" variant="ghost" onPress={() => deletePack(selectedID)} aria-label={t('players.givePacks.deletePack')}>
+                            <Icon name="trash-2" />
+                          </Button>
+                        )}
+                        <Button size="sm" variant="ghost" onPress={clearPackForm} aria-label={t('players.givePacks.newPack')}>
+                          <Icon name="file-plus" />
                           {' '}
-                          {t('players.givePacks.addItem')}
+                          {t('players.givePacks.newPack')}
+                        </Button>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs text-muted">{t('players.givePacks.packId')}</span>
+                          <Input
+                            className="w-28"
+                            aria-label={t('players.givePacks.packId')}
+                            placeholder={t('players.givePacks.packId')}
+                            value={formID}
+                            onChange={(e) => setFormID(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') applyPack() }}
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs text-muted">{t('players.givePacks.packName')}</span>
+                          <Input
+                            className="w-24"
+                            aria-label={t('players.givePacks.packName')}
+                            placeholder={t('players.givePacks.packName')}
+                            value={formName}
+                            onChange={(e) => setFormName(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') applyPack() }}
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs text-muted">{t('players.givePacks.category')}</span>
+                          <Input
+                            className="w-28"
+                            aria-label={t('players.givePacks.category')}
+                            placeholder={t('players.givePacks.category')}
+                            value={formCategory}
+                            onChange={(e) => setFormCategory(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') applyPack() }}
+                          />
+                        </div>
+                        <NumberInput label={t('players.givePacks.tier')} ariaLabel={t('players.givePacks.tier')} min={1} value={formTier} onChange={setFormTier} className="w-24" />
+                        <Button
+                          size="sm"
+                          onPress={applyPack}
+                          isDisabled={!formID.trim() || !formName.trim() || !formCategory.trim()}
+                        >
+                          <Icon name={isUpdating ? 'check' : 'plus'} />
+                          {' '}
+                          {isUpdating ? t('players.givePacks.updatePack') : t('players.givePacks.addPack')}
                         </Button>
                       </div>
-                    )}
 
-                    {/* Item DataGrid */}
-                    {packs.length === 0
-                      ? <p className="text-xs text-muted shrink-0">{t('players.givePacks.noPacks')}</p>
-                      : !selectedID
-                          ? <p className="text-xs text-muted shrink-0">{t('players.givePacks.noPackSelected')}</p>
-                          : items.length === 0
-                            ? <p className="text-xs text-muted shrink-0">{t('players.givePacks.noItemsYet')}</p>
-                            : (
-                                <DataGrid
-                                  aria-label={t('players.givePacks.title')}
-                                  columns={columns}
-                                  data={items}
-                                  getRowId={(item) => item._key}
-                                  selectedKeys={selectedKeys}
-                                  selectionMode="multiple"
-                                  showSelectionCheckboxes
-                                  onSelectionChange={setSelectedKeys}
-                                  className="flex-1 min-h-0"
-                                  scrollContainerClassName="h-full overflow-y-auto"
-                                  allowsColumnResize
-                                />
-                              )}
+                      {/* Item add row */}
+                      {selectedID && (
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="relative flex-1">
+                            <SearchField
+                              value={addQuery}
+                              onChange={(v) => {
+                                setAddQuery(v)
+                                setAddSelected('')
+                              }}
+                              className="w-full"
+                            >
+                              <SearchField.Group>
+                                <SearchField.SearchIcon />
+                                <SearchField.Input placeholder={t('players.givePacks.searchTemplates')} />
+                                <SearchField.ClearButton />
+                              </SearchField.Group>
+                            </SearchField>
+                            {addFiltered.length > 0 && (
+                              <div className="absolute z-50 w-full mt-1 rounded-[var(--radius)] border border-border bg-surface overflow-y-auto max-h-52">
+                                {addFiltered.map((tpl) => (
+                                  <ItemOptionRow
+                                    key={tpl.id}
+                                    id={tpl.id}
+                                    name={tpl.name}
+                                    entry={itemData.items[tpl.id] ?? null}
+                                    onPick={() => pickTemplate(tpl)}
+                                    onDetail={() => setDetailId(tpl.id)}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <NumberInput prefix={t('players.give.qty')} ariaLabel={t('players.give.qty')} min={1} value={addQty} onChange={setAddQty} className="w-48 shrink-0" />
+                          <NumberInput prefix={t('players.give.quality')} ariaLabel={t('players.give.quality')} min={0} value={addQuality} onChange={setAddQuality} className="w-48 shrink-0" />
+                          <Button size="sm" onPress={addItem} isDisabled={!addSelected} className="shrink-0">
+                            <Icon name="plus" />
+                            {' '}
+                            {t('players.givePacks.addItem')}
+                          </Button>
+                        </div>
+                      )}
 
-                    {/* Save button + diff status */}
-                    <div className="pt-3 shrink-0 border-t border-border flex items-center gap-3">
-                      <Button size="sm" onPress={save} isDisabled={saving}>
-                        {saving
-                          ? <Spinner size="sm" color="current" />
-                          : <Icon name="save" />}
-                        {' '}
-                        {t('players.givePacks.save')}
-                      </Button>
-                      <DiffStatus diff={packDiff} />
+                      {/* Item DataGrid */}
+                      {packs.length === 0
+                        ? <p className="text-xs text-muted shrink-0">{t('players.givePacks.noPacks')}</p>
+                        : !selectedID
+                            ? <p className="text-xs text-muted shrink-0">{t('players.givePacks.noPackSelected')}</p>
+                            : items.length === 0
+                              ? <p className="text-xs text-muted shrink-0">{t('players.givePacks.noItemsYet')}</p>
+                              : (
+                                  <DataGrid
+                                    aria-label={t('players.givePacks.title')}
+                                    columns={columns}
+                                    data={items}
+                                    getRowId={(item) => item._key}
+                                    selectedKeys={selectedKeys}
+                                    selectionMode="multiple"
+                                    showSelectionCheckboxes
+                                    onSelectionChange={setSelectedKeys}
+                                    className="flex-1 min-h-0"
+                                    scrollContainerClassName="h-full overflow-y-auto"
+                                    allowsColumnResize
+                                  />
+                                )}
+
+                      {/* Save button + diff status */}
+                      <div className="pt-3 shrink-0 border-t border-border flex items-center gap-3">
+                        <Button size="sm" onPress={save} isDisabled={saving}>
+                          {saving
+                            ? <Spinner size="sm" color="current" />
+                            : <Icon name="save" />}
+                          {' '}
+                          {t('players.givePacks.save')}
+                        </Button>
+                        <DiffStatus diff={packDiff} />
+                      </div>
+
                     </div>
+                  )}
+            </Modal.Body>
 
-                  </div>
-                )}
-          </Modal.Body>
-
-          {/* Inside the dialog: outside it, React Aria's modal underlay
+            {/* Inside the dialog: outside it, React Aria's modal underlay
               makes the bar inert (no hover, clicks fall through to the
               table). The dialog's filter creates a containing block, so
               position:fixed pins it to the dialog bottom. */}
-          <ActionBar aria-label={t('players.givePacks.title')} isOpen={selectionCount > 0}>
-            <ActionBar.Prefix>
-              <Chip size="sm" className="shrink-0 tabular-nums">{selectionCount}</Chip>
-            </ActionBar.Prefix>
-            <Separator />
-            <ActionBar.Content>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-danger"
-                onPress={handleBulkDelete}
-                aria-label={t('common.deleteSelected')}
-              >
-                <Icon name="trash-2" />
-                <span className="action-bar__label">{t('common.deleteSelected')}</span>
-              </Button>
-            </ActionBar.Content>
-            <Separator />
-            <ActionBar.Suffix>
-              <Button
-                isIconOnly
-                size="sm"
-                variant="ghost"
-                onPress={() => setSelectedKeys(new Set())}
-                aria-label={t('common.clearSelection')}
-              >
-                <Icon name="x" />
-              </Button>
-            </ActionBar.Suffix>
-          </ActionBar>
-        </Modal.Dialog>
-      </Modal.Container>
-    </Modal.Backdrop>
+            <ActionBar aria-label={t('players.givePacks.title')} isOpen={selectionCount > 0}>
+              <ActionBar.Prefix>
+                <Chip size="sm" className="shrink-0 tabular-nums">{selectionCount}</Chip>
+              </ActionBar.Prefix>
+              <Separator />
+              <ActionBar.Content>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-danger"
+                  onPress={handleBulkDelete}
+                  aria-label={t('common.deleteSelected')}
+                >
+                  <Icon name="trash-2" />
+                  <span className="action-bar__label">{t('common.deleteSelected')}</span>
+                </Button>
+              </ActionBar.Content>
+              <Separator />
+              <ActionBar.Suffix>
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="ghost"
+                  onPress={() => setSelectedKeys(new Set())}
+                  aria-label={t('common.clearSelection')}
+                >
+                  <Icon name="x" />
+                </Button>
+              </ActionBar.Suffix>
+            </ActionBar>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+      <ItemDetailDrawer
+        templateId={detailId}
+        name={detailId !== null ? nameMap.get(detailId) : undefined}
+        onClose={() => setDetailId(null)}
+      />
+    </React.Fragment>
   )
 }

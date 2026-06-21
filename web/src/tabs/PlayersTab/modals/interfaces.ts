@@ -1,5 +1,4 @@
 import type { Player, TeleportLocation, GivePack } from '../../../api/client'
-import type { ItemEntry } from '../../../data/store'
 import type { PackDiff } from './types'
 
 export interface GiveItemsModalProps {
@@ -36,10 +35,4 @@ export interface ClickCapturerProps {
 export interface MapCoordPickerModalProps {
   onPick: (x: number, y: number, z: number) => void
   onClose: () => void
-}
-
-export interface ModalStagedItemCellProps {
-  templateId: string
-  name: string
-  itemData: { items: Record<string, ItemEntry> }
 }
