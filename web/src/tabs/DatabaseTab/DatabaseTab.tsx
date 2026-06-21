@@ -174,7 +174,7 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
   )
 
   const innerContent = (
-    <>
+    <React.Fragment>
       <PageHeader title={activeLabel}>
         {sectionNav}
         <Button
@@ -296,7 +296,7 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
           )}
         </div>
       )}
-    </>
+    </React.Fragment>
   )
 
   // The Backups section is self-contained (loads its own data); every other
@@ -304,7 +304,7 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
   // PageHeader, so the section nav rides above it as a standalone bar.
   const body = section === 'backups'
     ? (
-        <>
+        <React.Fragment>
           <BackupsView
             onRefreshRef={backupsRefreshRef}
             headerContent={(
@@ -322,7 +322,7 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
               </div>
             )}
           />
-        </>
+        </React.Fragment>
       )
     : innerContent
 

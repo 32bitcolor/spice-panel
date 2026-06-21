@@ -231,7 +231,7 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
   }
 
   return (
-    <>
+    <React.Fragment>
       <div className="flex flex-col h-full min-h-0 gap-3">
         <div className="flex items-center gap-2 shrink-0">
           <Select
@@ -460,6 +460,6 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
           </Drawer.Dialog>
         </Drawer.Content>
       </Drawer.Backdrop>
-    </>
+    </React.Fragment>
   )
 }

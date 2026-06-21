@@ -180,7 +180,7 @@ export const MarketSidebar: React.FC<MarketSidebarProps> = ({ categories, select
         )}
 
         {schematics.length > 0 && (
-          <>
+          <React.Fragment>
             <div className="my-2 border-t border-border/40" />
             <span className="text-[10px] font-semibold text-muted/60 uppercase tracking-wider px-1 mb-0.5 block">
               {t('market.sidebar.schematics')}
@@ -196,7 +196,7 @@ export const MarketSidebar: React.FC<MarketSidebarProps> = ({ categories, select
             >
               {schematics.map((node) => renderNode(node))}
             </FileTree>
-          </>
+          </React.Fragment>
         )}
       </div>
     </div>

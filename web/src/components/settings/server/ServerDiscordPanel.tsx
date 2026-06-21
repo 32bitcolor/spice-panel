@@ -222,18 +222,18 @@ export const ServerDiscordPanel: React.FC<ServerDiscordPanelProps> = ({ serverId
           <Button size="sm" onPress={save} isDisabled={saving || loading}>
             {saving
               ? (
-                  <>
+                  <React.Fragment>
                     <Spinner size="sm" color="current" />
                     {' '}
                     {t('common.saving')}
-                  </>
+                  </React.Fragment>
                 )
               : (
-                  <>
+                  <React.Fragment>
                     <Icon name="save" />
                     {' '}
                     {t('common.save')}
-                  </>
+                  </React.Fragment>
                 )}
           </Button>
           {hasLink && (

@@ -69,11 +69,11 @@ export const BasesTab: React.FC<BasesTabProps> = ({ isSignedIn = true }) => {
                 <Spinner size="sm" color="current" />
               )
             : (
-                <>
+                <React.Fragment>
                   <Icon name="refresh-cw" />
                   {' '}
                   {t('common.refresh')}
-                </>
+                </React.Fragment>
               )}
         </Button>
       </PageHeader>

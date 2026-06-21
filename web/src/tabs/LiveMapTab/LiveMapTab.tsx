@@ -335,7 +335,7 @@ export const LiveMapTab: React.FC = () => {
           {loading
             ? <Spinner size="sm" color="current" />
             : (
-                <>
+                <React.Fragment>
                   {currentMap.hasLiveData && (
                     <span className="w-7 text-right tabular-nums text-muted/60 text-xs">
                       {countdown}
@@ -343,7 +343,7 @@ export const LiveMapTab: React.FC = () => {
                     </span>
                   )}
                   <Icon name="refresh-cw" />
-                </>
+                </React.Fragment>
               )}
         </Button>
       </PageHeader>
@@ -429,7 +429,7 @@ export const LiveMapTab: React.FC = () => {
 
       <div className="flex flex-wrap gap-4 shrink-0 text-xs text-muted">
         {currentMap.hasLiveData && (
-          <>
+          <React.Fragment>
             <span>
               <span style={{ color: CAT_COLOR.player }}>●</span>
               {' '}
@@ -456,7 +456,7 @@ export const LiveMapTab: React.FC = () => {
               {': '}
               {markers.length}
             </span>
-          </>
+          </React.Fragment>
         )}
         {spawns.length > 0 && <span>{t('liveMap.spawnsLoaded', { count: spawns.length })}</span>}
         {updatedLabel !== '' && <span className="ml-auto">{t('liveMap.updated', { time: updatedLabel })}</span>}
@@ -471,7 +471,7 @@ export const LiveMapTab: React.FC = () => {
               : t('liveMap.teleportModeActive')}
           </div>
           {teleportDest && (
-            <>
+            <React.Fragment>
               <PlayerSearchField
                 ariaLabel={t('liveMap.teleportPlayer')}
                 placeholder={t('liveMap.teleportSelectPlayer')}
@@ -484,7 +484,7 @@ export const LiveMapTab: React.FC = () => {
                 {teleporting ? <Spinner size="sm" color="current" /> : t('liveMap.teleportHere')}
               </Button>
               <Button size="sm" variant="ghost" onPress={() => setTeleportDest(null)}>✕</Button>
-            </>
+            </React.Fragment>
           )}
         </div>
       )}

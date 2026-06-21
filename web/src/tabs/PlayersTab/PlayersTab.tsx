@@ -132,13 +132,13 @@ export const PlayersTab: React.FC = () => {
             {loading
               ? <Spinner size="sm" color="current" />
               : (
-                  <>
+                  <React.Fragment>
                     <span className="w-7 text-right tabular-nums text-muted/60 text-xs">
                       {countdown}
                       s
                     </span>
                     <Icon name="refresh-cw" />
-                  </>
+                  </React.Fragment>
                 )}
           </Button>
         )}
@@ -206,7 +206,7 @@ export const PlayersTab: React.FC = () => {
       <div className="flex-1 min-w-0 flex flex-col min-h-0">
         {selected
           ? (
-              <>
+              <React.Fragment>
                 {/* Fixed header: name + status + tab nav */}
                 <div className="shrink-0 flex items-center gap-2 pr-3 py-2">
                   <span className="font-semibold text-accent">{selected.name}</span>
@@ -255,7 +255,7 @@ export const PlayersTab: React.FC = () => {
                     </div>
                   )}
                 </div>
-              </>
+              </React.Fragment>
             )
           : <ServerDashboard />}
       </div>

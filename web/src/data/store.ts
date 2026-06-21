@@ -11,7 +11,7 @@
 import { atom, getDefaultStore } from 'jotai'
 import { unwrap } from 'jotai/utils'
 import { useAtomValue } from 'jotai'
-import { useMemo } from 'react'
+import * as React from 'react'
 import type { Atom } from 'jotai'
 import { apiBase, isCdnDeploy } from '../api/client'
 
@@ -196,7 +196,7 @@ export function useDataFile<T>(fileAtom: Atom<Promise<T>>): {
   loading: boolean
   error: string | null
 } {
-  const syncAtom = useMemo(() => unwrap(fileAtom, (): T | null => null), [fileAtom])
+  const syncAtom = React.useMemo(() => unwrap(fileAtom, (): T | null => null), [fileAtom])
   const data = useAtomValue(syncAtom)
   return { data, loading: data === null, error: null }
 }

@@ -36,7 +36,7 @@ export const ManageServerModal: React.FC<ManageServerModalProps> = ({
   }
 
   return (
-    <>
+    <React.Fragment>
       <Modal.Backdrop variant="blur" className="bg-linear-to-t from-(--background)/85 via-(--background)/40 to-transparent" isOpen={open} onOpenChange={(v) => !v && onClose()}>
         <Modal.Container size="cover" scroll="outside">
           <Modal.Dialog className="p-10 dialog-surface-alt">
@@ -63,18 +63,18 @@ export const ManageServerModal: React.FC<ManageServerModalProps> = ({
               <Button size="sm" onPress={handleSave} isDisabled={saving}>
                 {saving
                   ? (
-                      <>
+                      <React.Fragment>
                         <Spinner size="sm" color="current" />
                         {' '}
                         {t('common.saving')}
-                      </>
+                      </React.Fragment>
                     )
                   : (
-                      <>
+                      <React.Fragment>
                         <Icon name="save" />
                         {' '}
                         {t('app.saveApply')}
-                      </>
+                      </React.Fragment>
                     )}
               </Button>
               <Button size="sm" variant="tertiary" onPress={onClose}>
@@ -104,6 +104,6 @@ export const ManageServerModal: React.FC<ManageServerModalProps> = ({
         }}
         onCancel={() => setDeleteOpen(false)}
       />
-    </>
+    </React.Fragment>
   )
 }

@@ -65,7 +65,7 @@ export class ApiError extends Error {
 // the login page without every caller handling it.
 export const AUTH_EXPIRED_EVENT = 'dune-auth-expired'
 
-function notifyAuthExpired() {
+function notifyAuthExpired(): void {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT))
   }

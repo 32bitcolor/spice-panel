@@ -110,7 +110,7 @@ export const ServerDashboard: React.FC = () => {
             </div>
           )
         : (
-            <>
+            <React.Fragment>
               <Panel>
                 <div className="flex items-center flex-wrap gap-0">
                   <Stat label={t('players.dashboard.totalPlayers')}>{summary.total_players.toLocaleString()}</Stat>
@@ -214,7 +214,7 @@ export const ServerDashboard: React.FC = () => {
                 {!trends || trends.points.length === 0
                   ? <p className="text-muted text-sm">{t('players.dashboard.noPlayers')}</p>
                   : (
-                      <>
+                      <React.Fragment>
                         <div className="flex flex-wrap gap-x-3 gap-y-1">
                           {trends.factions.map((fac, i) => (
                             <div key={fac} className="flex items-center gap-1.5">
@@ -260,10 +260,10 @@ export const ServerDashboard: React.FC = () => {
                             )}
                           />
                         </AreaChart>
-                      </>
+                      </React.Fragment>
                     )}
               </Panel>
-            </>
+            </React.Fragment>
           )}
     </div>
   )

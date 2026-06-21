@@ -110,7 +110,7 @@ export const AddItemsModal: React.FC<AddItemsModalProps> = ({
                   <LoadingState size="sm" />
                 )
               : (
-                  <>
+                  <React.Fragment>
                     <div className="flex items-end gap-3 shrink-0">
                       <TextField className="flex-1 min-w-0" aria-label={t('storage.addModal.templateLabel')}>
                         <div className="relative w-full">
@@ -176,7 +176,7 @@ export const AddItemsModal: React.FC<AddItemsModalProps> = ({
                     </div>
 
                     {staged.length > 0 && (
-                      <>
+                      <React.Fragment>
                         <div className="flex flex-col gap-1 overflow-y-auto flex-1 min-h-0">
                           {staged.map((item, idx) => (
                             <div
@@ -211,7 +211,7 @@ export const AddItemsModal: React.FC<AddItemsModalProps> = ({
                             </div>
                           ))}
                         </div>
-                      </>
+                      </React.Fragment>
                     )}
 
                     {result && (
@@ -232,7 +232,7 @@ export const AddItemsModal: React.FC<AddItemsModalProps> = ({
                         ))}
                       </div>
                     )}
-                  </>
+                  </React.Fragment>
                 )}
           </Modal.Body>
           <Modal.Footer>

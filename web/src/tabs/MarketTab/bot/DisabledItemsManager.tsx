@@ -78,7 +78,7 @@ export const DisabledItemsManager: React.FC<DisabledItemsManagerProps> = (
     <div className="flex flex-col gap-4">
       {/* Search + add row */}
       {can('market-bot:manage') && (
-        <>
+        <React.Fragment>
           <div className="flex gap-2 items-end">
             <div className="flex flex-col gap-0.5 flex-1">
               <label className="text-xs text-muted">{t('market.bot.disabledItems.searchLabel')}</label>
@@ -123,7 +123,7 @@ export const DisabledItemsManager: React.FC<DisabledItemsManagerProps> = (
           {search.trim() && results.length === 0 && (
             <p className="text-xs text-muted">{t('market.bot.disabledItems.noMatchingItems')}</p>
           )}
-        </>
+        </React.Fragment>
       )}
 
       {/* Disabled list */}

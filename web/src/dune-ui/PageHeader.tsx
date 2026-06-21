@@ -18,7 +18,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, onRefre
               {loading
                 ? <Spinner size="sm" color="current" />
                 : (
-                    <>
+                    <React.Fragment>
                       {countdown != null && (
                         <span className="w-7 text-right tabular-nums text-muted/60 text-xs">
                           {countdown}
@@ -26,7 +26,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, onRefre
                         </span>
                       )}
                       <Icon name="refresh-cw" />
-                    </>
+                    </React.Fragment>
                   )}
             </Button>
           )}

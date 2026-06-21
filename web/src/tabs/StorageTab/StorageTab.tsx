@@ -187,7 +187,7 @@ export const StorageTab: React.FC = () => {
                 </div>
               )
             : (
-                <>
+                <React.Fragment>
                   <PageHeader
                     title={selected.name || t('storage.containerTitle', { id: selected.id })}
                     subtitle={[
@@ -201,11 +201,11 @@ export const StorageTab: React.FC = () => {
                       {itemsLoading
                         ? <Spinner size="sm" color="current" />
                         : (
-                            <>
+                            <React.Fragment>
                               <Icon name="refresh-cw" />
                               {' '}
                               {t('common.refresh')}
-                            </>
+                            </React.Fragment>
                           )}
                     </Button>
                     {canWorldWrite && (
@@ -222,7 +222,7 @@ export const StorageTab: React.FC = () => {
                         <LoadingState />
                       )
                     : (
-                        <>
+                        <React.Fragment>
                           <DataTable<InventoryItem, ItemKey>
                             aria-label={t('storage.ariaLabel')}
                             className="min-h-0 max-h-full"
@@ -296,9 +296,9 @@ export const StorageTab: React.FC = () => {
                               </ActionBar.Suffix>
                             </ActionBar>
                           )}
-                        </>
+                        </React.Fragment>
                       )}
-                </>
+                </React.Fragment>
               )}
         </div>
       </div>

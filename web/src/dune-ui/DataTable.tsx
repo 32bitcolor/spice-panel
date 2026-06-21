@@ -39,7 +39,7 @@ export const DataTable = <T extends object, K extends string>({
   selectedKeys,
   onSelectionChange,
   pageSize,
-}: DataTableProps<T, K>) => {
+}: DataTableProps<T, K>): React.ReactElement => {
   const renderCellRef = React.useRef(renderCell)
   const sortValueRef = React.useRef(sortValue)
   const onRowActionRef = React.useRef(onRowAction)
@@ -139,7 +139,7 @@ export const DataTable = <T extends object, K extends string>({
       showSelectionCheckboxes={selectionMode === 'multiple'}
       selectedKeys={selectedKeys}
       onSelectionChange={onSelectionChange}
-      renderEmptyState={emptyState ? () => <>{emptyState}</> : undefined}
+      renderEmptyState={emptyState ? () => <React.Fragment>{emptyState}</React.Fragment> : undefined}
       defaultSortDescriptor={
         initialSort
           ? { column: initialSort.column, direction: initialSort.direction }

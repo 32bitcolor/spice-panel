@@ -199,7 +199,7 @@ export const BattlegroupTab: React.FC = () => {
 
         {/* ── Server Control ───────────────────────────────────────────── */}
         {(can('server:control') || can('backups:manage')) && (
-          <>
+          <React.Fragment>
             <SectionDivider title={t('battlegroup.serverControl')} />
             <div className="flex flex-wrap gap-2 shrink-0">
               {ACTIONS
@@ -223,12 +223,12 @@ export const BattlegroupTab: React.FC = () => {
                 </Button>
               )}
             </div>
-          </>
+          </React.Fragment>
         )}
 
         {/* ── Broadcasts ──────────────────────────────────────────────── */}
         {can('broadcast:send') && (
-          <>
+          <React.Fragment>
             <SectionDivider title={t('battlegroup.broadcasts')} />
             <div className="flex flex-wrap gap-3 shrink-0">
 
@@ -273,11 +273,11 @@ export const BattlegroupTab: React.FC = () => {
                     {broadcastBusy
                       ? <Spinner size="sm" color="current" />
                       : (
-                          <>
+                          <React.Fragment>
                             <Icon name="megaphone" />
                             {' '}
                             {t('common.send')}
-                          </>
+                          </React.Fragment>
                         )}
                   </Button>
                 </div>
@@ -338,13 +338,13 @@ export const BattlegroupTab: React.FC = () => {
                     {shutdownBusy
                       ? <Spinner size="sm" color="current" />
                       : (
-                          <>
+                          <React.Fragment>
                             <Icon name="triangle-alert" />
                             {' '}
                             {t('battlegroup.broadcastBtn')}
                             {' '}
                             {shutdownType}
-                          </>
+                          </React.Fragment>
                         )}
                   </Button>
                   {shutdownPending && (
@@ -372,7 +372,7 @@ export const BattlegroupTab: React.FC = () => {
               </div>
 
             </div>
-          </>
+          </React.Fragment>
         )}
 
         {/* ── Scheduled Restarts (#145) ──────────────────────────────── */}

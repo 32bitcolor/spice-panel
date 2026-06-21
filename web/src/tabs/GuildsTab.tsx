@@ -112,11 +112,11 @@ export const GuildsTab: React.FC<GuildsTabProps> = ({ isSignedIn = true }) => {
           {loading
             ? <Spinner size="sm" color="current" />
             : (
-                <>
+                <React.Fragment>
                   <Icon name="refresh-cw" />
                   {' '}
                   {t('common.refresh')}
-                </>
+                </React.Fragment>
               )}
         </Button>
       </PageHeader>
@@ -197,7 +197,7 @@ export const GuildsTab: React.FC<GuildsTabProps> = ({ isSignedIn = true }) => {
                 </div>
               )}
               {!detailLoading && detail && (
-                <>
+                <React.Fragment>
                   {canManage
                     ? (
                         <div className="flex flex-col gap-3">
@@ -291,7 +291,7 @@ export const GuildsTab: React.FC<GuildsTabProps> = ({ isSignedIn = true }) => {
                           </div>
                         )}
                   </div>
-                </>
+                </React.Fragment>
               )}
             </Modal.Body>
           </Modal.Dialog>

@@ -91,7 +91,7 @@ export const ScheduledRestartsCard: React.FC = () => {
       {loading
         ? <div className="py-4 flex justify-center"><Spinner size="sm" color="current" /></div>
         : (
-            <>
+            <React.Fragment>
               <div className="text-sm mb-3">
                 {enabled && data?.next_restart
                   ? (
@@ -164,7 +164,7 @@ export const ScheduledRestartsCard: React.FC = () => {
                   </Button>
                 </div>
               )}
-            </>
+            </React.Fragment>
           )}
     </Panel>
   )

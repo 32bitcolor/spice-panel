@@ -80,7 +80,7 @@ export const ScheduleCard: React.FC = () => {
       {loading
         ? <div className="py-3 flex justify-center"><Spinner size="sm" color="current" /></div>
         : (
-            <>
+            <React.Fragment>
               <div className="text-sm mb-2">
                 {enabled && data?.next_backup
                   ? (
@@ -155,7 +155,7 @@ export const ScheduleCard: React.FC = () => {
                   {saving ? <Spinner size="sm" color="current" /> : t('backups.schedule.save')}
                 </Button>
               )}
-            </>
+            </React.Fragment>
           )}
     </Panel>
   )

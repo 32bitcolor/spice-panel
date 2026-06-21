@@ -172,7 +172,7 @@ export const ProgressView: React.FC = () => {
       <div className="flex-1 min-w-0 flex flex-col min-h-0">
         {selected
           ? (
-              <>
+              <React.Fragment>
                 <div className="shrink-0 flex items-center gap-2 pb-3">
                   <span className="font-semibold text-accent">{selected.name}</span>
                   <span className="text-muted text-xs font-mono">
@@ -279,7 +279,7 @@ export const ProgressView: React.FC = () => {
                     }}
                   />
                 </div>
-              </>
+              </React.Fragment>
             )
           : (
               <div className="flex-1 flex items-center justify-center">

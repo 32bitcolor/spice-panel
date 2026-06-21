@@ -197,18 +197,18 @@ export const GuildEditModal: React.FC<GuildEditModalProps> = ({
             <Button size="sm" onPress={save} isDisabled={saving}>
               {saving
                 ? (
-                    <>
+                    <React.Fragment>
                       <Spinner size="sm" color="current" />
                       {' '}
                       {t('common.saving')}
-                    </>
+                    </React.Fragment>
                   )
                 : (
-                    <>
+                    <React.Fragment>
                       <Icon name="save" />
                       {' '}
                       {t('common.save')}
-                    </>
+                    </React.Fragment>
                   )}
             </Button>
             <Button size="sm" variant="tertiary" slot="close" onPress={onClose}>

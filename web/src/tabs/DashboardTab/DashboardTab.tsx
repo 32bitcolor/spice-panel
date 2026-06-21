@@ -116,14 +116,14 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                   <div className="flex items-center gap-4 text-xs text-muted">
                     {healthFirstLoad
                       ? (
-                          <>
+                          <React.Fragment>
                             {/* h-4 matches the text-xs metric line-box (16px). */}
                             <Skeleton className="h-4 w-16 rounded-lg" />
                             <Skeleton className="h-4 w-20 rounded-lg" />
-                          </>
+                          </React.Fragment>
                         )
                       : (
-                          <>
+                          <React.Fragment>
                             <span className="flex items-center gap-1">
                               <Icon name="clock" className="size-3" />
                               {formatUptime(h?.uptime_seconds)}
@@ -132,7 +132,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                               <Icon name="users" className="size-3" />
                               {t('dashboard.playersOnline', '{{count}} online', { count: h?.players_online ?? 0 })}
                             </span>
-                          </>
+                          </React.Fragment>
                         )}
                   </div>
 

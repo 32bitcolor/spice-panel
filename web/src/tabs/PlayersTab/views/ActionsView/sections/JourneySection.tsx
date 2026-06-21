@@ -132,7 +132,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({ player }) => {
   }
 
   return (
-    <>
+    <React.Fragment>
       <div className="h-full flex flex-col gap-2">
         <div className="flex items-center gap-2 shrink-0 min-h-8">
           <SectionLabel>{t('players.actions.journey.title')}</SectionLabel>
@@ -309,6 +309,6 @@ export const JourneySection: React.FC<JourneySectionProps> = ({ player }) => {
           </Button>
         </ActionBar.Suffix>
       </ActionBar>
-    </>
+    </React.Fragment>
   )
 }

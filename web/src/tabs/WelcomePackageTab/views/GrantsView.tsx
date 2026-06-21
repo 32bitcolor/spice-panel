@@ -64,11 +64,11 @@ export const GrantsView: React.FC<GrantsViewProps> = ({
           {loading
             ? <Spinner size="sm" color="current" />
             : (
-                <>
+                <React.Fragment>
                   <Icon name="refresh-cw" />
                   {' '}
                   {t('common.refresh')}
-                </>
+                </React.Fragment>
               )}
         </Button>
       </PageHeader>
@@ -124,11 +124,11 @@ export const GrantsView: React.FC<GrantsViewProps> = ({
               {ovRunning
                 ? <Spinner size="sm" color="current" />
                 : (
-                    <>
+                    <React.Fragment>
                       <Icon name="gift" />
                       {' '}
                       {t('welcome.overrideButton')}
-                    </>
+                    </React.Fragment>
                   )}
             </Button>
           </div>

@@ -201,7 +201,7 @@ export const EventsTab: React.FC = () => {
     type === 'zone_race' ? 'warning' : 'accent'
 
   return (
-    <>
+    <React.Fragment>
       <div className="flex flex-col h-full gap-3 min-h-0">
         <PageHeader title={t('events.title', { count: events.length })} subtitle={t('events.subtitle')}>
           {can('events:manage') && (
@@ -435,6 +435,6 @@ export const EventsTab: React.FC = () => {
           </Button>
         </ActionBar.Suffix>
       </ActionBar>
-    </>
+    </React.Fragment>
   )
 }

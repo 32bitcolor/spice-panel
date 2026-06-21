@@ -126,7 +126,7 @@ export const BlueprintsTab: React.FC<BlueprintsTabProps> = ({ isSignedIn = true 
                 ? (
                     <a
                       href={api.blueprints.exportUrl(b.id)}
-                      download={b.name ? `${b.name.replace(/[/\\:*?"<>|]/g, '_')}.json` : `blueprint_${b.id}.json`}
+                      download={b.name ? `${b.name.replace(/[/\\:*?"<React.Fragment>|]/g, '_')}.json` : `blueprint_${b.id}.json`}
                     >
                       <Button size="sm" variant="outline" className="w-full">
                         <Icon name="download" />

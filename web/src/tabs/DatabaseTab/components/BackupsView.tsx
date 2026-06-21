@@ -106,11 +106,11 @@ export const BackupsView: React.FC<BackupsViewProps> = ({ onRefreshRef, headerCo
                 {taking
                   ? <Spinner size="sm" color="current" />
                   : (
-                      <>
+                      <React.Fragment>
                         <Icon name="database-backup" />
                         {' '}
                         {t('backups.take.btn')}
-                      </>
+                      </React.Fragment>
                     )}
               </Button>
             </div>

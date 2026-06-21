@@ -79,11 +79,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ status, can, onClo
             >
               {updateChecking
                 ? (
-                    <>
+                    <React.Fragment>
                       <Spinner size="sm" color="current" />
                       {' '}
                       {t('common.checking')}
-                    </>
+                    </React.Fragment>
                   )
                 : t('app.checkUpdates')}
             </Button>
@@ -127,18 +127,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ status, can, onClo
             >
               {formSaving
                 ? (
-                    <>
+                    <React.Fragment>
                       <Spinner size="sm" color="current" />
                       {' '}
                       {t('common.saving')}
-                    </>
+                    </React.Fragment>
                   )
                 : (
-                    <>
+                    <React.Fragment>
                       <Icon name="save" />
                       {' '}
                       {t('app.saveApply')}
-                    </>
+                    </React.Fragment>
                   )}
             </Button>
             <Button

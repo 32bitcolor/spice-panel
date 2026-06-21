@@ -67,11 +67,11 @@ export const ConfigView: React.FC = () => {
           {loading
             ? <Spinner size="sm" color="current" />
             : (
-                <>
+                <React.Fragment>
                   <Icon name="refresh-cw" />
                   {' '}
                   {t('common.refresh')}
-                </>
+                </React.Fragment>
               )}
         </Button>
       </PageHeader>
@@ -161,11 +161,11 @@ export const ConfigView: React.FC = () => {
             {saving
               ? <Spinner size="sm" color="current" />
               : (
-                  <>
+                  <React.Fragment>
                     <Icon name="save" />
                     {' '}
                     {t('battlepass.config.save')}
-                  </>
+                  </React.Fragment>
                 )}
           </Button>
         </div>

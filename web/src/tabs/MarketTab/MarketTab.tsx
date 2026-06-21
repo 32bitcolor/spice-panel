@@ -111,11 +111,11 @@ export const MarketTab: React.FC = () => {
                 <Spinner size="sm" color="current" />
               )
             : (
-                <>
+                <React.Fragment>
                   <Icon name="refresh-cw" />
                   {' '}
                   {t('common.refresh')}
-                </>
+                </React.Fragment>
               )}
         </Button>
       </PageHeader>

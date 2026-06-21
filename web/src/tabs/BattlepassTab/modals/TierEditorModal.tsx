@@ -269,7 +269,7 @@ export const TierEditorModal: React.FC<TierEditorModalProps> = ({ isOpen, onClos
   ]
 
   return (
-    <>
+    <React.Fragment>
       {/* Hidden (not stacked) while Manage Packs is open — stacked sibling
           modals fight over the React Aria overlay and the top one goes inert.
           Component stays mounted, so unsaved edits survive the swap. */}
@@ -541,6 +541,6 @@ export const TierEditorModal: React.FC<TierEditorModalProps> = ({ isOpen, onClos
         }}
         templates={templates}
       />
-    </>
+    </React.Fragment>
   )
 }

@@ -99,7 +99,7 @@ export const GuildsPanel: React.FC = () => {
   ]
 
   return (
-    <>
+    <React.Fragment>
       <div className="flex flex-col h-full gap-3 min-h-0">
         <PageHeader title={t('discordGuilds.title')} subtitle={t('discordGuilds.subtitle')}>
           <Button size="sm" variant="ghost" onPress={load} isDisabled={loading}>
@@ -219,6 +219,6 @@ export const GuildsPanel: React.FC = () => {
           </Button>
         </ActionBar.Suffix>
       </ActionBar>
-    </>
+    </React.Fragment>
   )
 }

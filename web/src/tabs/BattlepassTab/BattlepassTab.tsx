@@ -269,7 +269,7 @@ export const BattlepassTab: React.FC = () => {
   ]
 
   return (
-    <>
+    <React.Fragment>
       <div className="flex flex-col h-full gap-3 min-h-0">
         <PageHeader
           title={t('battlepass.title', { count: tiers.length })}
@@ -419,7 +419,7 @@ export const BattlepassTab: React.FC = () => {
                 </Button>
               )}
               {can('battlepass:manage') && (
-                <>
+                <React.Fragment>
                   <Button size="sm" variant="ghost" onPress={() => importInputRef.current?.click()}>
                     <Icon name="upload" />
                     {' '}
@@ -437,7 +437,7 @@ export const BattlepassTab: React.FC = () => {
                     {' '}
                     {t('battlepass.reseed')}
                   </Button>
-                </>
+                </React.Fragment>
               )}
             </div>
             <div className="flex-1 min-h-0">
@@ -704,6 +704,6 @@ export const BattlepassTab: React.FC = () => {
           </Button>
         </ActionBar.Suffix>
       </ActionBar>
-    </>
+    </React.Fragment>
   )
 }

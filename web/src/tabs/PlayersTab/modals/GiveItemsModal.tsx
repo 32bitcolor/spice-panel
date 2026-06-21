@@ -216,7 +216,7 @@ export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, on
                   <LoadingState size="sm" />
                 )
               : (
-                  <>
+                  <React.Fragment>
                     {/* Load Pack */}
                     <CategorizedPackPicker
                       packs={packOptions}
@@ -330,7 +330,7 @@ export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, on
                         ))}
                       </div>
                     )}
-                  </>
+                  </React.Fragment>
                 )}
           </Modal.Body>
           <Modal.Footer>

@@ -251,11 +251,11 @@ export const PackagesView: React.FC<PackagesViewProps> = ({
           {loading
             ? <Spinner size="sm" color="current" />
             : (
-                <>
+                <React.Fragment>
                   <Icon name="refresh-cw" />
                   {' '}
                   {t('common.refresh')}
-                </>
+                </React.Fragment>
               )}
         </Button>
       </PageHeader>
@@ -426,11 +426,11 @@ export const PackagesView: React.FC<PackagesViewProps> = ({
             {saving
               ? <Spinner size="sm" color="current" />
               : (
-                  <>
+                  <React.Fragment>
                     <Icon name="save" />
                     {' '}
                     {t('welcome.saveConfig')}
-                  </>
+                  </React.Fragment>
                 )}
           </Button>
           <DiffStatus diff={configDiff} />

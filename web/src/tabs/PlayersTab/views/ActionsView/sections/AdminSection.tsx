@@ -248,7 +248,7 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
         onConfirm={handleDeleteCharacter}
       />
       {canPlayersWrite && (
-        <>
+        <React.Fragment>
           <Panel>
             <SectionLabel>{t('players.actions.admin.liveActions')}</SectionLabel>
             <div className="text-xs text-muted mb-2">{t('players.actions.admin.liveActionsDesc')}</div>
@@ -321,7 +321,7 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
               true,
             )}
           </Panel>
-        </>
+        </React.Fragment>
       )}
 
       {canPlayersDelete && (
@@ -360,7 +360,7 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
       )}
 
       {canPlayersWrite && (
-        <>
+        <React.Fragment>
           <Panel>
             <div className="flex items-center justify-between mb-1">
               <SectionLabel>{t('players.actions.admin.teleport')}</SectionLabel>
@@ -615,7 +615,7 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
               </div>
             </div>
           </Panel>
-        </>
+        </React.Fragment>
       )}
     </div>
   )
