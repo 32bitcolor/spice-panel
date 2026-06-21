@@ -207,7 +207,7 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
           Number(spawnY) || 0,
           Number(spawnZ) || 0,
           {
-            template_name: spawnVehicleTemplate || undefined,
+            ...(spawnVehicleTemplate ? { template_name: spawnVehicleTemplate } : {}),
             persistent: spawnVehiclePersistent,
           },
         ),

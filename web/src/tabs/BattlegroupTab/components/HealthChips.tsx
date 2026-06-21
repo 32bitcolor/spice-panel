@@ -7,7 +7,7 @@ import type { BGInfo, ServerRow } from '../types'
 import { phaseChipColor } from '../helpers'
 import { portRange } from '../uptime'
 
-type HealthChipsProps = { bg?: BGInfo, servers: ServerRow[], status: Status | null }
+type HealthChipsProps = { bg?: BGInfo | undefined, servers: ServerRow[], status: Status | null }
 
 export const HealthChips: React.FC<HealthChipsProps> = ({ bg, servers, status }) => {
   const { t } = useTranslation()

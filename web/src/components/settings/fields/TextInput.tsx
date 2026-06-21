@@ -11,7 +11,7 @@ export const TextInput: React.FC<TextInputProps> = ({ value, onChange, placehold
       type={type}
       value={String(value)}
       onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
+      {...(placeholder !== undefined ? { placeholder } : {})}
       aria-label={fieldLabel || placeholder || 'value'}
       autoComplete={autoComplete ?? (type === 'password' ? 'new-password' : 'off')}
     />

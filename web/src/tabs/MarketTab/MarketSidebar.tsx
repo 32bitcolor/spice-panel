@@ -158,7 +158,7 @@ export const MarketSidebar: React.FC<MarketSidebarProps> = ({ categories, select
             ? 'text-accent'
             : 'text-foreground hover:bg-default/60')
         }
-        style={selected === '' ? { backgroundColor: 'color-mix(in srgb, var(--accent) 14%, var(--surface))' } : undefined}
+        {...(selected === '' ? { style: { backgroundColor: 'color-mix(in srgb, var(--accent) 14%, var(--surface))' } } : {})}
         onPress={() => onSelect('')}
       >
         {t('market.sidebar.allItems')}

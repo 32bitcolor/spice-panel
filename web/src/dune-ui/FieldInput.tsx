@@ -15,9 +15,9 @@ export const FieldInput: React.FC<FieldInputProps> = ({
     type={type}
     value={value}
     onChange={(e) => onChange(e.target.value)}
-    placeholder={placeholder}
-    aria-label={ariaLabel}
-    disabled={isDisabled}
-    className={className}
+    {...(placeholder !== undefined ? { placeholder } : {})}
+    {...(ariaLabel !== undefined ? { 'aria-label': ariaLabel } : {})}
+    {...(isDisabled !== undefined ? { disabled: isDisabled } : {})}
+    {...(className !== undefined ? { className } : {})}
   />
 )

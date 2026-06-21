@@ -16,7 +16,7 @@ export interface GlobalSettingsFormProps {
   saveRef?: React.MutableRefObject<(() => Promise<void>) | null>
   onSavingChange?: (saving: boolean) => void
   /** Initial tab to open on (e.g. deep-link to 'discord'); still switchable. */
-  initialTab?: string
+  initialTab?: string | undefined
 }
 
 // GlobalSettingsForm edits the dune-admin (global) configuration: auth, the

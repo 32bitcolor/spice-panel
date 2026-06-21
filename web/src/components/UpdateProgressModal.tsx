@@ -16,7 +16,7 @@ export type UpdatePhase
 interface Props {
   isOpen: boolean
   phase: UpdatePhase
-  errorMessage?: string
+  errorMessage?: string | undefined
   onDismiss?: () => void
 }
 

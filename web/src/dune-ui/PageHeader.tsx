@@ -14,7 +14,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, onRefre
         <div className="flex items-center gap-2 shrink-0">
           {children}
           {onRefresh != null && (
-            <Button size="sm" variant="ghost" onPress={onRefresh} isDisabled={loading}>
+            <Button size="sm" variant="ghost" onPress={onRefresh} {...(loading !== undefined ? { isDisabled: loading } : {})}>
               {loading
                 ? <Spinner size="sm" color="current" />
                 : (

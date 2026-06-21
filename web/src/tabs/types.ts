@@ -37,5 +37,5 @@ export type NavKey = 'cheats' | `pod:${string}`
 export type CheatKey = 'time' | 'character' | 'cheat_type'
 
 export interface LogsTabProps {
-  control?: string
+  control?: string | undefined
 }

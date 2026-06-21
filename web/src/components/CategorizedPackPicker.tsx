@@ -54,7 +54,7 @@ export const CategorizedPackPicker: React.FC<CategorizedPackPickerProps> = ({
       placeholder={t('players.give.loadPack')}
       selectedKey={null}
       onSelectionChange={(k) => { if (k) onSelectPack(String(k)) }}
-      className={className}
+      {...(className !== undefined ? { className } : {})}
     >
       <Select.Trigger>
         <Select.Value />

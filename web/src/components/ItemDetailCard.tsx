@@ -52,9 +52,9 @@ export type MarketDetail = {
 export type ItemDetailCardProps = {
   templateId: string
   /** Display name override (e.g. from the templates list). Falls back to entry.name then templateId. */
-  name?: string
+  name?: string | undefined
   entry: ItemEntry | null
-  market?: MarketDetail
+  market?: MarketDetail | undefined
 }
 
 // ── Component ──────────────────────────────────────────────────────────────────

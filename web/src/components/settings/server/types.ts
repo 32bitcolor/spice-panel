@@ -10,7 +10,7 @@ export interface ServerAdvancedPanelProps {
   backendUrl: string
   setBackendUrl: (v: string) => void
   activeName: string
-  onRequestDeleteServer?: () => void
+  onRequestDeleteServer?: (() => void) | undefined
 }
 
 export interface MarketBotPanelProps {

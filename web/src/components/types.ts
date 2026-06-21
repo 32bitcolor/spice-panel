@@ -14,7 +14,7 @@ export interface BackendUnreachableProps {
 
 export interface FieldProps {
   label: string
-  hint?: string
+  hint?: string | undefined
   children: React.ReactNode
 }
 
@@ -30,7 +30,7 @@ export interface CheckboxFieldProps {
   label: string
   checked: boolean
   onChange: (v: boolean) => void
-  hint?: string
+  hint?: string | undefined
 }
 
 export interface GridRowProps {
@@ -44,7 +44,7 @@ export interface RolePickerProps {
   onChange: (v: string) => void
   roles: DiscordRole[]
   label: string
-  hint?: string
+  hint?: string | undefined
 }
 
 export interface ItemDetailCardRowProps {
@@ -71,7 +71,7 @@ export type MarketDetail = {
 export type ItemDetailCardProps = {
   templateId: string
   /** Display name override (e.g. from the templates list). Falls back to entry.name then templateId. */
-  name?: string
+  name?: string | undefined
   entry: ItemEntry | null
   market?: MarketDetail
 }

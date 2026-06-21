@@ -69,12 +69,12 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
           setOpen(true)
         }}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
-        isDisabled={isDisabled}
+        {...(isDisabled !== undefined ? { isDisabled } : {})}
         aria-label={label}
       >
         <SearchField.Group>
           <SearchField.SearchIcon />
-          <SearchField.Input placeholder={placeholder} aria-label={label} />
+          <SearchField.Input {...(placeholder !== undefined ? { placeholder } : {})} aria-label={label} />
           <SearchField.ClearButton />
         </SearchField.Group>
       </SearchField>

@@ -47,9 +47,9 @@ export interface ServerSettingsFormProps {
    * Settings-modal only: invoked from the per-server Advanced "Danger Zone" to
    * request deletion of the active server. When omitted, the Danger Zone is hidden.
    */
-  onRequestDeleteServer?: () => void
+  onRequestDeleteServer?: (() => void) | undefined
   /** Initial tab to open on; still switchable. */
-  initialTab?: string
+  initialTab?: string | undefined
 }
 
 export const ServerSettingsForm: React.FC<ServerSettingsFormProps> = ({
