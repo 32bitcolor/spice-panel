@@ -27,7 +27,7 @@ export const BotControlPanel: React.FC<BotControlPanelProps> = ({ open, onClose 
   const editorRef = React.useRef<ConfigEditorHandle>(null)
   const serverConfigRef = React.useRef<BotServerConfigHandle>(null)
 
-  const loadStatus = React.useCallback(() => {
+  const loadStatus = (): void => {
     Promise.resolve()
       .then(() => setStatusLoading(true))
       .then(() => api.marketBot.status())
@@ -37,23 +37,23 @@ export const BotControlPanel: React.FC<BotControlPanelProps> = ({ open, onClose 
       })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
       .finally(() => setStatusLoading(false))
-  }, [])
+  }
 
-  const loadConfig = React.useCallback(() => {
+  const loadConfig = (): void => {
     Promise.resolve()
       .then(() => setConfigLoading(true))
       .then(() => api.marketBot.config())
       .then(setConfig)
       .catch(() => { /* config load failure is non-fatal */ })
       .finally(() => setConfigLoading(false))
-  }, [])
+  }
 
   React.useEffect(() => {
     if (open) {
       loadStatus()
       loadConfig()
     }
-  }, [open, loadStatus, loadConfig])
+  }, [open])
 
   return (
     <Modal.Backdrop variant="blur" className="bg-linear-to-t from-(--background)/85 via-(--background)/40 to-transparent" isOpen={open} onOpenChange={(v) => !v && onClose()}>

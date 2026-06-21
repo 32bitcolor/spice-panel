@@ -23,7 +23,7 @@ export const ConfigView: React.FC = () => {
   const [loading, setLoading] = React.useState(false)
   const [saving, setSaving] = React.useState(false)
 
-  const load = React.useCallback(() => {
+  const load = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => api.battlepass.config())
@@ -32,11 +32,11 @@ export const ConfigView: React.FC = () => {
         toast.danger(t('battlepass.config.failedToLoad', { message: e instanceof Error ? e.message : String(e) }))
       })
       .finally(() => setLoading(false))
-  }, [t])
+  }
 
   React.useEffect(() => {
     load()
-  }, [load])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const save = () => {
     Promise.resolve()

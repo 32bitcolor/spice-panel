@@ -43,41 +43,37 @@ export const PackagesView: React.FC<PackagesViewProps> = ({
     void Promise.resolve().then(() => setSelectedKeys(new Set()))
   }, [selected])
 
-  const nameMap = React.useMemo(() => new Map(templates.map((tpl) => [tpl.id, tpl.name])), [templates])
+  const nameMap = new Map(templates.map((tpl) => [tpl.id, tpl.name]))
 
   const itemData = useAtomValue(itemDataSyncAtom)
   const defaultVolume = itemData.default_volume ?? 0
   const defaultStackMax = itemData.default_stack_max ?? 0
 
   // Per-row volume (volume × qty) — the inventory-load metric labelled "weight/volume".
-  const rowVolume = React.useCallback((template: string, qty: number): number => {
+  const rowVolume = (template: string, qty: number): number => {
     const v = itemData.items[template]?.volume ?? defaultVolume
     return v > 0 ? v * qty : 0
-  }, [itemData, defaultVolume])
+  }
 
   // Per-row slot need = ceil(qty / stack_max). Falls back to one slot per unit
   // when no stack size is known.
-  const rowSlots = React.useCallback((template: string, qty: number): number => {
+  const rowSlots = (template: string, qty: number): number => {
     const stackMax = itemData.items[template]?.stack_max ?? defaultStackMax
     if (stackMax > 0) return Math.ceil(qty / stackMax)
     return qty
-  }, [itemData, defaultStackMax])
+  }
 
   // Derive keyed items from the selected package (index-based keys, cleared on any removal)
-  const keyedItems = React.useMemo(() => {
-    const pkg = packages.find((p) => p.version === selected)
-    return (pkg?.items ?? []).map((it, i) => ({ ...it, _key: String(i) }))
-  }, [packages, selected])
+  const _pkg = packages.find((p) => p.version === selected)
+  const keyedItems = (_pkg?.items ?? []).map((it, i) => ({ ...it, _key: String(i) }))
 
-  const totals = React.useMemo(() => {
-    let volume = 0
-    let slots = 0
-    for (const it of keyedItems) {
-      volume += rowVolume(it.template, it.qty)
-      slots += rowSlots(it.template, it.qty)
-    }
-    return { volume, slots }
-  }, [keyedItems, rowVolume, rowSlots])
+  let _totVolume = 0
+  let _totSlots = 0
+  for (const it of keyedItems) {
+    _totVolume += rowVolume(it.template, it.qty)
+    _totSlots += rowSlots(it.template, it.qty)
+  }
+  const totals = { volume: _totVolume, slots: _totSlots }
 
   const setItems = (next: KeyedItem[]) => {
     const stripped = next.map(({ template, qty, quality }) => ({ template, qty, quality }))
@@ -93,13 +89,12 @@ export const PackagesView: React.FC<PackagesViewProps> = ({
     setItems(keyedItems.map((it) => (it._key === key ? { ...it, ...patch } : it)))
   }
 
-  const addFiltered = React.useMemo(() => {
-    if (!addQuery) return []
-    const q = addQuery.toLowerCase()
-    return templates
-      .filter((tpl) => tpl.id.toLowerCase().includes(q) || tpl.name.toLowerCase().includes(q))
-      .slice(0, 100)
-  }, [templates, addQuery])
+  const _pvaq = addQuery.toLowerCase()
+  const addFiltered = !addQuery
+    ? []
+    : templates
+        .filter((tpl) => tpl.id.toLowerCase().includes(_pvaq) || tpl.name.toLowerCase().includes(_pvaq))
+        .slice(0, 100)
 
   const pickTemplate = (tpl: { id: string, name: string }) => {
     setAddSelected(tpl.id)

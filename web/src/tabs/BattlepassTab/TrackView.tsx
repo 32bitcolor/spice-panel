@@ -98,19 +98,16 @@ export const TrackView: React.FC<TrackViewProps> = ({ tiers, counts, playerCount
   const folder = useThemeFolder()
   const [selected, setSelected] = React.useState('level')
 
-  const byCategory = React.useMemo(() => {
-    const m = new Map<string, BattlepassTier[]>()
-    for (const tier of tiers) {
-      if (!tier.enabled) continue
-      const lane = m.get(tier.category) ?? []
-      lane.push(tier)
-      m.set(tier.category, lane)
-    }
-    for (const lane of m.values()) {
-      lane.sort((a, b) => (a.threshold - b.threshold) || (a.id - b.id))
-    }
-    return m
-  }, [tiers])
+  const byCategory = new Map<string, BattlepassTier[]>()
+  for (const tier of tiers) {
+    if (!tier.enabled) continue
+    const lane = byCategory.get(tier.category) ?? []
+    lane.push(tier)
+    byCategory.set(tier.category, lane)
+  }
+  for (const lane of byCategory.values()) {
+    lane.sort((a, b) => (a.threshold - b.threshold) || (a.id - b.id))
+  }
 
   const categories = CATEGORY_ORDER.filter((c) => byCategory.has(c))
   const lane = byCategory.get(selected) ?? []

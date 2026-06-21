@@ -58,7 +58,7 @@ export const useAppUpdate = (): AppUpdate => {
     }).catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const checkUpdate = React.useCallback(async () => {
+  const checkUpdate = async (): Promise<void> => {
     setChecking(true)
     try {
       const data = await api.update.check()
@@ -74,9 +74,9 @@ export const useAppUpdate = (): AppUpdate => {
     finally {
       setChecking(false)
     }
-  }, [setChecking, setUpdateInfo])
+  }
 
-  const applyUpdate = React.useCallback(async (force = false) => {
+  const applyUpdate = async (force = false): Promise<void> => {
     setApplying(true)
     setPhase('downloading')
     setError(undefined)
@@ -148,7 +148,7 @@ export const useAppUpdate = (): AppUpdate => {
       setError(t('app.updateFailed', { message: msg }))
       setPhase('error')
     }
-  }, [setApplying, setPhase, setError, setPromptOpen, setSettingsOpen, setUpdateInfo, t])
+  }
 
   return { checkUpdate, applyUpdate }
 }

@@ -29,7 +29,7 @@ export const ScheduleCard: React.FC = () => {
     setRules(d.rules ?? [])
   }
 
-  const load = React.useCallback(() => {
+  const load = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => api.scheduledBackups.get())
@@ -37,11 +37,11 @@ export const ScheduleCard: React.FC = () => {
       .catch((e: unknown) =>
         toast.danger(t('backups.loadFailed', { message: e instanceof Error ? e.message : String(e) })))
       .finally(() => setLoading(false))
-  }, [t])
+  }
 
   React.useEffect(() => {
     load()
-  }, [load])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const save = () => {
     setSaving(true)

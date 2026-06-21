@@ -45,7 +45,7 @@ export const PlayersTab: React.FC = () => {
   const [selected, setSelected] = React.useState<Player | null>(null)
   const [activeTab, setActiveTab] = React.useState<DetailTab>('overview')
 
-  const loadPlayers = React.useCallback(() => {
+  const loadPlayers = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => api.players.list())
@@ -57,65 +57,61 @@ export const PlayersTab: React.FC = () => {
       })
       .catch((e: unknown) => toast.danger(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false))
-  }, [])
+  }
 
   React.useEffect(() => {
     loadPlayers()
-  }, [loadPlayers])
+  }, [])
 
   const { countdown, refresh } = useAutoRefresh(loadPlayers, POLL_MS)
 
-  const filtered = React.useMemo(() => {
-    const q = search.toLowerCase()
-    const searched = q
-      ? players.filter((p) =>
-          p.name.toLowerCase().includes(q)
-          || p.class.toLowerCase().includes(q)
-          || p.map.toLowerCase().includes(q),
-        )
-      : players
-    const byStatus = statusFilter === 'online'
-      ? searched.filter((p) => p.online_status === 'Online')
-      : statusFilter === 'offline'
-        ? searched.filter((p) => p.online_status !== 'Online')
-        : searched
-    return [...byStatus].sort((a, b) => {
-      const aOn = a.online_status === 'Online' ? 1 : 0
-      const bOn = b.online_status === 'Online' ? 1 : 0
-      return bOn !== aOn ? bOn - aOn : a.name.localeCompare(b.name)
-    })
-  }, [players, search, statusFilter])
+  const _pq = search.toLowerCase()
+  const _searched = _pq
+    ? players.filter((p) =>
+        p.name.toLowerCase().includes(_pq)
+        || p.class.toLowerCase().includes(_pq)
+        || p.map.toLowerCase().includes(_pq),
+      )
+    : players
+  const _byStatus = statusFilter === 'online'
+    ? _searched.filter((p) => p.online_status === 'Online')
+    : statusFilter === 'offline'
+      ? _searched.filter((p) => p.online_status !== 'Online')
+      : _searched
+  const filtered = [..._byStatus].sort((a, b) => {
+    const aOn = a.online_status === 'Online' ? 1 : 0
+    const bOn = b.online_status === 'Online' ? 1 : 0
+    return bOn !== aOn ? bOn - aOn : a.name.localeCompare(b.name)
+  })
 
-  const navItems = React.useMemo(() =>
-    filtered.map((p) => {
-      const statusDotColor = p.online_status === 'Online'
-        ? 'bg-success'
-        : p.online_status === 'LoggingOut'
-          ? 'bg-warning'
-          : 'bg-muted'
-      return {
-        key: String(p.id),
-        icon: (active: boolean) => (
-          <div className="relative w-8 h-8 shrink-0">
-            <div className="w-full h-full rounded-4xl overflow-hidden bg-surface-secondary flex items-center justify-center [transform:translateZ(0)]">
-              {p.discord_avatar
-                ? <img src={p.discord_avatar} alt={p.name} className="w-full h-full object-cover" />
-                : <Icon name="user" className="size-3.5 text-muted" />}
-            </div>
-            <span
-              className={`absolute bottom-0 right-0 z-[1] size-3 rounded-full border-2 ${statusDotColor}`}
-              style={{ borderColor: active ? 'var(--accent)' : 'var(--surface)' }}
-            />
+  const navItems = filtered.map((p) => {
+    const statusDotColor = p.online_status === 'Online'
+      ? 'bg-success'
+      : p.online_status === 'LoggingOut'
+        ? 'bg-warning'
+        : 'bg-muted'
+    return {
+      key: String(p.id),
+      icon: (active: boolean) => (
+        <div className="relative w-8 h-8 shrink-0">
+          <div className="w-full h-full rounded-4xl overflow-hidden bg-surface-secondary flex items-center justify-center [transform:translateZ(0)]">
+            {p.discord_avatar
+              ? <img src={p.discord_avatar} alt={p.name} className="w-full h-full object-cover" />
+              : <Icon name="user" className="size-3.5 text-muted" />}
           </div>
-        ),
-        label: p.name,
-        sublabel: p.map,
-        hint: (active: boolean) => (
-          <DiscordBadge discordUserId={p.discord_user_id} color={active ? 'white' : '#5865F2'} />
-        ),
-      }
-    }),
-  [filtered])
+          <span
+            className={`absolute bottom-0 right-0 z-[1] size-3 rounded-full border-2 ${statusDotColor}`}
+            style={{ borderColor: active ? 'var(--accent)' : 'var(--surface)' }}
+          />
+        </div>
+      ),
+      label: p.name,
+      sublabel: p.map,
+      hint: (active: boolean) => (
+        <DiscordBadge discordUserId={p.discord_user_id} color={active ? 'white' : '#5865F2'} />
+      ),
+    }
+  })
 
   return (
     <div className="flex h-full min-h-0 gap-3">

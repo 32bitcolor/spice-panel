@@ -50,21 +50,21 @@ export const GlobalSettingsForm: React.FC<GlobalSettingsFormProps> = ({ saveRef,
       .finally(() => setLoading(false))
   }, [t])
 
-  const loadDiscordRoles = React.useCallback(() => {
+  const loadDiscordRoles = (): void => {
     setRolesLoading(true)
     api.discord.roles()
       .then(setDiscordRoles)
       .catch(() => setDiscordRoles([]))
       .finally(() => setRolesLoading(false))
-  }, [])
+  }
 
   React.useEffect(() => {
     Promise.resolve().then(loadDiscordRoles)
-  }, [loadDiscordRoles])
+  }, [])
 
   React.useEffect(() => {
     if (tab === 'auth') Promise.resolve().then(loadDiscordRoles)
-  }, [tab, loadDiscordRoles])
+  }, [tab])
 
   const set = (key: keyof AppConfig) => (v: string) =>
     setCfg((prev) => ({

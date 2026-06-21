@@ -52,22 +52,18 @@ export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, on
       .finally(() => setLoading(false))
   }, [open])
 
-  const nameMap = React.useMemo(() => new Map(templates.map((tpl) => [tpl.id, tpl.name])), [templates])
+  const nameMap = new Map(templates.map((tpl) => [tpl.id, tpl.name]))
 
-  const filtered = React.useMemo(() => {
-    if (!query) return []
-    const q = query.toLowerCase()
-    return templates
-      .filter((tpl) => tpl.id.toLowerCase().includes(q) || tpl.name.toLowerCase().includes(q))
-      .slice(0, 100)
-  }, [templates, query])
+  const _giq = query.toLowerCase()
+  const filtered = !query
+    ? []
+    : templates
+        .filter((tpl) => tpl.id.toLowerCase().includes(_giq) || tpl.name.toLowerCase().includes(_giq))
+        .slice(0, 100)
 
-  const packOptions = React.useMemo(
-    () => Object.entries(packsData.packs).map(([id, pack]) => ({
-      id, name: pack.name, category: pack.category, tier: pack.tier,
-    })),
-    [packsData],
-  )
+  const packOptions = Object.entries(packsData.packs).map(([id, pack]) => ({
+    id, name: pack.name, category: pack.category, tier: pack.tier,
+  }))
 
   const pick = (tpl: { id: string, name: string }) => {
     setSelected(tpl.id)

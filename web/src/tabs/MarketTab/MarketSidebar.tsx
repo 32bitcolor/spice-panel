@@ -90,20 +90,21 @@ const flattenKeys = (nodes: Node[]): string[] =>
 
 export const MarketSidebar: React.FC<MarketSidebarProps> = ({ categories, selected, onSelect }: MarketSidebarProps) => {
   const { t } = useTranslation()
-  const { items: allItems, schematics: allSchematics } = React.useMemo(() => buildTree(categories), [categories])
+  const { items: allItems, schematics: allSchematics } = buildTree(categories)
   const [collapsed, setCollapsed] = React.useState(false)
   const [search, setSearch] = React.useState('')
 
   const q = search.trim().toLowerCase()
-  const items = React.useMemo(() => (q ? filterNodes(allItems, q) : allItems), [allItems, q])
-  const schematics = React.useMemo(() => (q ? filterNodes(allSchematics, q) : allSchematics), [allSchematics, q])
+  const items = q ? filterNodes(allItems, q) : allItems
+  const schematics = q ? filterNodes(allSchematics, q) : allSchematics
 
   // While searching, expand every surviving branch so matches are visible.
   // Otherwise: open top-level nodes plus the ancestors of the selected node.
-  const expandedProps = React.useMemo(() => {
-    if (q) {
-      return { expandedKeys: [...flattenKeys(items), ...flattenKeys(schematics)] }
-    }
+  let expandedProps: { expandedKeys: string[] } | { defaultExpandedKeys: string[] }
+  if (q) {
+    expandedProps = { expandedKeys: [...flattenKeys(items), ...flattenKeys(schematics)] }
+  }
+  else {
     const set = new Set<string>()
     for (const node of [...allItems, ...allSchematics]) set.add(node.path)
     const ancestors = collectAncestorPaths(categories, selected)
@@ -113,8 +114,8 @@ export const MarketSidebar: React.FC<MarketSidebarProps> = ({ categories, select
     for (const n of all) {
       if (ancestors.has(n.displayPath)) set.add(n.path)
     }
-    return { defaultExpandedKeys: [...set] }
-  }, [q, items, schematics, allItems, allSchematics, categories, selected])
+    expandedProps = { defaultExpandedKeys: [...set] }
+  }
 
   const onSelectionChange = (keys: 'all' | Set<React.Key>) => {
     if (keys === 'all') return

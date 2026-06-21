@@ -27,10 +27,7 @@ export const TimezoneSelect: React.FC<TimezoneSelectProps> = ({ value, onChange,
   const { t } = useTranslation()
   const hostLabel = t('common.tzHostLocal')
 
-  const allOptions = React.useMemo(
-    () => [{ key: '', label: hostLabel }, ...ZONES.map((z) => ({ key: z, label: z }))],
-    [hostLabel],
-  )
+  const allOptions = [{ key: '', label: hostLabel }, ...ZONES.map((z) => ({ key: z, label: z }))]
 
   const [query, setQuery] = React.useState('')
   const [open, setOpen] = React.useState(false)
@@ -38,11 +35,10 @@ export const TimezoneSelect: React.FC<TimezoneSelectProps> = ({ value, onChange,
   // While closed, show the settled value; while open, show what the user is typing.
   const displayValue = open ? query : (value === '' ? hostLabel : value)
 
-  const filtered = React.useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return allOptions.slice(0, MAX_VISIBLE)
-    return allOptions.filter(({ label }) => label.toLowerCase().includes(q)).slice(0, MAX_VISIBLE)
-  }, [query, allOptions])
+  const _tzq = query.trim().toLowerCase()
+  const filtered = !_tzq
+    ? allOptions.slice(0, MAX_VISIBLE)
+    : allOptions.filter(({ label }) => label.toLowerCase().includes(_tzq)).slice(0, MAX_VISIBLE)
 
   const pick = (key: string) => {
     onChange(key)

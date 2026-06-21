@@ -39,13 +39,12 @@ export const AddItemsModal: React.FC<AddItemsModalProps> = ({
       .finally(() => setLoading(false))
   }, [open])
 
-  const filtered = React.useMemo(() => {
-    if (!query) return []
-    const q = query.toLowerCase()
-    return templates
-      .filter((tmpl) => tmpl.id.toLowerCase().includes(q) || tmpl.name.toLowerCase().includes(q))
-      .slice(0, 100)
-  }, [templates, query])
+  const _aimq = query.toLowerCase()
+  const filtered = !query
+    ? []
+    : templates
+        .filter((tmpl) => tmpl.id.toLowerCase().includes(_aimq) || tmpl.name.toLowerCase().includes(_aimq))
+        .slice(0, 100)
 
   const pick = (tmpl: { id: string, name: string }) => {
     setSelected(tmpl.id)

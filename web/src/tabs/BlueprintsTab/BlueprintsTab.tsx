@@ -33,18 +33,18 @@ export const BlueprintsTab: React.FC<BlueprintsTabProps> = ({ isSignedIn = true 
     { key: 'actions', label: '', width: 110, sortable: false },
   ]
 
-  const load = React.useCallback(() => {
+  const load = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => api.blueprints.list())
       .then(setBlueprints)
       .catch((e: unknown) => toast.danger(t('blueprints.failedToLoad', { message: e instanceof Error ? e.message : String(e) })))
       .finally(() => setLoading(false))
-  }, [t])
+  }
 
   React.useEffect(() => {
     load()
-  }, [load])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="flex flex-col h-full gap-3 min-h-0">

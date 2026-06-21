@@ -5,11 +5,8 @@ import type { TagPickerFieldProps } from './types'
 export const TagPickerField: React.FC<TagPickerFieldProps> = ({ value, onSelect, options, ariaLabel }) => {
   const [query, setQuery] = React.useState('')
 
-  const filtered = React.useMemo(() => {
-    if (!query) return []
-    const q = query.toLowerCase()
-    return options.filter((t) => t.toLowerCase().includes(q)).slice(0, 100)
-  }, [options, query])
+  const _tpq = query.toLowerCase()
+  const filtered = !query ? [] : options.filter((t) => t.toLowerCase().includes(_tpq)).slice(0, 100)
 
   const handleSelect = (tag: string) => {
     onSelect(tag)

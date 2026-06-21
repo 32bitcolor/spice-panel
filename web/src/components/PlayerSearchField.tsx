@@ -71,7 +71,7 @@ export const PlayerSearchField: React.FC<PlayerSearchFieldProps> = ({
     setPortalTarget(dialog ?? document.body)
   }, [])
 
-  const roster = React.useMemo(() => players ?? loaded ?? [], [players, loaded])
+  const roster = players ?? loaded ?? []
 
   const ensureLoaded = () => {
     if (players || loaded || loading) return
@@ -85,14 +85,12 @@ export const PlayerSearchField: React.FC<PlayerSearchFieldProps> = ({
       .finally(() => setLoading(false))
   }
 
-  const matches = React.useMemo(() => {
-    const base = filter ? roster.filter(filter) : roster
-    const q = debouncedQuery.trim().toLowerCase()
-    const hits = q
-      ? base.filter((p) => p.name.toLowerCase().includes(q) || String(p.account_id).includes(q))
-      : base
-    return hits.slice(0, resultLimit)
-  }, [roster, filter, debouncedQuery, resultLimit])
+  const base = filter ? roster.filter(filter) : roster
+  const q = debouncedQuery.trim().toLowerCase()
+  const hits = q
+    ? base.filter((p) => p.name.toLowerCase().includes(q) || String(p.account_id).includes(q))
+    : base
+  const matches = hits.slice(0, resultLimit)
 
   const pick = (p: Player) => {
     setQuery(clearOnSelect ? '' : p.name)

@@ -31,21 +31,16 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   const [query, setQuery] = React.useState('')
   const [open, setOpen] = React.useState(false)
 
-  const selectedLabel = React.useMemo(() => {
-    if (!value) return ''
-    return options.find((o) => o.id === value)?.label ?? value
-  }, [value, options])
+  const selectedLabel = !value ? '' : (options.find((o) => o.id === value)?.label ?? value)
 
   // While closed, show the settled selection; while open, show the typed query.
   const displayValue = open ? query : selectedLabel
 
-  const filtered = React.useMemo(() => {
-    const q = query.trim().toLowerCase()
-    const base = q
-      ? options.filter((o) => o.label.toLowerCase().includes(q) || o.id.includes(q))
-      : options
-    return base.slice(0, MAX_VISIBLE)
-  }, [query, options])
+  const _q = query.trim().toLowerCase()
+  const _base = _q
+    ? options.filter((o) => o.label.toLowerCase().includes(_q) || o.id.includes(_q))
+    : options
+  const filtered = _base.slice(0, MAX_VISIBLE)
 
   const pick = (id: string) => {
     onChange(id)

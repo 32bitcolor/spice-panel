@@ -35,7 +35,7 @@ export const GuildsTab: React.FC<GuildsTabProps> = ({ isSignedIn = true }) => {
   const [saving, setSaving] = React.useState(false)
   const [roleBusy, setRoleBusy] = React.useState(false)
 
-  const load = React.useCallback(() => {
+  const load = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => api.guilds.list())
@@ -43,11 +43,11 @@ export const GuildsTab: React.FC<GuildsTabProps> = ({ isSignedIn = true }) => {
       .catch((e: unknown) =>
         toast.danger(t('guilds.failedToLoad', { message: e instanceof Error ? e.message : String(e) })))
       .finally(() => setLoading(false))
-  }, [t])
+  }
 
   React.useEffect(() => {
     load()
-  }, [load])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const applyDetail = (d: GuildDetail) => {
     setDetail(d)

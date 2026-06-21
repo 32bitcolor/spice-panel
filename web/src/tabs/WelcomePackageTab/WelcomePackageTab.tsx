@@ -45,7 +45,7 @@ export const WelcomePackageTab: React.FC<WelcomePackageTabProps> = ({ section: i
   // Snapshot of what's persisted on the server; null until first load completes.
   const [savedConfig, setSavedConfig] = React.useState<WelcomePackageConfig | null>(null)
 
-  const applyConfig = React.useCallback((c: WelcomePackageConfig) => {
+  const applyConfig = (c: WelcomePackageConfig): void => {
     setEnabled(c.enabled)
     setScanSecs(c.scan_interval_secs)
     setPackages(c.packages ?? [])
@@ -64,9 +64,9 @@ export const WelcomePackageTab: React.FC<WelcomePackageTabProps> = ({ section: i
     setRegionJoinTemplate(c.region_join_template ?? '')
     setRegionLeaveTemplate(c.region_leave_template ?? '')
     setRegionChatChannel(c.region_chat_channel ?? 'whisper')
-  }, [])
+  }
 
-  const load = React.useCallback(() => {
+  const load = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => api.welcomePackage.config())
@@ -81,11 +81,11 @@ export const WelcomePackageTab: React.FC<WelcomePackageTabProps> = ({ section: i
         toast.danger(t('welcome.failedToLoad', { message: msg }))
       })
       .finally(() => setLoading(false))
-  }, [t, applyConfig])
+  }
 
   React.useEffect(() => {
     load()
-  }, [load])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(() => {
     api.players.templates().then(setTemplates).catch(() => {})
@@ -170,26 +170,27 @@ export const WelcomePackageTab: React.FC<WelcomePackageTabProps> = ({ section: i
     }
   }
 
-  const configDiff = React.useMemo((): WelcomeConfigDiff => {
-    if (!savedConfig) {
-      return { packageAdded: 0, packageRemoved: 0, packageUpdated: 0, settingsChanged: false, isDirty: false }
-    }
-    const savedPkgs = savedConfig.packages ?? []
-    const savedPkgMap = new Map(savedPkgs.map((p) => [p.version, p]))
-    const currentPkgIds = new Set(packages.map((p) => p.version))
+  let configDiff: WelcomeConfigDiff
+  if (!savedConfig) {
+    configDiff = { packageAdded: 0, packageRemoved: 0, packageUpdated: 0, settingsChanged: false, isDirty: false }
+  }
+  else {
+    const _savedPkgs = savedConfig.packages ?? []
+    const _savedPkgMap = new Map(_savedPkgs.map((p) => [p.version, p]))
+    const _currentPkgIds = new Set(packages.map((p) => p.version))
 
-    const packageAdded = packages.filter((p) => !savedPkgMap.has(p.version)).length
-    const packageRemoved = savedPkgs.filter((p) => !currentPkgIds.has(p.version)).length
-    const packageUpdated = packages.filter((p) => {
-      if (!savedPkgMap.has(p.version)) return false
-      return JSON.stringify(p) !== JSON.stringify(savedPkgMap.get(p.version))
+    const _packageAdded = packages.filter((p) => !_savedPkgMap.has(p.version)).length
+    const _packageRemoved = _savedPkgs.filter((p) => !_currentPkgIds.has(p.version)).length
+    const _packageUpdated = packages.filter((p) => {
+      if (!_savedPkgMap.has(p.version)) return false
+      return JSON.stringify(p) !== JSON.stringify(_savedPkgMap.get(p.version))
     }).length
 
-    const savedVersions = [...(savedConfig.active_versions ?? [])].sort()
-    const settingsChanged
+    const _savedVersions = [...(savedConfig.active_versions ?? [])].sort()
+    const _settingsChanged
       = enabled !== savedConfig.enabled
         || scanSecs !== savedConfig.scan_interval_secs
-        || JSON.stringify([...activeVersions].sort()) !== JSON.stringify(savedVersions)
+        || JSON.stringify([...activeVersions].sort()) !== JSON.stringify(_savedVersions)
         || welcomeMessageEnabled !== (savedConfig.welcome_message_enabled ?? false)
         || welcomeMessage !== (savedConfig.welcome_message ?? '')
         || welcomeWhisperSourcePlayer !== (savedConfig.welcome_whisper_source_player ?? '')
@@ -202,26 +203,15 @@ export const WelcomePackageTab: React.FC<WelcomePackageTabProps> = ({ section: i
         || regionLeaveTemplate !== (savedConfig.region_leave_template ?? '')
         || regionChatChannel !== (savedConfig.region_chat_channel ?? 'whisper')
 
-    const isDirty = packageAdded + packageRemoved + packageUpdated > 0 || settingsChanged
-    return { packageAdded, packageRemoved, packageUpdated, settingsChanged, isDirty }
-  }, [
-    packages,
-    enabled,
-    scanSecs,
-    activeVersions,
-    welcomeMessageEnabled,
-    welcomeMessage,
-    welcomeWhisperSourcePlayer,
-    motdEnabled,
-    motdMessage,
-    motdSourcePlayer,
-    regionJoinEnabled,
-    regionLeaveEnabled,
-    regionJoinTemplate,
-    regionLeaveTemplate,
-    regionChatChannel,
-    savedConfig,
-  ])
+    const _isDirty = _packageAdded + _packageRemoved + _packageUpdated > 0 || _settingsChanged
+    configDiff = {
+      packageAdded: _packageAdded,
+      packageRemoved: _packageRemoved,
+      packageUpdated: _packageUpdated,
+      settingsChanged: _settingsChanged,
+      isDirty: _isDirty,
+    }
+  }
 
   const sectionNav = (
     <Segment

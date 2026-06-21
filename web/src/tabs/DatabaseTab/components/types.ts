@@ -12,6 +12,6 @@ export interface TableSearchInputProps {
 }
 
 export interface BackupsViewProps {
-  onRefreshRef?: React.MutableRefObject<(() => void) | null>
+  onRegisterRefresh?: (fn: () => void) => void
   headerContent?: React.ReactNode | undefined
 }

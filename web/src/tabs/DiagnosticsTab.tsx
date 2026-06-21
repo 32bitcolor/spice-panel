@@ -19,14 +19,14 @@ export const DiagnosticsTab: React.FC = () => {
   const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null)
   const preRef = React.useRef<HTMLPreElement | null>(null)
 
-  const loadEnv = React.useCallback(() => {
+  const loadEnv = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => api.diagnostics.environment())
       .then(setEnv)
       .catch((e: unknown) => toast.danger(t('diagnostics.failedToLoad', { message: e instanceof Error ? e.message : String(e) })))
       .finally(() => setLoading(false))
-  }, [t])
+  }
 
   React.useEffect(() => {
     loadEnv()
@@ -51,7 +51,7 @@ export const DiagnosticsTab: React.FC = () => {
       }
       ws.close()
     }
-  }, [loadEnv])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(() => {
     if (autoScroll && preRef.current) {

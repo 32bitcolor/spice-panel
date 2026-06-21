@@ -18,7 +18,7 @@ export const WebInterfacesCard: React.FC<{ status: Status | null }> = ({ status 
   const [saving, setSaving] = React.useState(false)
   const director = status?.director_url
 
-  const load = React.useCallback(() => {
+  const load = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => api.webInterfaces.get())
@@ -29,11 +29,11 @@ export const WebInterfacesCard: React.FC<{ status: Status | null }> = ({ status 
       .catch((e: unknown) =>
         toast.danger(t('serverHealth.ifaceLoadFailed', { message: e instanceof Error ? e.message : String(e) })))
       .finally(() => setLoading(false))
-  }, [t])
+  }
 
   React.useEffect(() => {
     load()
-  }, [load])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const startEdit = () => {
     setDraft(items.length ? items.map((i) => ({ ...i })) : [{ label: '', url: '' }])

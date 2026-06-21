@@ -46,7 +46,7 @@ export const CategorizedPackPicker: React.FC<CategorizedPackPickerProps> = ({
   packs, onSelectPack, className,
 }) => {
   const { t } = useTranslation()
-  const grouped = React.useMemo(() => groupPacksByCategory(packs), [packs])
+  const grouped = groupPacksByCategory(packs)
 
   return (
     <Select

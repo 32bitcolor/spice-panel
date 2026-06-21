@@ -59,6 +59,9 @@ export const LiveMapTab: React.FC = () => {
 
   const [heatmapMode, setHeatmapMode] = React.useState(false)
   const fitBoundsRef = React.useRef<(() => void) | null>(null)
+  const registerFitBounds = (fn: () => void): void => {
+    fitBoundsRef.current = fn
+  }
   const [teleportMode, setTeleportMode] = React.useState(false)
   const [teleportDest, setTeleportDest] = React.useState<{ x: number, y: number } | null>(null)
   const [teleportFlsId, setTeleportFlsId] = React.useState<string>('')
@@ -76,7 +79,7 @@ export const LiveMapTab: React.FC = () => {
     [baseCfg, calibrating, previewBounds, calibOverride, mapKey],
   )
 
-  const load = React.useCallback((key: string) => {
+  const load = (key: string): void => {
     if (isDragging.current) return
     const cfg = MAPS.find((m) => m.key === key)
     if (!cfg?.hasLiveData) {
@@ -104,13 +107,13 @@ export const LiveMapTab: React.FC = () => {
         setMarkers([])
       })
       .finally(() => { if (!isDragging.current) setLoading(false) })
-  }, [t])
+  }
 
-  const loadCurrent = React.useCallback(() => load(mapKey), [load, mapKey])
+  const loadCurrent = (): void => load(mapKey)
   React.useEffect(() => {
     const id = setTimeout(loadCurrent, 0)
     return () => clearTimeout(id)
-  }, [loadCurrent])
+  }, [mapKey]) // eslint-disable-line react-hooks/exhaustive-deps
   const { countdown, refresh } = useAutoRefresh(loadCurrent, POLL_MS)
 
   React.useEffect(() => {
@@ -145,18 +148,12 @@ export const LiveMapTab: React.FC = () => {
   const vehicleCount = markers.filter((m) => m.type === 'vehicle').length
   const baseCount = markers.filter((m) => m.type === 'base').length
 
-  const playerMarkers = React.useMemo(
-    () => markers.filter((m) => m.type === 'player'),
-    [markers],
-  )
+  const playerMarkers = markers.filter((m) => m.type === 'player')
 
   // The anchor is the explicitly selected player, or the only online player.
-  const calibAnchor = React.useMemo(() => {
-    if (calibPlayerId) {
-      return playerMarkers.find((m) => String(m.id) === calibPlayerId) ?? null
-    }
-    return playerMarkers.length === 1 ? playerMarkers[0] : null
-  }, [playerMarkers, calibPlayerId])
+  const calibAnchor = calibPlayerId
+    ? (playerMarkers.find((m) => String(m.id) === calibPlayerId) ?? null)
+    : (playerMarkers.length === 1 ? playerMarkers[0] : null)
 
   const orderedLive = React.useMemo(
     () => [...markers]
@@ -184,7 +181,7 @@ export const LiveMapTab: React.FC = () => {
     [markers, effCfg],
   )
 
-  const handleMapClick = React.useCallback((lat: number, lng: number) => {
+  const handleMapClick = (lat: number, lng: number): void => {
     if (calibrating) {
       if (playerMarkers.length === 0) {
         toast.danger(t('liveMap.calibNoPlayer'))
@@ -212,19 +209,19 @@ export const LiveMapTab: React.FC = () => {
       const { x, y } = latLngToWorld(lat, lng, effCfg)
       setTeleportDest({ x: Math.round(x), y: Math.round(y) })
     }
-  }, [calibrating, teleportMode, playerMarkers.length, calibAnchor, calibPoints, effCfg, t])
+  }
 
-  const removeCalibPoint = React.useCallback((idx: number) => {
+  const removeCalibPoint = (idx: number): void => {
     setCalibPoints((prev) => prev.filter((_, i) => i !== idx))
     setCalibDirty(true)
-  }, [])
+  }
 
-  const removeLastCalibPoint = React.useCallback(() => {
+  const removeLastCalibPoint = (): void => {
     setCalibPoints((prev) => prev.slice(0, -1))
     setCalibDirty(true)
-  }, [])
+  }
 
-  const clearCalib = React.useCallback(() => {
+  const clearCalib = (): void => {
     setCalibPoints([])
     setCalibDirty(false)
     setCalibOverride((c) => {
@@ -232,9 +229,9 @@ export const LiveMapTab: React.FC = () => {
       delete merged[mapKey]
       return merged
     })
-  }, [mapKey])
+  }
 
-  const saveCalib = React.useCallback(async () => {
+  const saveCalib = async (): Promise<void> => {
     if (!previewBounds) {
       toast.danger(t('liveMap.calibCannotSolve'))
       return
@@ -256,11 +253,11 @@ export const LiveMapTab: React.FC = () => {
     finally {
       setCalibSaving(false)
     }
-  }, [previewBounds, mapKey, t])
+  }
 
   // Reset removes the saved calibration so the map reverts to its built-in
   // default bounds (from constants), and clears any in-progress points.
-  const resetCalib = React.useCallback(async () => {
+  const resetCalib = async (): Promise<void> => {
     setCalibSaving(true)
     try {
       await api.map.calibration.remove(mapKey)
@@ -279,16 +276,14 @@ export const LiveMapTab: React.FC = () => {
     finally {
       setCalibSaving(false)
     }
-  }, [mapKey, t])
+  }
 
-  const solvedStr = React.useMemo(() => {
-    const b = previewBounds ?? calibOverride[mapKey]
-    return b
-      ? `minX: ${Math.round(b.minX)}, maxX: ${Math.round(b.maxX)}, minY: ${Math.round(b.minY)}, maxY: ${Math.round(b.maxY)}, flipY: ${!!b.flipY}`
-      : ''
-  }, [previewBounds, calibOverride, mapKey])
+  const _solvedB = previewBounds ?? calibOverride[mapKey]
+  const solvedStr = _solvedB
+    ? `minX: ${Math.round(_solvedB.minX)}, maxX: ${Math.round(_solvedB.maxX)}, minY: ${Math.round(_solvedB.minY)}, maxY: ${Math.round(_solvedB.maxY)}, flipY: ${!!_solvedB.flipY}`
+    : ''
 
-  const doTeleport = React.useCallback(async () => {
+  const doTeleport = async (): Promise<void> => {
     if (!teleportDest || !teleportFlsId) return
     setTeleporting(true)
     try {
@@ -302,17 +297,17 @@ export const LiveMapTab: React.FC = () => {
     finally {
       setTeleporting(false)
     }
-  }, [teleportDest, teleportFlsId, t])
+  }
 
-  const toggleFilter = React.useCallback((key: string, currentVisual: boolean) => {
+  const toggleFilter = (key: string, currentVisual: boolean): void => {
     setFilter((f) => {
       const next = { ...f, [key]: !currentVisual }
       saveFilter(next)
       return next
     })
-  }, [])
+  }
 
-  const clearFilters = React.useCallback(() => {
+  const clearFilters = (): void => {
     setFilter((f) => {
       const next: Record<string, boolean> = {}
       Object.keys(f).forEach((k) => {
@@ -322,7 +317,7 @@ export const LiveMapTab: React.FC = () => {
       saveFilter(next)
       return next
     })
-  }, [])
+  }
 
   const mapCursor = calibrating || teleportMode ? 'crosshair' : 'grab'
   const currentMap = MAPS.find((m) => m.key === mapKey) ?? MAPS[0]
@@ -640,7 +635,7 @@ export const LiveMapTab: React.FC = () => {
                     />
                   )}
 
-                  <FitBoundsController fitRef={fitBoundsRef} />
+                  <FitBoundsController onRegisterFit={registerFitBounds} />
 
                   {mapKey === 'DeepDesert' && (
                     <ZoneGridLayer effCfg={effCfg} />

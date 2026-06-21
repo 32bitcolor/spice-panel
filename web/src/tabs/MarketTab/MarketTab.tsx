@@ -46,7 +46,7 @@ export const MarketTab: React.FC = () => {
       .catch(() => setBotConfigured(false))
   }, [])
 
-  const load = React.useCallback(() => {
+  const load = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() =>
@@ -70,11 +70,11 @@ export const MarketTab: React.FC = () => {
         /* errors surface via empty state */
       })
       .finally(() => setLoading(false))
-  }, [filters])
+  }
 
   React.useEffect(() => {
     load()
-  }, [load])
+  }, [filters]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFiltersChange = (f: MarketFilters) => {
     setFilters(f)

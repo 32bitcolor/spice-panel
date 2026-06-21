@@ -14,18 +14,15 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   const [search, setSearch] = React.useState('')
   const [expanded, setExpanded] = React.useState<Record<string, boolean>>({})
 
-  const typesByCategory = React.useMemo(() => {
-    const map: Record<string, Map<string, { label: string, count: number }>> = {}
-    spawns.forEach((s) => {
-      const cat = s.category
-      if (!map[cat]) map[cat] = new Map()
-      const key = filterKey(s.type)
-      const label = TYPE_LABELS[key] ?? s.label ?? s.type.replace(/_/g, ' ')
-      const existing = map[cat].get(key)
-      map[cat].set(key, { label, count: (existing?.count ?? 0) + 1 })
-    })
-    return map
-  }, [spawns])
+  const typesByCategory: Record<string, Map<string, { label: string, count: number }>> = {}
+  spawns.forEach((s) => {
+    const cat = s.category
+    if (!typesByCategory[cat]) typesByCategory[cat] = new Map()
+    const key = filterKey(s.type)
+    const label = TYPE_LABELS[key] ?? s.label ?? s.type.replace(/_/g, ' ')
+    const existing = typesByCategory[cat].get(key)
+    typesByCategory[cat].set(key, { label, count: (existing?.count ?? 0) + 1 })
+  })
 
   const LIVE_LABELS: Record<string, string> = {
     players: t('liveMap.players'),

@@ -61,18 +61,18 @@ export const BattlegroupTab: React.FC = () => {
   const [backupFiles, setBackupFiles] = React.useState<BackupFile[]>([])
   const [backupFilesLoading, setBackupFilesLoading] = React.useState(false)
 
-  const fetchStatus = React.useCallback(() => {
+  const fetchStatus = (): void => {
     Promise.resolve()
       .then(() => setStatusLoading(true))
       .then(() => api.battlegroup.status() as Promise<unknown>)
       .then((res) => setStatus(res as DetailedStatus))
       .catch((e: unknown) => toast.danger(t('battlegroup.statusFailed', { message: e instanceof Error ? e.message : String(e) })))
       .finally(() => setStatusLoading(false))
-  }, [t])
+  }
 
   React.useEffect(() => {
     fetchStatus()
-  }, [fetchStatus])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { countdown, refresh: refreshStatus } = useAutoRefresh(fetchStatus, POLL_MS)
 

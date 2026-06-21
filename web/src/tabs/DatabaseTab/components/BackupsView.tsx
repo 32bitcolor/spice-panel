@@ -17,7 +17,7 @@ const fmtSize = (b: number): string => {
   return `${(b / 1024 / 1024 / 1024).toFixed(1)} GB`
 }
 
-export const BackupsView: React.FC<BackupsViewProps> = ({ onRefreshRef, headerContent }) => {
+export const BackupsView: React.FC<BackupsViewProps> = ({ onRegisterRefresh, headerContent }) => {
   const { t } = useTranslation()
   const { can } = usePermissions()
   const [backups, setBackups] = React.useState<DBBackupFile[]>([])
@@ -27,7 +27,7 @@ export const BackupsView: React.FC<BackupsViewProps> = ({ onRefreshRef, headerCo
   const [deleteTarget, setDeleteTarget] = React.useState<string | null>(null)
   const [busy, setBusy] = React.useState(false)
 
-  const load = React.useCallback(() => {
+  const load = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => api.dbBackups.list())
@@ -35,15 +35,15 @@ export const BackupsView: React.FC<BackupsViewProps> = ({ onRefreshRef, headerCo
       .catch((e: unknown) =>
         toast.danger(t('backups.loadFailed', { message: e instanceof Error ? e.message : String(e) })))
       .finally(() => setLoading(false))
-  }, [t])
+  }
 
   React.useEffect(() => {
-    if (onRefreshRef) onRefreshRef.current = load
-  }, [load, onRefreshRef])
+    if (onRegisterRefresh) onRegisterRefresh(load)
+  }, [onRegisterRefresh]) // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(() => {
     load()
-  }, [load])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const take = () => {
     setTaking(true)

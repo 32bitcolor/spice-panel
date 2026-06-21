@@ -58,7 +58,7 @@ export const GuildEditModal: React.FC<GuildEditModalProps> = ({
     if (open) Promise.resolve().then(() => setG(existing ?? emptyGuild()))
   }, [open, existing])
 
-  const loadRoles = React.useCallback((guildId: string) => {
+  const loadRoles = (guildId: string): void => {
     const id = guildId.trim()
     if (!id) {
       Promise.resolve().then(() => setRoles([]))
@@ -70,23 +70,21 @@ export const GuildEditModal: React.FC<GuildEditModalProps> = ({
       .then(setRoles)
       .catch(() => setRoles([]))
       .finally(() => setRolesLoading(false))
-  }, [])
+  }
 
   React.useEffect(() => {
     if (open) loadRoles(existing?.guild_id ?? '')
-  }, [open, existing, loadRoles])
+  }, [open, existing])
 
   const setRoleCsv = (key: 'roles_viewer' | 'roles_economy' | 'roles_admin') => (v: string) =>
     setG((prev) => ({ ...prev, [key]: v }))
 
   // The add dropdown only offers guilds that aren't already configured (the one
   // being edited stays listed so it can be re-selected).
-  const guildOptions = React.useMemo(() => {
-    const taken = new Set(takenGuildIds.filter((id) => id !== existing?.guild_id))
-    return availGuilds
-      .filter((x) => !taken.has(x.id))
-      .map((x) => ({ id: x.id, label: `${x.name} (${x.id})` }))
-  }, [availGuilds, takenGuildIds, existing])
+  const taken = new Set(takenGuildIds.filter((id) => id !== existing?.guild_id))
+  const guildOptions = availGuilds
+    .filter((x) => !taken.has(x.id))
+    .map((x) => ({ id: x.id, label: `${x.name} (${x.id})` }))
 
   const save = () => {
     const guildId = g.guild_id.trim()

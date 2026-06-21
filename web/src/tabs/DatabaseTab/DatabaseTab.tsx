@@ -22,14 +22,14 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
 
   const [section, setSection] = React.useState<Section>(initialSection)
 
-  const SECTIONS = React.useMemo<{ key: Section, label: string }[]>(() => [
+  const SECTIONS: { key: Section, label: string }[] = [
     { key: 'backups', label: t('database.sections.backups') },
     { key: 'tables', label: t('database.sections.tables') },
     { key: 'describe', label: t('database.sections.describe') },
     { key: 'sample', label: t('database.sections.sample') },
     { key: 'search', label: t('database.sections.search') },
     { key: 'sql', label: t('database.sections.sql') },
-  ], [t])
+  ]
 
   const [tableInput, setTableInput] = React.useState('')
   const [limitInput, setLimitInput] = React.useState(20)
@@ -41,16 +41,16 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
 
-  const sqlExtension = React.useMemo(() => sqlLang({
+  const sqlExtension = sqlLang({
     dialect: PostgreSQL,
     upperCaseKeywords: true,
     schema: Object.fromEntries(tableNames.map((n) => [n, []])),
     defaultSchema: 'dune',
-  }), [tableNames])
+  })
 
   // Promise-chain form (not async) so react-hooks/set-state-in-effect does not
   // flag the useEffect that calls it — matches the BasesTab pattern.
-  const fetchTables = React.useCallback(() => {
+  const fetchTables = (): void => {
     Promise.resolve()
       .then(() => {
         setLoading(true)
@@ -72,7 +72,7 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
         toast.danger(t('database.failed', { message: msg }))
       })
       .finally(() => setLoading(false))
-  }, [t])
+  }
 
   // Reset results and re-fetch whenever the section changes (driven by the left nav).
   React.useEffect(() => {
@@ -80,9 +80,9 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
     setError(null)
     setResult(null)
     if (section === 'tables') fetchTables()
-  }, [section, fetchTables])
+  }, [section]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const run = React.useCallback(async () => {
+  const run = async (): Promise<void> => {
     if (section === 'tables') {
       fetchTables()
       return
@@ -137,9 +137,9 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
     finally {
       setLoading(false)
     }
-  }, [section, fetchTables, limitInput, searchInput, sqlInput, tableInput, t])
+  }
 
-  const editorKeymap = React.useMemo(() => [
+  const editorKeymap = [
     Prec.highest(keymap.of([
       {
         key: 'Mod-Enter',
@@ -151,9 +151,12 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
       // Must be Prec.highest to beat basicSetup's indent binding
       { key: 'Tab', run: acceptCompletion },
     ])),
-  ], [run])
+  ]
 
   const backupsRefreshRef = React.useRef<(() => void) | null>(null)
+  const registerBackupsRefresh = (fn: () => void): void => {
+    backupsRefreshRef.current = fn
+  }
 
   const activeLabel = SECTIONS.find((s) => s.key === section)?.label ?? ''
 
@@ -306,7 +309,7 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
     ? (
         <React.Fragment>
           <BackupsView
-            onRefreshRef={backupsRefreshRef}
+            onRegisterRefresh={registerBackupsRefresh}
             headerContent={(
               <div className="flex justify-end items-center gap-1 shrink-0">
                 {sectionNav}

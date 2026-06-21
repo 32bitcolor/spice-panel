@@ -38,20 +38,20 @@ export const LogsTab: React.FC<LogsTabProps> = ({ control }) => {
   const flushTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null)
   const logContainerRef = React.useRef<HTMLPreElement | null>(null)
 
-  const loadPods = React.useCallback(() => {
+  const loadPods = (): void => {
     Promise.resolve()
       .then(() => setPodsLoading(true))
       .then(() => api.logs.pods())
       .then(setPods)
       .catch((e: unknown) => toast.danger(t('logs.failedToLoad', { message: e instanceof Error ? e.message : String(e) })))
       .finally(() => setPodsLoading(false))
-  }, [t])
+  }
 
   React.useEffect(() => {
     loadPods()
-  }, [loadPods])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const startFlush = React.useCallback(() => {
+  const startFlush = (): void => {
     if (flushTimerRef.current) return
     flushTimerRef.current = setInterval(() => {
       if (linesRef.current.length > 0) {
@@ -62,14 +62,14 @@ export const LogsTab: React.FC<LogsTabProps> = ({ control }) => {
         linesRef.current = []
       }
     }, 200)
-  }, [])
+  }
 
-  const stopFlush = React.useCallback(() => {
+  const stopFlush = (): void => {
     if (flushTimerRef.current) {
       clearInterval(flushTimerRef.current)
       flushTimerRef.current = null
     }
-  }, [])
+  }
 
   React.useEffect(() => {
     if (autoScroll && logContainerRef.current) {
@@ -77,7 +77,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ control }) => {
     }
   }, [displayLines, autoScroll])
 
-  const connectPod = React.useCallback((pod: LogPod) => {
+  const connectPod = (pod: LogPod): void => {
     if (wsRef.current) {
       wsRef.current.close()
       wsRef.current = null
@@ -110,20 +110,20 @@ export const LogsTab: React.FC<LogsTabProps> = ({ control }) => {
         linesRef.current = []
       }
     }
-  }, [startFlush, stopFlush, t])
+  }
 
-  const disconnect = React.useCallback(() => {
+  const disconnect = (): void => {
     if (wsRef.current) {
       wsRef.current.close()
       wsRef.current = null
     }
     stopFlush()
     setConnected(false)
-  }, [stopFlush])
+  }
 
   React.useEffect(() => () => {
     disconnect()
-  }, [disconnect])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const exportLogs = () => {
     const blob = new Blob([displayLines.join('\n')], { type: 'text/plain' })

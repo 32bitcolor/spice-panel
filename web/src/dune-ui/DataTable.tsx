@@ -62,13 +62,9 @@ export const DataTable = <T extends object, K extends string>({
     rowsRef.current = pagedRows
   })
 
-  const columnKey = columns
-    .map((c) => [c.key, c.label, c.width, c.minWidth, c.sortable, c.isRowHeader, c.pinned, c.align].join(':'))
-    .join('|')
-
   const hasExplicitRowHeader = columns.some((c) => c.isRowHeader)
 
-  const gridColumns = React.useMemo<DataGridColumn<T>[]>(() => columns.map((col, i) => {
+  const gridColumns: DataGridColumn<T>[] = columns.map((col, i) => {
     const sortable = col.sortable !== false
     const colKey = col.key as K
     const resolvedWidth = typeof col.width === 'string' && col.width.endsWith('fr') ? undefined : col.width
@@ -104,8 +100,7 @@ export const DataTable = <T extends object, K extends string>({
         },
       }),
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- columnKey fingerprints structure; callbacks live in refs
-  }), [columnKey, hasExplicitRowHeader])
+  })
 
   if (loading) {
     return (
@@ -144,14 +139,20 @@ export const DataTable = <T extends object, K extends string>({
       showSelectionCheckboxes={selectionMode === 'multiple'}
       {...(selectedKeys !== undefined ? { selectedKeys } : {})}
       {...(onSelectionChange !== undefined ? { onSelectionChange } : {})}
-      {...(emptyState !== undefined ? { renderEmptyState: () => <React.Fragment>{emptyState}</React.Fragment> } : {})}
-      {...(initialSort !== undefined ? { defaultSortDescriptor: { column: initialSort.column, direction: initialSort.direction } } : {})}
-      {...(onRowAction !== undefined ? {
-        onRowAction: (key: string | number) => {
-          const row = rowsRef.current.find((r) => String(rowId(r)) === String(key))
-          if (row) onRowActionRef.current?.(row)
-        },
-      } : {})}
+      {...(emptyState !== undefined
+        ? { renderEmptyState: () => <React.Fragment>{emptyState}</React.Fragment> }
+        : {})}
+      {...(initialSort !== undefined
+        ? { defaultSortDescriptor: { column: initialSort.column, direction: initialSort.direction } }
+        : {})}
+      {...(onRowAction !== undefined
+        ? {
+            onRowAction: (key: string | number) => {
+              const row = rowsRef.current.find((r) => String(rowId(r)) === String(key))
+              if (row) onRowActionRef.current?.(row)
+            },
+          }
+        : {})}
     />
   )
 

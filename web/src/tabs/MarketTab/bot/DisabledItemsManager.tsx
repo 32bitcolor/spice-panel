@@ -27,28 +27,24 @@ export const DisabledItemsManager: React.FC<DisabledItemsManagerProps> = (
     api.market.catalog().then(setCatalog).catch(() => {})
   }, [])
 
-  const safeItems = React.useMemo(() => config.disabled_items ?? [], [config.disabled_items])
+  const safeItems = config.disabled_items ?? []
 
   // Debounce so filtering the (large) catalog only runs ~300ms after the user
   // stops typing, not on every keystroke (#201 pop-in).
   const q = useDebounce(search.trim().toLowerCase(), 300)
-  const results = React.useMemo(() => {
-    if (!q) return []
-    return catalog
-      .filter((c) =>
-        !safeItems.includes(c.template_id)
-        && (c.display_name.toLowerCase().includes(q) || c.template_id.toLowerCase().includes(q)),
-      )
-      .slice(0, 8)
-  }, [q, catalog, safeItems])
+  const results = !q
+    ? []
+    : catalog
+        .filter((c) =>
+          !safeItems.includes(c.template_id)
+          && (c.display_name.toLowerCase().includes(q) || c.template_id.toLowerCase().includes(q)),
+        )
+        .slice(0, 8)
 
-  const disabledRows: DisabledRow[] = React.useMemo(() =>
-    safeItems.map((tmpl) => ({
-      template_id: tmpl,
-      display_name: catalog.find((c) => c.template_id === tmpl)?.display_name ?? tmpl,
-    })),
-  [safeItems, catalog],
-  )
+  const disabledRows: DisabledRow[] = safeItems.map((tmpl) => ({
+    template_id: tmpl,
+    display_name: catalog.find((c) => c.template_id === tmpl)?.display_name ?? tmpl,
+  }))
 
   const saveList = async (next: string[]) => {
     setSaving(true)

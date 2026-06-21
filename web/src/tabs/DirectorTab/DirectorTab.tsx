@@ -44,7 +44,7 @@ export const DirectorTab: React.FC = () => {
   const [error, setError] = React.useState<string | null>(null)
   const [pending, setPending] = React.useState<Map<string, string>>(new Map())
 
-  const load = React.useCallback(() => {
+  const load = (): void => {
     Promise.resolve()
       .then(() => {
         setLoading(true)
@@ -61,19 +61,18 @@ export const DirectorTab: React.FC = () => {
         else setError(e instanceof Error ? e.message : String(e))
       })
       .finally(() => setLoading(false))
-  }, [])
+  }
 
   React.useEffect(() => {
     load()
-  }, [load])
+  }, [])
 
   // The [InstancingModes] section's keys all share one enum domain (map →
   // instancing mode), so its distinct values ARE the option set for each key.
-  const instancingOptions = React.useMemo(() => {
-    const sec = data?.sections.find((s) => s.name === 'InstancingModes')
-    if (!sec) return []
-    return Array.from(new Set(sec.lines.map((l) => l.value.trim()).filter(Boolean)))
-  }, [data])
+  const sec = data?.sections.find((s) => s.name === 'InstancingModes')
+  const instancingOptions = !sec
+    ? []
+    : Array.from(new Set(sec.lines.map((l) => l.value.trim()).filter(Boolean)))
 
   const pk = (section: string, key: string) => `${section}|${key}`
   const setVal = (section: string, key: string, value: string) =>

@@ -15,9 +15,9 @@ export const MapCoordPickerModal: React.FC<MapCoordPickerModalProps> = ({ onPick
   const [picked, setPicked] = React.useState<{ x: number, y: number, z: number } | null>(null)
   const [mapReady, setMapReady] = React.useState(false)
 
-  const handleClick = React.useCallback((x: number, y: number, z: number) => {
+  const handleClick = (x: number, y: number, z: number): void => {
     setPicked({ x: Math.round(x), y: Math.round(y), z })
-  }, [])
+  }
 
   const { t } = useTranslation()
 

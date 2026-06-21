@@ -52,7 +52,7 @@ export const BattlepassTab: React.FC = () => {
   const [pendingSelectedKeys, setPendingSelectedKeys] = React.useState<Selection>(new Set())
   const [bulkGrantOpen, setBulkGrantOpen] = React.useState(false)
 
-  const loadTiers = React.useCallback(() => {
+  const loadTiers = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => api.battlepass.tiers())
@@ -66,9 +66,9 @@ export const BattlepassTab: React.FC = () => {
         toast.danger(t('battlepass.failedToLoad', { message: e instanceof Error ? e.message : String(e) }))
       })
       .finally(() => setLoading(false))
-  }, [t])
+  }
 
-  const loadPending = React.useCallback(() => {
+  const loadPending = (): void => {
     Promise.resolve()
       .then(() => setPendingLoading(true))
       .then(() => api.battlepass.pending())
@@ -77,12 +77,12 @@ export const BattlepassTab: React.FC = () => {
         toast.danger(t('battlepass.failedToLoad', { message: e instanceof Error ? e.message : String(e) }))
       })
       .finally(() => setPendingLoading(false))
-  }, [t])
+  }
 
   React.useEffect(() => {
     loadTiers()
     loadPending()
-  }, [loadTiers, loadPending])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const refresh = () => {
     loadTiers()

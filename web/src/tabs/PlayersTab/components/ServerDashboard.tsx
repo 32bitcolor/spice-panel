@@ -68,31 +68,31 @@ export const ServerDashboard: React.FC = () => {
 
   // Mirror PlayersTab.loadPlayers: defer setLoading into a microtask so it is
   // not a synchronous setState inside the effect (react-hooks/set-state-in-effect).
-  const load = React.useCallback(() => {
+  const load = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => api.players.summary())
       .then(setSummary)
       .catch((e: unknown) => toast.danger(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false))
-  }, [])
+  }
 
   React.useEffect(() => {
     load()
-  }, [load])
+  }, [])
 
   // Faction-growth trends; re-fetched when the metric toggles. Deferred setState
   // (same pattern as load) to satisfy react-hooks/set-state-in-effect.
-  const loadTrends = React.useCallback(() => {
+  const loadTrends = (): void => {
     Promise.resolve()
       .then(() => api.players.factionTrends(metric))
       .then(setTrends)
       .catch(() => {})
-  }, [metric])
+  }
 
   React.useEffect(() => {
     loadTrends()
-  }, [loadTrends])
+  }, [metric]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto pr-3">

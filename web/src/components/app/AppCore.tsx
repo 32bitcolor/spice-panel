@@ -77,7 +77,7 @@ export const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }): React.ReactElem
   // to see (e.g. Director) stays enabled regardless of the active control plane.
   // When the plane doesn't support it, the tab itself renders a friendly
   // "not supported" notice rather than vanishing from the nav.
-  const canSeeTab = React.useCallback((key: TabId) => {
+  const canSeeTab = (key: TabId): boolean => {
     if (key === 'dashboard') return true
     // Diagnostics is about dune-admin itself, not a specific game server, so it
     // stays visible even when no server is configured.
@@ -85,7 +85,7 @@ export const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }): React.ReactElem
     const cap = TAB_CAPABILITIES[key]
     if (cap === 'owner') return authEnabled && (isOwner || can('auth:manage'))
     return can(cap)
-  }, [authEnabled, isOwner, can, servers.length])
+  }
 
   // Re-establish backend connections (DB + control plane) without a service
   // restart — used by the navbar Reconnect button when the DB shows disconnected
@@ -122,6 +122,9 @@ export const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }): React.ReactElem
     .filter((g) => g.items.length > 0)
   const firstVisibleTab = visibleNavGroups[0]?.items[0]?.key ?? DEFAULT_TAB
 
+  // The IDs of all currently-visible tabs (pre-computed from visibleNavGroups).
+  const visibleTabIds = visibleNavGroups.flatMap((g) => g.items.map((i) => i.key))
+
   React.useEffect(() => {
     const seg = location.pathname.replace(/^\//, '').split('/')[0]
     // Unknown or empty path → resolve to a valid tab immediately (no data needed).
@@ -134,10 +137,10 @@ export const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }): React.ReactElem
     // asynchronously; redirecting too early discards the user's deep link.
     // Best-effort — keep the requested path until we can prove it's disallowed.
     if (serversLoading || status === null) return
-    if (!canSeeTab(seg as TabId)) {
+    if (!visibleTabIds.includes(seg as TabId)) {
       navigate(`/${firstVisibleTab}`, { replace: true })
     }
-  }, [location.pathname, navigate, canSeeTab, firstVisibleTab, serversLoading, status])
+  }, [location.pathname, navigate, firstVisibleTab, serversLoading, status, visibleTabIds])
 
   const currentTab = currentTabFromPath(location.pathname)
   const pathname = location.pathname

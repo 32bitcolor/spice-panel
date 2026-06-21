@@ -13,7 +13,7 @@ export const ActiveServerProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [activeID, setActiveID] = React.useState<number>(() => Number(getActiveServerID()) || 0)
   const [loading, setLoading] = React.useState(true)
 
-  const refresh = React.useCallback(async () => {
+  const refresh = async (): Promise<void> => {
     const list = await api.servers.list().catch(() => [] as ServerInfo[])
     setServers(list)
     setLoading(false)
@@ -28,7 +28,7 @@ export const ActiveServerProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setActiveServerID(fallback ? String(fallback) : '')
       setActiveID(fallback)
     }
-  }, [])
+  }
 
   // Fetch (and re-fetch) the server list once auth has resolved and whenever the
   // session changes. The provider wraps the auth gate, so its first render runs
@@ -40,9 +40,9 @@ export const ActiveServerProvider: React.FC<{ children: React.ReactNode }> = ({ 
   React.useEffect(() => {
     if (auth.loading) return
     void Promise.resolve().then(refresh)
-  }, [auth.loading, hasSession, refresh])
+  }, [auth.loading, hasSession])
 
-  const setActive = React.useCallback(async (id: number) => {
+  const setActive = async (id: number): Promise<void> => {
     // Changing the process-wide active server requires server:control; guests
     // (read-only) still get client-side scoping via the X-Dune-Server header, so
     // a rejected backend call must not block the view switch.
@@ -50,20 +50,17 @@ export const ActiveServerProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setActiveServerID(String(id))
     setActiveID(id)
     setServers((prev) => prev.map((s) => ({ ...s, active: s.id === id })))
-  }, [])
+  }
 
-  const removeServer = React.useCallback(async (id: number) => {
+  const removeServer = async (id: number): Promise<void> => {
     await api.servers.remove(id)
     // Refetch the authoritative list and reconcile the active id. Deleting the
     // active server (backend reassigns active) or the last server (registry
     // empties → setup) both resolve here, so callers don't special-case them.
     await refresh()
-  }, [refresh])
+  }
 
-  const value = React.useMemo<ActiveServerContextValue>(
-    () => ({ servers, activeID, loading, setActive, removeServer, refresh }),
-    [servers, activeID, loading, setActive, removeServer, refresh],
-  )
+  const value: ActiveServerContextValue = { servers, activeID, loading, setActive, removeServer, refresh }
 
   return <ActiveServerContext.Provider value={value}>{children}</ActiveServerContext.Provider>
 }

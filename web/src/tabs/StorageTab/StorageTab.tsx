@@ -48,18 +48,18 @@ export const StorageTab: React.FC = () => {
   const [search, setSearch] = React.useState('')
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set())
 
-  const load = React.useCallback(() => {
+  const load = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => api.storage.list())
       .then(setContainers)
       .catch((e: unknown) => toast.danger(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false))
-  }, [])
+  }
 
   React.useEffect(() => {
     load()
-  }, [load])
+  }, [])
 
   const selectContainer = async (c: Container) => {
     setSelected(c)
@@ -115,21 +115,20 @@ export const StorageTab: React.FC = () => {
     toast.success(t('storage.itemsRemoved', { count: deletedIds.size }))
   }
 
-  const filtered = React.useMemo(() => {
-    if (!search) return containers
-    const q = search.toLowerCase()
-    return containers.filter((c) =>
-      String(c.id).includes(q)
-      || c.map.toLowerCase().includes(q)
-      || shortClass(c.class).toLowerCase().includes(q)
-      || (c.name && c.name.toLowerCase().includes(q))
-      || (c.owner_name && c.owner_name.toLowerCase().includes(q))
-      || (c.item_templates ?? []).some((tmpl) => tmpl.toLowerCase().includes(q))
-      || (c.item_names ?? []).some((n) => n.toLowerCase().includes(q)),
-    )
-  }, [containers, search])
+  const _stq = search.toLowerCase()
+  const filtered = !search
+    ? containers
+    : containers.filter((c) =>
+        String(c.id).includes(_stq)
+        || c.map.toLowerCase().includes(_stq)
+        || shortClass(c.class).toLowerCase().includes(_stq)
+        || (c.name && c.name.toLowerCase().includes(_stq))
+        || (c.owner_name && c.owner_name.toLowerCase().includes(_stq))
+        || (c.item_templates ?? []).some((tmpl) => tmpl.toLowerCase().includes(_stq))
+        || (c.item_names ?? []).some((n) => n.toLowerCase().includes(_stq)),
+      )
 
-  const navItems = React.useMemo(() => filtered.map((c) => ({
+  const navItems = filtered.map((c) => ({
     key: String(c.id),
     label: c.name || `#${c.id}`,
     sublabel: [
@@ -139,7 +138,7 @@ export const StorageTab: React.FC = () => {
       c.owner_name || null,
     ].filter(Boolean).join(' · '),
     hint: <Chip size="sm" variant="soft">{c.item_count}</Chip>,
-  })), [filtered])
+  }))
 
   return (
     <div className="flex flex-col gap-3 h-full min-h-0">

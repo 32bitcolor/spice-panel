@@ -100,18 +100,14 @@ export const TierEditorModal: React.FC<TierEditorModalProps> = ({ isOpen, onClos
     api.givePacks.config().then((cfg) => setPacks(cfg.packs)).catch(() => {})
   }, [isOpen, tier])
 
-  const nameMap = React.useMemo(
-    () => new Map(templates.map((tpl) => [tpl.id, tpl.name])),
-    [templates],
-  )
+  const nameMap = new Map(templates.map((tpl) => [tpl.id, tpl.name]))
 
-  const filteredTemplates = React.useMemo(() => {
-    const q = templateQuery.trim().toLowerCase()
-    if (!q || selectedTemplate) return []
-    return templates
-      .filter((tpl) => tpl.id.toLowerCase().includes(q) || tpl.name.toLowerCase().includes(q))
-      .slice(0, 10)
-  }, [templates, templateQuery, selectedTemplate])
+  const _tq = templateQuery.trim().toLowerCase()
+  const filteredTemplates = !_tq || selectedTemplate
+    ? []
+    : templates
+        .filter((tpl) => tpl.id.toLowerCase().includes(_tq) || tpl.name.toLowerCase().includes(_tq))
+        .slice(0, 10)
 
   const pickTemplate = (tpl: { id: string, name: string }) => {
     setSelectedTemplate(tpl.id)

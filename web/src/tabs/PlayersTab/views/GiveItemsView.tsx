@@ -38,7 +38,7 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
   const keyCounter = React.useRef(0)
   const nextKey = () => String(keyCounter.current++)
 
-  const loadData = React.useCallback(() => {
+  const loadData = (): void => {
     setLoading(true)
     setQuery('')
     setSelected('')
@@ -56,33 +56,29 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [])
+  }
 
   React.useEffect(() => {
     void Promise.resolve().then(() => loadData())
-  }, [player.id, loadData])
+  }, [player.id])
 
-  const nameMap = React.useMemo(() => new Map(templates.map((tpl) => [tpl.id, tpl.name])), [templates])
+  const nameMap = new Map(templates.map((tpl) => [tpl.id, tpl.name]))
 
-  const filtered = React.useMemo(() => {
-    if (!query) return []
-    const q = query.toLowerCase()
-    return templates
-      .filter((tpl) => tpl.id.toLowerCase().includes(q) || tpl.name.toLowerCase().includes(q))
-      .slice(0, 100)
-  }, [templates, query])
+  const _gvq = query.toLowerCase()
+  const filtered = !query
+    ? []
+    : templates
+        .filter((tpl) => tpl.id.toLowerCase().includes(_gvq) || tpl.name.toLowerCase().includes(_gvq))
+        .slice(0, 100)
 
-  const groupedPacks = React.useMemo(() => {
-    const groups: Record<string, { id: string, name: string, tier: number }[]> = {}
-    for (const pack of packs) {
-      if (!groups[pack.category]) groups[pack.category] = []
-      groups[pack.category].push({ id: pack.id, name: pack.name, tier: pack.tier })
-    }
-    for (const cat of Object.keys(groups)) {
-      groups[cat].sort((a, b) => a.tier - b.tier)
-    }
-    return groups
-  }, [packs])
+  const groupedPacks: Record<string, { id: string, name: string, tier: number }[]> = {}
+  for (const pack of packs) {
+    if (!groupedPacks[pack.category]) groupedPacks[pack.category] = []
+    groupedPacks[pack.category].push({ id: pack.id, name: pack.name, tier: pack.tier })
+  }
+  for (const cat of Object.keys(groupedPacks)) {
+    groupedPacks[cat].sort((a, b) => a.tier - b.tier)
+  }
 
   const pick = (tpl: { id: string, name: string }) => {
     setSelected(tpl.id)

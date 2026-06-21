@@ -26,7 +26,7 @@ export const PermissionsTab: React.FC = () => {
   // Per-user password reset values, keyed by username.
   const [passwordEdits, setPasswordEdits] = React.useState<Record<string, string>>({})
 
-  const load = React.useCallback(async () => {
+  const load = async (): Promise<void> => {
     setLoading(true)
     try {
       const [d, u] = await Promise.all([authApi.permissions.get(), authApi.users.list()])
@@ -41,11 +41,11 @@ export const PermissionsTab: React.FC = () => {
     finally {
       setLoading(false)
     }
-  }, [t])
+  }
 
   React.useEffect(() => {
     void Promise.resolve().then(load)
-  }, [load])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleMatrix = (roleID: string, cap: string, on: boolean) => {
     setMatrix((m) => {

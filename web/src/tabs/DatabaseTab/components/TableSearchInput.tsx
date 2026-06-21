@@ -7,11 +7,8 @@ export const TableSearchInput: React.FC<TableSearchInputProps> = (
 ) => {
   const [open, setOpen] = React.useState(false)
 
-  const filtered = React.useMemo(() => {
-    const q = value.toLowerCase().trim()
-    if (!q) return tableNames.slice(0, 40)
-    return tableNames.filter((n) => n.toLowerCase().includes(q))
-  }, [value, tableNames])
+  const _tsq = value.toLowerCase().trim()
+  const filtered = !_tsq ? tableNames.slice(0, 40) : tableNames.filter((n) => n.toLowerCase().includes(_tsq))
 
   const pick = (name: string) => {
     onChange(name)

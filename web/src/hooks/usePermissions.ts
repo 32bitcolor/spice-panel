@@ -15,16 +15,14 @@ export type UsePermissions = {
 // pre-auth dashboard behavior byte-for-byte.
 export function usePermissions(): UsePermissions {
   const { enabled, session } = React.useContext(AuthContext)
-  return React.useMemo(() => {
-    if (!enabled) {
-      return { enabled, can: () => true, isOwner: true }
-    }
-    const caps = new Set(session?.capabilities ?? [])
-    const isOwner = session?.owner ?? false
-    return {
-      enabled,
-      can: (capability: string) => isOwner || caps.has(capability),
-      isOwner,
-    }
-  }, [enabled, session])
+  if (!enabled) {
+    return { enabled, can: () => true, isOwner: true }
+  }
+  const caps = new Set(session?.capabilities ?? [])
+  const isOwner = session?.owner ?? false
+  return {
+    enabled,
+    can: (capability: string) => isOwner || caps.has(capability),
+    isOwner,
+  }
 }

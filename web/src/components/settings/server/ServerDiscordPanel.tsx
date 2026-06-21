@@ -42,7 +42,7 @@ export const ServerDiscordPanel: React.FC<ServerDiscordPanelProps> = ({ serverId
   const [guildNames, setGuildNames] = React.useState<Record<string, string>>({})
   const [channels, setChannels] = React.useState<DiscordChannelOption[]>([])
 
-  const load = React.useCallback(() => {
+  const load = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => api.discord.servers.list())
@@ -54,11 +54,11 @@ export const ServerDiscordPanel: React.FC<ServerDiscordPanelProps> = ({ serverId
       .catch((e: unknown) =>
         toast.danger(t('discordGuilds.loadFailed', { message: e instanceof Error ? e.message : String(e) })))
       .finally(() => setLoading(false))
-  }, [t, serverId])
+  }
 
   React.useEffect(() => {
     load()
-  }, [load])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Configured guilds (added in Settings → Guilds) populate the guild dropdown;
   // the bot's guild membership supplies human names for the labels. Both are

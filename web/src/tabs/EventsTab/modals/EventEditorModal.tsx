@@ -208,18 +208,14 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
     api.givePacks.config().then((cfg) => setPacks(cfg.packs ?? [])).catch(() => {})
   }, [isOpen, editing])
 
-  const filteredTemplates = React.useMemo(() => {
-    if (!templateQuery) return []
-    const q = templateQuery.toLowerCase()
-    return templates
-      .filter((tpl) => tpl.id.toLowerCase().includes(q) || tpl.name.toLowerCase().includes(q))
-      .slice(0, 100)
-  }, [templates, templateQuery])
+  const nameMap = new Map(templates.map((tpl) => [tpl.id, tpl.name]))
 
-  const nameMap = React.useMemo(
-    () => new Map(templates.map((tpl) => [tpl.id, tpl.name])),
-    [templates],
-  )
+  const _ftq = templateQuery.toLowerCase()
+  const filteredTemplates = !templateQuery
+    ? []
+    : templates
+        .filter((tpl) => tpl.id.toLowerCase().includes(_ftq) || tpl.name.toLowerCase().includes(_ftq))
+        .slice(0, 100)
 
   const handleTypeChange = (newType: string) => {
     const t2 = newType as EventDefinition['type']

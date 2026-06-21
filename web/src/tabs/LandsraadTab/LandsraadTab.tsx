@@ -13,7 +13,7 @@ export const LandsraadTab: React.FC = () => {
   const [data, setData] = React.useState<LandsraadOverview | null>(null)
   const [loading, setLoading] = React.useState(false)
 
-  const load = React.useCallback(() => {
+  const load = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => api.landsraad.get())
@@ -21,11 +21,11 @@ export const LandsraadTab: React.FC = () => {
       .catch((e: unknown) =>
         toast.danger(t('landsraad.failedToLoad', { message: e instanceof Error ? e.message : String(e) })))
       .finally(() => setLoading(false))
-  }, [t])
+  }
 
   React.useEffect(() => {
     load()
-  }, [load])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const term = data?.term ?? null
   const decrees = data?.decrees ?? []

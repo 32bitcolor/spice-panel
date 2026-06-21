@@ -25,7 +25,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   const [loading, setLoading] = React.useState(false)
   const [discordEnabled, setDiscordEnabled] = React.useState(false)
 
-  const load = React.useCallback(() => {
+  const load = (): void => {
     if (servers.length === 0) {
       void Promise.resolve().then(() => setHealth([]))
       return
@@ -36,11 +36,11 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
       .then(setHealth)
       .catch((e: unknown) => toast.danger(t('dashboard.loadFailed', { message: e instanceof Error ? e.message : String(e) })))
       .finally(() => setLoading(false))
-  }, [t, servers.length])
+  }
 
   React.useEffect(() => {
     load()
-  }, [load])
+  }, [servers.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Read whether the Discord bot is configured so its onboarding card hides once
   // set up. Best-effort — guests (no config:read) just won't see the card anyway.

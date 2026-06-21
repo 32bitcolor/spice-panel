@@ -30,7 +30,7 @@ export const GuildsPanel: React.FC = () => {
 
   const selectionCount = selectedKeys === 'all' ? guilds.length : (selectedKeys as Set<string>).size
 
-  const load = React.useCallback(() => {
+  const load = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => Promise.all([api.discord.guilds.list(), api.discord.servers.list(), api.servers.list()]))
@@ -42,11 +42,11 @@ export const GuildsPanel: React.FC = () => {
       .catch((e: unknown) =>
         toast.danger(t('discordGuilds.loadFailed', { message: e instanceof Error ? e.message : String(e) })))
       .finally(() => setLoading(false))
-  }, [t])
+  }
 
   React.useEffect(() => {
     load()
-  }, [load])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const openAdd = () => {
     setEditing(null)

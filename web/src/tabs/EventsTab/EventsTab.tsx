@@ -90,7 +90,7 @@ export const EventsTab: React.FC = () => {
       })
   }
 
-  const loadEvents = React.useCallback(() => {
+  const loadEvents = (): void => {
     Promise.resolve()
       .then(() => setLoading(true))
       .then(() => api.events.list())
@@ -99,28 +99,25 @@ export const EventsTab: React.FC = () => {
         toast.danger(t('events.failedToLoad', { message: e instanceof Error ? e.message : String(e) }))
       })
       .finally(() => setLoading(false))
-  }, [t])
+  }
 
-  const loadStatus = React.useCallback(
-    (ev: EventDefinition) => {
-      setSelectedEvent(ev)
-      setClaimsLoading(true)
-      api.events
-        .status(ev.id)
-        .then((s) => setClaims(s.claims))
-        .catch((e: unknown) => {
-          toast.danger(t('events.failedToLoadStatus', { message: e instanceof Error ? e.message : String(e) }))
-        })
-        .finally(() => setClaimsLoading(false))
-    },
-    [t],
-  )
+  const loadStatus = (ev: EventDefinition): void => {
+    setSelectedEvent(ev)
+    setClaimsLoading(true)
+    api.events
+      .status(ev.id)
+      .then((s) => setClaims(s.claims))
+      .catch((e: unknown) => {
+        toast.danger(t('events.failedToLoadStatus', { message: e instanceof Error ? e.message : String(e) }))
+      })
+      .finally(() => setClaimsLoading(false))
+  }
 
-  const loadConfig = React.useCallback(() => {
+  const loadConfig = (): void => {
     api.events.config()
       .then(setCfg)
       .catch(() => { /* silent — config non-critical */ })
-  }, [])
+  }
 
   const toggleEnabled = (enabled: boolean) => {
     const prev = cfg
@@ -138,7 +135,7 @@ export const EventsTab: React.FC = () => {
   React.useEffect(() => {
     loadEvents()
     loadConfig()
-  }, [loadEvents, loadConfig])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleToggleEnabled = (ev: EventDefinition) => {
     api.events

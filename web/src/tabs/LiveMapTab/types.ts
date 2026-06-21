@@ -1,5 +1,3 @@
-import * as React from 'react'
-
 export type Bounds = {
   minX: number
   maxX: number
@@ -72,7 +70,7 @@ export interface ZoneGridLayerProps {
 }
 
 export interface FitBoundsControllerProps {
-  fitRef: React.MutableRefObject<(() => void) | null>
+  onRegisterFit: (fn: () => void) => void
 }
 
 export interface FilterPanelProps {
