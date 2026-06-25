@@ -2051,26 +2051,25 @@ func gmSeedSpec() gmSeed {
 	}
 }
 
-// cmdEnsureGMIdentity idempotently seeds the GM/Server persona used as the sender
-// for admin chat. It writes the BASE tables (dune.accounts / dune.player_state are
-// VIEWS over them, per Phase 0 recon) plus the three linked actor rows the game's
-// player-info lookup requires. Names go through dune.encrypt_user_data so the seed
-// stays correct if user-data encryption is ever enabled. actors.transform is left
-// NULL so the GM never plots on the live map. Safe to call on every startup
-// (ON CONFLICT DO NOTHING); the connectAll wiring logs-and-continues on failure.
-func cmdEnsureGMIdentity(ctx context.Context, pool *pgxpool.Pool) error {
-	if pool == nil {
-		return fmt.Errorf("not connected")
-	}
-	s := gmSeedSpec()
-
-	tx, err := pool.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("begin gm seed: %w", err)
-	}
-	defer func() { _ = tx.Rollback(ctx) }()
-
-	if _, err := tx.Exec(ctx, `
+// seedGMIdentity executes the GM persona seed writes against db (a transaction or
+// pool). Extracted for testability via the pgExecutor interface. Called by
+// cmdEnsureGMIdentity inside a transaction.
+//
+// Player-state deduplication: the game's schema migration (post-1.5) removed the
+// unique constraint on dune.encrypted_player_state.account_id, so the old bare
+// INSERT … ON CONFLICT DO NOTHING no longer deduplicates — a new GM row was
+// created on every dune-admin startup, and the director crashed when it saw two
+// player_state rows for the same fls_id. The fix:
+//
+//  1. DELETE any duplicate GM player_state rows, keeping only the lowest-id one
+//     (self-heals servers that already accumulated duplicates).
+//  2. INSERT the GM row only when none exists (WHERE NOT EXISTS guard) so a second
+//     row can never be created even if the constraint is absent.
+//
+// The accounts and actors inserts keep ON CONFLICT DO NOTHING — they use explicit
+// synthetic ids as the PK, so the conflict target is still valid.
+func seedGMIdentity(ctx context.Context, db pgExecutor, s gmSeed) error {
+	if _, err := db.Exec(ctx, `
 		INSERT INTO dune.encrypted_accounts (id, "user", encrypted_funcom_id, takeoverable, platform_id, platform_name)
 		VALUES ($1, $2, dune.encrypt_user_data($3), false, 'dune-admin', 'DuneAdmin')
 		ON CONFLICT DO NOTHING`, s.AccountID, s.HexID, s.FuncomID); err != nil {
@@ -2086,7 +2085,7 @@ func cmdEnsureGMIdentity(ctx context.Context, pool *pgxpool.Pool) error {
 		{s.PawnID, s.PawnClass},
 	}
 	for _, a := range actors {
-		if _, err := tx.Exec(ctx, `
+		if _, err := db.Exec(ctx, `
 			INSERT INTO dune.actors (id, class, map, partition_id, dimension_index, gas_attributes, properties, owner_account_id, serial)
 			VALUES ($1, $2, $3, $4, $5, '{}'::jsonb, '{}'::jsonb, $6, 1)
 			ON CONFLICT DO NOTHING`,
@@ -2095,18 +2094,60 @@ func cmdEnsureGMIdentity(ctx context.Context, pool *pgxpool.Pool) error {
 		}
 	}
 
-	// server_id reuses a real one if any player has logged in (the game's lookup
-	// expects a valid server). NULL is acceptable on a never-populated DB.
-	if _, err := tx.Exec(ctx, `
+	// Step 1 — collapse any existing duplicate GM player_state rows to the
+	// canonical lowest-id one. Safe with zero rows: id <> (SELECT MIN(id) …)
+	// returns NULL when the subquery has no rows, so the WHERE never matches.
+	if _, err := db.Exec(ctx, `
+		DELETE FROM dune.encrypted_player_state
+		WHERE account_id = $1
+		  AND id <> (SELECT MIN(id) FROM dune.encrypted_player_state WHERE account_id = $1)`,
+		s.AccountID); err != nil {
+		return fmt.Errorf("dedupe gm player_state: %w", err)
+	}
+
+	// Step 2 — insert the GM row only if it doesn't already exist. Using
+	// INSERT … SELECT … WHERE NOT EXISTS instead of ON CONFLICT DO NOTHING
+	// because the table no longer has a unique constraint on account_id.
+	// server_id reuses a real one if any player has logged in (the game's
+	// lookup expects a valid server); NULL is fine on a never-populated DB.
+	if _, err := db.Exec(ctx, `
 		INSERT INTO dune.encrypted_player_state
 			(account_id, encrypted_character_name, life_state, online_status, is_coriolis_processed,
 			 server_id, player_controller_id, player_pawn_id, player_state_id, last_login_time)
-		VALUES ($1, dune.encrypt_user_data($2), $3::dune.playerlifestate, $4::dune.playerconnectionstatus, false,
+		SELECT $1, dune.encrypt_user_data($2), $3::dune.playerlifestate, $4::dune.playerconnectionstatus, false,
 			(SELECT server_id FROM dune.encrypted_player_state WHERE server_id IS NOT NULL LIMIT 1),
-			$5, $6, $7, now())
-		ON CONFLICT DO NOTHING`,
+			$5, $6, $7, now()
+		WHERE NOT EXISTS (
+			SELECT 1 FROM dune.encrypted_player_state WHERE account_id = $1
+		)`,
 		s.AccountID, s.CharacterName, s.LifeState, s.OnlineStatus, s.ControllerID, s.PawnID, s.StateID); err != nil {
 		return fmt.Errorf("seed gm player_state: %w", err)
+	}
+
+	return nil
+}
+
+// cmdEnsureGMIdentity idempotently seeds the GM/Server persona used as the sender
+// for admin chat. It writes the BASE tables (dune.accounts / dune.player_state are
+// VIEWS over them) plus the three linked actor rows the game's player-info lookup
+// requires. Names go through dune.encrypt_user_data so the seed stays correct if
+// user-data encryption is ever enabled. actors.transform is left NULL so the GM
+// never plots on the live map. Self-heals duplicate player_state rows (see
+// seedGMIdentity). Safe to call on every startup; connectAll logs-and-continues.
+func cmdEnsureGMIdentity(ctx context.Context, pool *pgxpool.Pool) error {
+	if pool == nil {
+		return fmt.Errorf("not connected")
+	}
+	s := gmSeedSpec()
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin gm seed: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	if err := seedGMIdentity(ctx, tx, s); err != nil {
+		return err
 	}
 
 	if err := tx.Commit(ctx); err != nil {
