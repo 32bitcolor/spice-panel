@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Button, ListBox, Select, Spinner, toast } from '../../../ui'
-import { EmptyState } from '@heroui-pro/react'
+import { EmptyState } from '../../../ui'
 import { Icon as IconifyIcon } from '@iconify/react'
 import { useTranslation } from 'react-i18next'
 import { usePermissions } from '../../../hooks/usePermissions'

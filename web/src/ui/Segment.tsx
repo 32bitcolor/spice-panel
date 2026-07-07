@@ -19,8 +19,11 @@ const useSegment = (): SegmentContextValue => {
 
 export interface SegmentProps {
   selectedKey?: string
+  defaultSelectedKey?: string
   onSelectionChange?: (key: string) => void
   size?: SegmentSize
+  /** HeroUI-era visual variant — accepted for compatibility; styling is unified. */
+  variant?: string
   className?: string
   children?: React.ReactNode
   'aria-label'?: string
@@ -28,16 +31,23 @@ export interface SegmentProps {
 
 const SegmentRoot: React.FC<SegmentProps> = ({
   selectedKey,
+  defaultSelectedKey,
   onSelectionChange,
   size = 'md',
+  variant: _variant,
   className,
   children,
   'aria-label': ariaLabel,
 }): React.ReactElement => {
+  const [internal, setInternal] = React.useState(defaultSelectedKey)
+  const active = selectedKey ?? internal
   const value: SegmentContextValue = {
-    selectedKey,
+    selectedKey: active,
     size,
-    onSelect: (key) => onSelectionChange?.(key),
+    onSelect: (key) => {
+      if (selectedKey === undefined) setInternal(key)
+      onSelectionChange?.(key)
+    },
   }
   return (
     <SegmentContext.Provider value={value}>

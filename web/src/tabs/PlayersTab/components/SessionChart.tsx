@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { BarChart } from '@heroui-pro/react'
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import type { SessionRecord } from '../../../api/client'
 import { SectionLabel } from '../../../dune-ui'
 import type { SessionChartProps } from './interfaces'
@@ -52,26 +52,40 @@ export const SessionChart: React.FC<SessionChartProps> = ({ data }) => {
   return (
     <div>
       <SectionLabel>{t('players.detail.sessionHistory')}</SectionLabel>
-      <BarChart data={buckets} height={140} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-        <BarChart.Grid vertical={false} />
-        <BarChart.XAxis dataKey="date" tickFormatter={fmtDate} tickMargin={8} />
-        <BarChart.YAxis width={36} tickFormatter={(v: number) => `${v}m`} />
-        <BarChart.Bar
-          dataKey="minutes"
-          fill="var(--accent)"
-          radius={[3, 3, 0, 0]}
-          maxBarSize={32}
-          name={t('players.detail.playtime')}
-        />
-        <BarChart.Tooltip
-          content={(
-            <BarChart.TooltipContent
-              labelFormatter={(d) => fmtDate(String(d))}
-              valueFormatter={(v) => `${v}m`}
-            />
-          )}
-        />
-      </BarChart>
+      <ResponsiveContainer width="100%" height={140}>
+        <BarChart data={buckets} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+          <XAxis
+            dataKey="date"
+            tickFormatter={fmtDate}
+            tickMargin={8}
+            tick={{ fill: 'var(--muted)', fontSize: 11 }}
+            tickLine={false}
+            axisLine={{ stroke: 'var(--border)' }}
+          />
+          <YAxis
+            width={36}
+            tickFormatter={(v: number) => `${v}m`}
+            tick={{ fill: 'var(--muted)', fontSize: 11 }}
+            tickLine={false}
+            axisLine={{ stroke: 'var(--border)' }}
+          />
+          <Bar
+            dataKey="minutes"
+            fill="var(--accent)"
+            radius={[3, 3, 0, 0]}
+            maxBarSize={32}
+            name={t('players.detail.playtime')}
+          />
+          <Tooltip
+            cursor={{ fill: 'var(--surface-secondary)' }}
+            contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 3, fontSize: 12 }}
+            labelStyle={{ color: 'var(--muted)' }}
+            labelFormatter={(d) => fmtDate(String(d))}
+            formatter={(v) => [`${v}m`, t('players.detail.playtime')]}
+          />
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   )
 }

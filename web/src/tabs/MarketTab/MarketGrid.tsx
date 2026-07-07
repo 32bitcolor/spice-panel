@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAtomValue } from 'jotai'
-import { EmptyState } from '@heroui-pro/react'
+import { EmptyState } from '../../ui'
 import { Icon as IconifyIcon } from '@iconify/react'
 import { iconUrl, categoryColor, qualityLabel, BG_PURPLE } from '../../utils/icons'
 import { itemDataSyncAtom } from '../../data/store'

@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Spinner, toast } from '../../../ui'
-import { AreaChart, BarChart, Segment } from '@heroui-pro/react'
+import { Segment, Spinner, toast } from '../../../ui'
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { api } from '../../../api/client'
 import type { FactionStat, FactionTrends, ServerSummary } from '../../../api/client'
 import { DataTable, PageHeader, Panel, SectionLabel } from '../../../dune-ui'
@@ -27,6 +27,17 @@ const factionColor = (faction: string, i: number) =>
 // Compact axis labels so large Solaris totals (tens of millions) don't overflow
 // the Y-axis gutter — e.g. 10,000,000 → "10M". Tooltip shows the full number.
 const compactNum = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 })
+
+// Shared recharts tooltip surface: themed with semantic tokens so it matches the
+// HUD in both light and dark. recharts can't read CSS tokens on axes/series, but
+// inline style props resolve var(...) at paint time.
+const TOOLTIP_STYLE: React.CSSProperties = {
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
+  borderRadius: 'var(--radius)',
+  color: 'var(--foreground)',
+}
+const AXIS_TICK = { fill: 'var(--muted)', fontSize: 12 }
 
 const fmtDate = (d: string): string => {
   return new Date(d + 'T12:00:00Z').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
@@ -129,30 +140,29 @@ export const ServerDashboard: React.FC = () => {
 
               <Panel>
                 <SectionLabel>{t('players.dashboard.activityTrend', { days: summary.trend_days })}</SectionLabel>
-                <BarChart
-                  data={summary.activity_trend}
-                  height={176}
-                  margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
-                >
-                  <BarChart.Grid vertical={false} />
-                  <BarChart.XAxis dataKey="day" tickFormatter={fmtDate} tickMargin={8} />
-                  <BarChart.YAxis allowDecimals={false} width={32} />
-                  <BarChart.Bar
-                    dataKey="count"
-                    fill="var(--accent)"
-                    radius={[3, 3, 0, 0]}
-                    maxBarSize={28}
-                    name={t('players.dashboard.sessions')}
-                  />
-                  <BarChart.Tooltip
-                    content={(
-                      <BarChart.TooltipContent
-                        labelFormatter={(d) => fmtDate(String(d))}
-                        valueFormatter={(v) => String(v)}
-                      />
-                    )}
-                  />
-                </BarChart>
+                <ResponsiveContainer width="100%" height={176}>
+                  <BarChart
+                    data={summary.activity_trend}
+                    margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
+                  >
+                    <CartesianGrid vertical={false} stroke="var(--border)" />
+                    <XAxis dataKey="day" tickFormatter={fmtDate} tickMargin={8} stroke="var(--border)" tick={AXIS_TICK} />
+                    <YAxis allowDecimals={false} width={32} stroke="var(--border)" tick={AXIS_TICK} />
+                    <Tooltip
+                      cursor={{ fill: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}
+                      contentStyle={TOOLTIP_STYLE}
+                      labelFormatter={(d) => fmtDate(String(d))}
+                      formatter={(v) => [String(v), t('players.dashboard.sessions')]}
+                    />
+                    <Bar
+                      dataKey="count"
+                      fill="var(--accent)"
+                      radius={[3, 3, 0, 0]}
+                      maxBarSize={28}
+                      name={t('players.dashboard.sessions')}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
               </Panel>
 
               <Panel>
@@ -223,43 +233,40 @@ export const ServerDashboard: React.FC = () => {
                             </div>
                           ))}
                         </div>
-                        <AreaChart
-                          data={trends.points.map((p) => ({ day: p.day, ...p.values }))}
-                          height={200}
-                          margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
-                        >
-                          <defs>
+                        <ResponsiveContainer width="100%" height={200}>
+                          <AreaChart
+                            data={trends.points.map((p) => ({ day: p.day, ...p.values }))}
+                            margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
+                          >
+                            <defs>
+                              {trends.factions.map((fac, i) => (
+                                <linearGradient key={fac} id={`faction-${i}`} x1="0" x2="0" y1="0" y2="1">
+                                  <stop offset="0%" stopColor={factionColor(fac, i)} stopOpacity={0.2} />
+                                  <stop offset="100%" stopColor={factionColor(fac, i)} stopOpacity={0.02} />
+                                </linearGradient>
+                              ))}
+                            </defs>
+                            <CartesianGrid vertical={false} stroke="var(--border)" />
+                            <XAxis dataKey="day" tickFormatter={fmtDate} tickMargin={8} stroke="var(--border)" tick={AXIS_TICK} />
+                            <YAxis width={48} tickFormatter={(v: number) => compactNum.format(v)} stroke="var(--border)" tick={AXIS_TICK} />
                             {trends.factions.map((fac, i) => (
-                              <linearGradient key={fac} id={`faction-${i}`} x1="0" x2="0" y1="0" y2="1">
-                                <stop offset="0%" stopColor={factionColor(fac, i)} stopOpacity={0.2} />
-                                <stop offset="100%" stopColor={factionColor(fac, i)} stopOpacity={0.02} />
-                              </linearGradient>
-                            ))}
-                          </defs>
-                          <AreaChart.Grid vertical={false} />
-                          <AreaChart.XAxis dataKey="day" tickFormatter={fmtDate} tickMargin={8} />
-                          <AreaChart.YAxis width={48} tickFormatter={(v: number) => compactNum.format(v)} />
-                          {trends.factions.map((fac, i) => (
-                            <AreaChart.Area
-                              key={fac}
-                              type="monotone"
-                              dataKey={fac}
-                              stroke={factionColor(fac, i)}
-                              strokeWidth={2}
-                              dot={false}
-                              fill={`url(#faction-${i})`}
-                            />
-                          ))}
-                          <AreaChart.Tooltip
-                            content={(
-                              <AreaChart.TooltipContent
-                                indicator="line"
-                                labelFormatter={(d) => fmtDate(String(d))}
-                                valueFormatter={(v) => (v as number).toLocaleString()}
+                              <Area
+                                key={fac}
+                                type="monotone"
+                                dataKey={fac}
+                                stroke={factionColor(fac, i)}
+                                strokeWidth={2}
+                                dot={false}
+                                fill={`url(#faction-${i})`}
                               />
-                            )}
-                          />
-                        </AreaChart>
+                            ))}
+                            <Tooltip
+                              contentStyle={TOOLTIP_STYLE}
+                              labelFormatter={(d) => fmtDate(String(d))}
+                              formatter={(v) => (v as number).toLocaleString()}
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
                       </React.Fragment>
                     )}
               </Panel>

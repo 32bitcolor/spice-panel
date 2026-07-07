@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Modal, Spinner } from '../../../ui'
-import { Segment } from '@heroui-pro/react'
+import { Segment } from '../../../ui'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'
 import type { BotStatus, BotConfig } from '../../../api/client'

@@ -1,13 +1,12 @@
 import * as React from 'react'
 import {
-  Button, Chip, CloseButton, ListBox, Modal, SearchField, Select, Separator, Switch, TextArea, TextField, toast,
+  Button, Chip, CloseButton, ListBox, Modal, SearchField, Segment, Select, Separator, Switch, TextArea, TextField, toast,
 } from '../../../ui'
 import type { Selection } from 'react-aria-components'
-import type { DataGridColumn } from '@heroui-pro/react'
-import { DataGrid, Segment } from '@heroui-pro/react'
 import { useAtom } from 'jotai'
 import { useTranslation } from 'react-i18next'
-import { ActionBar, FieldInput, FieldSelect, Icon, NumberInput, SectionLabel } from '../../../dune-ui'
+import { ActionBar, DataTable, FieldInput, FieldSelect, Icon, NumberInput, SectionLabel } from '../../../dune-ui'
+import type { Column } from '../../../dune-ui'
 import { gameplayTagsSyncAtom } from '../../../data/store'
 import { api } from '../../../api/client'
 import type { EventDefinition, GivePack, Player } from '../../../api/client'
@@ -90,6 +89,9 @@ const dedupXPByTrack = (arr: RewardXP[]): RewardXP[] => {
   arr.forEach((x) => byTrack.set(x.track, x))
   return [...byTrack.values()]
 }
+
+type XpColKey = 'track' | 'amount' | 'actions'
+type RewardItemColKey = 'template' | 'qty' | 'quality' | 'actions'
 
 export const EventEditorModal: React.FC<EventEditorModalProps> = ({
   isOpen, onClose, editing, onSaved,
@@ -322,43 +324,53 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
     setXpKeys(new Set())
   }
 
-  const xpColumns: DataGridColumn<RewardXP>[] = [
+  const xpColumns: Column<XpColKey>[] = [
     {
-      id: 'track',
+      key: 'track',
       isRowHeader: true,
-      header: t('events.editor.xpTrack'),
+      label: t('events.editor.xpTrack'),
       minWidth: 200,
-      allowsResizing: true,
-      cell: (x) => <span className="font-mono text-sm text-foreground">{x.track}</span>,
+      sortable: false,
     },
     {
-      id: 'amount',
-      header: t('events.editor.xpAmount'),
+      key: 'amount',
+      label: t('events.editor.xpAmount'),
       minWidth: 130,
-      cell: (x) => (
-        <span className="text-muted">
-          {x.amount.toLocaleString()}
-          {' XP'}
-        </span>
-      ),
+      sortable: false,
     },
     {
-      id: 'actions',
-      header: '',
+      key: 'actions',
+      label: '',
       width: 52,
-      cell: (x) => (
-        <Button
-          size="sm"
-          variant="danger"
-          isIconOnly
-          onPress={() => setRewardXP((prev) => prev.filter((p) => p.track !== x.track))}
-          aria-label={t('common.remove')}
-        >
-          <Icon name="trash" />
-        </Button>
-      ),
+      sortable: false,
     },
   ]
+
+  const renderXpCell = (x: RewardXP, key: XpColKey): React.ReactNode => {
+    switch (key) {
+      case 'track':
+        return <span className="font-mono text-sm text-foreground">{x.track}</span>
+      case 'amount':
+        return (
+          <span className="text-muted">
+            {x.amount.toLocaleString()}
+            {' XP'}
+          </span>
+        )
+      case 'actions':
+        return (
+          <Button
+            size="sm"
+            variant="danger"
+            isIconOnly
+            onPress={() => setRewardXP((prev) => prev.filter((p) => p.track !== x.track))}
+            aria-label={t('common.remove')}
+          >
+            <Icon name="trash" />
+          </Button>
+        )
+    }
+  }
 
   const handleSave = () => {
     if (!name.trim()) {
@@ -394,71 +406,79 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
 
   const fieldLabelClass = 'text-xs text-muted mb-1 block'
 
-  const rewardItemColumns: DataGridColumn<KeyedRewardItem>[] = [
+  const rewardItemColumns: Column<RewardItemColKey>[] = [
     {
-      id: 'template',
+      key: 'template',
       isRowHeader: true,
-      header: t('players.inventory.columns.template'),
+      label: t('players.inventory.columns.template'),
       minWidth: 200,
-      allowsResizing: true,
-      cell: (item) => (
-        <div className="leading-tight py-0.5">
-          <div className="truncate text-sm">{nameMap.get(item.template) || item.template}</div>
-          {nameMap.get(item.template) && (
-            <div className="font-mono text-[10px] text-muted truncate">{item.template}</div>
-          )}
-        </div>
-      ),
+      sortable: false,
     },
     {
-      id: 'qty',
-      header: t('players.give.qty'),
+      key: 'qty',
+      label: t('players.give.qty'),
       minWidth: 130,
-      maxWidth: 250,
-      allowsResizing: true,
-      cell: (item) => (
-        <NumberInput
-          ariaLabel={t('players.give.qty')}
-          min={1}
-          value={item.qty}
-          onChange={(v) => updateRewardItem(item._key, 'qty', v)}
-          className="w-full"
-        />
-      ),
+      sortable: false,
     },
     {
-      id: 'quality',
-      header: t('players.give.quality'),
+      key: 'quality',
+      label: t('players.give.quality'),
       minWidth: 130,
-      maxWidth: 250,
-      allowsResizing: true,
-      cell: (item) => (
-        <NumberInput
-          ariaLabel={t('players.give.quality')}
-          min={0}
-          value={item.quality}
-          onChange={(v) => updateRewardItem(item._key, 'quality', v)}
-          className="w-full"
-        />
-      ),
+      sortable: false,
     },
     {
-      id: 'actions',
-      header: '',
+      key: 'actions',
+      label: '',
       width: 52,
-      cell: (item) => (
-        <Button
-          size="sm"
-          variant="danger"
-          isIconOnly
-          onPress={() => removeRewardItem(item._key)}
-          aria-label={t('common.remove')}
-        >
-          <Icon name="trash" />
-        </Button>
-      ),
+      sortable: false,
     },
   ]
+
+  const renderRewardItemCell = (item: KeyedRewardItem, key: RewardItemColKey): React.ReactNode => {
+    switch (key) {
+      case 'template':
+        return (
+          <div className="leading-tight py-0.5">
+            <div className="truncate text-sm">{nameMap.get(item.template) || item.template}</div>
+            {nameMap.get(item.template) && (
+              <div className="font-mono text-[10px] text-muted truncate">{item.template}</div>
+            )}
+          </div>
+        )
+      case 'qty':
+        return (
+          <NumberInput
+            ariaLabel={t('players.give.qty')}
+            min={1}
+            value={item.qty}
+            onChange={(v) => updateRewardItem(item._key, 'qty', v)}
+            className="w-full"
+          />
+        )
+      case 'quality':
+        return (
+          <NumberInput
+            ariaLabel={t('players.give.quality')}
+            min={0}
+            value={item.quality}
+            onChange={(v) => updateRewardItem(item._key, 'quality', v)}
+            className="w-full"
+          />
+        )
+      case 'actions':
+        return (
+          <Button
+            size="sm"
+            variant="danger"
+            isIconOnly
+            onPress={() => removeRewardItem(item._key)}
+            aria-label={t('common.remove')}
+          >
+            <Icon name="trash" />
+          </Button>
+        )
+    }
+  }
 
   return (
     <React.Fragment>
@@ -732,7 +752,7 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
                         ? '{player} completed {event}!'
                         : '{player} reached level {value} in {event}!'}
                       value={announceTemplate}
-                      onChange={(e) => setAnnounceTemplate(e.target.value)}
+                      onChange={(e) => setAnnounceTemplate(e)}
                     />
                     <p className="text-xs text-muted">
                       {t('events.editor.templateHint')}
@@ -860,18 +880,16 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
                       </Button>
                     </div>
                     {rewardXP.length > 0 && (
-                      <DataGrid
+                      <DataTable
                         aria-label={t('events.editor.xpRewards')}
                         columns={xpColumns}
-                        data={rewardXP}
-                        getRowId={(x) => x.track}
+                        rows={rewardXP}
+                        rowId={(x) => x.track}
+                        renderCell={renderXpCell}
                         selectedKeys={xpKeys}
                         selectionMode="multiple"
-                        showSelectionCheckboxes
                         onSelectionChange={setXpKeys}
                         className="mt-2 flex-1 min-h-0"
-                        scrollContainerClassName="h-full overflow-y-auto"
-                        allowsColumnResize
                       />
                     )}
                   </FormSection>
@@ -977,18 +995,16 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
                     </Button>
                   </div>
                   {rewardItems.length > 0 && (
-                    <DataGrid
+                    <DataTable
                       aria-label={t('events.editor.items')}
                       columns={rewardItemColumns}
-                      data={rewardItems}
-                      getRowId={(item) => item._key}
+                      rows={rewardItems}
+                      rowId={(item) => item._key}
+                      renderCell={renderRewardItemCell}
                       selectedKeys={rewardItemKeys}
                       selectionMode="multiple"
-                      showSelectionCheckboxes
                       onSelectionChange={setRewardItemKeys}
                       className="mt-2 flex-1 min-h-0"
-                      scrollContainerClassName="h-full overflow-y-auto"
-                      allowsColumnResize
                     />
                   )}
                 </FormSection>

@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Chip, Input, Modal, Spinner, TextArea, toast } from '../ui'
-import { EmptyState } from '@heroui-pro/react'
+import { EmptyState } from '../ui'
 import { Icon as IconifyIcon } from '@iconify/react'
 import { api } from '../api/client'
 import type { GuildSummary, GuildDetail } from '../api/client'
@@ -219,7 +219,7 @@ export const GuildsTab: React.FC<GuildsTabProps> = ({ isSignedIn = true }) => {
                               fullWidth
                               rows={2}
                               value={editDesc}
-                              onChange={(e) => setEditDesc(e.target.value)}
+                              onChange={(e) => setEditDesc(e)}
                             />
                           </div>
                           <div>

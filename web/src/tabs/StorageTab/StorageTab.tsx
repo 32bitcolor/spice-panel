@@ -4,7 +4,7 @@ import {
   Button, Chip, SearchField, Spinner, toast,
 } from '../../ui'
 import type { Selection } from 'react-aria-components'
-import { EmptyState } from '@heroui-pro/react'
+import { EmptyState } from '../../ui'
 import { Icon as IconifyIcon } from '@iconify/react'
 import { useAtomValue } from 'jotai'
 import { api } from '../../api/client'

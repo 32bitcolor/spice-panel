@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Input, Modal, Spinner, toast } from '../../../ui'
-import { EmptyState } from '@heroui-pro/react'
+import { EmptyState } from '../../../ui'
 import { DataTable, SectionLabel, type Column } from '../../../dune-ui'
 import { api } from '../../../api/client'
 import type { TeleportLocation } from '../../../api/client'

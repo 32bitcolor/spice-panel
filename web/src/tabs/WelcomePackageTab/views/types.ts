@@ -38,3 +38,5 @@ export type PackagesViewProps = Pick<
 >
 
 export type KeyedItem = WelcomePackageItem & { _key: string }
+
+export type KeyedItemKey = 'template' | 'qty' | 'quality' | 'weight' | 'slots' | 'actions'

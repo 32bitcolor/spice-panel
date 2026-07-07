@@ -1,6 +1,5 @@
 import * as React from 'react'
 import { Button, SearchField } from '../../ui'
-import { FileTree } from '@heroui-pro/react'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../../dune-ui'
 import type { MarketSidebarProps, Node } from './types'
@@ -61,14 +60,6 @@ const collectAncestorPaths = (categories: string[], selected: string): Set<strin
   return ancestors
 }
 
-// Recursively map a Node tree into nested FileTree.Item elements. The item key
-// (`id`) is the full filter path so selection maps straight back onto onSelect.
-const renderNode = (node: Node) => (
-  <FileTree.Item key={node.displayPath} id={node.path} textValue={node.label} title={formatLabel(node.label)}>
-    {node.children.map((child) => renderNode(child))}
-  </FileTree.Item>
-)
-
 // Prune a tree to nodes whose label (or a descendant's label) matches the query.
 // A matching branch keeps all of its descendants so the user can drill in.
 const filterNodes = (nodes: Node[], q: string): Node[] => {
@@ -85,42 +76,114 @@ const filterNodes = (nodes: Node[], q: string): Node[] => {
   return out
 }
 
+const flattenNodes = (nodes: Node[]): Node[] =>
+  nodes.flatMap((n) => [n, ...flattenNodes(n.children)])
+
 const flattenKeys = (nodes: Node[]): string[] =>
   nodes.flatMap((n) => [n.path, ...flattenKeys(n.children)])
+
+// Seed the expand state on mount: open every top-level branch plus the ancestor
+// chain of the currently selected node so the selection is visible.
+const defaultExpanded = (categories: string[], selected: string): Set<string> => {
+  const { items, schematics } = buildTree(categories)
+  const set = new Set<string>()
+  for (const node of [...items, ...schematics]) set.add(node.path)
+  const ancestors = collectAncestorPaths(categories, selected)
+  for (const n of flattenNodes([...items, ...schematics])) {
+    if (ancestors.has(n.displayPath)) set.add(n.path)
+  }
+  return set
+}
+
+const ROW_BASE = 'flex items-center gap-1 rounded-[var(--radius)] py-1 pr-2 text-sm'
+const ROW_ACTIVE = 'bg-accent text-accent-foreground'
+const ROW_INACTIVE = 'text-foreground hover:bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]'
 
 export const MarketSidebar: React.FC<MarketSidebarProps> = ({ categories, selected, onSelect }: MarketSidebarProps) => {
   const { t } = useTranslation()
   const { items: allItems, schematics: allSchematics } = buildTree(categories)
   const [collapsed, setCollapsed] = React.useState(false)
   const [search, setSearch] = React.useState('')
+  const [expanded, setExpanded] = React.useState<Set<string>>(() => defaultExpanded(categories, selected))
 
   const q = search.trim().toLowerCase()
   const items = q ? filterNodes(allItems, q) : allItems
   const schematics = q ? filterNodes(allSchematics, q) : allSchematics
 
-  // While searching, expand every surviving branch so matches are visible.
-  // Otherwise: open top-level nodes plus the ancestors of the selected node.
-  let expandedProps: { expandedKeys: string[] } | { defaultExpandedKeys: string[] }
-  if (q) {
-    expandedProps = { expandedKeys: [...flattenKeys(items), ...flattenKeys(schematics)] }
-  }
-  else {
-    const set = new Set<string>()
-    for (const node of [...allItems, ...allSchematics]) set.add(node.path)
-    const ancestors = collectAncestorPaths(categories, selected)
-    const all = (function flatten(nodes: Node[]): Node[] {
-      return nodes.flatMap((n) => [n, ...flatten(n.children)])
-    })([...allItems, ...allSchematics])
-    for (const n of all) {
-      if (ancestors.has(n.displayPath)) set.add(n.path)
-    }
-    expandedProps = { defaultExpandedKeys: [...set] }
+  // While searching, force every surviving branch open so matches are visible.
+  // Otherwise honour the user's own expand/collapse toggles.
+  const effectiveExpanded = q
+    ? new Set([...flattenKeys(items), ...flattenKeys(schematics)])
+    : expanded
+
+  const toggle = (path: string): void => {
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(path)) next.delete(path)
+      else next.add(path)
+      return next
+    })
   }
 
-  const onSelectionChange = (keys: 'all' | Set<React.Key>) => {
-    if (keys === 'all') return
-    const k = [...keys][0]
-    if (k != null) onSelect(String(k))
+  // Recursively render a category subtree. Branches get a chevron that toggles
+  // expansion; every row's label selects that node (its full filter path).
+  const renderNode = (node: Node, depth: number): React.ReactElement => {
+    const isBranch = node.children.length > 0
+    const isOpen = effectiveExpanded.has(node.path)
+    const isActive = selected === node.path
+    return (
+      <li key={node.displayPath}>
+        <div
+          className={`${ROW_BASE} ${isActive ? ROW_ACTIVE : ROW_INACTIVE}`}
+          style={{ paddingLeft: `${depth * 12 + 4}px` }}
+        >
+          {isBranch
+            ? (
+                <button
+                  type="button"
+                  aria-label={isOpen ? t('market.sidebar.collapseAriaLabel') : t('market.sidebar.expandAriaLabel')}
+                  className="shrink-0 cursor-pointer text-muted hover:text-foreground"
+                  onClick={() => toggle(node.path)}
+                >
+                  <Icon name={isOpen ? 'chevron-down' : 'chevron-right'} className="size-3.5" />
+                </button>
+              )
+            : <span className="w-3.5 shrink-0" aria-hidden="true" />}
+          <button
+            type="button"
+            className="min-w-0 flex-1 cursor-pointer truncate text-left"
+            onClick={() => onSelect(node.path)}
+          >
+            {formatLabel(node.label)}
+          </button>
+        </div>
+        {isBranch && isOpen
+          ? (
+              <ul className="flex flex-col">
+                {node.children.map((child) => renderNode(child, depth + 1))}
+              </ul>
+            )
+          : null}
+      </li>
+    )
+  }
+
+  const renderTree = (nodes: Node[]): React.ReactElement | null =>
+    nodes.length === 0
+      ? null
+      : <ul className="flex flex-col">{nodes.map((n) => renderNode(n, 0))}</ul>
+
+  const renderSchematics = (): React.ReactNode => {
+    if (schematics.length === 0) return null
+    return (
+      <React.Fragment>
+        <div className="my-2 border-t border-border/40" />
+        <span className="text-[10px] font-semibold text-muted/60 uppercase tracking-wider px-1 mb-0.5 block">
+          {t('market.sidebar.schematics')}
+        </span>
+        {renderTree(schematics)}
+      </React.Fragment>
+    )
   }
 
   if (collapsed) {
@@ -166,39 +229,8 @@ export const MarketSidebar: React.FC<MarketSidebarProps> = ({ categories, select
       </Button>
 
       <div className="flex-1 overflow-y-auto">
-        {items.length > 0 && (
-          <FileTree
-            aria-label={t('market.sidebar.categories')}
-            selectionMode="single"
-            selectedKeys={selected ? new Set([selected]) : new Set()}
-            onSelectionChange={onSelectionChange}
-            {...expandedProps}
-            showGuideLines
-            size="sm"
-          >
-            {items.map((node) => renderNode(node))}
-          </FileTree>
-        )}
-
-        {schematics.length > 0 && (
-          <React.Fragment>
-            <div className="my-2 border-t border-border/40" />
-            <span className="text-[10px] font-semibold text-muted/60 uppercase tracking-wider px-1 mb-0.5 block">
-              {t('market.sidebar.schematics')}
-            </span>
-            <FileTree
-              aria-label={t('market.sidebar.schematics')}
-              selectionMode="single"
-              selectedKeys={selected ? new Set([selected]) : new Set()}
-              onSelectionChange={onSelectionChange}
-              {...expandedProps}
-              showGuideLines
-              size="sm"
-            >
-              {schematics.map((node) => renderNode(node))}
-            </FileTree>
-          </React.Fragment>
-        )}
+        {renderTree(items)}
+        {renderSchematics()}
       </div>
     </div>
   )

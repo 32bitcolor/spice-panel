@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { DataTable, type Column } from '../../dune-ui'
 import { useTranslation } from 'react-i18next'
-import { EmptyState } from '@heroui-pro/react'
+import { EmptyState } from '../../ui'
 import { Icon as IconifyIcon } from '@iconify/react'
 import type { MarketItem } from '../../api/client'
 import { ItemIcon } from '../../components/ItemIcon'

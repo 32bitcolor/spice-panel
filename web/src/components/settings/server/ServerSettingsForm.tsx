@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Spinner, toast } from '../../../ui'
-import { Segment } from '@heroui-pro/react'
+import { Segment } from '../../../ui'
 import { api } from '../../../api/client'
 import type { AppConfig, ServerConfig } from '../../../api/client'
 import { AuthContext } from '../../../auth/context'

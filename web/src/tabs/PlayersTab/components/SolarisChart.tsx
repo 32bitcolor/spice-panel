@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { AreaChart } from '@heroui-pro/react'
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { SectionLabel } from '../../../dune-ui'
 import type { SolarisChartProps, SolarisPoint } from './interfaces'
 
@@ -79,41 +79,53 @@ export const SolarisChart: React.FC<SolarisChartProps> = ({ data }) => {
           </button>
         ))}
       </div>
-      <AreaChart data={points} height={200} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-        <defs>
-          {LINES.map((l) => (
-            <linearGradient key={l.key} id={`solaris-${l.key}`} x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor={l.color} stopOpacity={0.2} />
-              <stop offset="100%" stopColor={l.color} stopOpacity={0.02} />
-            </linearGradient>
-          ))}
-        </defs>
-        <AreaChart.Grid vertical={false} />
-        <AreaChart.XAxis dataKey="time" tickFormatter={fmtTime} tickMargin={8} />
-        <AreaChart.YAxis tickFormatter={fmtSolaris} width={52} />
-        {visibleLines.map((l) => (
-          <AreaChart.Area
-            key={l.key}
-            type="monotone"
-            dataKey={l.key}
-            name={l.label}
-            stroke={l.color}
-            strokeWidth={2}
-            dot={false}
-            connectNulls
-            fill={`url(#solaris-${l.key})`}
+      <ResponsiveContainer width="100%" height={200}>
+        <AreaChart data={points} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+          <defs>
+            {LINES.map((l) => (
+              <linearGradient key={l.key} id={`solaris-${l.key}`} x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor={l.color} stopOpacity={0.2} />
+                <stop offset="100%" stopColor={l.color} stopOpacity={0.02} />
+              </linearGradient>
+            ))}
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+          <XAxis
+            dataKey="time"
+            tickFormatter={fmtTime}
+            tickMargin={8}
+            tick={{ fill: 'var(--muted)', fontSize: 11 }}
+            tickLine={false}
+            axisLine={{ stroke: 'var(--border)' }}
           />
-        ))}
-        <AreaChart.Tooltip
-          content={(
-            <AreaChart.TooltipContent
-              indicator="line"
-              labelFormatter={(d) => fmtTime(String(d))}
-              valueFormatter={(v) => fmtSolaris(Number(v))}
+          <YAxis
+            tickFormatter={fmtSolaris}
+            width={52}
+            tick={{ fill: 'var(--muted)', fontSize: 11 }}
+            tickLine={false}
+            axisLine={{ stroke: 'var(--border)' }}
+          />
+          {visibleLines.map((l) => (
+            <Area
+              key={l.key}
+              type="monotone"
+              dataKey={l.key}
+              name={l.label}
+              stroke={l.color}
+              strokeWidth={2}
+              dot={false}
+              connectNulls
+              fill={`url(#solaris-${l.key})`}
             />
-          )}
-        />
-      </AreaChart>
+          ))}
+          <Tooltip
+            contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 3, fontSize: 12 }}
+            labelStyle={{ color: 'var(--muted)' }}
+            labelFormatter={(d) => fmtTime(String(d))}
+            formatter={(v) => fmtSolaris(Number(v))}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   )
 }

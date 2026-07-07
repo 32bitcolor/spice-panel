@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Button, Chip, Spinner, Switch, toast } from '../../ui'
-import { Segment } from '@heroui-pro/react'
+import { Segment } from '../../ui'
 import { useTranslation } from 'react-i18next'
 import { authApi } from '../../api/client'
 import type { AuthLocalUser, PermissionsData } from '../../api/client'

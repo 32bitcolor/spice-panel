@@ -19,10 +19,14 @@ export type EmptyStateVariants = VariantProps<typeof rootStyles>
 
 export interface EmptyStateProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'>,
-    EmptyStateVariants {}
+    EmptyStateVariants {
+  /** HeroUI-era visual variant — accepted for compatibility; styling is unified. */
+  variant?: string
+}
 
 const EmptyStateRoot: React.FC<EmptyStateProps> = ({
   size,
+  variant: _variant,
   className,
   children,
   ...props
@@ -32,9 +36,10 @@ const EmptyStateRoot: React.FC<EmptyStateProps> = ({
   </div>
 )
 
-const Media: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
+const Media: React.FC<React.HTMLAttributes<HTMLDivElement> & { variant?: string }> = ({
   className,
   children,
+  variant: _variant,
   ...props
 }): React.ReactElement => (
   <div

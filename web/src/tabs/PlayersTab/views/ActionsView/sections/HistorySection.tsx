@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Chip } from '../../../../../ui'
-import { EmptyState } from '@heroui-pro/react'
+import { EmptyState } from '../../../../../ui'
 import { Icon as IconifyIcon } from '@iconify/react'
 import { DataTable, LoadingState, Panel, SectionLabel } from '../../../../../dune-ui'
 import { api } from '../../../../../api/client'

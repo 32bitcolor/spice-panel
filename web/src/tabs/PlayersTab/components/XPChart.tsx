@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { AreaChart } from '@heroui-pro/react'
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { SectionLabel } from '../../../dune-ui'
 import type { XPChartProps } from './interfaces'
 
@@ -63,45 +63,56 @@ export const XPChart: React.FC<XPChartProps> = ({ data }) => {
           </button>
         ))}
       </div>
-      <AreaChart
-        data={data as unknown as Record<string, string | number>[]}
-        height={200}
-        margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
-      >
-        <defs>
-          {LINES.map((l) => (
-            <linearGradient key={l.key} id={`xp-${l.key}`} x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor={l.color} stopOpacity={0.2} />
-              <stop offset="100%" stopColor={l.color} stopOpacity={0.02} />
-            </linearGradient>
-          ))}
-        </defs>
-        <AreaChart.Grid vertical={false} />
-        <AreaChart.XAxis dataKey="snapped_at" tickFormatter={fmtTime} tickMargin={8} />
-        <AreaChart.YAxis tickFormatter={fmtXP} width={44} />
-        {visibleLines.map((l) => (
-          <AreaChart.Area
-            key={l.key}
-            type="monotone"
-            dataKey={l.key}
-            name={l.label}
-            stroke={l.color}
-            strokeWidth={2}
-            dot={false}
-            connectNulls
-            fill={`url(#xp-${l.key})`}
+      <ResponsiveContainer width="100%" height={200}>
+        <AreaChart
+          data={data as unknown as Record<string, string | number>[]}
+          margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
+        >
+          <defs>
+            {LINES.map((l) => (
+              <linearGradient key={l.key} id={`xp-${l.key}`} x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor={l.color} stopOpacity={0.2} />
+                <stop offset="100%" stopColor={l.color} stopOpacity={0.02} />
+              </linearGradient>
+            ))}
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+          <XAxis
+            dataKey="snapped_at"
+            tickFormatter={fmtTime}
+            tickMargin={8}
+            tick={{ fill: 'var(--muted)', fontSize: 11 }}
+            tickLine={false}
+            axisLine={{ stroke: 'var(--border)' }}
           />
-        ))}
-        <AreaChart.Tooltip
-          content={(
-            <AreaChart.TooltipContent
-              indicator="line"
-              labelFormatter={(d) => fmtTime(String(d))}
-              valueFormatter={(v) => fmtXP(Number(v))}
+          <YAxis
+            tickFormatter={fmtXP}
+            width={44}
+            tick={{ fill: 'var(--muted)', fontSize: 11 }}
+            tickLine={false}
+            axisLine={{ stroke: 'var(--border)' }}
+          />
+          {visibleLines.map((l) => (
+            <Area
+              key={l.key}
+              type="monotone"
+              dataKey={l.key}
+              name={l.label}
+              stroke={l.color}
+              strokeWidth={2}
+              dot={false}
+              connectNulls
+              fill={`url(#xp-${l.key})`}
             />
-          )}
-        />
-      </AreaChart>
+          ))}
+          <Tooltip
+            contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 3, fontSize: 12 }}
+            labelStyle={{ color: 'var(--muted)' }}
+            labelFormatter={(d) => fmtTime(String(d))}
+            formatter={(v) => fmtXP(Number(v))}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   )
 }

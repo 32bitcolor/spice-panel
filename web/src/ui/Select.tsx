@@ -120,13 +120,15 @@ const Trigger: React.FC<React.HTMLAttributes<HTMLButtonElement>> = ({
   <AriaButton className={cn(TRIGGER_CLS, className)}>{children}</AriaButton>
 )
 
-const Value: React.FC<{ placeholder?: string; className?: string }> = ({
+const Value: React.FC<{ placeholder?: string; className?: string; children?: React.ReactNode }> = ({
   placeholder,
   className,
+  children,
 }): React.ReactElement => (
   <SelectValue className={cn('truncate data-[placeholder]:text-muted', className)}>
-    {({ isPlaceholder, selectedText }) =>
-      isPlaceholder ? (placeholder ?? 'Select…') : selectedText
+    {(renderProps) =>
+      children ??
+      (renderProps.isPlaceholder ? (placeholder ?? 'Select…') : renderProps.selectedText)
     }
   </SelectValue>
 )

@@ -3,13 +3,12 @@ import {
   Button, Chip, Header, ListBox, SearchField, Select, Separator, Spinner, TextField, toast,
 } from '../../../ui'
 import type { Selection } from 'react-aria-components'
-import type { DataGridColumn } from '@heroui-pro/react'
-import { DataGrid } from '@heroui-pro/react'
 import { useTranslation } from 'react-i18next'
 import { useAtomValue } from 'jotai'
 import { api } from '../../../api/client'
 import type { GivePack } from '../../../api/client'
-import { ActionBar, Icon, LoadingState, NumberInput } from '../../../dune-ui'
+import { ActionBar, DataTable, Icon, LoadingState, NumberInput } from '../../../dune-ui'
+import type { Column } from '../../../dune-ui'
 import { ItemDetailDrawer } from '../../../components/ItemDetailDrawer'
 import { ItemOptionRow } from '../../../components/ItemOptionRow'
 import { StagedItemCell } from '../../../components/StagedItemCell'
@@ -151,77 +150,81 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
     }
   }
 
-  const columns: DataGridColumn<StagedItem>[] = [
+  const columns: Column<'template' | 'qty' | 'quality' | 'actions'>[] = [
     {
-      id: 'template',
+      key: 'template',
       isRowHeader: true,
-      header: t('players.inventory.columns.template'),
-      minWidth: 200,
-      allowsResizing: true,
-      cell: (item) => (
-        <StagedItemCell templateId={item.template} name={nameMap.get(item.template) || ''} entry={itemData.items[item.template] ?? null} />
-      ),
+      label: t('players.inventory.columns.template'),
+      width: 200,
     },
     {
-      id: 'qty',
-      header: t('players.give.qty'),
-      minWidth: 130,
-      maxWidth: 250,
-      allowsResizing: true,
-      cell: (item) => (
-        <NumberInput
-          ariaLabel={t('players.give.qty')}
-          min={1}
-          value={item.qty}
-          onChange={(v) => updateStaged(item._key, 'qty', v)}
-          className="w-full"
-        />
-      ),
+      key: 'qty',
+      label: t('players.give.qty'),
+      width: 130,
     },
     {
-      id: 'quality',
-      header: t('players.give.quality'),
-      minWidth: 130,
-      maxWidth: 250,
-      allowsResizing: true,
-      cell: (item) => (
-        <NumberInput
-          ariaLabel={t('players.give.quality')}
-          min={0}
-          value={item.quality}
-          onChange={(v) => updateStaged(item._key, 'quality', v)}
-          className="w-full"
-        />
-      ),
+      key: 'quality',
+      label: t('players.give.quality'),
+      width: 130,
     },
     {
-      id: 'actions',
-      header: '',
+      key: 'actions',
+      label: '',
       width: 88,
-      cell: (item) => (
-        <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="ghost"
-            isIconOnly
-            onPress={() => setDetailId(item.template)}
-            aria-label={t('common.info')}
-          >
-            <Icon name="info" />
-          </Button>
-          <Button
-            size="sm"
-            variant="danger"
-            isIconOnly
-            onPress={() => removeFromStaged(item._key)}
-            aria-label={t('common.remove')}
-          >
-            <Icon name="trash" />
-          </Button>
-        </div>
-      ),
     },
   ]
+
+  const renderCell = (item: StagedItem, key: 'template' | 'qty' | 'quality' | 'actions'): React.ReactNode => {
+    switch (key) {
+      case 'template':
+        return (
+          <StagedItemCell templateId={item.template} name={nameMap.get(item.template) || ''} entry={itemData.items[item.template] ?? null} />
+        )
+      case 'qty':
+        return (
+          <NumberInput
+            ariaLabel={t('players.give.qty')}
+            min={1}
+            value={item.qty}
+            onChange={(v) => updateStaged(item._key, 'qty', v)}
+            className="w-full"
+          />
+        )
+      case 'quality':
+        return (
+          <NumberInput
+            ariaLabel={t('players.give.quality')}
+            min={0}
+            value={item.quality}
+            onChange={(v) => updateStaged(item._key, 'quality', v)}
+            className="w-full"
+          />
+        )
+      case 'actions':
+        return (
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              isIconOnly
+              onPress={() => setDetailId(item.template)}
+              aria-label={t('common.info')}
+            >
+              <Icon name="info" />
+            </Button>
+            <Button
+              size="sm"
+              variant="danger"
+              isIconOnly
+              onPress={() => removeFromStaged(item._key)}
+              aria-label={t('common.remove')}
+            >
+              <Icon name="trash" />
+            </Button>
+          </div>
+        )
+    }
+  }
 
   if (loading) {
     return <LoadingState />
@@ -345,18 +348,16 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
         )}
 
         {staged.length > 0 && (
-          <DataGrid
+          <DataTable
             aria-label={t('players.give.loadPack')}
             columns={columns}
-            data={staged}
-            getRowId={(item) => item._key}
+            rows={staged}
+            rowId={(item) => item._key}
+            renderCell={renderCell}
             selectedKeys={selectedKeys}
             selectionMode="multiple"
-            showSelectionCheckboxes
             onSelectionChange={setSelectedKeys}
             className="flex-1 min-h-0"
-            scrollContainerClassName="h-full overflow-y-auto"
-            allowsColumnResize
           />
         )}
 

@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Button, Input, Spinner } from '../ui'
-import { Stepper } from '@heroui-pro/react'
+import { Stepper } from '../ui'
 import { useTranslation } from 'react-i18next'
 import { toast } from '../ui'
 import { ServerSettingsForm } from './settings/server/ServerSettingsForm'

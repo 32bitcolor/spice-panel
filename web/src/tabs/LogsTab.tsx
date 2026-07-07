@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Chip, Spinner, Switch, toast } from '../ui'
-import { EmptyState } from '@heroui-pro/react'
+import { EmptyState } from '../ui'
 import { Icon as IconifyIcon } from '@iconify/react'
 import { api, getWsBase } from '../api/client'
 import type { LogPod, CheatEntry } from '../api/client'

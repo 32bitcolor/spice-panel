@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { EmptyState } from '@heroui-pro/react'
+import { EmptyState } from '../../ui'
 import { DataTable, Icon } from '../../dune-ui'
 import { phaseColor } from './helpers'
 import { formatUptime } from './uptime'

@@ -1,6 +1,5 @@
 import * as React from 'react'
 import { toast, ToastRegion } from '../../ui'
-import { AppLayout } from '@heroui-pro/react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAtom, useSetAtom } from 'jotai'
@@ -165,12 +164,13 @@ export const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }): React.ReactElem
     <div key={i18n.language} className="h-screen overflow-hidden bg-background">
       <ToastRegion />
 
-      <AppLayout
-        sidebarCollapsible="icon"
-        sidebarVariant="inset"
-        scrollMode="content"
-        navigate={navigate}
-        navbar={(
+      <div className="flex h-screen overflow-hidden bg-background">
+        <AppSidebar
+          visibleNavGroups={visibleNavGroups}
+          pathname={pathname}
+          navigate={navigate}
+        />
+        <div className="flex min-w-0 flex-1 flex-col">
           <AppNavbar
             status={status}
             reconnecting={reconnecting}
@@ -178,27 +178,21 @@ export const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }): React.ReactElem
             can={can}
             onOpenSettings={openSettings}
           />
-        )}
-        sidebar={(
-          <AppSidebar
-            visibleNavGroups={visibleNavGroups}
-            pathname={pathname}
-            navigate={navigate}
-          />
-        )}
-      >
-        {/* Keyed by activeID so switching servers remounts every tab — each
-            re-fetches its data with the new X-Dune-Server header (no reload). */}
-        <div key={activeID} className="h-full flex flex-col overflow-hidden min-h-0">
-          <AppRoutes
-            currentTab={currentTab}
-            status={status}
-            isSignedIn={isSignedIn}
-            canSeeTab={canSeeTab}
-            onOpenSettings={openSettings}
-          />
+          <main className="min-h-0 flex-1 overflow-auto">
+            {/* Keyed by activeID so switching servers remounts every tab — each
+                re-fetches its data with the new X-Dune-Server header (no reload). */}
+            <div key={activeID} className="h-full flex flex-col overflow-hidden min-h-0">
+              <AppRoutes
+                currentTab={currentTab}
+                status={status}
+                isSignedIn={isSignedIn}
+                canSeeTab={canSeeTab}
+                onOpenSettings={openSettings}
+              />
+            </div>
+          </main>
         </div>
-      </AppLayout>
+      </div>
 
       {/* Settings modal — structure mirrors BotControlPanel */}
       <SettingsModal status={status} can={can} onClose={closeSettings} />

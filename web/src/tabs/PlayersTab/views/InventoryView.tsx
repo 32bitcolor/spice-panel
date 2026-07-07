@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Button, toast } from '../../../ui'
 import type { Selection } from 'react-aria-components'
-import { EmptyState } from '@heroui-pro/react'
+import { EmptyState } from '../../../ui'
 import { Icon as IconifyIcon } from '@iconify/react'
 import { useTranslation } from 'react-i18next'
 import { useAtomValue } from 'jotai'

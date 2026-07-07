@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Button, SearchField, Spinner, toast } from '../../ui'
-import { Segment } from '@heroui-pro/react'
+import { Segment } from '../../ui'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../api/client'
 import type { Player } from '../../api/client'

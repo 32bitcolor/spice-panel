@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Chip, SearchField, Tooltip, toast } from '../../../ui'
-import { EmptyState } from '@heroui-pro/react'
+import { EmptyState } from '../../../ui'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'
 import type { BattlepassClaim, BattlepassTier, Player } from '../../../api/client'

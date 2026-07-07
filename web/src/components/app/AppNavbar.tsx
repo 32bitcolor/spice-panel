@@ -1,7 +1,6 @@
 import * as React from 'react'
 import { Show, SignInButton, UserButton } from '@clerk/react'
 import { Button, Chip, ListBox, Select } from '../../ui'
-import { Navbar, Sidebar } from '@heroui-pro/react'
 import { useTranslation } from 'react-i18next'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { Icon } from '../../dune-ui'
@@ -191,49 +190,46 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ status, reconnecting, onRe
   }
 
   return (
-    <Navbar position="sticky" maxWidth="full">
-      <Navbar.Header>
-        <Sidebar.Trigger />
-        <div className="flex items-center gap-3">
-          {/* Connection info is meaningless with no servers configured (fresh
-              install / last server deleted) — hide it then. */}
-          {servers.length > 0 && status?.control && status.control !== 'none' && <span className="text-xs text-muted">{status.control}</span>}
-          {servers.length > 0 && status?.ssh_host && <span className="text-xs text-muted">{status.ssh_host}</span>}
-          {servers.length > 0 && status?.db_host && status.control !== 'kubectl' && (
-            <span className="text-xs text-muted">{status.db_host}</span>
-          )}
-          {renderVersionButton()}
-          {renderUpdateBadge()}
-        </div>
+    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
+      <div className="flex items-center gap-3">
+        {/* Connection info is meaningless with no servers configured (fresh
+            install / last server deleted) — hide it then. */}
+        {servers.length > 0 && status?.control && status.control !== 'none' && <span className="text-xs text-muted">{status.control}</span>}
+        {servers.length > 0 && status?.ssh_host && <span className="text-xs text-muted">{status.ssh_host}</span>}
+        {servers.length > 0 && status?.db_host && status.control !== 'kubectl' && (
+          <span className="text-xs text-muted">{status.db_host}</span>
+        )}
+        {renderVersionButton()}
+        {renderUpdateBadge()}
+      </div>
 
-        {renderServerSelector()}
+      {renderServerSelector()}
 
-        <Navbar.Spacer />
+      <div className="flex-1" />
 
-        <Navbar.Content>
-          {/* Connection badges + reconnect only make sense with a server
-              configured — hide them on a fresh/empty install. */}
-          {renderSshBadge()}
-          {renderDbBadge()}
-          {renderReconnectButton()}
-          {status?.pod_ns && (
-            <span className="text-xs text-muted">
-              ns:
-              {status.pod_ns}
-            </span>
-          )}
+      <div className="flex items-center gap-2">
+        {/* Connection badges + reconnect only make sense with a server
+            configured — hide them on a fresh/empty install. */}
+        {renderSshBadge()}
+        {renderDbBadge()}
+        {renderReconnectButton()}
+        {status?.pod_ns && (
+          <span className="text-xs text-muted">
+            ns:
+            {status.pod_ns}
+          </span>
+        )}
 
-          <HelpMenu status={status} />
-          <ThemeSelector />
-          <LanguageSelector />
+        <HelpMenu status={status} />
+        <ThemeSelector />
+        <LanguageSelector />
 
-          {renderSettingsButton()}
+        {renderSettingsButton()}
 
-          <UserMenu />
+        <UserMenu />
 
-          {renderClerkAuth()}
-        </Navbar.Content>
-      </Navbar.Header>
-    </Navbar>
+        {renderClerkAuth()}
+      </div>
+    </header>
   )
 }

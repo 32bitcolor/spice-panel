@@ -1,19 +1,18 @@
 import * as React from 'react'
 import { Button, Chip, Input, ListBox, SearchField, Select, Separator, Spinner } from '../../../ui'
 import type { Selection } from 'react-aria-components'
-import type { DataGridColumn } from '@heroui-pro/react'
-import { DataGrid } from '@heroui-pro/react'
 import { useAtomValue } from 'jotai'
 import { useTranslation } from 'react-i18next'
 import { usePermissions } from '../../../hooks/usePermissions'
 import { itemDataSyncAtom } from '../../../data/store'
-import { ActionBar, Icon, NumberInput, PageHeader } from '../../../dune-ui'
+import { ActionBar, DataTable, Icon, NumberInput, PageHeader } from '../../../dune-ui'
+import type { Column } from '../../../dune-ui'
 import type { WelcomePackage } from '../../../api/client'
 import { ItemDetailDrawer } from '../../../components/ItemDetailDrawer'
 import { ItemOptionRow } from '../../../components/ItemOptionRow'
 import { StagedItemCell } from '../../../components/StagedItemCell'
 import { DiffStatus } from '../components/DiffStatus'
-import type { PackagesViewProps, KeyedItem } from './types'
+import type { PackagesViewProps, KeyedItem, KeyedItemKey } from './types'
 
 export const PackagesView: React.FC<PackagesViewProps> = ({
   packages,
@@ -142,73 +141,77 @@ export const PackagesView: React.FC<PackagesViewProps> = ({
     setSelectedKeys(new Set())
   }
 
-  const columns: DataGridColumn<KeyedItem>[] = [
+  const columns: Column<KeyedItemKey>[] = [
     {
-      id: 'template',
+      key: 'template',
       isRowHeader: true,
-      header: t('players.inventory.columns.template'),
+      label: t('players.inventory.columns.template'),
       minWidth: 200,
-      allowsResizing: true,
-      cell: (item) => (
-        <StagedItemCell
-          templateId={item.template}
-          name={nameMap.get(item.template) || ''}
-          entry={itemData.items[item.template] ?? null}
-        />
-      ),
     },
     {
-      id: 'qty',
-      header: t('players.give.qty'),
+      key: 'qty',
+      label: t('players.give.qty'),
       minWidth: 130,
-      maxWidth: 250,
-      allowsResizing: true,
-      cell: (item) => (
-        <NumberInput
-          ariaLabel={t('players.give.qty')}
-          min={1}
-          value={item.qty}
-          onChange={(v) => setItem(item._key, { qty: v })}
-          className="w-full"
-        />
-      ),
     },
     {
-      id: 'quality',
-      header: t('players.give.quality'),
+      key: 'quality',
+      label: t('players.give.quality'),
       minWidth: 130,
-      maxWidth: 250,
-      allowsResizing: true,
-      cell: (item) => (
-        <NumberInput
-          ariaLabel={t('players.give.quality')}
-          min={0}
-          value={item.quality}
-          onChange={(v) => setItem(item._key, { quality: v })}
-          className="w-full"
-        />
-      ),
     },
     {
-      id: 'weight',
-      header: t('welcome.kit.weightVolume'),
+      key: 'weight',
+      label: t('welcome.kit.weightVolume'),
       minWidth: 110,
-      maxWidth: 160,
-      allowsResizing: true,
-      cell: (item) => {
+    },
+    {
+      key: 'slots',
+      label: t('welcome.kit.slots'),
+      minWidth: 90,
+    },
+    {
+      key: 'actions',
+      label: '',
+      width: 88,
+    },
+  ]
+
+  const renderCell = (item: KeyedItem, key: KeyedItemKey): React.ReactNode => {
+    switch (key) {
+      case 'template':
+        return (
+          <StagedItemCell
+            templateId={item.template}
+            name={nameMap.get(item.template) || ''}
+            entry={itemData.items[item.template] ?? null}
+          />
+        )
+      case 'qty':
+        return (
+          <NumberInput
+            ariaLabel={t('players.give.qty')}
+            min={1}
+            value={item.qty}
+            onChange={(v) => setItem(item._key, { qty: v })}
+            className="w-full"
+          />
+        )
+      case 'quality':
+        return (
+          <NumberInput
+            ariaLabel={t('players.give.quality')}
+            min={0}
+            value={item.quality}
+            onChange={(v) => setItem(item._key, { quality: v })}
+            className="w-full"
+          />
+        )
+      case 'weight': {
         const v = rowVolume(item.template, item.qty)
         return v > 0
           ? <span className="text-muted text-xs tabular-nums">{Math.round(v * 100) / 100}</span>
           : <span className="text-muted">—</span>
-      },
-    },
-    {
-      id: 'slots',
-      header: t('welcome.kit.slots'),
-      minWidth: 90,
-      maxWidth: 140,
-      allowsResizing: true,
-      cell: (item) => {
+      }
+      case 'slots': {
         const stackMax = itemData.items[item.template]?.stack_max ?? defaultStackMax
         const slots = rowSlots(item.template, item.qty)
         return (
@@ -217,38 +220,34 @@ export const PackagesView: React.FC<PackagesViewProps> = ({
             {stackMax > 0 ? ` (${t('welcome.kit.stackOf', { n: stackMax })})` : ''}
           </span>
         )
-      },
-    },
-    {
-      id: 'actions',
-      header: '',
-      width: 88,
-      cell: (item) => (
-        <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="ghost"
-            isIconOnly
-            onPress={() => setDetailId(item.template)}
-            aria-label={t('common.info')}
-          >
-            <Icon name="info" />
-          </Button>
-          {can('welcome:manage') && (
+      }
+      case 'actions':
+        return (
+          <div className="flex items-center gap-1">
             <Button
               size="sm"
-              variant="danger"
+              variant="ghost"
               isIconOnly
-              onPress={() => removeItem(item._key)}
-              aria-label={t('welcome.removeItem')}
+              onPress={() => setDetailId(item.template)}
+              aria-label={t('common.info')}
             >
-              <Icon name="trash" />
+              <Icon name="info" />
             </Button>
-          )}
-        </div>
-      ),
-    },
-  ]
+            {can('welcome:manage') && (
+              <Button
+                size="sm"
+                variant="danger"
+                isIconOnly
+                onPress={() => removeItem(item._key)}
+                aria-label={t('welcome.removeItem')}
+              >
+                <Icon name="trash" />
+              </Button>
+            )}
+          </div>
+        )
+    }
+  }
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -382,24 +381,22 @@ export const PackagesView: React.FC<PackagesViewProps> = ({
         </div>
       )}
 
-      {/* Item DataGrid */}
+      {/* Item DataTable */}
       {!selected
         ? <p className="text-xs text-muted shrink-0">{t('welcome.noPackageSelected')}</p>
         : keyedItems.length === 0
           ? <p className="text-xs text-muted shrink-0">{t('welcome.noItemsYet')}</p>
           : (
-              <DataGrid
+              <DataTable<KeyedItem, KeyedItemKey>
                 aria-label={t('welcome.sections.packages')}
                 columns={columns}
-                data={keyedItems}
-                getRowId={(item) => item._key}
+                rows={keyedItems}
+                rowId={(item) => item._key}
+                renderCell={renderCell}
                 selectedKeys={selectedKeys}
                 selectionMode="multiple"
-                showSelectionCheckboxes
                 onSelectionChange={setSelectedKeys}
                 className="flex-1 min-h-0"
-                scrollContainerClassName="h-full overflow-y-auto"
-                allowsColumnResize
               />
             )}
 

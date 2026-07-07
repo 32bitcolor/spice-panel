@@ -4,17 +4,16 @@ import {
   Button, Chip, Modal, SearchField, Separator, Spinner, TextField, toast,
 } from '../../../ui'
 import type { Selection } from 'react-aria-components'
-import type { DataGridColumn } from '@heroui-pro/react'
-import { DataGrid } from '@heroui-pro/react'
 import { useAtomValue } from 'jotai'
 import { api } from '../../../api/client'
 import { itemDataSyncAtom } from '../../../data/store'
-import { ActionBar, Icon, LoadingState, NumberInput } from '../../../dune-ui'
+import { ActionBar, DataTable, Icon, LoadingState, NumberInput } from '../../../dune-ui'
+import type { Column } from '../../../dune-ui'
 import { ItemDetailDrawer } from '../../../components/ItemDetailDrawer'
 import { ItemOptionRow } from '../../../components/ItemOptionRow'
 import { StagedItemCell } from '../../../components/StagedItemCell'
 import type { AddItemsModalProps } from './interfaces'
-import type { AddResult, AddStagedItem } from './types'
+import type { AddResult, AddStagedItem, AddStagedItemKey } from './types'
 
 export const AddItemsModal: React.FC<AddItemsModalProps> = ({
   container, open, onClose, onSuccess, onRefresh,
@@ -128,81 +127,85 @@ export const AddItemsModal: React.FC<AddItemsModalProps> = ({
     }
   }
 
-  const columns: DataGridColumn<AddStagedItem>[] = [
+  const columns: Column<AddStagedItemKey>[] = [
     {
-      id: 'template',
+      key: 'template',
       isRowHeader: true,
-      header: t('storage.addModal.templateLabel'),
+      label: t('storage.addModal.templateLabel'),
       minWidth: 200,
-      allowsResizing: true,
-      cell: (item) => (
-        <StagedItemCell
-          templateId={item.template}
-          name={nameMap.get(item.template) || ''}
-          entry={itemData.items[item.template] ?? null}
-        />
-      ),
     },
     {
-      id: 'qty',
-      header: t('storage.addModal.qtyLabel'),
+      key: 'qty',
+      label: t('storage.addModal.qtyLabel'),
       minWidth: 130,
-      maxWidth: 250,
-      allowsResizing: true,
-      cell: (item) => (
-        <NumberInput
-          ariaLabel={t('storage.addModal.qtyColLabel')}
-          min={1}
-          value={item.qty}
-          onChange={(v) => updateStaged(item._key, 'qty', v)}
-          className="w-full"
-        />
-      ),
     },
     {
-      id: 'quality',
-      header: t('storage.addModal.qualityLabel'),
+      key: 'quality',
+      label: t('storage.addModal.qualityLabel'),
       minWidth: 130,
-      maxWidth: 250,
-      allowsResizing: true,
-      cell: (item) => (
-        <NumberInput
-          ariaLabel={t('storage.addModal.qualityColLabel')}
-          min={0}
-          value={item.quality}
-          onChange={(v) => updateStaged(item._key, 'quality', v)}
-          className="w-full"
-        />
-      ),
     },
     {
-      id: 'actions',
-      header: '',
+      key: 'actions',
+      label: '',
       width: 88,
-      cell: (item) => (
-        <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="ghost"
-            isIconOnly
-            onPress={() => setDetailId(item.template)}
-            aria-label={t('common.info')}
-          >
-            <Icon name="info" />
-          </Button>
-          <Button
-            size="sm"
-            variant="danger"
-            isIconOnly
-            onPress={() => removeFromStaged(item._key)}
-            aria-label={t('common.remove')}
-          >
-            <Icon name="trash" />
-          </Button>
-        </div>
-      ),
     },
   ]
+
+  const renderCell = (item: AddStagedItem, key: AddStagedItemKey): React.ReactNode => {
+    switch (key) {
+      case 'template':
+        return (
+          <StagedItemCell
+            templateId={item.template}
+            name={nameMap.get(item.template) || ''}
+            entry={itemData.items[item.template] ?? null}
+          />
+        )
+      case 'qty':
+        return (
+          <NumberInput
+            ariaLabel={t('storage.addModal.qtyColLabel')}
+            min={1}
+            value={item.qty}
+            onChange={(v) => updateStaged(item._key, 'qty', v)}
+            className="w-full"
+          />
+        )
+      case 'quality':
+        return (
+          <NumberInput
+            ariaLabel={t('storage.addModal.qualityColLabel')}
+            min={0}
+            value={item.quality}
+            onChange={(v) => updateStaged(item._key, 'quality', v)}
+            className="w-full"
+          />
+        )
+      case 'actions':
+        return (
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              isIconOnly
+              onPress={() => setDetailId(item.template)}
+              aria-label={t('common.info')}
+            >
+              <Icon name="info" />
+            </Button>
+            <Button
+              size="sm"
+              variant="danger"
+              isIconOnly
+              onPress={() => removeFromStaged(item._key)}
+              aria-label={t('common.remove')}
+            >
+              <Icon name="trash" />
+            </Button>
+          </div>
+        )
+    }
+  }
 
   return (
     <React.Fragment>
@@ -283,18 +286,16 @@ export const AddItemsModal: React.FC<AddItemsModalProps> = ({
                       </div>
 
                       {staged.length > 0 && (
-                        <DataGrid
+                        <DataTable<AddStagedItem, AddStagedItemKey>
                           aria-label={t('storage.addItems')}
                           columns={columns}
-                          data={staged}
-                          getRowId={(item) => item._key}
+                          rows={staged}
+                          rowId={(item) => item._key}
+                          renderCell={renderCell}
                           selectedKeys={selectedKeys}
                           selectionMode="multiple"
-                          showSelectionCheckboxes
                           onSelectionChange={setSelectedKeys}
                           className="flex-1 min-h-0"
-                          scrollContainerClassName="h-full overflow-y-auto"
-                          allowsColumnResize
                         />
                       )}
 
