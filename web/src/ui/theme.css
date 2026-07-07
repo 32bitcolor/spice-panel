@@ -188,6 +188,13 @@
     pointer-events: none;
   }
 
+  /* Skeleton shimmer sweep. */
+  @keyframes hud-shimmer {
+    to {
+      background-position: -200% 0;
+    }
+  }
+
   /* Recessed HUD field (inputs / selects): void well + inset steel ring. */
   .hud-field {
     background: var(--void);
