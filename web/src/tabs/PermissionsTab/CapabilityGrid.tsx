@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Switch } from '@heroui/react'
+import { Switch } from '../../ui'
 import { useTranslation } from 'react-i18next'
 import type { CapabilityGridProps } from './types'
 

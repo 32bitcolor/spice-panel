@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Input, Modal, Spinner, toast } from '@heroui/react'
+import { Button, Input, Modal, Spinner, toast } from '../../../ui'
 import { EmptyState } from '@heroui-pro/react'
 import { DataTable, SectionLabel, type Column } from '../../../dune-ui'
 import { api } from '../../../api/client'
@@ -178,7 +178,7 @@ export const ManageLocationsModal: React.FC<ManageLocationsModalProps> = ({ onCl
                           return (
                             <Button
                               size="sm"
-                              variant="danger-soft"
+                              variant="danger"
                               onPress={() => void handleDelete(loc.name)}
                             >
                               {t('players.actions.admin.manageLocationsModal.delete')}

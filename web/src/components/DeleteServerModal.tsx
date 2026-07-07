@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { AlertDialog, Button, Input } from '@heroui/react'
+import { AlertDialog, Button, Input } from '../ui'
 import type { DeleteServerModalProps } from './interfaces'
 
 const COUNTDOWN_SECONDS = 10
@@ -71,7 +71,7 @@ export const DeleteServerModal: React.FC<DeleteServerModalProps> = ({
             <Button slot="close" variant="ghost" onPress={onCancel}>
               {t('common.cancel')}
             </Button>
-            <Button variant="danger-soft" isDisabled={!canDelete} onPress={onConfirm}>
+            <Button variant="danger" isDisabled={!canDelete} onPress={onConfirm}>
               {remaining > 0
                 ? t('servers.removeCountdown', 'Wait {{seconds}}s…', { seconds: remaining })
                 : t('servers.removeConfirm', 'Remove')}

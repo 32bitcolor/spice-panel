@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ToggleButtonGroup, ToggleButton } from '@heroui/react'
+import { ToggleButtonGroup, ToggleButton } from '../../ui'
 import { Icon } from '../../dune-ui'
 import type { ViewToggleProps } from './types'
 

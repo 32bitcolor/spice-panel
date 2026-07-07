@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, Input, ListBox, Spinner, Switch, TextArea, Select } from '@heroui/react'
+import { Button, Input, ListBox, Spinner, Switch, TextArea, Select } from '../../../ui'
 import { useTranslation } from 'react-i18next'
 import { usePermissions } from '../../../hooks/usePermissions'
 import { ConfirmDialog, Icon, NumberInput, PageHeader, Panel, SectionLabel } from '../../../dune-ui'
@@ -39,7 +39,7 @@ export const ConfigView: React.FC<ConfigViewProps> = ({
         {nav}
         <Button size="sm" variant="ghost" onPress={load} isDisabled={loading}>
           {loading
-            ? <Spinner size="sm" color="current" />
+            ? <Spinner size={16} />
             : (
                 <React.Fragment>
                   <Icon name="refresh-cw" />
@@ -124,7 +124,7 @@ export const ConfigView: React.FC<ConfigViewProps> = ({
                 placeholder={t('welcome.message.messagePlaceholder')}
                 value={welcomeMessage}
                 disabled={!welcomeMessageEnabled}
-                onChange={(e) => setWelcomeMessage(e.target.value)}
+                onChange={(e) => setWelcomeMessage(e)}
               />
             </div>
             <div className="flex flex-col gap-1 max-w-md">
@@ -163,7 +163,7 @@ export const ConfigView: React.FC<ConfigViewProps> = ({
                 placeholder={t('welcome.motd.messagePlaceholder')}
                 value={motdMessage}
                 disabled={!motdEnabled}
-                onChange={(e) => setMotdMessage(e.target.value)}
+                onChange={(e) => setMotdMessage(e)}
               />
             </div>
             <div className="flex flex-col gap-1 max-w-md">
@@ -239,7 +239,7 @@ export const ConfigView: React.FC<ConfigViewProps> = ({
               placeholder={t('welcome.region.joinTemplatePlaceholder')}
               value={regionJoinTemplate}
               disabled={!regionJoinEnabled}
-              onChange={(e) => setRegionJoinTemplate(e.target.value)}
+              onChange={(e) => setRegionJoinTemplate(e)}
             />
           </div>
 
@@ -260,7 +260,7 @@ export const ConfigView: React.FC<ConfigViewProps> = ({
               placeholder={t('welcome.region.leaveTemplatePlaceholder')}
               value={regionLeaveTemplate}
               disabled={!regionLeaveEnabled}
-              onChange={(e) => setRegionLeaveTemplate(e.target.value)}
+              onChange={(e) => setRegionLeaveTemplate(e)}
             />
           </div>
         </Panel>
@@ -269,9 +269,9 @@ export const ConfigView: React.FC<ConfigViewProps> = ({
       {/* Action bar — fixed at bottom */}
       {can('welcome:manage') && (
         <div className="flex items-center gap-3 shrink-0">
-          <Button size="sm" variant="secondary" onPress={save} isDisabled={saving}>
+          <Button size="sm" variant="solid" onPress={save} isDisabled={saving}>
             {saving
-              ? <Spinner size="sm" color="current" />
+              ? <Spinner size={16} />
               : (
                   <React.Fragment>
                     <Icon name="save" />
@@ -280,9 +280,9 @@ export const ConfigView: React.FC<ConfigViewProps> = ({
                   </React.Fragment>
                 )}
           </Button>
-          <Button size="sm" variant="outline" onPress={() => setConfirmRun(true)} isDisabled={running}>
+          <Button size="sm" variant="ghost" onPress={() => setConfirmRun(true)} isDisabled={running}>
             {running
-              ? <Spinner size="sm" color="current" />
+              ? <Spinner size={16} />
               : (
                   <React.Fragment>
                     <Icon name="play" />

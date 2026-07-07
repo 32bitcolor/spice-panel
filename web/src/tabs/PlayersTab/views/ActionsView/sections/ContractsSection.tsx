@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAtom, useSetAtom } from 'jotai'
-import { Button, Chip, CloseButton, SearchField } from '@heroui/react'
+import { Button, Chip, CloseButton, SearchField } from '../../../../../ui'
 import { EmptyState } from '@heroui-pro/react'
 import { Icon as IconifyIcon } from '@iconify/react'
 import { SectionLabel } from '../../../../../dune-ui'
@@ -161,7 +161,7 @@ export const ContractsSection: React.FC<ContractsSectionProps> = ({ player }) =>
         </SearchField>
         <Button
           size="sm"
-          variant="secondary"
+          variant="solid"
           isDisabled={busy || selectedContracts.length === 0}
           onPress={handleCompleteContracts}
         >
@@ -169,7 +169,7 @@ export const ContractsSection: React.FC<ContractsSectionProps> = ({ player }) =>
         </Button>
         <Button
           size="sm"
-          variant="danger-soft"
+          variant="danger"
           isDisabled={busy || selectedContracts.length === 0}
           onPress={handleReverseContracts}
         >

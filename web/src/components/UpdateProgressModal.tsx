@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, Modal, Spinner } from '@heroui/react'
+import { Button, Modal, Spinner } from '../ui'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../dune-ui'
 import type { UpdateProgressModalProps } from './app/interfaces'
@@ -89,7 +89,7 @@ export const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({ isOpen
                   >
                     <span className="w-4 h-4 flex items-center justify-center shrink-0">
                       {isDoneStep && <Icon name="check" className="size-4 text-success" />}
-                      {isActive && <Spinner size="sm" color="current" className="size-4" />}
+                      {isActive && <Spinner size={16} className="size-4" />}
                       {isPending && <span className="w-1.5 h-1.5 rounded-full bg-current mx-auto" />}
                     </span>
                     <span>{t(`app.updateProgress.${step}`)}</span>

@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { AlertDialog, Button, Input, TextArea } from '@heroui/react'
+import { AlertDialog, Button, Input, TextArea } from '../../../../../ui'
 import type { DeleteCharacterModalProps } from './interfaces'
 
 const COUNTDOWN_SECONDS = 10
@@ -66,7 +66,7 @@ export const DeleteCharacterModal: React.FC<DeleteCharacterModalProps> = ({
                 <TextArea
                   aria-label={t('players.actions.admin.deleteCharacterReasonLabel')}
                   value={reason}
-                  onChange={(e) => setReason(e.target.value)}
+                  onChange={(e) => setReason(e)}
                   placeholder={t('players.actions.admin.deleteCharacterReasonPlaceholder')}
                   rows={2}
                   maxLength={500}
@@ -94,7 +94,7 @@ export const DeleteCharacterModal: React.FC<DeleteCharacterModalProps> = ({
               {t('common.cancel')}
             </Button>
             <Button
-              variant="danger-soft"
+              variant="danger"
               isDisabled={!canDelete}
               onPress={() => onConfirm(reason.trim())}
             >

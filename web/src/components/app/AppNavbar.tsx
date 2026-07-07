@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Show, SignInButton, UserButton } from '@clerk/react'
-import { Button, Chip, ListBox, Select } from '@heroui/react'
+import { Button, Chip, ListBox, Select } from '../../ui'
 import { Navbar, Sidebar } from '@heroui-pro/react'
 import { useTranslation } from 'react-i18next'
 import { useAtomValue, useSetAtom } from 'jotai'
@@ -146,7 +146,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ status, reconnecting, onRe
     return (
       <Button
         size="sm"
-        variant="outline"
+        variant="ghost"
         isDisabled={reconnecting}
         onPress={onReconnect}
       >
@@ -160,7 +160,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ status, reconnecting, onRe
     return (
       <Button
         size="sm"
-        variant="outline"
+        variant="ghost"
         aria-label={t('app.configureBackend')}
         onPress={() => setSettingsOpen((v) => !v)}
         className={settingsOpen ? 'text-accent border-accent' : ''}
@@ -178,7 +178,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ status, reconnecting, onRe
       <React.Fragment>
         <Show when="signed-out">
           <SignInButton>
-            <Button size="sm" variant="outline">
+            <Button size="sm" variant="ghost">
               {t('app.signIn')}
             </Button>
           </SignInButton>

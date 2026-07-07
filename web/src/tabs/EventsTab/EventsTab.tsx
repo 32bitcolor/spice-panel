@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Chip, Link, Separator, Switch, toast } from '@heroui/react'
+import { Button, Chip, Link, Separator, Switch, toast } from '../../ui'
 import type { Selection } from 'react-aria-components'
 import { EmptyState } from '@heroui-pro/react'
 import { api } from '../../api/client'
@@ -292,7 +292,7 @@ export const EventsTab: React.FC = () => {
                         <Button size="sm" variant="ghost" onPress={() => openEdit(ev)} aria-label={t('common.edit') as string}>
                           <Icon name="pencil" />
                         </Button>
-                        <Button size="sm" variant="danger-soft" onPress={() => handleDelete(ev)} aria-label={t('common.delete') as string}>
+                        <Button size="sm" variant="danger" onPress={() => handleDelete(ev)} aria-label={t('common.delete') as string}>
                           <Icon name="trash-2" />
                         </Button>
                       </div>
@@ -313,7 +313,7 @@ export const EventsTab: React.FC = () => {
                   <Icon name="refresh-cw" />
                 </Button>
                 {can('events:manage') && (
-                  <Button size="sm" variant="outline" onPress={() => handleReset(selectedEvent)}>
+                  <Button size="sm" variant="ghost" onPress={() => handleReset(selectedEvent)}>
                     {t('events.status.reset')}
                   </Button>
                 )}
@@ -363,7 +363,7 @@ export const EventsTab: React.FC = () => {
                       ? (
                           <Button
                             size="sm"
-                            variant="outline"
+                            variant="ghost"
                             onPress={() => handleGrantClaim(c)}
                             aria-label={t('events.claims.grantAria', { account: c.account_id })}
                           >

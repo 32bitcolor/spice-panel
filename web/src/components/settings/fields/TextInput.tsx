@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Input } from '@heroui/react'
+import { Input } from '../../../ui'
 import { FieldLabelContext } from './FieldRow'
 import type { TextInputProps } from '../../interfaces'
 

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Spinner, Toast } from '@heroui/react'
+import { Spinner, ToastRegion } from './ui'
 import { AuthContext } from './auth/context'
 import { LoginPage } from './auth/LoginPage'
 import { AppWithAuth } from './components/app/AppWithAuth'
@@ -23,7 +23,7 @@ export const App: React.FC = (): React.ReactElement => {
   if (auth.enabled && !auth.session) {
     return (
       <React.Fragment>
-        <Toast.Provider />
+        <ToastRegion />
         <LoginPage />
       </React.Fragment>
     )

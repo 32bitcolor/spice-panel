@@ -1,8 +1,8 @@
 import * as React from 'react'
-import { Button, Input, Spinner } from '@heroui/react'
+import { Button, Input, Spinner } from '../ui'
 import { Stepper } from '@heroui-pro/react'
 import { useTranslation } from 'react-i18next'
-import { toast } from '@heroui/react'
+import { toast } from '../ui'
 import { ServerSettingsForm } from './settings/server/ServerSettingsForm'
 import { DiscoveryModal } from './DiscoveryModal'
 import { api } from '../api/client'
@@ -155,7 +155,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onDone }) => {
         <p className="text-muted">{t('setup.connecting', 'Connecting…')}</p>
         {/* Escape hatch: connecting can hang (e.g. DB unreachable). Don't trap
             the user on this screen — let them go back and fix their settings. */}
-        <Button variant="outline" size="sm" onPress={() => setReconnecting(false)}>
+        <Button variant="ghost" size="sm" onPress={() => setReconnecting(false)}>
           {t('common.back', 'Back')}
         </Button>
       </div>
@@ -258,7 +258,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onDone }) => {
       <div className="flex-shrink-0 border-t border-border py-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             isDisabled={step === 0 || saving || discovering}
             onPress={() => setStep((s) => s - 1)}
@@ -279,7 +279,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onDone }) => {
           onPress={() => void handleNext()}
         >
           {saving
-            ? <Spinner size="sm" />
+            ? <Spinner size={16} />
             : isLast
               ? t('setup.saveAndConnect', 'Save & Connect')
               : t('common.next', 'Next')}

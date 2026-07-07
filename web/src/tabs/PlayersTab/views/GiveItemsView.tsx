@@ -1,7 +1,7 @@
 import * as React from 'react'
 import {
   Button, Chip, Header, ListBox, SearchField, Select, Separator, Spinner, TextField, toast,
-} from '@heroui/react'
+} from '../../../ui'
 import type { Selection } from 'react-aria-components'
 import type { DataGridColumn } from '@heroui-pro/react'
 import { DataGrid } from '@heroui-pro/react'
@@ -211,7 +211,7 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
           </Button>
           <Button
             size="sm"
-            variant="danger-soft"
+            variant="danger"
             isIconOnly
             onPress={() => removeFromStaged(item._key)}
             aria-label={t('common.remove')}
@@ -380,7 +380,7 @@ export const GiveItemsView: React.FC<GiveItemsViewProps> = ({ player }) => {
         {staged.length > 0 && (
           <div className="shrink-0 pt-3 border-t border-border flex justify-end">
             <Button size="sm" onPress={handleSubmit} isDisabled={submitting || staged.length === 0}>
-              {submitting ? <Spinner size="sm" color="current" /> : <Icon name="gift" />}
+              {submitting ? <Spinner size={16} /> : <Icon name="gift" />}
               {' '}
               {t('players.give.giveCount', { count: staged.length })}
             </Button>

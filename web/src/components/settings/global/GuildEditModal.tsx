@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Modal, Spinner, toast } from '@heroui/react'
+import { Button, Modal, Spinner, toast } from '../../../ui'
 import { api } from '../../../api/client'
 import type { DiscordGuild, DiscordGuildOption } from '../../../api/client'
 import { Icon, Panel, SectionLabel } from '../../../dune-ui'
@@ -138,7 +138,7 @@ export const GuildEditModal: React.FC<GuildEditModalProps> = ({
                     onPress={() => loadRoles(g.guild_id)}
                     isDisabled={rolesLoading || !g.guild_id.trim()}
                   >
-                    {rolesLoading ? <Spinner size="sm" color="current" /> : <Icon name="refresh-cw" />}
+                    {rolesLoading ? <Spinner size={16} /> : <Icon name="refresh-cw" />}
                     {' '}
                     {t('discordGuilds.loadRoles')}
                   </Button>
@@ -185,7 +185,7 @@ export const GuildEditModal: React.FC<GuildEditModalProps> = ({
               {saving
                 ? (
                     <React.Fragment>
-                      <Spinner size="sm" color="current" />
+                      <Spinner size={16} />
                       {' '}
                       {t('common.saving')}
                     </React.Fragment>
@@ -198,7 +198,7 @@ export const GuildEditModal: React.FC<GuildEditModalProps> = ({
                     </React.Fragment>
                   )}
             </Button>
-            <Button size="sm" variant="tertiary" slot="close" onPress={onClose}>
+            <Button size="sm" variant="ghost" slot="close" onPress={onClose}>
               {t('common.cancel')}
             </Button>
           </Modal.Footer>

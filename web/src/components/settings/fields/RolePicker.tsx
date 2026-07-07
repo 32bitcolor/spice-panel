@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { CloseButton, Select, ListBox } from '@heroui/react'
+import { CloseButton, Select, ListBox } from '../../../ui'
 import { FieldRow } from './FieldRow'
 import type { RolePickerProps } from '../../interfaces'
 

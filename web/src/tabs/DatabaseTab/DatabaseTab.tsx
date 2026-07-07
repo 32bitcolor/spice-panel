@@ -5,7 +5,7 @@ import { sql as sqlLang, PostgreSQL } from '@codemirror/lang-sql'
 import { keymap } from '@codemirror/view'
 import { Prec } from '@codemirror/state'
 import { acceptCompletion } from '@codemirror/autocomplete'
-import { Button, SearchField, Spinner, toast } from '@heroui/react'
+import { Button, SearchField, Spinner, toast } from '../../ui'
 import { Segment } from '@heroui-pro/react'
 import { api } from '../../api/client'
 import { Icon, LoadingState, NumberInput, PageHeader } from '../../dune-ui'
@@ -189,7 +189,7 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
           isDisabled={loading}
           aria-label={t('database.refreshLabel')}
         >
-          {loading ? <Spinner size="sm" color="current" /> : <Icon name="refresh-cw" />}
+          {loading ? <Spinner size={16} /> : <Icon name="refresh-cw" />}
         </Button>
       </PageHeader>
 
@@ -215,7 +215,7 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
             />
           )}
           <Button onPress={() => void run()} isDisabled={loading} size="sm">
-            {loading ? <Spinner size="sm" color="current" /> : <Icon name="play" />}
+            {loading ? <Spinner size={16} /> : <Icon name="play" />}
             {' '}
             {t('database.runBtn')}
           </Button>
@@ -240,7 +240,7 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
             </SearchField.Group>
           </SearchField>
           <Button onPress={() => void run()} isDisabled={loading} size="sm">
-            {loading ? <Spinner size="sm" color="current" /> : <Icon name="search" />}
+            {loading ? <Spinner size={16} /> : <Icon name="search" />}
             {' '}
             Search
           </Button>
@@ -271,7 +271,7 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
           </div>
           <div className="flex items-center gap-3">
             <Button onPress={() => void run()} isDisabled={loading} size="sm">
-              {loading ? <Spinner size="sm" color="current" /> : <Icon name="play" />}
+              {loading ? <Spinner size={16} /> : <Icon name="play" />}
               {' '}
               {t('database.runQuery')}
             </Button>

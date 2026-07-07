@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, Chip, Spinner, Switch, toast } from '@heroui/react'
+import { Button, Chip, Spinner, Switch, toast } from '../../ui'
 import { Segment } from '@heroui-pro/react'
 import { useTranslation } from 'react-i18next'
 import { authApi } from '../../api/client'
@@ -204,7 +204,7 @@ export const PermissionsTab: React.FC = () => {
         >
           <Button size="sm" onPress={saveMatrix} isDisabled={saving || !dirty}>
             {saving
-              ? <Spinner size="sm" color="current" />
+              ? <Spinner size={16} />
               : (
                   <React.Fragment>
                     <Icon name="save" />
@@ -263,7 +263,7 @@ export const PermissionsTab: React.FC = () => {
             />
             <Button size="sm" onPress={() => void createUser()} isDisabled={creating || !newUsername || !newPassword}>
               {creating
-                ? <Spinner size="sm" color="current" />
+                ? <Spinner size={16} />
                 : (
                     <React.Fragment>
                       <Icon name="user-plus" />
@@ -295,10 +295,10 @@ export const PermissionsTab: React.FC = () => {
                   ariaLabel={t('permissions.newPasswordOptional')}
                   className="w-48"
                 />
-                <Button size="sm" variant="outline" onPress={() => void saveUser(user)}>
+                <Button size="sm" variant="ghost" onPress={() => void saveUser(user)}>
                   {t('common.save')}
                 </Button>
-                <Button size="sm" variant="danger-soft" onPress={() => setDeleteTarget(user.username)}>
+                <Button size="sm" variant="danger" onPress={() => setDeleteTarget(user.username)}>
                   <Icon name="trash-2" />
                 </Button>
               </div>

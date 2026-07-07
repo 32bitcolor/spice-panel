@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, SearchField, Spinner, toast } from '@heroui/react'
+import { Button, SearchField, Spinner, toast } from '../../ui'
 import { Segment } from '@heroui-pro/react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../api/client'
@@ -126,7 +126,7 @@ export const PlayersTab: React.FC = () => {
         titleAction={(
           <Button size="sm" variant="ghost" onPress={refresh} isDisabled={loading}>
             {loading
-              ? <Spinner size="sm" color="current" />
+              ? <Spinner size={16} />
               : (
                   <React.Fragment>
                     <span className="w-7 text-right tabular-nums text-muted/60 text-xs">

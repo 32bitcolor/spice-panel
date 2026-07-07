@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Checkbox } from '@heroui/react'
+import { Checkbox } from '../../../ui'
 import { Icon } from '../../../dune-ui'
 import { CAT_COLOR } from '../constants'
 import { TypeRow } from './TypeRow'

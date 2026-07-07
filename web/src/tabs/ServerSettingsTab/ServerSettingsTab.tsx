@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useAtom } from 'jotai'
 import { useTranslation } from 'react-i18next'
-import { Button, SearchField, Spinner, toast } from '@heroui/react'
+import { Button, SearchField, Spinner, toast } from '../../ui'
 import { EmptyState } from '@heroui-pro/react'
 import { Icon as IconifyIcon } from '@iconify/react'
 import { api } from '../../api/client'
@@ -161,7 +161,7 @@ export const ServerSettingsTab: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full gap-2 text-muted">
-        <Spinner size="sm" color="current" />
+        <Spinner size={16} />
         <span className="text-sm">{t('server.loading')}</span>
       </div>
     )
@@ -231,7 +231,7 @@ export const ServerSettingsTab: React.FC = () => {
           <div className="w-px h-6 bg-border/60 mx-1" aria-hidden="true" />
           <Button size="sm" onPress={save} isDisabled={dirtyCount === 0 || saving}>
             {saving
-              ? <Spinner size="sm" color="current" />
+              ? <Spinner size={16} />
               : dirtyCount > 0 ? t('server.saveWithCount', { count: dirtyCount }) : t('server.save')}
           </Button>
         </div>

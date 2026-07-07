@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAtom } from 'jotai'
-import { Button, Input } from '@heroui/react'
+import { Button, Input } from '../../../../../ui'
 import { Panel, SectionLabel } from '../../../../../dune-ui'
 import { api } from '../../../../../api/client'
 import { busyAtom } from '../store'
@@ -59,7 +59,7 @@ export const ExperimentalSection: React.FC<ExperimentalSectionProps> = ({ player
               </div>
               <Button
                 size="sm"
-                variant={danger ? 'danger-soft' : 'ghost'}
+                variant={danger ? 'danger' : 'ghost'}
                 isDisabled={busy}
                 onPress={() => handleRunScript(name, danger)}
               >

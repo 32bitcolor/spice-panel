@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Input, Spinner, Switch, toast } from '@heroui/react'
+import { Input, Spinner, Switch, toast } from '../../../ui'
 import { useTranslation } from 'react-i18next'
 import { api, MASKED } from '../../../api/client'
 import type { AppConfig } from '../../../api/client'
@@ -64,7 +64,7 @@ export const BotServerConfig = React.forwardRef<BotServerConfigHandle>((_, ref) 
   }), [cfg, t, serverID, activeName])
 
   if (loading) {
-    return <div className="flex justify-center py-8"><Spinner size="sm" /></div>
+    return <div className="flex justify-center py-8"><Spinner size={16} /></div>
   }
   if (!cfg) {
     return <p className="text-xs text-muted">{t('market.bot.configUnavailable')}</p>

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, ListBox, Select, Tooltip } from '@heroui/react'
+import { Button, ListBox, Select, Tooltip } from '../../../ui'
 import { useTranslation } from 'react-i18next'
 import { FieldInput, NumberInput, Icon } from '../../../dune-ui'
 import { SOURCE_FILE, LAYER_STYLE, USER_SOURCES } from '../constants'

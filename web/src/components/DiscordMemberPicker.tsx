@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Avatar, CloseButton, SearchField, Spinner } from '@heroui/react'
+import { Avatar, CloseButton, SearchField, Spinner } from '../ui'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api/client'
 import type { DiscordMember } from '../api/client'
@@ -88,7 +88,7 @@ export const DiscordMemberPicker: React.FC<DiscordMemberPickerProps> = ({ value,
                 if (e.key === 'Escape') setOpen(false)
               }}
             />
-            {searching ? <Spinner size="sm" /> : <SearchField.ClearButton />}
+            {searching ? <Spinner size={16} /> : <SearchField.ClearButton />}
           </SearchField.Group>
         </SearchField>
         {open && results.length > 0 && (

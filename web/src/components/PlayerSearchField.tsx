@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
-import { SearchField, toast } from '@heroui/react'
+import { SearchField, toast } from '../ui'
 import { api } from '../api/client'
 import type { Player } from '../api/client'
 import { useDebounce } from '../hooks/useDebounce'

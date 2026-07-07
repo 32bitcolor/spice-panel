@@ -12,6 +12,8 @@ export interface SearchFieldProps extends Omit<AriaSearchFieldProps, 'className'
   label?: string
   placeholder?: string
   className?: string
+  /** HeroUI-era visual variant — accepted for compatibility; styling is unified. */
+  variant?: string
   /** Compound children (Group/SearchIcon/Input/ClearButton). Omit for the default layout. */
   children?: React.ReactNode
 }
@@ -20,6 +22,7 @@ const SearchFieldRoot: React.FC<SearchFieldProps> = ({
   label,
   placeholder = 'Search…',
   className,
+  variant: _variant,
   children,
   ...props
 }): React.ReactElement => (

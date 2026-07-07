@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Toast, toast } from '@heroui/react'
+import { toast, ToastRegion } from '../../ui'
 import { AppLayout } from '@heroui-pro/react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -163,7 +163,7 @@ export const AppCore: React.FC<AppCoreProps> = ({ isSignedIn }): React.ReactElem
     // stale-language text on a language change (their props don't change), until
     // an unrelated local state update forces them to re-render (#123).
     <div key={i18n.language} className="h-screen overflow-hidden bg-background">
-      <Toast.Provider />
+      <ToastRegion />
 
       <AppLayout
         sidebarCollapsible="icon"

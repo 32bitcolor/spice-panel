@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Chip, Modal, SearchField, Separator, Switch, TextField, toast } from '@heroui/react'
+import { Button, Chip, Modal, SearchField, Separator, Switch, TextField, toast } from '../../../ui'
 import type { Selection } from 'react-aria-components'
 import type { DataGridColumn } from '@heroui-pro/react'
 import { DataGrid } from '@heroui-pro/react'
@@ -262,7 +262,7 @@ export const TierEditorModal: React.FC<TierEditorModalProps> = ({ isOpen, onClos
           </Button>
           <Button
             size="sm"
-            variant="danger-soft"
+            variant="danger"
             isIconOnly
             onPress={() => removeRewardItem(item._key)}
             aria-label={t('common.remove')}
@@ -488,10 +488,10 @@ export const TierEditorModal: React.FC<TierEditorModalProps> = ({ isOpen, onClos
             </Modal.Body>
 
             <Modal.Footer className="flex items-center gap-2 shrink-0">
-              <Button size="sm" variant="tertiary" slot="close" onPress={onClose}>
+              <Button size="sm" variant="ghost" slot="close" onPress={onClose}>
                 {t('common.cancel')}
               </Button>
-              <Button size="sm" variant="secondary" onPress={handleSave} isDisabled={saving}>
+              <Button size="sm" variant="solid" onPress={handleSave} isDisabled={saving}>
                 {t('common.save')}
               </Button>
             </Modal.Footer>

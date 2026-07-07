@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Avatar, Button, Dropdown } from '@heroui/react'
+import { Avatar, Button, Dropdown } from '../ui'
 import { useTranslation } from 'react-i18next'
 import { AuthContext } from '../auth/context'
 import { Icon } from '../dune-ui'

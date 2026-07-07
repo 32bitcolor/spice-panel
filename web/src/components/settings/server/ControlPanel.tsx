@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Select, ListBox } from '@heroui/react'
+import { Select, ListBox } from '../../../ui'
 import { MASKED } from '../../../api/client'
 import { Panel, SectionLabel } from '../../../dune-ui'
 import { FieldRow } from '../fields/FieldRow'

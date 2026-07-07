@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Checkbox, SearchField } from '@heroui/react'
+import { Button, Checkbox, SearchField } from '../../../ui'
 import { Icon, Panel, SectionLabel } from '../../../dune-ui'
 import { LIVE_TYPES, CATEGORY_GROUPS, CAT_COLOR, HEATMAP_BOUNDS, HEATMAP_TYPES, HEATMAP_COLORS, TYPE_LABELS } from '../constants'
 import { filterKey, heatmapFilterKey } from '../utils'

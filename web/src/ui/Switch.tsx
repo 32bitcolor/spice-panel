@@ -32,7 +32,7 @@ const SwitchRoot: React.FC<SwitchProps> = ({
 
 // HeroUI-compatible compound slots. Our Switch draws its own track/thumb, so
 // Control/Thumb render nothing; Content just wraps the label.
-const Control: React.FC<React.PropsWithChildren> = (): null => null
+const Control: React.FC<React.HTMLAttributes<HTMLElement>> = (): null => null
 const Thumb: React.FC = (): null => null
 const Content: React.FC<React.HTMLAttributes<HTMLSpanElement>> = ({
   className,

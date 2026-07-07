@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Dropdown, Button } from '@heroui/react'
+import { Dropdown, Button } from '../ui'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../dune-ui'
 import { THEMES, applyTheme, loadTheme, loadAnimations, setAnimations, type ThemeId } from '../theme'

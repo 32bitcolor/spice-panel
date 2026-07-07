@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Modal, Spinner } from '@heroui/react'
+import { Modal, Spinner } from '../../../ui'
 import { Segment } from '@heroui-pro/react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'
@@ -80,7 +80,7 @@ export const BotControlPanel: React.FC<BotControlPanelProps> = ({ open, onClose 
                   )
                 : statusLoading
                   ? (
-                      <div className="flex justify-center py-4 shrink-0"><Spinner size="sm" /></div>
+                      <div className="flex justify-center py-4 shrink-0"><Spinner size={16} /></div>
                     )
                   : null}
 
@@ -115,7 +115,7 @@ export const BotControlPanel: React.FC<BotControlPanelProps> = ({ open, onClose 
               {activeTab === 'config' && (
                 <div className="overflow-y-auto flex-1 pr-1">
                   {configLoading
-                    ? <div className="flex justify-center py-6"><Spinner size="sm" /></div>
+                    ? <div className="flex justify-center py-6"><Spinner size={16} /></div>
                     : config
                       ? <BotConfigEditor ref={editorRef} config={config} onSaved={setConfig} />
                       : <p className="text-xs text-muted">{t('market.bot.configUnavailable')}</p>}
@@ -125,7 +125,7 @@ export const BotControlPanel: React.FC<BotControlPanelProps> = ({ open, onClose 
               {activeTab === 'disabled' && (
                 <div className="overflow-y-auto flex-1 pr-1">
                   {configLoading
-                    ? <div className="flex justify-center py-6"><Spinner size="sm" /></div>
+                    ? <div className="flex justify-center py-6"><Spinner size={16} /></div>
                     : config
                       ? <DisabledItemsManager config={config} onSaved={setConfig} />
                       : <p className="text-xs text-muted">{t('market.bot.configUnavailable')}</p>}

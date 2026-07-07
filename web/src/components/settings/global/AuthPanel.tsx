@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Select, ListBox, Spinner } from '@heroui/react'
+import { Button, Select, ListBox, Spinner } from '../../../ui'
 import { MASKED } from '../../../api/client'
 import { Icon, Panel, SectionLabel } from '../../../dune-ui'
 import { DiscordMemberPicker } from '../../DiscordMemberPicker'
@@ -141,7 +141,7 @@ export const AuthPanel: React.FC<AuthPanelProps> = ({
         <div className="flex items-center justify-between">
           <SectionLabel>{t('settings.sections.authOwners')}</SectionLabel>
           <Button size="sm" variant="ghost" onPress={loadDiscordRoles} isDisabled={rolesLoading}>
-            {rolesLoading ? <Spinner size="sm" color="current" /> : <Icon name="refresh-cw" />}
+            {rolesLoading ? <Spinner size={16} /> : <Icon name="refresh-cw" />}
             {' '}
             {t('settings.auth.refreshRoles')}
           </Button>

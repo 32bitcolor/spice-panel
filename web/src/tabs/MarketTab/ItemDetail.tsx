@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Drawer } from '@heroui/react'
+import { Drawer } from '../../ui'
 import { api } from '../../api/client'
 import type { MarketListing } from '../../api/client'
 import { getItemEntry } from '../../data/itemData'

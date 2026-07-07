@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { AlertDialog, Button } from '@heroui/react'
+import { AlertDialog, Button } from '../../../ui'
 import type { ConfirmDialogProps } from './types'
 
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ action, onConfirm, onClose }) => {
@@ -26,7 +26,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ action, onConfirm,
             <Button slot="close" variant="ghost" onPress={onClose}>{t('common.cancel')}</Button>
             <Button
               slot="close"
-              variant={action?.danger ? 'danger-soft' : 'primary'}
+              variant={action?.danger ? 'danger' : 'primary'}
               onPress={() => action && onConfirm(action)}
             >
               {t('battlegroup.confirm.confirmPrefix')}

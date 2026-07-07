@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { SearchField } from '@heroui/react'
+import { SearchField } from '../ui'
 import { useTranslation } from 'react-i18next'
 import type { TimezoneSelectProps } from './interfaces'
 

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Switch } from '@heroui/react'
+import { Switch } from '../../../ui'
 import type { CheckboxFieldProps } from '../../interfaces'
 
 export const CheckboxField: React.FC<CheckboxFieldProps> = ({ label, checked, onChange, hint }) => {

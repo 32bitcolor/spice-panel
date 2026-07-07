@@ -2,7 +2,7 @@ import * as React from 'react'
 import {
   Button, Chip, Modal,
   SearchField, Separator, Spinner, TextField, toast,
-} from '@heroui/react'
+} from '../../../ui'
 import type { Selection } from 'react-aria-components'
 import type { DataGridColumn } from '@heroui-pro/react'
 import { DataGrid } from '@heroui-pro/react'
@@ -198,7 +198,7 @@ export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, on
           </Button>
           <Button
             size="sm"
-            variant="danger-soft"
+            variant="danger"
             isIconOnly
             onPress={() => removeFromStaged(item._key)}
             aria-label={t('common.remove')}
@@ -345,9 +345,9 @@ export const GiveItemsModal: React.FC<GiveItemsModalProps> = ({ player, open, on
                   )}
             </Modal.Body>
             <Modal.Footer>
-              <Button variant="tertiary" size="sm" slot="close">{t('common.cancel')}</Button>
+              <Button variant="ghost" size="sm" slot="close">{t('common.cancel')}</Button>
               <Button size="sm" onPress={handleSubmit} isDisabled={submitting || staged.length === 0}>
-                {submitting ? <Spinner size="sm" color="current" /> : <Icon name="gift" />}
+                {submitting ? <Spinner size={16} /> : <Icon name="gift" />}
                 {' '}
                 {t('players.give.giveCount', { count: staged.length })}
               </Button>

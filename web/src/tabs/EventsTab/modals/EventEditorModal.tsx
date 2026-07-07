@@ -1,7 +1,7 @@
 import * as React from 'react'
 import {
   Button, Chip, CloseButton, ListBox, Modal, SearchField, Select, Separator, Switch, TextArea, TextField, toast,
-} from '@heroui/react'
+} from '../../../ui'
 import type { Selection } from 'react-aria-components'
 import type { DataGridColumn } from '@heroui-pro/react'
 import { DataGrid, Segment } from '@heroui-pro/react'
@@ -349,7 +349,7 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
       cell: (x) => (
         <Button
           size="sm"
-          variant="danger-soft"
+          variant="danger"
           isIconOnly
           onPress={() => setRewardXP((prev) => prev.filter((p) => p.track !== x.track))}
           aria-label={t('common.remove')}
@@ -449,7 +449,7 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
       cell: (item) => (
         <Button
           size="sm"
-          variant="danger-soft"
+          variant="danger"
           isIconOnly
           onPress={() => removeRewardItem(item._key)}
           aria-label={t('common.remove')}
@@ -997,10 +997,10 @@ export const EventEditorModal: React.FC<EventEditorModalProps> = ({
             </Modal.Body>
 
             <Modal.Footer className="flex items-center gap-2 shrink-0">
-              <Button size="sm" variant="tertiary" slot="close" onPress={onClose}>
+              <Button size="sm" variant="ghost" slot="close" onPress={onClose}>
                 {t('common.cancel')}
               </Button>
-              <Button size="sm" variant="secondary" onPress={handleSave} isDisabled={saving}>
+              <Button size="sm" variant="solid" onPress={handleSave} isDisabled={saving}>
                 {isEdit ? t('common.save') : t('common.create')}
               </Button>
             </Modal.Footer>

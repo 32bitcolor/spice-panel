@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAutoRefresh } from '../../hooks/useAutoRefresh'
-import { Button, Input, Select, ListBox, Spinner, toast, TextField } from '@heroui/react'
+import { Button, Input, Select, ListBox, Spinner, toast, TextField } from '../../ui'
 import { api } from '../../api/client'
 import type { BackupFile } from '../../api/client'
 import { NumberInput, PageHeader, SectionDivider, Icon } from '../../dune-ui'
@@ -209,7 +209,7 @@ export const BattlegroupTab: React.FC = () => {
                 .map((action) => (
                   <Button
                     key={action.cmd}
-                    variant={action.danger ? 'danger-soft' : 'outline'}
+                    variant={action.danger ? 'danger' : 'ghost'}
                     onPress={() => setConfirmCmd(action)}
                     isDisabled={runningCmd !== null}
                     size="sm"
@@ -218,7 +218,7 @@ export const BattlegroupTab: React.FC = () => {
                   </Button>
                 ))}
               {can('backups:manage') && backupSupported && (
-                <Button variant="danger-soft" size="sm" isDisabled={runningCmd !== null} onPress={openRestore}>
+                <Button variant="danger" size="sm" isDisabled={runningCmd !== null} onPress={openRestore}>
                   {t('battlegroup.restoreLabel')}
                 </Button>
               )}
@@ -271,7 +271,7 @@ export const BattlegroupTab: React.FC = () => {
                     }}
                   >
                     {broadcastBusy
-                      ? <Spinner size="sm" color="current" />
+                      ? <Spinner size={16} />
                       : (
                           <React.Fragment>
                             <Icon name="megaphone" />
@@ -320,7 +320,7 @@ export const BattlegroupTab: React.FC = () => {
                 <div className="flex gap-2 mt-auto">
                   <Button
                     size="sm"
-                    variant="danger-soft"
+                    variant="danger"
                     isDisabled={shutdownBusy}
                     onPress={async () => {
                       setShutdownBusy(true)
@@ -336,7 +336,7 @@ export const BattlegroupTab: React.FC = () => {
                     }}
                   >
                     {shutdownBusy
-                      ? <Spinner size="sm" color="current" />
+                      ? <Spinner size={16} />
                       : (
                           <React.Fragment>
                             <Icon name="triangle-alert" />

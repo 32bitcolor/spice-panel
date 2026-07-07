@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Drawer } from '@heroui/react'
+import { Drawer } from '../ui'
 import { useAtomValue } from 'jotai'
 import { itemDataSyncAtom } from '../data/store'
 import { ItemDetailCard } from './ItemDetailCard'

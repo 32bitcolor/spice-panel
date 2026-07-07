@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Spinner, Switch, ToggleButton, ToggleButtonGroup, toast } from '@heroui/react'
+import { Button, Spinner, Switch, ToggleButton, ToggleButtonGroup, toast } from '../ui'
 import { api } from '../api/client'
 import type { ScheduledRestarts, RestartRule } from '../api/client'
 import { Panel, SectionLabel, Icon, NumberInput, TimeInput } from '../dune-ui'
@@ -89,7 +89,7 @@ export const ScheduledRestartsCard: React.FC = () => {
       </div>
 
       {loading
-        ? <div className="py-4 flex justify-center"><Spinner size="sm" color="current" /></div>
+        ? <div className="py-4 flex justify-center"><Spinner size={16} /></div>
         : (
             <React.Fragment>
               <div className="text-sm mb-3">
@@ -128,7 +128,7 @@ export const ScheduledRestartsCard: React.FC = () => {
               ))}
 
               {can('restarts:manage') && (
-                <Button size="sm" variant="outline" className="mb-3" onPress={addRule}>
+                <Button size="sm" variant="ghost" className="mb-3" onPress={addRule}>
                   <Icon name="plus" />
                   {' '}
                   {t('restarts.addRule')}
@@ -157,9 +157,9 @@ export const ScheduledRestartsCard: React.FC = () => {
               {can('restarts:manage') && (
                 <div className="flex gap-2">
                   <Button size="sm" onPress={save} isDisabled={saving}>
-                    {saving ? <Spinner size="sm" color="current" /> : t('restarts.save')}
+                    {saving ? <Spinner size={16} /> : t('restarts.save')}
                   </Button>
-                  <Button size="sm" variant="outline" onPress={skip} isDisabled={!enabled || !data?.next_restart}>
+                  <Button size="sm" variant="ghost" onPress={skip} isDisabled={!enabled || !data?.next_restart}>
                     {t('restarts.skipNext')}
                   </Button>
                 </div>

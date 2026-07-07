@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Chip, Switch, toast } from '@heroui/react'
+import { Button, Chip, Switch, toast } from '../ui'
 import { api } from '../api/client'
 import type { DiagnosticsEnvironment } from '../api/client'
 import { Icon, PageHeader, Panel } from '../dune-ui'

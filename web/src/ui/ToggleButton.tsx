@@ -11,16 +11,19 @@ import { cn } from './lib/cn'
 
 export interface ToggleButtonProps extends Omit<AriaToggleButtonProps, 'className'> {
   className?: string
+  isIconOnly?: boolean
 }
 
 export const ToggleButton: React.FC<ToggleButtonProps> = ({
   className,
+  isIconOnly = false,
   ...props
 }): React.ReactElement => (
   <AriaToggleButton
     {...props}
     className={cn(
-      'hud-plate-sm inline-flex cursor-pointer select-none items-center justify-center gap-2 px-3.5 py-1.5 font-mono text-xs uppercase tracking-[0.06em] outline-none transition data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40 data-[focus-visible]:hud-glow',
+      'hud-plate-sm inline-flex cursor-pointer select-none items-center justify-center gap-2 font-mono text-xs uppercase tracking-[0.06em] outline-none transition data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40 data-[focus-visible]:hud-glow',
+      isIconOnly ? 'size-8 p-0' : 'px-3.5 py-1.5',
       'bg-surface-secondary text-muted data-[hovered]:text-foreground',
       'data-[selected]:bg-accent data-[selected]:font-bold data-[selected]:text-accent-foreground',
       className,

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, SearchField } from '@heroui/react'
+import { Button, SearchField } from '../../ui'
 import { FileTree } from '@heroui-pro/react'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../../dune-ui'

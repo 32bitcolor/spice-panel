@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Modal, Spinner } from '@heroui/react'
+import { Button, Modal, Spinner } from '../../../ui'
 import { MapContainer, ImageOverlay } from 'react-leaflet'
 import { CRS } from 'leaflet'
 import 'leaflet/dist/leaflet.css'

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Modal } from '@heroui/react'
+import { Modal } from '../../ui'
 import { useTranslation } from 'react-i18next'
 import { useAtom } from 'jotai'
 import { SetupWizard } from '../SetupWizard'

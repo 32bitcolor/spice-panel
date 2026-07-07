@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Chip, Spinner, Switch, toast } from '@heroui/react'
+import { Button, Chip, Spinner, Switch, toast } from '../ui'
 import { EmptyState } from '@heroui-pro/react'
 import { Icon as IconifyIcon } from '@iconify/react'
 import { api, getWsBase } from '../api/client'
@@ -183,7 +183,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ control }) => {
         title={t('logs.sourceTitle', { label: sourceLabel, count: pods.length })}
         titleAction={(
           <Button size="sm" variant="ghost" isDisabled={podsLoading} onPress={loadPods}>
-            {podsLoading ? <Spinner size="sm" color="current" /> : <Icon name="refresh-cw" />}
+            {podsLoading ? <Spinner size={16} /> : <Icon name="refresh-cw" />}
           </Button>
         )}
       />
@@ -197,9 +197,9 @@ export const LogsTab: React.FC<LogsTabProps> = ({ control }) => {
                   <span className="text-xs text-muted">
                     {t('logs.eventsCount', { count: cheats.length })}
                   </span>
-                  <Button size="sm" variant="outline" onPress={loadCheats} isDisabled={cheatsLoading}>
+                  <Button size="sm" variant="ghost" onPress={loadCheats} isDisabled={cheatsLoading}>
                     {cheatsLoading
-                      ? <Spinner size="sm" color="current" />
+                      ? <Spinner size={16} />
                       : (
                           <React.Fragment>
                             <Icon name="refresh-cw" />
@@ -275,14 +275,14 @@ export const LogsTab: React.FC<LogsTabProps> = ({ control }) => {
                     <Switch.Content>{t('logs.autoScroll')}</Switch.Content>
                   </Switch>
                   {selectedPod && connected && (
-                    <Button size="sm" variant="danger-soft" onPress={disconnect}>
+                    <Button size="sm" variant="danger" onPress={disconnect}>
                       <Icon name="square" />
                       {' '}
                       {t('logs.stop')}
                     </Button>
                   )}
                   {selectedPod && !connected && (
-                    <Button size="sm" variant="outline" onPress={() => connectPod(selectedPod)}>
+                    <Button size="sm" variant="ghost" onPress={() => connectPod(selectedPod)}>
                       <Icon name="play" />
                       {' '}
                       {t('logs.reconnect')}

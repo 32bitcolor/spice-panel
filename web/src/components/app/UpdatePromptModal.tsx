@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, Modal } from '@heroui/react'
+import { Button, Modal } from '../../ui'
 import { useTranslation } from 'react-i18next'
 import { useAtom, useAtomValue } from 'jotai'
 import { Icon } from '../../dune-ui'
@@ -49,7 +49,7 @@ export const UpdatePromptModal: React.FC<UpdatePromptModalProps> = ({ can }) => 
           <Modal.Footer className="flex items-center justify-end gap-2">
             <Button
               size="sm"
-              variant="tertiary"
+              variant="ghost"
               onPress={() => setUpdatePromptOpen(false)}
             >
               {t('common.cancel')}

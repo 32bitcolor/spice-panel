@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Modal, Spinner, toast } from '@heroui/react'
+import { Button, Modal, Spinner, toast } from '../ui'
 import { Icon } from '../dune-ui'
 import { ServerSettingsForm } from './settings/server/ServerSettingsForm'
 import { DeleteServerModal } from './DeleteServerModal'
@@ -55,7 +55,7 @@ export const ManageServerModal: React.FC<ManageServerModalProps> = ({
                 {saving
                   ? (
                       <React.Fragment>
-                        <Spinner size="sm" color="current" />
+                        <Spinner size={16} />
                         {' '}
                         {t('common.saving')}
                       </React.Fragment>
@@ -68,7 +68,7 @@ export const ManageServerModal: React.FC<ManageServerModalProps> = ({
                       </React.Fragment>
                     )}
               </Button>
-              <Button size="sm" variant="tertiary" onPress={onClose}>
+              <Button size="sm" variant="ghost" onPress={onClose}>
                 {t('common.close')}
               </Button>
             </Modal.Footer>

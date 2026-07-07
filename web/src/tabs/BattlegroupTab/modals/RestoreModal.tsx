@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Modal, Spinner, toast } from '@heroui/react'
+import { Button, Modal, Spinner, toast } from '../../../ui'
 import { api } from '../../../api/client'
 import { Dropzone, Icon } from '../../../dune-ui'
 import type { RestoreModalProps } from './types'
@@ -112,7 +112,7 @@ export const RestoreModal: React.FC<RestoreModalProps> = ({
                   )}
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="tertiary" onPress={onClose} isDisabled={restoreRunning}>{t('common.cancel')}</Button>
+            <Button variant="ghost" onPress={onClose} isDisabled={restoreRunning}>{t('common.cancel')}</Button>
             <Button
               variant="danger"
               isDisabled={!selectedFile || restoreRunning || backupFilesLoading}
@@ -132,7 +132,7 @@ export const RestoreModal: React.FC<RestoreModalProps> = ({
               }}
             >
               {restoreRunning
-                ? <Spinner size="sm" color="current" />
+                ? <Spinner size={16} />
                 : t('battlegroup.restore.restoreBtn', { file: selectedFile ? selectedFile.slice(-20) : '' })}
             </Button>
           </Modal.Footer>

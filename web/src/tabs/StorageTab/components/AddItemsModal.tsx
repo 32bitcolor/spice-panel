@@ -2,7 +2,7 @@ import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Button, Chip, Modal, SearchField, Separator, Spinner, TextField, toast,
-} from '@heroui/react'
+} from '../../../ui'
 import type { Selection } from 'react-aria-components'
 import type { DataGridColumn } from '@heroui-pro/react'
 import { DataGrid } from '@heroui-pro/react'
@@ -192,7 +192,7 @@ export const AddItemsModal: React.FC<AddItemsModalProps> = ({
           </Button>
           <Button
             size="sm"
-            variant="danger-soft"
+            variant="danger"
             isIconOnly
             onPress={() => removeFromStaged(item._key)}
             aria-label={t('common.remove')}
@@ -320,9 +320,9 @@ export const AddItemsModal: React.FC<AddItemsModalProps> = ({
                   )}
             </Modal.Body>
             <Modal.Footer>
-              <Button variant="tertiary" size="sm" slot="close">{t('common.cancel')}</Button>
+              <Button variant="ghost" size="sm" slot="close">{t('common.cancel')}</Button>
               <Button size="sm" onPress={handleSubmit} isDisabled={submitting || staged.length === 0}>
-                {submitting ? <Spinner size="sm" color="current" /> : <Icon name="plus" />}
+                {submitting ? <Spinner size={16} /> : <Icon name="plus" />}
                 {t('storage.addModal.add')}
                 {' '}
                 {staged.length}

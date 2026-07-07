@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Checkbox } from '@heroui/react'
+import { Checkbox } from '../../../ui'
 import { CAT_COLOR, ICON_POS } from '../constants'
 import { SpriteIcon } from './SpriteIcon'
 import type { TypeRowProps } from './types'

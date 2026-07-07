@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Spinner, Switch, ToggleButton, ToggleButtonGroup, toast } from '@heroui/react'
+import { Button, Spinner, Switch, ToggleButton, ToggleButtonGroup, toast } from '../../../ui'
 import { api } from '../../../api/client'
 import type { ScheduledBackups, BackupRule } from '../../../api/client'
 import { Panel, SectionLabel, Icon, NumberInput, TimeInput } from '../../../dune-ui'
@@ -78,7 +78,7 @@ export const ScheduleCard: React.FC = () => {
       <p className="text-xs text-muted mb-2">{t('backups.schedule.desc')}</p>
 
       {loading
-        ? <div className="py-3 flex justify-center"><Spinner size="sm" color="current" /></div>
+        ? <div className="py-3 flex justify-center"><Spinner size={16} /></div>
         : (
             <React.Fragment>
               <div className="text-sm mb-2">
@@ -123,7 +123,7 @@ export const ScheduleCard: React.FC = () => {
               ))}
 
               {can('backups:manage') && (
-                <Button size="sm" variant="outline" className="mb-3" onPress={addRule}>
+                <Button size="sm" variant="ghost" className="mb-3" onPress={addRule}>
                   <Icon name="plus" />
                   {' '}
                   {t('backups.schedule.addRule')}
@@ -152,7 +152,7 @@ export const ScheduleCard: React.FC = () => {
 
               {can('backups:manage') && (
                 <Button size="sm" onPress={save} isDisabled={saving}>
-                  {saving ? <Spinner size="sm" color="current" /> : t('backups.schedule.save')}
+                  {saving ? <Spinner size={16} /> : t('backups.schedule.save')}
                 </Button>
               )}
             </React.Fragment>

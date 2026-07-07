@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, Switch } from '@heroui/react'
+import { Button, Switch } from '../../../ui'
 import { useTranslation } from 'react-i18next'
 import { getWsBase, api } from '../../../api/client'
 import { Icon } from '../../../dune-ui'
@@ -149,14 +149,14 @@ export const BotLogViewer: React.FC<BotLogViewerProps> = ({ active = false }) =>
         </Switch>
         {connState !== 'connected'
           ? (
-              <Button size="sm" variant="outline" onPress={connect} isDisabled={connState === 'connecting'}>
+              <Button size="sm" variant="ghost" onPress={connect} isDisabled={connState === 'connecting'}>
                 <Icon name="play" />
                 {' '}
                 {t('market.bot.log.connect')}
               </Button>
             )
           : (
-              <Button size="sm" variant="danger-soft" onPress={disconnect}>
+              <Button size="sm" variant="danger" onPress={disconnect}>
                 <Icon name="square" />
                 {' '}
                 {t('market.bot.log.stop')}

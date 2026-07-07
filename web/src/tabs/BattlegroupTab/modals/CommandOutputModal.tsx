@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Modal, Spinner } from '@heroui/react'
+import { Button, Modal, Spinner } from '../../../ui'
 import { api } from '../../../api/client'
 import { Icon } from '../../../dune-ui'
 import type { CommandOutputModalProps } from './types'
@@ -18,7 +18,7 @@ export const CommandOutputModal: React.FC<CommandOutputModalProps> = ({
             {!cmdDone
               ? (
                   <div className="flex flex-col items-center gap-4 py-6">
-                    <Spinner size="lg" />
+                    <Spinner size={28} />
                     <p className="text-sm text-muted">
                       {t('battlegroup.runningCmd', { cmd: runningCmd?.toLowerCase() ?? '' })}
                     </p>

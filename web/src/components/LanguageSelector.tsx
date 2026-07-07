@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Dropdown, Button } from '@heroui/react'
+import { Dropdown, Button } from '../ui'
 import { useTranslation } from 'react-i18next'
 import { LANGUAGES, setLocale, LOCALE_KEY, DEFAULT_LOCALE } from '../i18n'
 

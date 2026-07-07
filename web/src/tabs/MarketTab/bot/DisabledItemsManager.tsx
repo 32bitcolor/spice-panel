@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, SearchField, Spinner, toast } from '@heroui/react'
+import { Button, SearchField, Spinner, toast } from '../../../ui'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'
 import type { CatalogItem } from '../../../api/client'
@@ -91,7 +91,7 @@ export const DisabledItemsManager: React.FC<DisabledItemsManagerProps> = (
                 </SearchField.Group>
               </SearchField>
             </div>
-            {saving && <Spinner size="sm" color="current" className="mb-2" />}
+            {saving && <Spinner size={16} className="mb-2" />}
           </div>
 
           {/* Search results */}
@@ -106,7 +106,7 @@ export const DisabledItemsManager: React.FC<DisabledItemsManagerProps> = (
                     <span className="text-sm text-foreground truncate">{item.display_name}</span>
                     <span className="text-xs text-muted font-mono truncate">{item.template_id}</span>
                   </div>
-                  <Button size="sm" variant="outline" onPress={() => add(item.template_id)}>
+                  <Button size="sm" variant="ghost" onPress={() => add(item.template_id)}>
                     <Icon name="plus" />
                     {' '}
                     {t('common.add')}
@@ -151,7 +151,7 @@ export const DisabledItemsManager: React.FC<DisabledItemsManagerProps> = (
                     case 'actions':
                       return can('market-bot:manage')
                         ? (
-                            <Button size="sm" variant="danger-soft" onPress={() => remove(r.template_id)}>
+                            <Button size="sm" variant="danger" onPress={() => remove(r.template_id)}>
                               {t('common.remove')}
                             </Button>
                           )

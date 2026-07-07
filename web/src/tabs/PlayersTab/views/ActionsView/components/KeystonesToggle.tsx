@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, Disclosure } from '@heroui/react'
+import { Button, Disclosure } from '../../../../../ui'
 import type { KeystonesToggleProps } from './interfaces'
 
 export const KeystonesToggle: React.FC<KeystonesToggleProps> = ({ keystones }) => {

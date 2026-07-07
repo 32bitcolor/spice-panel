@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Chip, Input, Modal, Spinner, TextArea, toast } from '@heroui/react'
+import { Button, Chip, Input, Modal, Spinner, TextArea, toast } from '../ui'
 import { EmptyState } from '@heroui-pro/react'
 import { Icon as IconifyIcon } from '@iconify/react'
 import { api } from '../api/client'
@@ -111,7 +111,7 @@ export const GuildsTab: React.FC<GuildsTabProps> = ({ isSignedIn = true }) => {
       <PageHeader title={t('guilds.title', { count: guilds.length })} subtitle={t('guilds.subtitle')}>
         <Button size="sm" variant="ghost" onPress={load} isDisabled={loading}>
           {loading
-            ? <Spinner size="sm" color="current" />
+            ? <Spinner size={16} />
             : (
                 <React.Fragment>
                   <Icon name="refresh-cw" />
@@ -167,7 +167,7 @@ export const GuildsTab: React.FC<GuildsTabProps> = ({ isSignedIn = true }) => {
                 : <span className="text-muted">—</span>
             case 'actions':
               return (
-                <Button size="sm" variant="outline" className="w-full" onPress={() => openDetail(g.guild_id)}>
+                <Button size="sm" variant="ghost" className="w-full" onPress={() => openDetail(g.guild_id)}>
                   <Icon name="users" />
                   {' '}
                   {canManage ? t('guilds.manage') : t('guilds.view')}
@@ -194,7 +194,7 @@ export const GuildsTab: React.FC<GuildsTabProps> = ({ isSignedIn = true }) => {
             <Modal.Body className="flex flex-col gap-4 overflow-y-auto">
               {detailLoading && (
                 <div className="flex items-center justify-center py-8 gap-2 text-muted">
-                  <Spinner size="sm" color="current" />
+                  <Spinner size={16} />
                 </div>
               )}
               {!detailLoading && detail && (
@@ -224,7 +224,7 @@ export const GuildsTab: React.FC<GuildsTabProps> = ({ isSignedIn = true }) => {
                           </div>
                           <div>
                             <Button size="sm" onPress={save} isDisabled={saving || editName.trim() === ''}>
-                              {saving ? <Spinner size="sm" color="current" /> : t('guilds.save')}
+                              {saving ? <Spinner size={16} /> : t('guilds.save')}
                             </Button>
                           </div>
                         </div>
@@ -255,7 +255,7 @@ export const GuildsTab: React.FC<GuildsTabProps> = ({ isSignedIn = true }) => {
                                 {canManage && m.role_id !== ROLE_ADMIN && (
                                   <Button
                                     size="sm"
-                                    variant="outline"
+                                    variant="ghost"
                                     isDisabled={roleBusy}
                                     onPress={() => makeAdmin(m.player_id)}
                                   >

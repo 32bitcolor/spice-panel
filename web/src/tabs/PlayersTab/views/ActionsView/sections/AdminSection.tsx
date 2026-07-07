@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAtom } from 'jotai'
-import { Button, Input, ListBox, Select, Switch, TextArea, toast } from '@heroui/react'
+import { Button, Input, ListBox, Select, Switch, TextArea, toast } from '../../../../../ui'
 import { Panel, SectionLabel } from '../../../../../dune-ui'
 import { vehiclesSyncAtom } from '../../../../../data/store'
 import { api } from '../../../../../api/client'
@@ -228,7 +228,7 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
       <div className="flex items-end gap-2 flex-1 flex-wrap">{inputs}</div>
       <Button
         size="sm"
-        variant={danger ? 'danger-soft' : 'ghost'}
+        variant={danger ? 'danger' : 'ghost'}
         isDisabled={busy}
         onPress={confirmGate ? () => gate(confirmGate.title, confirmGate.description, btnLabel, onAction) : onAction}
       >
@@ -270,7 +270,7 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
               <div className="flex-1 text-xs text-muted">{t('players.actions.admin.wipeInventoryDesc')}</div>
               <Button
                 size="sm"
-                variant="danger-soft"
+                variant="danger"
                 isDisabled={busy}
                 onPress={handleWipeInventory}
               >
@@ -282,7 +282,7 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
               <div className="flex-1 text-xs text-muted">{t('players.actions.admin.resetProgressionDesc')}</div>
               <Button
                 size="sm"
-                variant="danger-soft"
+                variant="danger"
                 isDisabled={busy}
                 onPress={handleResetProgression}
               >
@@ -332,7 +332,7 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
             <div className="flex-1 text-xs text-danger">{t('players.actions.admin.deleteCharacterIrreversible')}</div>
             <Button
               size="sm"
-              variant="danger-soft"
+              variant="danger"
               isDisabled={busy}
               onPress={() => setDeleteModalOpen(true)}
             >
@@ -475,7 +475,7 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
               <TextArea
                 aria-label={t('players.actions.admin.whisper')}
                 value={whisperText}
-                onChange={(e) => setWhisperText(e.target.value)}
+                onChange={(e) => setWhisperText(e)}
                 placeholder={`Message to ${player.name}…`}
                 rows={2}
                 maxLength={500}

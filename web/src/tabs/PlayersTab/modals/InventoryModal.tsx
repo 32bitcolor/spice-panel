@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, Chip, Modal, Spinner, toast } from '@heroui/react'
+import { Button, Chip, Modal, Spinner, toast } from '../../../ui'
 import { EmptyState } from '@heroui-pro/react'
 import { Icon as IconifyIcon } from '@iconify/react'
 import { useTranslation } from 'react-i18next'
@@ -190,7 +190,7 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({ player, open, on
                               return (
                                 <div className="flex gap-1">
                                   {renderRepairButton(i)}
-                                  <Button isIconOnly size="sm" variant="danger-soft" aria-label={t('common.delete')} onPress={() => handleDelete(i.id)}><Icon name="trash" /></Button>
+                                  <Button isIconOnly size="sm" variant="danger" aria-label={t('common.delete')} onPress={() => handleDelete(i.id)}><Icon name="trash" /></Button>
                                 </div>
                               )
                           }
@@ -201,7 +201,7 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({ player, open, on
                     <Panel className="shrink-0">
                       <div className="flex items-center gap-2">
                         <SectionLabel>{t('players.vehicles.vehiclesLabel')}</SectionLabel>
-                        {vehiclesLoading && <Spinner size="sm" color="current" />}
+                        {vehiclesLoading && <Spinner size={16} />}
                       </div>
                       <DataTable<VehicleRow, VehicleKey>
                         aria-label={t('players.vehicles.vehiclesLabel')}

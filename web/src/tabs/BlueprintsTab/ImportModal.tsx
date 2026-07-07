@@ -7,7 +7,7 @@ import {
   Spinner,
   TextField,
   toast,
-} from '@heroui/react'
+} from '../../ui'
 import { api } from '../../api/client'
 import type { Player } from '../../api/client'
 import { Dropzone, Icon } from '../../dune-ui'
@@ -87,11 +87,11 @@ export const ImportModal: React.FC<ImportModalProps> = ({ open, onClose, onSucce
             </TextField>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="tertiary" slot="close">
+            <Button variant="ghost" slot="close">
               {t('common.cancel')}
             </Button>
             <Button onPress={handleSubmit} isDisabled={submitting || !file || !selectedPlayer}>
-              {submitting ? <Spinner size="sm" color="current" /> : <Icon name="upload" />}
+              {submitting ? <Spinner size={16} /> : <Icon name="upload" />}
               {t('blueprints.importModal.import')}
             </Button>
           </Modal.Footer>

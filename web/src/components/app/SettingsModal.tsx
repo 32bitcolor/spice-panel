@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, Modal, Spinner } from '@heroui/react'
+import { Button, Modal, Spinner } from '../../ui'
 import { useTranslation } from 'react-i18next'
 import { useAtom, useAtomValue } from 'jotai'
 import { Icon } from '../../dune-ui'
@@ -74,7 +74,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ status, can, onClo
               {updateChecking
                 ? (
                     <React.Fragment>
-                      <Spinner size="sm" color="current" />
+                      <Spinner size={16} />
                       {' '}
                       {t('common.checking')}
                     </React.Fragment>
@@ -122,7 +122,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ status, can, onClo
               {formSaving
                 ? (
                     <React.Fragment>
-                      <Spinner size="sm" color="current" />
+                      <Spinner size={16} />
                       {' '}
                       {t('common.saving')}
                     </React.Fragment>
@@ -137,7 +137,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ status, can, onClo
             </Button>
             <Button
               size="sm"
-              variant="tertiary"
+              variant="ghost"
               onPress={() => setSettingsOpen(false)}
             >
               {t('common.close')}

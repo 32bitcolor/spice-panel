@@ -2,7 +2,7 @@ import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Button, Chip, SearchField, Spinner, toast,
-} from '@heroui/react'
+} from '../../ui'
 import type { Selection } from 'react-aria-components'
 import { EmptyState } from '@heroui-pro/react'
 import { Icon as IconifyIcon } from '@iconify/react'
@@ -165,7 +165,7 @@ export const StorageTab: React.FC = () => {
           title={t('storage.containersTitle', { count: containers.length })}
           titleAction={(
             <Button size="sm" variant="ghost" onPress={load} isDisabled={loading}>
-              {loading ? <Spinner size="sm" color="current" /> : <Icon name="refresh-cw" />}
+              {loading ? <Spinner size={16} /> : <Icon name="refresh-cw" />}
             </Button>
           )}
           width="w-[276px]"
@@ -204,7 +204,7 @@ export const StorageTab: React.FC = () => {
                   >
                     <Button size="sm" variant="ghost" onPress={() => selectContainer(selected)} isDisabled={itemsLoading}>
                       {itemsLoading
-                        ? <Spinner size="sm" color="current" />
+                        ? <Spinner size={16} />
                         : (
                             <React.Fragment>
                               <Icon name="refresh-cw" />
@@ -292,7 +292,7 @@ export const StorageTab: React.FC = () => {
                                       <Button
                                         isIconOnly
                                         size="sm"
-                                        variant="danger-soft"
+                                        variant="danger"
                                         aria-label={t('storage.remove')}
                                         onPress={() => handleDeleteItem(i.id)}
                                       >
@@ -311,7 +311,7 @@ export const StorageTab: React.FC = () => {
                                 </span>
                               </ActionBar.Prefix>
                               <ActionBar.Content>
-                                <Button size="sm" variant="danger-soft" onPress={handleBulkDelete}>
+                                <Button size="sm" variant="danger" onPress={handleBulkDelete}>
                                   <Icon name="trash" />
                                   {t('players.inventory.deleteSelected')}
                                 </Button>

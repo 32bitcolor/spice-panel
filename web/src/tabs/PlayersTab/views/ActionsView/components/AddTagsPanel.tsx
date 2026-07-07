@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { SearchField } from '@heroui/react'
+import { SearchField } from '../../../../../ui'
 import { useAtom } from 'jotai'
 import { gameplayTagsSyncAtom } from '../../../../../data/store'
 import { useDebounce } from '../hooks/useDebounce'
@@ -24,7 +24,7 @@ export const AddTagsPanel: React.FC<AddTagsPanelProps> = React.memo(({ tags, pen
 
   return (
     <div className="relative">
-      <SearchField value={query} onChange={setQuery} variant="secondary" aria-label={t('players.actions.tags.searchPlaceholder')}>
+      <SearchField value={query} onChange={setQuery} variant="solid" aria-label={t('players.actions.tags.searchPlaceholder')}>
         <SearchField.Group>
           <SearchField.SearchIcon />
           <SearchField.Input placeholder={t('players.actions.tags.searchPlaceholder')} />

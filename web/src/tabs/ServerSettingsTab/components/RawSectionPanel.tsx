@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, Spinner, TextArea, Tooltip, toast } from '@heroui/react'
+import { Button, Spinner, TextArea, Tooltip, toast } from '../../../ui'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'
 import { Panel, SectionLabel, Icon } from '../../../dune-ui'
@@ -99,7 +99,7 @@ export const RawSectionPanel: React.FC<RawSectionPanelProps> = ({ sections, onSa
                 <React.Fragment>
                   <Button size="sm" variant="ghost" onPress={cancel} isDisabled={saving}>{t('server.collapse')}</Button>
                   <Button size="sm" onPress={save} isDisabled={saving}>
-                    {saving ? <Spinner size="sm" color="current" /> : t('common.save')}
+                    {saving ? <Spinner size={16} /> : t('common.save')}
                   </Button>
                 </React.Fragment>
               )
@@ -145,12 +145,11 @@ export const RawSectionPanel: React.FC<RawSectionPanelProps> = ({ sections, onSa
               ref={textareaRef}
               aria-label={shortSection(sectionName)}
               value={draft}
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={(e) => setDraft(e)}
               rows={Math.max(4, draft.split('\n').length + 1)}
               fullWidth
               className="text-xs font-mono"
               style={{ resize: 'vertical' }}
-              spellCheck={false}
               placeholder={t('server.rawPlaceholder')}
             />
           )

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, ListBox, Select, Spinner, toast } from '@heroui/react'
+import { Button, ListBox, Select, Spinner, toast } from '../../../ui'
 import { EmptyState } from '@heroui-pro/react'
 import { Icon as IconifyIcon } from '@iconify/react'
 import { useTranslation } from 'react-i18next'
@@ -62,7 +62,7 @@ export const GrantsView: React.FC<GrantsViewProps> = ({
         {nav}
         <Button size="sm" variant="ghost" onPress={load} isDisabled={loading}>
           {loading
-            ? <Spinner size="sm" color="current" />
+            ? <Spinner size={16} />
             : (
                 <React.Fragment>
                   <Icon name="refresh-cw" />
@@ -117,12 +117,12 @@ export const GrantsView: React.FC<GrantsViewProps> = ({
             </div>
             <Button
               size="sm"
-              variant="secondary"
+              variant="solid"
               isDisabled={!ovPlayer || !ovVersion || ovRunning}
               onPress={() => setOvConfirm(true)}
             >
               {ovRunning
-                ? <Spinner size="sm" color="current" />
+                ? <Spinner size={16} />
                 : (
                     <React.Fragment>
                       <Icon name="gift" />
@@ -201,7 +201,7 @@ export const GrantsView: React.FC<GrantsViewProps> = ({
               if (!can('welcome:manage')) return null
               return g.status === 'failed'
                 ? (
-                    <Button size="sm" variant="outline" className="w-full" onPress={() => retry(g)}>
+                    <Button size="sm" variant="ghost" className="w-full" onPress={() => retry(g)}>
                       <Icon name="refresh-cw" />
                       {' '}
                       {t('welcome.retry')}

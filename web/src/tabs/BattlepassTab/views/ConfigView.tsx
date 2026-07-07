@@ -1,7 +1,7 @@
 import * as React from 'react'
-import { Button, Spinner, Switch } from '@heroui/react'
+import { Button, Spinner, Switch } from '../../../ui'
 import { useTranslation } from 'react-i18next'
-import { toast } from '@heroui/react'
+import { toast } from '../../../ui'
 import { api } from '../../../api/client'
 import type { BattlepassConfig } from '../../../api/client'
 import { usePermissions } from '../../../hooks/usePermissions'
@@ -65,7 +65,7 @@ export const ConfigView: React.FC = () => {
       >
         <Button size="sm" variant="ghost" onPress={load} isDisabled={loading}>
           {loading
-            ? <Spinner size="sm" color="current" />
+            ? <Spinner size={16} />
             : (
                 <React.Fragment>
                   <Icon name="refresh-cw" />
@@ -157,9 +157,9 @@ export const ConfigView: React.FC = () => {
 
       {can('battlepass:manage') && (
         <div className="flex items-center gap-3 shrink-0">
-          <Button size="sm" variant="secondary" onPress={save} isDisabled={saving || loading}>
+          <Button size="sm" variant="solid" onPress={save} isDisabled={saving || loading}>
             {saving
-              ? <Spinner size="sm" color="current" />
+              ? <Spinner size={16} />
               : (
                   <React.Fragment>
                     <Icon name="save" />

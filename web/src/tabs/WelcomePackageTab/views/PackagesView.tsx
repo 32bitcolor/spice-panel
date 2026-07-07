@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, Chip, Input, ListBox, SearchField, Select, Separator, Spinner } from '@heroui/react'
+import { Button, Chip, Input, ListBox, SearchField, Select, Separator, Spinner } from '../../../ui'
 import type { Selection } from 'react-aria-components'
 import type { DataGridColumn } from '@heroui-pro/react'
 import { DataGrid } from '@heroui-pro/react'
@@ -237,7 +237,7 @@ export const PackagesView: React.FC<PackagesViewProps> = ({
           {can('welcome:manage') && (
             <Button
               size="sm"
-              variant="danger-soft"
+              variant="danger"
               isIconOnly
               onPress={() => removeItem(item._key)}
               aria-label={t('welcome.removeItem')}
@@ -256,7 +256,7 @@ export const PackagesView: React.FC<PackagesViewProps> = ({
         {nav}
         <Button size="sm" variant="ghost" onPress={load} isDisabled={loading}>
           {loading
-            ? <Spinner size="sm" color="current" />
+            ? <Spinner size={16} />
             : (
                 <React.Fragment>
                   <Icon name="refresh-cw" />
@@ -330,7 +330,7 @@ export const PackagesView: React.FC<PackagesViewProps> = ({
                 onKeyDown={(e) => { if (e.key === 'Enter') addVersion() }}
               />
             </div>
-            <Button size="sm" variant="outline" onPress={addVersion}>
+            <Button size="sm" variant="ghost" onPress={addVersion}>
               <Icon name="plus" />
               {' '}
               {t('welcome.addVersion')}
@@ -422,9 +422,9 @@ export const PackagesView: React.FC<PackagesViewProps> = ({
       {/* Save button + diff status */}
       {can('welcome:manage') && (
         <div className="pt-3 shrink-0 flex items-center gap-3">
-          <Button size="sm" variant="secondary" onPress={save} isDisabled={saving}>
+          <Button size="sm" variant="solid" onPress={save} isDisabled={saving}>
             {saving
-              ? <Spinner size="sm" color="current" />
+              ? <Spinner size={16} />
               : (
                   <React.Fragment>
                     <Icon name="save" />

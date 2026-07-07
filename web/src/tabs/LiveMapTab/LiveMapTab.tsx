@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useAtom } from 'jotai'
 import { useTranslation } from 'react-i18next'
-import { Button, Select, ListBox, Spinner, toast } from '@heroui/react'
+import { Button, Select, ListBox, Spinner, toast } from '../../ui'
 import { MapContainer, ImageOverlay, CircleMarker, Marker, Tooltip } from 'react-leaflet'
 import L from 'leaflet'
 import { CRS } from 'leaflet'
@@ -326,7 +326,7 @@ export const LiveMapTab: React.FC = () => {
       <PageHeader title={t('liveMap.title')} subtitle={t('liveMap.subtitle')}>
         <Button size="sm" variant="ghost" onPress={refresh} isDisabled={loading}>
           {loading
-            ? <Spinner size="sm" color="current" />
+            ? <Spinner size={16} />
             : (
                 <React.Fragment>
                   {currentMap.hasLiveData && (
@@ -383,14 +383,14 @@ export const LiveMapTab: React.FC = () => {
 
         <div className="h-4 border-l border-border mx-0.5" />
 
-        <Button size="sm" variant="outline" onPress={() => fitBoundsRef.current?.()}>
+        <Button size="sm" variant="ghost" onPress={() => fitBoundsRef.current?.()}>
           <Icon name="home" />
         </Button>
 
         {canPlayersWrite && (
           <Button
             size="sm"
-            variant={teleportMode ? 'primary' : 'outline'}
+            variant={teleportMode ? 'primary' : 'ghost'}
             onPress={() => {
               setTeleportMode((v) => !v)
               setTeleportDest(null)
@@ -403,7 +403,7 @@ export const LiveMapTab: React.FC = () => {
         )}
         <Button
           size="sm"
-          variant={calibrating ? 'primary' : 'outline'}
+          variant={calibrating ? 'primary' : 'ghost'}
           onPress={() => {
             setCalibrating((v) => {
               if (v) {
@@ -474,7 +474,7 @@ export const LiveMapTab: React.FC = () => {
                 className="w-56"
               />
               <Button size="sm" isDisabled={!teleportFlsId || teleporting} onPress={doTeleport}>
-                {teleporting ? <Spinner size="sm" color="current" /> : t('liveMap.teleportHere')}
+                {teleporting ? <Spinner size={16} /> : t('liveMap.teleportHere')}
               </Button>
               <Button size="sm" variant="ghost" onPress={() => setTeleportDest(null)}>✕</Button>
             </React.Fragment>
@@ -558,11 +558,11 @@ export const LiveMapTab: React.FC = () => {
               isDisabled={!previewBounds || !calibDirty || calibSaving}
               onPress={saveCalib}
             >
-              {calibSaving ? <Spinner size="sm" color="current" /> : t('liveMap.calibSave')}
+              {calibSaving ? <Spinner size={16} /> : t('liveMap.calibSave')}
             </Button>
             <Button
               size="sm"
-              variant="outline"
+              variant="ghost"
               isDisabled={calibPoints.length === 0 || calibSaving}
               onPress={removeLastCalibPoint}
             >
@@ -570,7 +570,7 @@ export const LiveMapTab: React.FC = () => {
             </Button>
             <Button
               size="sm"
-              variant="outline"
+              variant="ghost"
               isDisabled={calibPoints.length === 0 || calibSaving}
               onPress={clearCalib}
             >

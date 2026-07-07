@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Dropdown, Button, toast } from '@heroui/react'
+import { Dropdown, Button, toast } from '../ui'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../dune-ui'
 import { copyText } from '../utils/clipboard'

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, Spinner, Switch } from '@heroui/react'
+import { Button, Spinner, Switch } from '../../../ui'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../../../dune-ui'
 import type { ConfigFooterProps } from './interfaces'
@@ -38,7 +38,7 @@ export const ConfigFooter: React.FC<ConfigFooterProps> = ({
           Promise.resolve().then(onReload).finally(() => setReloading(false))
         }}
       >
-        {reloading ? <Spinner size="sm" color="current" /> : <Icon name="refresh-cw" />}
+        {reloading ? <Spinner size={16} /> : <Icon name="refresh-cw" />}
         {t('market.bot.reloadConfig')}
       </Button>
       <Button
@@ -51,7 +51,7 @@ export const ConfigFooter: React.FC<ConfigFooterProps> = ({
             .finally(() => setSaving(false))
         }}
       >
-        {saving ? <Spinner size="sm" color="current" /> : null}
+        {saving ? <Spinner size={16} /> : null}
         {t('market.bot.saveConfig')}
       </Button>
     </div>

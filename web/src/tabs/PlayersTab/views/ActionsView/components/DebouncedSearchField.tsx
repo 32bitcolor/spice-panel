@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { SearchField } from '@heroui/react'
+import { SearchField } from '../../../../../ui'
 import { useDebounce } from '../hooks/useDebounce'
 import type { DebouncedSearchFieldProps } from './interfaces'
 

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { SearchField } from '@heroui/react'
+import { SearchField } from '../../../ui'
 import type { TableSearchInputProps } from './interfaces'
 
 export const TableSearchInput: React.FC<TableSearchInputProps> = (

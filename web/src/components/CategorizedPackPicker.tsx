@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Header, ListBox, Select, Separator } from '@heroui/react'
+import { Header, ListBox, Select, Separator } from '../ui'
 import { useTranslation } from 'react-i18next'
 import type { PackOption, CategorizedPackPickerProps } from './interfaces'
 

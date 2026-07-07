@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { SearchField } from '@heroui/react'
+import { SearchField } from '../../../ui'
 import { FieldLabelContext } from './FieldRow'
 import type { SearchableSelectProps } from './interfaces'
 

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Chip, SearchField, Tooltip, toast } from '@heroui/react'
+import { Chip, SearchField, Tooltip, toast } from '../../../ui'
 import { EmptyState } from '@heroui-pro/react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'

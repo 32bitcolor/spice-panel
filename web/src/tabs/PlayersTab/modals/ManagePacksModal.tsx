@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, Chip, Header, Input, ListBox, Modal, SearchField, Select, Separator, Spinner, toast } from '@heroui/react'
+import { Button, Chip, Header, Input, ListBox, Modal, SearchField, Select, Separator, Spinner, toast } from '../../../ui'
 import type { Selection } from 'react-aria-components'
 import type { DataGridColumn } from '@heroui-pro/react'
 import { DataGrid } from '@heroui-pro/react'
@@ -296,7 +296,7 @@ export const ManagePacksModal: React.FC<ManagePacksModalProps> = ({
           </Button>
           <Button
             size="sm"
-            variant="danger-soft"
+            variant="danger"
             isIconOnly
             onPress={() => removeItem(item._key)}
             aria-label={t('players.givePacks.removeItem')}
@@ -321,7 +321,7 @@ export const ManagePacksModal: React.FC<ManagePacksModalProps> = ({
             </Modal.Header>
             <Modal.Body className="flex flex-col gap-4 h-[80vh] min-h-0">
               {loading
-                ? <Spinner size="sm" color="current" />
+                ? <Spinner size={16} />
                 : (
                     <div className="flex flex-col h-full min-h-0 gap-3">
 
@@ -496,7 +496,7 @@ export const ManagePacksModal: React.FC<ManagePacksModalProps> = ({
                       <div className="pt-3 shrink-0 border-t border-border flex items-center gap-3">
                         <Button size="sm" onPress={save} isDisabled={saving}>
                           {saving
-                            ? <Spinner size="sm" color="current" />
+                            ? <Spinner size={16} />
                             : <Icon name="save" />}
                           {' '}
                           {t('players.givePacks.save')}

@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAtom, useSetAtom } from 'jotai'
-import { Button, Chip, ListBox, Select } from '@heroui/react'
+import { Button, Chip, ListBox, Select } from '../../../../../ui'
 import { Panel, SectionLabel } from '../../../../../dune-ui'
 import { api } from '../../../../../api/client'
 import type { ProgressionPreset } from '../../../../../api/client'
@@ -163,7 +163,7 @@ export const ProgressionSection: React.FC<ProgressionSectionProps> = ({ player }
                       </Chip>
                       <Button
                         size="sm"
-                        variant="secondary"
+                        variant="solid"
                         isDisabled={busy}
                         onPress={() => handleApplyPreset(p)}
                       >
@@ -217,7 +217,7 @@ export const ProgressionSection: React.FC<ProgressionSectionProps> = ({ player }
           </Select>
           <Button
             size="sm"
-            variant="secondary"
+            variant="solid"
             isDisabled={busy}
             onPress={handleApplyUnlock}
           >
@@ -225,7 +225,7 @@ export const ProgressionSection: React.FC<ProgressionSectionProps> = ({ player }
           </Button>
           <Button
             size="sm"
-            variant="danger-soft"
+            variant="danger"
             isDisabled={busy}
             onPress={handleReverseUnlock}
           >
@@ -263,7 +263,7 @@ export const ProgressionSection: React.FC<ProgressionSectionProps> = ({ player }
               </Select>
               <Button
                 size="sm"
-                variant="secondary"
+                variant="solid"
                 isDisabled={busy || trainerMatches.length === 0}
                 onPress={handleUnlockTrainer}
               >
@@ -277,7 +277,7 @@ export const ProgressionSection: React.FC<ProgressionSectionProps> = ({ player }
               </Button>
               <Button
                 size="sm"
-                variant="danger-soft"
+                variant="danger"
                 isDisabled={busy}
                 onPress={handleResetSkillTree}
               >
@@ -320,7 +320,7 @@ export const ProgressionSection: React.FC<ProgressionSectionProps> = ({ player }
             </Select>
             <Button
               size="sm"
-              variant="secondary"
+              variant="solid"
               isDisabled={busy}
               onPress={handleUnlockMainQuest}
             >

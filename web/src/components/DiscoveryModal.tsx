@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Modal, Spinner } from '@heroui/react'
+import { Modal, Spinner } from '../ui'
 import { Icon } from '../dune-ui'
 import { api } from '../api/client'
 import type { DiscoveryModalProps } from './interfaces'
@@ -92,7 +92,7 @@ export const DiscoveryModal: React.FC<DiscoveryModalProps> = ({ open, config, on
                     {i < current
                       ? <Icon name="check" className="text-success" />
                       : i === current
-                        ? <Spinner size="sm" color="current" />
+                        ? <Spinner size={16} />
                         : <span className="text-muted opacity-40">•</span>}
                   </span>
                   <span className={i <= current ? 'text-foreground' : 'text-muted'}>

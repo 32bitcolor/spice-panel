@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ListBox, SearchField, Select, Button } from '@heroui/react'
+import { ListBox, SearchField, Select, Button } from '../../ui'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../../dune-ui'
 import type { MarketFilters, MarketSearchProps } from './types'
