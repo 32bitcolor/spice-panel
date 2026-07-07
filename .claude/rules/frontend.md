@@ -54,7 +54,10 @@ behaviour. Any AI assistant working on this repo **must** follow them without ex
 ## Stack
 
 - **Framework**: React 19 + TypeScript (`strict` + `exactOptionalPropertyTypes`)
-- **UI library**: HeroUI v3 (via `dune-ui/` wrappers)
+- **UI library**: the self-built **spice-panel** library in `src/ui/` — styled on the open
+  [React Aria Components](https://react-spectrum.adobe.com/react-aria/) primitives, "Deep Desert
+  Night" HUD design. Higher-level admin widgets live in `src/dune-ui/`. **No HeroUI** (the fork is
+  free of paid UI deps). Import primitives from `../ui`, admin widgets from `../dune-ui`.
 - **Build**: Vite + React Compiler (`babel-plugin-react-compiler`)
 - **Package manager**: `pnpm` — **never use npm or yarn in `web/`**
 - **Auth**: Clerk (optional; keyed off `VITE_CLERK_PUBLISHABLE_KEY`)
