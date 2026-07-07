@@ -1,0 +1,209 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   spice-panel design system — "Deep Desert Night" HUD
+   ---------------------------------------------------------------------------
+   The single source of truth for the fork's visual identity. Replaces the
+   upstream @heroui/styles + amber theme. Values are intentionally COOL
+   (blue-black desert night + spice-cyan glow), not warm amber.
+
+   The utility class NAMES are preserved from upstream (bg-surface,
+   text-foreground, text-muted, border-border, bg-accent, …) so the ~200
+   existing app files keep working — only the VALUES change. That is the
+   compatibility contract; do not rename these tokens.
+   ───────────────────────────────────────────────────────────────────────── */
+
+:root {
+  color-scheme: dark;
+
+  /* ── Palette ladder (cool desert night) ────────────────────────────────
+     #05070c  void        — page background
+     #0e131c  surface     — panels, cards, tables, modal body
+     #151d29  raised      — elevated panels, inputs
+     #1e2938  ridge       — table headers, top elevation
+     #263447  steel       — borders
+     #34455c  steel-hi    — hover borders / dividers
+     #7d90a8  haze        — muted text
+     #aebccd  mist        — secondary text
+     #dce6f2  moon        — primary text
+     spice-cyan  #2ad4e6  — primary accent ("eyes of Ibad")
+     cyan-hi     #56e6f5  — focus / link / glow
+     ember       #ff7a45  — secondary accent (spice ember), used sparingly
+     ─────────────────────────────────────────────────────────────────────── */
+
+  --void: #05070c;
+  --surface: #0e131c;
+  --raised: #151d29;
+  --ridge: #1e2938;
+  --steel: #263447;
+  --steel-hi: #34455c;
+  --haze: #7d90a8;
+  --mist: #aebccd;
+  --moon: #dce6f2;
+
+  --spice: #2ad4e6;
+  --spice-hi: #56e6f5;
+  --ember: #ff7a45;
+
+  /* Semantic status */
+  --ok: #3ad6a0;
+  --warn: #f5b544;
+  --bad: #ff5a6a;
+  --info: #2ad4e6;
+
+  /* ── Semantic tokens consumed by markup (names preserved from upstream) ── */
+  --background: var(--void);
+  --foreground: var(--moon);
+  --muted: var(--haze);
+
+  --surface-foreground: var(--moon);
+  --surface-secondary: var(--raised);
+  --surface-tertiary: var(--ridge);
+  --overlay: var(--surface);
+  --overlay-foreground: var(--moon);
+
+  --border: var(--steel);
+  --default: var(--raised);
+  --default-foreground: var(--moon);
+  --segment: var(--surface);
+  --segment-foreground: var(--moon);
+
+  --accent: var(--spice);
+  --accent-foreground: #04121a;
+  --accent-secondary: var(--ember);
+  --focus: var(--spice-hi);
+  --link: var(--spice-hi);
+
+  --danger: var(--bad);
+  --success: var(--ok);
+  --warning: var(--warn);
+
+  /* ── HUD geometry ──────────────────────────────────────────────────────
+     Angular chamfered plates. --hud-cut controls the corner bevel; panels
+     cut the top-left + bottom-right corners for an industrial console feel. */
+  --hud-cut: 12px;
+  --hud-cut-sm: 7px;
+  --radius: 3px;
+
+  --glow-accent: 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent),
+    0 0 18px -2px color-mix(in srgb, var(--accent) 45%, transparent);
+  --font-display: "Duneway", "Orbitron", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+}
+
+/* ── Tailwind v4 theme mapping ──────────────────────────────────────────────
+   Generates the semantic utilities the app already uses: bg-surface,
+   text-foreground, text-muted, border-border, bg-accent, text-accent,
+   bg-background, bg-surface-secondary, bg-default, from-surface, etc. */
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+
+  --color-surface: var(--surface);
+  --color-surface-secondary: var(--surface-secondary);
+  --color-surface-tertiary: var(--surface-tertiary);
+  --color-overlay: var(--overlay);
+
+  --color-border: var(--border);
+  --color-default: var(--default);
+  --color-segment: var(--segment);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-secondary: var(--accent-secondary);
+  --color-focus: var(--focus);
+  --color-link: var(--link);
+
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+/* ── HUD utilities ──────────────────────────────────────────────────────── */
+
+/* Chamfered plate silhouette: bevel the top-left and bottom-right corners. */
+@utility hud-plate {
+  clip-path: polygon(
+    var(--hud-cut) 0,
+    100% 0,
+    100% calc(100% - var(--hud-cut)),
+    calc(100% - var(--hud-cut)) 100%,
+    0 100%,
+    0 var(--hud-cut)
+  );
+}
+
+/* Smaller bevel for buttons / chips / inputs. */
+@utility hud-plate-sm {
+  clip-path: polygon(
+    var(--hud-cut-sm) 0,
+    100% 0,
+    100% calc(100% - var(--hud-cut-sm)),
+    calc(100% - var(--hud-cut-sm)) 100%,
+    0 100%,
+    0 var(--hud-cut-sm)
+  );
+}
+
+/* Accent glow ring — used on focus and active HUD elements. */
+@utility hud-glow {
+  box-shadow: var(--glow-accent);
+}
+
+/* ── Signature composite classes ────────────────────────────────────────────
+   Geometry the utilities can't express alone (a beveled hairline rim needs a
+   pseudo-element). Colour still flows through the tokens above. */
+@layer components {
+  /* Chamfered surface plate with a 1px steel rim that follows the bevel. */
+  .hud-panel {
+    position: relative;
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--raised) 55%, var(--surface)),
+      var(--surface)
+    );
+    clip-path: polygon(
+      var(--hud-cut) 0,
+      100% 0,
+      100% calc(100% - var(--hud-cut)),
+      calc(100% - var(--hud-cut)) 100%,
+      0 100%,
+      0 var(--hud-cut)
+    );
+  }
+  .hud-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    background: linear-gradient(180deg, var(--steel-hi), var(--steel));
+    clip-path: inherit;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Recessed HUD field (inputs / selects): void well + inset steel ring. */
+  .hud-field {
+    background: var(--void);
+    box-shadow: inset 0 0 0 1px var(--steel);
+    clip-path: polygon(
+      var(--hud-cut-sm) 0,
+      100% 0,
+      100% calc(100% - var(--hud-cut-sm)),
+      calc(100% - var(--hud-cut-sm)) 100%,
+      0 100%,
+      0 var(--hud-cut-sm)
+    );
+    transition: box-shadow 0.15s ease;
+  }
+  .hud-field:focus-within,
+  .hud-field[data-focused] {
+    box-shadow: inset 0 0 0 1px var(--accent), var(--glow-accent);
+  }
+}

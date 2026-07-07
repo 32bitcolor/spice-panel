@@ -1,0 +1,15 @@
+/* Standalone stylesheet for the component gallery entry (gallery.html).
+   Pulls Tailwind + the spice-panel design tokens ONLY — no HeroUI. This lets us
+   develop and eyeball the new component library in isolation while the main app
+   is still mid-migration. */
+@import "tailwindcss";
+@import "./theme.css";
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 600px at 80% -10%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 60%),
+    var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
