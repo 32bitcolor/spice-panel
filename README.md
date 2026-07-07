@@ -1,8 +1,31 @@
-# dune-admin
+# spice-panel
 
 <img width="2172" height="724" alt="image" src="https://github.com/user-attachments/assets/facd62b8-3c06-4f92-8d2c-cf06b46e983e" />
 
 Web-based admin panel for a Dune Awakening private server. Works against any deployment topology: CubeCoders AMP (podman or docker), k3s/k8s over SSH, Docker containers, or a bare-metal install.
+
+---
+
+## About this fork
+
+**spice-panel** is a fork of [Icehunter/dune-admin](https://github.com/Icehunter/dune-admin). The
+upstream project is excellent, and all of its server-management functionality is preserved here.
+
+The objective of this fork is to make the panel **fully open and free of commercial UI
+dependencies**. Upstream builds its frontend on [HeroUI Pro](https://www.heroui.com/) — a paid,
+commercially-licensed component library. spice-panel replaces the entire UI layer with an
+independent, self-built component library:
+
+- **No paid dependencies.** Both `@heroui-pro/react` and the free `@heroui/react` are removed in
+  favour of components we build and own outright, layered on the open, accessible
+  [React Aria Components](https://react-spectrum.adobe.com/react-aria/) primitives.
+- **A fresh visual identity.** A distinct sci-fi HUD design system — its own palette, geometry, and
+  tokens — replaces the upstream amber theme.
+- **Same features, rebuilt UI.** Every tab, view, and workflow from upstream is carried over; only
+  the presentation layer changes.
+
+This is an in-progress effort. Server-side behaviour tracks upstream; the frontend is being rebuilt
+component by component.
 
 ---
 
