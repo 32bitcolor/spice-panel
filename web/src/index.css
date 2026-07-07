@@ -287,8 +287,8 @@
 
 /* ── Tailwind v4 utility surface ─────────────────────────────────────────────
    Expose the dune-specific extras as Tailwind colors so we can write
-   `bg-surface-alt`, `border-border-strong`, etc. The standard HeroUI tokens
-   (`bg-surface`, `bg-accent`, etc.) are wired by @heroui/styles already.    */
+   `bg-surface-alt`, etc. The core semantic tokens (`bg-surface`, `bg-accent`,
+   `text-muted`, `border-border`, …) are wired by ui/theme.css's @theme block. */
 @theme {
   --color-surface-alt: var(--surface-alt);
   --color-surface-hover: var(--surface-hover);
