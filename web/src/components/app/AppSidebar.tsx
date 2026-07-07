@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Chip } from '../../ui'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../../dune-ui'
+import { Brand } from '../Brand'
 import type { TabId } from '../../types'
 import { BETA_TABS, DEFAULT_TAB, TAB_ICONS } from './nav'
 import type { AppSidebarProps } from './interfaces'
@@ -46,10 +47,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ visibleNavGroups, pathna
           onClick={() => navigate(`/${DEFAULT_TAB}`)}
           aria-label={t('app.goHome')}
         >
-          <img src="/dune-admin-logo-primary.svg" alt="dune-admin" className="max-h-12 w-auto" />
-          <span className="text-xl font-bold uppercase text-accent overflow-hidden whitespace-nowrap">
-            {t('app.title')}
-          </span>
+          <Brand />
         </button>
       </div>
       <nav aria-label={t('nav.menu')} className="min-h-0 flex-1 overflow-y-auto pb-2">
