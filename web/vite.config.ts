@@ -33,7 +33,7 @@ export default defineConfig({
             },
             {
               name: 'ui-vendor',
-              test: /node_modules[\\/]@heroui[\\/]/,
+              test: /node_modules[\\/]react-aria-components[\\/]/,
               priority: 35,
             },
             {

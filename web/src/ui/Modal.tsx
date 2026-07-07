@@ -11,19 +11,19 @@ import { tv } from 'tailwind-variants'
 import type { VariantProps } from 'tailwind-variants'
 import { cn } from './lib/cn'
 
-const OVERLAY =
-  'fixed inset-0 z-[900] grid place-items-center overflow-y-auto bg-[linear-gradient(to_top,color-mix(in_srgb,var(--background)_88%,transparent),color-mix(in_srgb,var(--background)_45%,transparent))] p-4 backdrop-blur-sm transition-opacity duration-150 data-[exiting]:opacity-0'
+const OVERLAY
+  = 'fixed inset-0 z-[900] grid place-items-center overflow-y-auto bg-[linear-gradient(to_top,color-mix(in_srgb,var(--background)_88%,transparent),color-mix(in_srgb,var(--background)_45%,transparent))] p-4 backdrop-blur-sm transition-opacity duration-150 data-[exiting]:opacity-0'
 
 const modalStyles = tv({
   base: 'hud-panel relative w-full outline-none',
   variants: {
     size: {
-      sm: 'max-w-sm',
-      md: 'max-w-lg',
-      lg: 'max-w-2xl',
-      xl: 'max-w-4xl',
+      'sm': 'max-w-sm',
+      'md': 'max-w-lg',
+      'lg': 'max-w-2xl',
+      'xl': 'max-w-4xl',
       '2xl': 'max-w-5xl',
-      cover: 'max-w-6xl',
+      'cover': 'max-w-6xl',
     },
   },
   defaultVariants: { size: 'md' },

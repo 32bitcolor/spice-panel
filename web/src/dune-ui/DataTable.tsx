@@ -12,6 +12,22 @@ const coerce = (v: React.ReactNode): string | number => {
   return String(v ?? '')
 }
 
+const sortRows = <T, K extends string>(
+  rows: readonly T[],
+  sort: SortDescriptor | undefined,
+  getVal: (row: T, key: K) => string | number,
+): readonly T[] => {
+  if (sort === undefined) return rows
+  const key = sort.column as K
+  const dir = sort.direction === 'descending' ? -1 : 1
+  return [...rows].sort((a, b) => {
+    const av = getVal(a, key)
+    const bv = getVal(b, key)
+    if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir
+    return String(av).localeCompare(String(bv), undefined, { numeric: true }) * dir
+  })
+}
+
 export const DataTable = <T extends object, K extends string>({
   'aria-label': ariaLabel,
   columns,
@@ -34,27 +50,21 @@ export const DataTable = <T extends object, K extends string>({
     initialSort ? { column: initialSort.column, direction: initialSort.direction } : undefined,
   )
   const [page, setPage] = React.useState(1)
-  React.useEffect(() => {
+  // Reset to page 1 when the row set changes — React's "adjust state during
+  // render" pattern (no effect needed; avoids a stale extra-page flash).
+  const [prevRows, setPrevRows] = React.useState(rows)
+  if (rows !== prevRows) {
+    setPrevRows(rows)
     setPage(1)
-  }, [rows])
+  }
 
   const getSortVal = (row: T, key: K): string | number => {
     if (sortValue) return coerce(sortValue(row, key))
     return coerce(renderCell(row, key))
   }
 
-  const sortedRows = React.useMemo(() => {
-    if (sort === undefined) return rows
-    const key = sort.column as K
-    const dir = sort.direction === 'descending' ? -1 : 1
-    return [...rows].sort((a, b) => {
-      const av = getSortVal(a, key)
-      const bv = getSortVal(b, key)
-      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir
-      return String(av).localeCompare(String(bv), undefined, { numeric: true }) * dir
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, sort, sortValue, renderCell])
+  // React Compiler memoizes this pure derivation — no manual useMemo needed.
+  const sortedRows = sortRows(rows, sort, getSortVal)
 
   const totalPages = pageSize ? Math.ceil(sortedRows.length / pageSize) : 1
   const pagedRows = pageSize ? sortedRows.slice((page - 1) * pageSize, page * pageSize) : sortedRows
@@ -125,7 +135,13 @@ const renderPager = (
   return (
     <div className="flex shrink-0 items-center justify-between px-1 py-1">
       <span className="whitespace-nowrap text-xs tabular-nums text-muted">
-        {(page - 1) * pageSize + 1} – {Math.min(page * pageSize, totalRows)} of {totalRows}
+        {(page - 1) * pageSize + 1}
+        {' '}
+        –
+        {Math.min(page * pageSize, totalRows)}
+        {' '}
+        of
+        {totalRows}
       </span>
       <Pagination page={page} total={totalPages} onChange={setPage} className="ml-auto" />
     </div>

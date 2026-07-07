@@ -44,7 +44,7 @@ const normalizeColor = (color: ChipColorInput | undefined): ChipColorToken | und
 
 export interface ChipProps
   extends Omit<React.HTMLAttributes<HTMLSpanElement>, 'color'>,
-    Omit<ChipVariants, 'color'> {
+  Omit<ChipVariants, 'color'> {
   color?: ChipColorInput
   /** HeroUI-era visual variant — accepted for compatibility; styling is unified. */
   variant?: string

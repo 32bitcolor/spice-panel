@@ -1,6 +1,5 @@
 @import "tailwindcss";
-@import "@heroui/styles";
-@import "@heroui-pro/react/css";
+@import "./ui/theme.css";
 
 /* unicode-range restricts Duneway to the Latin/Cyrillic blocks it actually covers.
    Symbols, arrows, dingbats (U+2000+) fall through to the system font immediately,
@@ -79,37 +78,19 @@
      #1a1610 — subtle stripe / field background
      #0d0b07 — page background (near-black warm)                              */
 
-  /* Base — surfaces use the DARKER half of the palette */
-  --background: #0d0b07; /* page */
-  --foreground: #e8dcc8;
-  --muted: #c0a872; /* spice default — amber warm enough to read over the panel glow; other themes override via theme.ts */
-
-  /* Surfaces (darker) */
-  --surface: #1a1610; /* cards, tables, modal body */
-  --surface-foreground: #e8dcc8;
-  --surface-secondary: #2a1d0c; /* slightly elevated panels */
-  --surface-tertiary: #4e3411; /* top elevation (table headers) */
-  --overlay: #1a1610; /* modal body */
-  --overlay-foreground: #e8dcc8;
-
-  /* Pro Segment navigation — match surface so the pill sits on a dark base */
-  --segment: var(--surface); /* #1a1610 */
+  /* ── Palette now lives in ui/theme.css (:root, "Deep Desert Night") ────────
+     The old amber ladder was removed here so the fresh spice-cyan tokens from
+     theme.css apply. Only non-palette extras (rarity, HUD-art hooks, legacy
+     aliases) remain in this block. --surface-foreground/--overlay-foreground/
+     --segment/--default kept as aliases onto the fresh tokens.               */
+  --surface-foreground: var(--foreground);
+  --overlay-foreground: var(--foreground);
+  --segment: var(--surface);
   --segment-foreground: var(--foreground);
+  --default: var(--surface-secondary);
+  --default-foreground: var(--foreground);
 
-  --default: #1a1610;
-  --default-foreground: #e8dcc8;
-
-  /* Accent — dune amber */
-  --accent: #c9820a;
-  --accent-foreground: #0d0b07;
-  --focus: #f0a830;
-  --link: #f0a830;
-
-  /* Secondary accent — every house is DUAL-toned: a counterpoint hue that
-     appears in trim sweeps, plate echoes, and ornaments alongside --accent.
-     Spice = amber/cyan, Atreides = green/gold, Harkonnen = red/steel,
-     Fremen = blue/moonlight. Theme presets override this with --accent. */
-  --accent-secondary: #3aa7d9;
+  /* --accent-secondary comes from theme.css (spice ember). */
 
   /* ── HUD geometry — angular clip shapes shared by panels/buttons/fields.
      Panels are chamfered plates: large top-left / bottom-right chamfers with
@@ -160,11 +141,11 @@
     linear-gradient(180deg, color-mix(in srgb, var(--accent) 45%, transparent), color-mix(in srgb, var(--accent-secondary) 38%, transparent)) 0 50% / 1px max(0px, calc(100% - 142px)) no-repeat,
     linear-gradient(180deg, color-mix(in srgb, var(--accent-secondary) 38%, transparent), color-mix(in srgb, var(--accent) 45%, transparent)) 100% 50% / 1px max(0px, calc(100% - 142px)) no-repeat;
 
-  /* Form fields — recessed bg + BRIGHTER border for emphasis */
-  --field-background: #0d0b07;
-  --field-foreground: #e8dcc8;
-  --field-placeholder: #8a7a60;
-  --field-border: #754d13; /* brighter — buttons & inputs pop */
+  /* Form fields — recessed void well + steel border (cool HUD). */
+  --field-background: var(--void);
+  --field-foreground: var(--foreground);
+  --field-placeholder: var(--haze);
+  --field-border: var(--steel-hi);
 
   /* Border widths + radii — global override: thin border, near-square corners */
   --border-width: 0.1em;
@@ -172,12 +153,9 @@
   --radius: 0.1em;
   --field-radius: 0.1em;
 
-  /* Status — hue-shifted from accent to stay in family */
-  --success: #b0c90a; /* amber-green */
-  --success-foreground: #0d0b07;
-  --warning: #f0a830; /* lighter amber */
-  --warning-foreground: #0d0b07;
-  --danger: #c9230a; /* amber-red */
+  /* Status colours come from theme.css (--success/--warning/--danger). */
+  --success-foreground: #04121a;
+  --warning-foreground: #04121a;
   --danger-foreground: #ffffff;
 
   /* Item rarity tiers — used by Market grid/table to color names & borders */
@@ -189,18 +167,17 @@
   --rarity-unique: #f97316; /* orange */
   --rarity-memento: #f43f5e; /* rose */
 
-  /* Borders / separators — mid-tone */
-  --border: #4e3411;
-  --separator: #2a1d0c; /* subtle in-table dividers */
+  /* --border comes from theme.css (steel). Separator stays a subtle divider. */
+  --separator: color-mix(in srgb, var(--steel) 55%, transparent);
 
   /* Scrollbar */
-  --scrollbar: #754d13;
+  --scrollbar: var(--steel-hi);
 
-  /* Dune-specific extras (not part of HeroUI's standard set) */
-  --surface-alt: #14110b; /* striped table rows — between bg and surface */
-  --surface-hover: #2a1d0c; /* hover state for rows / nav */
-  --accent-soft-bg: #2a1d0c; /* faint amber pill background */
-  --accent-soft-border: #754d13;
+  /* Dune-specific extras (not part of the base token set) */
+  --surface-alt: var(--raised); /* striped table rows — between bg and surface */
+  --surface-hover: color-mix(in srgb, var(--accent) 10%, transparent); /* hover for rows / nav */
+  --accent-soft-bg: color-mix(in srgb, var(--accent) 14%, transparent); /* faint accent pill bg */
+  --accent-soft-border: color-mix(in srgb, var(--accent) 45%, transparent);
 
   /* ── Legacy aliases ────────────────────────────────────────────────────────
      Existing markup uses `var(--color-*)` everywhere. Map those to the new

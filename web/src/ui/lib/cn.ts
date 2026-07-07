@@ -5,14 +5,14 @@ import { twMerge } from 'tailwind-merge'
  * argument shapes as `clsx` (strings, arrays, conditional objects) and resolves
  * Tailwind conflicts via `tailwind-merge` so later utilities win.
  */
-export type ClassValue =
-  | string
-  | number
-  | null
-  | undefined
-  | false
-  | ClassValue[]
-  | Record<string, boolean | null | undefined>
+export type ClassValue
+  = | string
+    | number
+    | null
+    | undefined
+    | false
+    | ClassValue[]
+    | Record<string, boolean | null | undefined>
 
 const toString = (value: ClassValue): string => {
   if (value === null || value === undefined || value === false) return ''

@@ -18,8 +18,8 @@ export interface TooltipProps {
   className?: string
 }
 
-const TIP_CLS =
-  'hud-panel z-[960] max-w-xs px-2.5 py-1.5 text-xs text-foreground data-[entering]:opacity-0 data-[exiting]:opacity-0'
+const TIP_CLS
+  = 'hud-panel z-[960] max-w-xs px-2.5 py-1.5 text-xs text-foreground data-[entering]:opacity-0 data-[exiting]:opacity-0'
 
 const Arrow: React.FC = (): React.ReactElement => (
   <OverlayArrow>
@@ -39,7 +39,7 @@ const Content: React.FC<React.PropsWithChildren> = ({ children }): React.ReactEl
 
 const extractSlots = (
   children: React.ReactNode,
-): { trigger: React.ReactNode; content: React.ReactNode } => {
+): { trigger: React.ReactNode, content: React.ReactNode } => {
   let trigger: React.ReactNode = null
   let content: React.ReactNode = null
   React.Children.forEach(children, (child) => {

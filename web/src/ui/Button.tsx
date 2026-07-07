@@ -34,7 +34,7 @@ export type ButtonVariants = VariantProps<typeof buttonStyles>
 
 export interface ButtonProps
   extends Omit<AriaButtonProps, 'className'>,
-    Omit<ButtonVariants, 'iconOnly'> {
+  Omit<ButtonVariants, 'iconOnly'> {
   className?: string
   /** Square icon-only button (HeroUI-compatible prop name). */
   isIconOnly?: boolean

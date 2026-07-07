@@ -9,8 +9,8 @@ import type { ModalOverlayProps } from 'react-aria-components'
 import { cn } from './lib/cn'
 import { CloseButton } from './CloseButton'
 
-const OVERLAY =
-  'fixed inset-0 z-[900] bg-[color-mix(in_srgb,var(--background)_70%,transparent)] backdrop-blur-sm transition-opacity duration-150 data-[exiting]:opacity-0'
+const OVERLAY
+  = 'fixed inset-0 z-[900] bg-[color-mix(in_srgb,var(--background)_70%,transparent)] backdrop-blur-sm transition-opacity duration-150 data-[exiting]:opacity-0'
 
 /* ── Compound API (HeroUI-compatible) ─────────────────────────────────────── */
 

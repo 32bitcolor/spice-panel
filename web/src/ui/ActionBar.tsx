@@ -2,10 +2,10 @@ import * as React from 'react'
 import { cn } from './lib/cn'
 
 export interface ActionBarProps {
-  isOpen: boolean
+  'isOpen': boolean
   'aria-label'?: string
-  className?: string
-  children?: React.ReactNode
+  'className'?: string
+  'children'?: React.ReactNode
 }
 
 /**

@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './ui/gallery.css'
 import { Button, Panel, Chip, Spinner, TextField, Switch, Checkbox } from './ui'
 
-const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
+const Section: React.FC<{ title: string, children: React.ReactNode }> = ({
   title,
   children,
 }): React.ReactElement => (
@@ -24,7 +24,8 @@ const Gallery: React.FC = (): React.ReactElement => {
   return (
     <div className="mx-auto max-w-4xl px-7 py-10">
       <h1 className="mb-8 text-xl font-bold uppercase tracking-[0.34em]">
-        <span className="text-accent">SPICE</span>-PANEL · UI
+        <span className="text-accent">SPICE</span>
+        -PANEL · UI
       </h1>
 
       <Section title="Buttons">

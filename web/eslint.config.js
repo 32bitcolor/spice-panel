@@ -42,4 +42,20 @@ export default defineConfig([
       "react-compiler/react-compiler": "error",
     },
   },
+  {
+    // The spice-panel component library legitimately exports non-components
+    // (compound Object.assign roots, variant styles, the `toast` API, marker
+    // slots, types), uses `_`-prefixed props kept for API compatibility, and
+    // extend-only prop interfaces. Relax the dev-only fast-refresh + noise rules
+    // here; correctness rules still apply.
+    files: ["src/ui/**/*.{ts,tsx}", "src/dune-ui/**/*.{ts,tsx}", "src/gallery.tsx"],
+    rules: {
+      "react-refresh/only-export-components": "off",
+      "@typescript-eslint/no-empty-object-type": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", destructuredArrayIgnorePattern: "^_" },
+      ],
+    },
+  },
 ]);

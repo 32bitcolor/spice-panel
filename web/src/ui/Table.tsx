@@ -24,18 +24,18 @@ export interface TableColumn<K extends string> {
 
 export interface TableProps<T, K extends string> {
   'aria-label': string
-  columns: readonly TableColumn<K>[]
-  rows: readonly T[]
-  rowId: (row: T) => string
-  renderCell: (row: T, key: K) => React.ReactNode
-  sortDescriptor?: SortDescriptor
-  onSortChange?: (descriptor: SortDescriptor) => void
-  selectionMode?: 'none' | 'single' | 'multiple'
-  selectedKeys?: Selection
-  onSelectionChange?: (keys: Selection) => void
-  onRowAction?: (row: T) => void
-  emptyState?: React.ReactNode
-  className?: string
+  'columns': readonly TableColumn<K>[]
+  'rows': readonly T[]
+  'rowId': (row: T) => string
+  'renderCell': (row: T, key: K) => React.ReactNode
+  'sortDescriptor'?: SortDescriptor
+  'onSortChange'?: (descriptor: SortDescriptor) => void
+  'selectionMode'?: 'none' | 'single' | 'multiple'
+  'selectedKeys'?: Selection
+  'onSelectionChange'?: (keys: Selection) => void
+  'onRowAction'?: (row: T) => void
+  'emptyState'?: React.ReactNode
+  'className'?: string
 }
 
 const alignClass = (align: TableColumn<string>['align']): string =>
@@ -89,7 +89,7 @@ export const Table = <T, K extends string>({
         ))}
       </TableHeader>
       <TableBody
-        items={rows.map((r) => ({ ...(r as object), __id: rowId(r), __row: r }) as { __id: string; __row: T })}
+        items={rows.map((r) => ({ ...(r as object), __id: rowId(r), __row: r }) as { __id: string, __row: T })}
         {...(emptyState === undefined ? {} : { renderEmptyState: () => emptyState })}
       >
         {(item) => (

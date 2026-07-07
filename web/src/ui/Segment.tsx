@@ -18,14 +18,14 @@ const useSegment = (): SegmentContextValue => {
 }
 
 export interface SegmentProps {
-  selectedKey?: string
-  defaultSelectedKey?: string
-  onSelectionChange?: (key: string) => void
-  size?: SegmentSize
+  'selectedKey'?: string
+  'defaultSelectedKey'?: string
+  'onSelectionChange'?: (key: string) => void
+  'size'?: SegmentSize
   /** HeroUI-era visual variant — accepted for compatibility; styling is unified. */
-  variant?: string
-  className?: string
-  children?: React.ReactNode
+  'variant'?: string
+  'className'?: string
+  'children'?: React.ReactNode
   'aria-label'?: string
 }
 

@@ -87,7 +87,7 @@ const AvatarRoot: React.FC<AvatarRootProps> = ({
 
 /* ── Compound slots (HeroUI-compatible) ───────────────────────────────────── */
 
-const Image: React.FC<{ src?: string; alt?: string; className?: string }> = ({
+const Image: React.FC<{ src?: string, alt?: string, className?: string }> = ({
   src,
   alt,
   className,

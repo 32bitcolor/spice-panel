@@ -1,6 +1,7 @@
 import * as React from 'react'
 import {
-  Button, Chip, CloseButton, ListBox, Modal, SearchField, Segment, Select, Separator, Switch, TextArea, TextField, toast,
+  Button, Chip, CloseButton, ListBox, Modal, SearchField, Segment, Select, Separator, Switch,
+  TextArea, TextField, toast,
 } from '../../../ui'
 import type { Selection } from 'react-aria-components'
 import { useAtom } from 'jotai'

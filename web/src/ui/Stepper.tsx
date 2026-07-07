@@ -4,7 +4,7 @@ import { cn } from './lib/cn'
 type StepStatus = 'complete' | 'active' | 'upcoming'
 
 const StepperContext = React.createContext<{ currentStep: number }>({ currentStep: 0 })
-const StepIndexContext = React.createContext<{ index: number; last: boolean }>({
+const StepIndexContext = React.createContext<{ index: number, last: boolean }>({
   index: 0,
   last: false,
 })

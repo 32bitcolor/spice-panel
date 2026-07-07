@@ -5,11 +5,11 @@ import { parseTime } from '@internationalized/date'
 import { cn } from './lib/cn'
 
 export interface TimeFieldProps {
-  label?: string
+  'label'?: string
   /** 24-hour "HH:MM" string. */
-  value?: string
-  onChange?: (value: string) => void
-  className?: string
+  'value'?: string
+  'onChange'?: (value: string) => void
+  'className'?: string
   'aria-label'?: string
 }
 
@@ -19,7 +19,8 @@ const toValue = (value: string | undefined): TimeValue | null => {
   if (value === undefined || value === '') return null
   try {
     return parseTime(value)
-  } catch {
+  }
+  catch {
     return null
   }
 }

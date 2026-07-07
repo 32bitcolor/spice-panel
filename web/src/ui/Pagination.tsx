@@ -26,8 +26,8 @@ const pages = (page: number, total: number, siblings: number): (number | 'gap')[
   return items
 }
 
-const cell =
-  'grid h-8 min-w-8 place-items-center px-2 font-mono text-xs outline-none transition data-[focus-visible]:hud-glow [clip-path:polygon(4px_0,100%_0,100%_calc(100%-4px),calc(100%-4px)_100%,0_100%,0_4px)]'
+const cell
+  = 'grid h-8 min-w-8 place-items-center px-2 font-mono text-xs outline-none transition data-[focus-visible]:hud-glow [clip-path:polygon(4px_0,100%_0,100%_calc(100%-4px),calc(100%-4px)_100%,0_100%,0_4px)]'
 
 export const Pagination: React.FC<PaginationProps> = ({
   page,
@@ -51,25 +51,27 @@ export const Pagination: React.FC<PaginationProps> = ({
         ‹
       </AriaButton>
       {pages(page, total, siblings).map((p, i) =>
-        p === 'gap' ? (
-          <span key={`gap-${i}`} className="px-1 text-muted">
-            …
-          </span>
-        ) : (
-          <AriaButton
-            key={p}
-            onPress={() => go(p)}
-            {...(p === page ? { 'aria-current': 'page' as const } : {})}
-            className={cn(
-              cell,
-              p === page
-                ? 'bg-accent font-bold text-accent-foreground'
-                : 'bg-surface-secondary text-muted data-[hovered]:text-foreground',
-            )}
-          >
-            {p}
-          </AriaButton>
-        ),
+        p === 'gap'
+          ? (
+              <span key={`gap-${i}`} className="px-1 text-muted">
+                …
+              </span>
+            )
+          : (
+              <AriaButton
+                key={p}
+                onPress={() => go(p)}
+                {...(p === page ? { 'aria-current': 'page' as const } : {})}
+                className={cn(
+                  cell,
+                  p === page
+                    ? 'bg-accent font-bold text-accent-foreground'
+                    : 'bg-surface-secondary text-muted data-[hovered]:text-foreground',
+                )}
+              >
+                {p}
+              </AriaButton>
+            ),
       )}
       <AriaButton
         aria-label="Next page"

@@ -19,7 +19,7 @@ export type EmptyStateVariants = VariantProps<typeof rootStyles>
 
 export interface EmptyStateProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'>,
-    EmptyStateVariants {
+  EmptyStateVariants {
   /** HeroUI-era visual variant — accepted for compatibility; styling is unified. */
   variant?: string
 }

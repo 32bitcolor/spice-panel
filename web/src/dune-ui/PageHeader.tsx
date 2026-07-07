@@ -40,7 +40,12 @@ const renderRefreshBody = (
 
 const renderCountdown = (countdown: number | undefined): React.ReactNode => {
   if (countdown === undefined || countdown === null) return null
-  return <span className="w-7 text-right text-xs tabular-nums text-muted/60">{countdown}s</span>
+  return (
+    <span className="w-7 text-right text-xs tabular-nums text-muted/60">
+      {countdown}
+      s
+    </span>
+  )
 }
 
 const renderActions = (

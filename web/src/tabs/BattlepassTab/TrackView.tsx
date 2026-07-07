@@ -236,44 +236,44 @@ export const TrackView: React.FC<TrackViewProps> = ({ tiers, counts, playerCount
                       </div>
                     )}
                   >
-                      <div className="flex flex-col items-center w-32 shrink-0 gap-1.5">
-                        <div
-                          className={`size-14 rounded-full border-2 flex items-center justify-center ${
-                            pct >= 50
-                              ? 'border-accent bg-accent/20 text-accent'
-                              : pct > 0
-                                ? 'border-accent/50 bg-surface text-accent/80'
-                                : 'border-border bg-surface text-muted'
-                          }`}
-                        >
-                          <ThemeIcon
-                            folder={folder}
-                            name={CATEGORY_SVG_FILES[tier.category] ?? 'reward'}
-                            className="w-9 h-9"
-                          />
-                        </div>
-                        <div
-                          className="text-xs font-medium text-center leading-tight line-clamp-2 px-1 h-[2.5em]"
-                        >
-                          {tier.label}
-                        </div>
-                        <div className="flex items-center gap-1.5 text-xs text-muted font-mono tabular-nums">
-                          <span className="flex items-center gap-0.5">
-                            <ThemeIcon folder={folder} name="intel_token" className="size-3.5" />
-                            {tier.intel}
-                          </span>
-                          {itemsN > 0 && (
-                            <span className="flex items-center gap-0.5">
-                              <ThemeIcon folder={folder} name="reward" className="size-3.5" />
-                              {itemsN}
-                            </span>
-                          )}
-                        </div>
-                        <Chip size="sm" variant="soft" color={pctColor(pct)} className="tabular-nums">
-                          {pct}
-                          %
-                        </Chip>
+                    <div className="flex flex-col items-center w-32 shrink-0 gap-1.5">
+                      <div
+                        className={`size-14 rounded-full border-2 flex items-center justify-center ${
+                          pct >= 50
+                            ? 'border-accent bg-accent/20 text-accent'
+                            : pct > 0
+                              ? 'border-accent/50 bg-surface text-accent/80'
+                              : 'border-border bg-surface text-muted'
+                        }`}
+                      >
+                        <ThemeIcon
+                          folder={folder}
+                          name={CATEGORY_SVG_FILES[tier.category] ?? 'reward'}
+                          className="w-9 h-9"
+                        />
                       </div>
+                      <div
+                        className="text-xs font-medium text-center leading-tight line-clamp-2 px-1 h-[2.5em]"
+                      >
+                        {tier.label}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-muted font-mono tabular-nums">
+                        <span className="flex items-center gap-0.5">
+                          <ThemeIcon folder={folder} name="intel_token" className="size-3.5" />
+                          {tier.intel}
+                        </span>
+                        {itemsN > 0 && (
+                          <span className="flex items-center gap-0.5">
+                            <ThemeIcon folder={folder} name="reward" className="size-3.5" />
+                            {itemsN}
+                          </span>
+                        )}
+                      </div>
+                      <Chip size="sm" variant="soft" color={pctColor(pct)} className="tabular-nums">
+                        {pct}
+                        %
+                      </Chip>
+                    </div>
                   </Tooltip>
                 </React.Fragment>
               )

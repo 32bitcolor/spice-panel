@@ -3,8 +3,8 @@ import { NumberField as AriaNumberField, Label, Group, Input, Button as AriaButt
 import { cn } from '../ui'
 import type { NumberInputProps } from './interfaces'
 
-const stepBtn =
-  'grid flex-1 place-items-center px-2 text-muted outline-none transition hover:bg-accent/15 hover:text-focus'
+const stepBtn
+  = 'grid flex-1 place-items-center px-2 text-muted outline-none transition hover:bg-accent/15 hover:text-focus'
 
 export const NumberInput: React.FC<NumberInputProps> = ({
   value,

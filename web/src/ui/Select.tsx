@@ -17,24 +17,24 @@ export interface SelectOption {
 }
 
 export interface SelectProps {
-  label?: string
+  'label'?: string
   /** Simple API. */
-  value?: string
-  defaultValue?: string
-  onChange?: (value: string) => void
-  options?: readonly SelectOption[]
+  'value'?: string
+  'defaultValue'?: string
+  'onChange'?: (value: string) => void
+  'options'?: readonly SelectOption[]
   /** HeroUI/RAC-style controlled API (used by compound call sites). */
-  selectedKey?: string | null
-  onSelectionChange?: (key: Key) => void
-  placeholder?: string
-  isDisabled?: boolean
-  className?: string
-  children?: React.ReactNode
+  'selectedKey'?: string | null
+  'onSelectionChange'?: (key: Key) => void
+  'placeholder'?: string
+  'isDisabled'?: boolean
+  'className'?: string
+  'children'?: React.ReactNode
   'aria-label'?: string
 }
 
-const TRIGGER_CLS =
-  'hud-field flex items-center justify-between gap-2 px-3 py-2 font-mono text-[13px] text-foreground outline-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40 data-[focus-visible]:hud-glow'
+const TRIGGER_CLS
+  = 'hud-field flex items-center justify-between gap-2 px-3 py-2 font-mono text-[13px] text-foreground outline-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40 data-[focus-visible]:hud-glow'
 
 const SelectRoot: React.FC<SelectProps> = ({
   label,
@@ -120,16 +120,15 @@ const Trigger: React.FC<React.HTMLAttributes<HTMLButtonElement>> = ({
   <AriaButton className={cn(TRIGGER_CLS, className)}>{children}</AriaButton>
 )
 
-const Value: React.FC<{ placeholder?: string; className?: string; children?: React.ReactNode }> = ({
+const Value: React.FC<{ placeholder?: string, className?: string, children?: React.ReactNode }> = ({
   placeholder,
   className,
   children,
 }): React.ReactElement => (
   <SelectValue className={cn('truncate data-[placeholder]:text-muted', className)}>
     {(renderProps) =>
-      children ??
-      (renderProps.isPlaceholder ? (placeholder ?? 'Select…') : renderProps.selectedText)
-    }
+      children
+      ?? (renderProps.isPlaceholder ? (placeholder ?? 'Select…') : renderProps.selectedText)}
   </SelectValue>
 )
 

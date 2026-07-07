@@ -85,7 +85,7 @@ const STATUS_COLOR: Record<string, string> = {
   info: 'text-accent',
 }
 
-const AlertIcon: React.FC<{ status?: string; className?: string }> = ({
+const AlertIcon: React.FC<{ status?: string, className?: string }> = ({
   status = 'danger',
   className,
 }): React.ReactElement => (
