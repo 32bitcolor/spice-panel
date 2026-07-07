@@ -4,6 +4,23 @@ Web-based admin panel for a Dune Awakening private server. Works against any dep
 
 ---
 
+## Screenshots
+
+spice-panel wears its own **"Deep Desert Night"** HUD — cool blue-black surfaces, spice-cyan accents,
+chamfered plates and glow — in place of upstream dune-admin's amber HeroUI theme. Same features,
+rebuilt from the ground up on an independent, self-built component library.
+
+|  |  |
+| --- | --- |
+| ![Dashboard](docs/media/dashboard.png) | ![Players — Server Overview](docs/media/players-overview.png) |
+| ![Market Board](docs/media/market-board.png) | ![Battlepass reward tracks](docs/media/battlepass.png) |
+
+<sub>Dashboard · Players / Server Overview (live charts on Recharts) · Market Board · Battlepass reward tracks</sub>
+
+For the upstream amber look this replaces, see [Icehunter/dune-admin](https://github.com/Icehunter/dune-admin).
+
+---
+
 ## About this fork
 
 **spice-panel** is a fork of [Icehunter/dune-admin](https://github.com/Icehunter/dune-admin). The
@@ -22,8 +39,9 @@ independent, self-built component library:
 - **Same features, rebuilt UI.** Every tab, view, and workflow from upstream is carried over; only
   the presentation layer changes.
 
-This is an in-progress effort. Server-side behaviour tracks upstream; the frontend is being rebuilt
-component by component.
+The UI rebuild is **complete** — the app ships zero HeroUI (both `@heroui-pro/react` and
+`@heroui/react` are gone) and builds, type-checks, and lints clean on the self-built library.
+Server-side behaviour tracks upstream.
 
 ---
 
