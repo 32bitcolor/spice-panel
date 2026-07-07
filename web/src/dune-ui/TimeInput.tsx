@@ -1,6 +1,8 @@
 import * as React from 'react'
 import { Time } from '@internationalized/date'
-import { TimeField, ToggleButton, ToggleButtonGroup } from '@heroui/react'
+import { TimeField as AriaTimeField, DateInput, DateSegment } from 'react-aria-components'
+import type { TimeValue } from 'react-aria-components'
+import { ToggleButton, ToggleButtonGroup, cn } from '../ui'
 import type { TimeInputProps } from './types'
 
 const parseHHMM = (s: string): Time | null => {
@@ -11,19 +13,24 @@ const parseHHMM = (s: string): Time | null => {
   return new Time(h, m)
 }
 
-const toHHMM = (t: Time): string => {
-  return `${String(t.hour).padStart(2, '0')}:${String(t.minute).padStart(2, '0')}`
-}
+const toHHMM = (t: Time): string =>
+  `${String(t.hour).padStart(2, '0')}:${String(t.minute).padStart(2, '0')}`
 
-export const TimeInput: React.FC<TimeInputProps> = ({ value, onChange, ariaLabel, className, isDisabled }) => {
+export const TimeInput: React.FC<TimeInputProps> = ({
+  value,
+  onChange,
+  ariaLabel,
+  className,
+  isDisabled,
+}): React.ReactElement => {
   const timeValue = parseHHMM(value)
   const isAM = timeValue ? timeValue.hour < 12 : true
 
-  const handleTimeChange = (t: Time | null) => {
-    if (t) onChange(toHHMM(t))
+  const handleTimeChange = (t: TimeValue | null): void => {
+    if (t) onChange(toHHMM(new Time(t.hour, t.minute)))
   }
 
-  const handlePeriodChange = (keys: Iterable<React.Key> | 'all') => {
+  const handlePeriodChange = (keys: 'all' | Set<React.Key>): void => {
     if (!timeValue) return
     const period = keys === 'all' ? null : [...keys][0]
     if (!period) return
@@ -35,8 +42,8 @@ export const TimeInput: React.FC<TimeInputProps> = ({ value, onChange, ariaLabel
   }
 
   return (
-    <div className={`flex items-center gap-1 ${className ?? ''}`}>
-      <TimeField
+    <div className={cn('flex items-center gap-1', className)}>
+      <AriaTimeField
         value={timeValue}
         onChange={handleTimeChange}
         hourCycle={12}
@@ -44,27 +51,31 @@ export const TimeInput: React.FC<TimeInputProps> = ({ value, onChange, ariaLabel
         {...(ariaLabel !== undefined ? { 'aria-label': ariaLabel } : {})}
         {...(isDisabled !== undefined ? { isDisabled } : {})}
       >
-        <TimeField.Group variant="secondary">
-          <TimeField.Input>
-            {(segment) => (
-              <TimeField.Segment
-                segment={segment}
-                className={segment.type === 'dayPeriod' ? 'hidden' : ''}
-              />
-            )}
-          </TimeField.Input>
-        </TimeField.Group>
-      </TimeField>
+        <DateInput className="hud-field flex items-center gap-0.5 px-3 py-2 font-mono text-[13px] text-foreground data-[focus-within]:hud-glow">
+          {(segment) => (
+            <DateSegment
+              segment={segment}
+              className={cn(
+                'rounded-[2px] px-0.5 tabular-nums outline-none data-[focused]:bg-accent/25 data-[focused]:text-focus data-[placeholder]:text-muted',
+                segment.type === 'dayPeriod' ? 'hidden' : '',
+              )}
+            />
+          )}
+        </DateInput>
+      </AriaTimeField>
       <ToggleButtonGroup
         selectionMode="single"
         disallowEmptySelection
-        selectedKeys={[isAM ? 'am' : 'pm']}
+        selectedKeys={new Set([isAM ? 'am' : 'pm'])}
         onSelectionChange={handlePeriodChange}
-        size="sm"
         {...(isDisabled !== undefined ? { isDisabled } : {})}
       >
-        <ToggleButton id="am">AM</ToggleButton>
-        <ToggleButton id="pm">PM</ToggleButton>
+        <ToggleButton id="am" className="px-2.5 py-1">
+          AM
+        </ToggleButton>
+        <ToggleButton id="pm" className="px-2.5 py-1">
+          PM
+        </ToggleButton>
       </ToggleButtonGroup>
     </div>
   )

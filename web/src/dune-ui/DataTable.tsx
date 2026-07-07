@@ -1,21 +1,15 @@
 import * as React from 'react'
-import { Pagination, Skeleton } from '@heroui/react'
-import type { DataGridColumn } from '@heroui-pro/react'
-import { DataGrid as HeroDataGrid } from '@heroui-pro/react'
+import type { SortDescriptor } from 'react-aria-components'
+import { Table, Pagination, Skeleton, cn } from '../ui'
+import type { TableColumn } from '../ui'
 import type { Column, DataTableProps } from './types'
 
 export type { Column }
 
-const buildPages = (current: number, total: number): Array<number | 'ellipsis'> => {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
-  const pages: Array<number | 'ellipsis'> = [1]
-  if (current > 3) pages.push('ellipsis')
-  const lo = Math.max(2, current - 1)
-  const hi = Math.min(total - 1, current + 1)
-  for (let i = lo; i <= hi; i++) pages.push(i)
-  if (current < total - 2) pages.push('ellipsis')
-  pages.push(total)
-  return pages
+const coerce = (v: React.ReactNode): string | number => {
+  if (typeof v === 'number') return v
+  if (typeof v === 'string') return v
+  return String(v ?? '')
 }
 
 export const DataTable = <T extends object, K extends string>({
@@ -31,181 +25,109 @@ export const DataTable = <T extends object, K extends string>({
   skeletonRows = 5,
   onRowAction,
   className,
-  contentClassName,
-  scrollContainerClassName,
-  virtualized = false,
-  rowHeight = 42,
   selectionMode,
   selectedKeys,
   onSelectionChange,
   pageSize,
 }: DataTableProps<T, K>): React.ReactElement => {
-  const renderCellRef = React.useRef(renderCell)
-  const sortValueRef = React.useRef(sortValue)
-  const onRowActionRef = React.useRef(onRowAction)
-  React.useEffect(() => {
-    renderCellRef.current = renderCell
-    sortValueRef.current = sortValue
-    onRowActionRef.current = onRowAction
-  })
-
+  const [sort, setSort] = React.useState<SortDescriptor | undefined>(
+    initialSort ? { column: initialSort.column, direction: initialSort.direction } : undefined,
+  )
   const [page, setPage] = React.useState(1)
   React.useEffect(() => {
-    Promise.resolve().then(() => setPage(1))
+    setPage(1)
   }, [rows])
 
-  const totalPages = pageSize ? Math.ceil(rows.length / pageSize) : 1
-  const pagedRows = pageSize ? rows.slice((page - 1) * pageSize, page * pageSize) : rows
-
-  const rowsRef = React.useRef(pagedRows)
-  React.useEffect(() => {
-    rowsRef.current = pagedRows
-  })
-
-  const hasExplicitRowHeader = columns.some((c) => c.isRowHeader)
-
-  const gridColumns: DataGridColumn<T>[] = columns.map((col, i) => {
-    const sortable = col.sortable !== false
-    const colKey = col.key as K
-    const resolvedWidth = typeof col.width === 'string' && col.width.endsWith('fr') ? undefined : col.width
-    return {
-      id: col.key,
-      header: col.label,
-      isRowHeader: col.isRowHeader ?? (!hasExplicitRowHeader && i === 0),
-      allowsSorting: sortable,
-      // DataGrid virtualizer resolves columns in JS — CSS fr units aren't supported; omit so the column auto-stretches
-      ...(resolvedWidth !== undefined ? { width: resolvedWidth } : {}),
-      ...(col.minWidth !== undefined ? { minWidth: col.minWidth } : {}),
-      ...(col.pinned !== undefined ? { pinned: col.pinned } : {}),
-      ...(col.align !== undefined ? { align: col.align } : {}),
-      cell: (row: T) => {
-        const maxWidth = typeof col.width === 'number' ? col.width : undefined
-        return col.align === 'end' || col.key === 'actions'
-          ? <div className="flex justify-end items-center w-full gap-1">{renderCellRef.current(row, colKey)}</div>
-          : <div className="overflow-hidden min-w-0 w-full" style={maxWidth ? { maxWidth } : undefined}>{renderCellRef.current(row, colKey)}</div>
-      },
-      ...(sortable && {
-        sortFn: (a: T, b: T) => {
-          const sv = sortValueRef.current
-          const getVal = sv
-            ? (r: T) => sv(r, colKey)
-            : (r: T) => {
-                const v = renderCellRef.current(r, colKey)
-                return typeof v === 'string' || typeof v === 'number' ? v : String(v ?? '')
-              }
-          const av = getVal(a)
-          const bv = getVal(b)
-          if (typeof av === 'number' && typeof bv === 'number') return av - bv
-          return String(av ?? '').localeCompare(String(bv ?? ''), undefined, { numeric: true })
-        },
-      }),
-    }
-  })
-
-  if (loading) {
-    return (
-      <div className={`border border-border/60 rounded-md overflow-hidden ${className ?? ''}`}>
-        {Array.from({ length: skeletonRows }, (_, i) => (
-          <div
-            key={i}
-            className="flex gap-3 px-3 py-2.5 border-b border-border/40 last:border-0"
-          >
-            {columns.map((c) => (
-              <Skeleton key={c.key} className="h-3.5 rounded flex-1" />
-            ))}
-          </div>
-        ))}
-      </div>
-    )
+  const getSortVal = (row: T, key: K): string | number => {
+    if (sortValue) return coerce(sortValue(row, key))
+    return coerce(renderCell(row, key))
   }
 
-  const gridClassName = pageSize ? 'h-full' : className
-  const gridContentClassName = pageSize ? undefined : contentClassName
-  const gridScrollClassName = pageSize ? 'h-full overflow-auto' : scrollContainerClassName
+  const sortedRows = React.useMemo(() => {
+    if (sort === undefined) return rows
+    const key = sort.column as K
+    const dir = sort.direction === 'descending' ? -1 : 1
+    return [...rows].sort((a, b) => {
+      const av = getSortVal(a, key)
+      const bv = getSortVal(b, key)
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir
+      return String(av).localeCompare(String(bv), undefined, { numeric: true }) * dir
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, sort, sortValue, renderCell])
 
-  const grid = (
-    <HeroDataGrid
+  const totalPages = pageSize ? Math.ceil(sortedRows.length / pageSize) : 1
+  const pagedRows = pageSize ? sortedRows.slice((page - 1) * pageSize, page * pageSize) : sortedRows
+
+  const tableColumns: TableColumn<K>[] = columns.map((col) => ({
+    key: col.key,
+    label: col.label,
+    sortable: col.sortable !== false,
+    isRowHeader: col.isRowHeader ?? false,
+    align: col.align ?? 'start',
+    ...(col.width !== undefined ? { width: col.width } : {}),
+  }))
+
+  if (loading) return renderSkeleton(columns, skeletonRows, className)
+
+  const table = (
+    <Table<T, K>
       aria-label={ariaLabel}
-      columns={gridColumns}
-      data={pagedRows}
-      getRowId={rowId}
-      {...(gridClassName !== undefined ? { className: gridClassName } : {})}
-      {...(gridContentClassName !== undefined ? { contentClassName: gridContentClassName } : {})}
-      {...(gridScrollClassName !== undefined ? { scrollContainerClassName: gridScrollClassName } : {})}
-      virtualized={pageSize ? false : virtualized}
-      rowHeight={rowHeight}
-      headingHeight={36}
+      columns={tableColumns}
+      rows={pagedRows}
+      rowId={rowId}
+      renderCell={renderCell}
+      sortDescriptor={sort ?? { column: '', direction: 'ascending' }}
+      onSortChange={setSort}
       selectionMode={selectionMode ?? 'none'}
-      showSelectionCheckboxes={selectionMode === 'multiple'}
       {...(selectedKeys !== undefined ? { selectedKeys } : {})}
       {...(onSelectionChange !== undefined ? { onSelectionChange } : {})}
-      {...(emptyState !== undefined
-        ? { renderEmptyState: () => <React.Fragment>{emptyState}</React.Fragment> }
-        : {})}
-      {...(initialSort !== undefined
-        ? { defaultSortDescriptor: { column: initialSort.column, direction: initialSort.direction } }
-        : {})}
-      {...(onRowAction !== undefined
-        ? {
-            onRowAction: (key: string | number) => {
-              const row = rowsRef.current.find((r) => String(rowId(r)) === String(key))
-              if (row) onRowActionRef.current?.(row)
-            },
-          }
-        : {})}
+      {...(onRowAction !== undefined ? { onRowAction } : {})}
+      {...(emptyState !== undefined ? { emptyState } : {})}
+      {...(className !== undefined ? { className } : {})}
     />
   )
 
-  if (!pageSize) return grid
+  if (!pageSize) return table
 
   return (
-    <div className="flex flex-col gap-2 h-full min-h-0">
-      <div className="flex-1 min-h-0 overflow-hidden">
-        {grid}
+    <div className="flex h-full min-h-0 flex-col gap-2">
+      <div className="min-h-0 flex-1 overflow-auto">{table}</div>
+      {renderPager(page, totalPages, pageSize, sortedRows.length, setPage)}
+    </div>
+  )
+}
+
+const renderSkeleton = <K extends string>(
+  columns: Column<K>[],
+  skeletonRows: number,
+  className: string | undefined,
+): React.ReactElement => (
+  <div className={cn('overflow-hidden ring-1 ring-inset ring-border/60 [border-radius:var(--radius)]', className)}>
+    {Array.from({ length: skeletonRows }, (_, i) => (
+      <div key={i} className="flex gap-3 border-b border-border/40 px-3 py-2.5 last:border-0">
+        {columns.map((c) => (
+          <Skeleton key={c.key} className="h-3.5 flex-1" />
+        ))}
       </div>
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between shrink-0 py-1 px-1">
-          <span className="text-xs text-muted tabular-nums whitespace-nowrap">
-            {(page - 1) * pageSize + 1}
-            {' – '}
-            {Math.min(page * pageSize, rows.length)}
-            {' of '}
-            {rows.length}
-          </span>
-          <Pagination size="sm" className="ml-auto w-auto">
-            <Pagination.Content>
-              <Pagination.Item>
-                <Pagination.Previous isDisabled={page === 1} onPress={() => setPage((p) => Math.max(1, p - 1))}>
-                  <Pagination.PreviousIcon />
-                </Pagination.Previous>
-              </Pagination.Item>
-              {buildPages(page, totalPages).map((p, i) =>
-                p === 'ellipsis'
-                  ? (
-                      <Pagination.Item key={`ellipsis-${i}`}>
-                        <Pagination.Ellipsis />
-                      </Pagination.Item>
-                    )
-                  : (
-                      <Pagination.Item key={p}>
-                        <Pagination.Link isActive={p === page} onPress={() => setPage(p)}>
-                          {p}
-                        </Pagination.Link>
-                      </Pagination.Item>
-                    ),
-              )}
-              <Pagination.Item>
-                <Pagination.Next
-                  isDisabled={page === totalPages}
-                  onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
-                >
-                  <Pagination.NextIcon />
-                </Pagination.Next>
-              </Pagination.Item>
-            </Pagination.Content>
-          </Pagination>
-        </div>
-      )}
+    ))}
+  </div>
+)
+
+const renderPager = (
+  page: number,
+  totalPages: number,
+  pageSize: number,
+  totalRows: number,
+  setPage: (p: number) => void,
+): React.ReactNode => {
+  if (totalPages <= 1) return null
+  return (
+    <div className="flex shrink-0 items-center justify-between px-1 py-1">
+      <span className="whitespace-nowrap text-xs tabular-nums text-muted">
+        {(page - 1) * pageSize + 1} – {Math.min(page * pageSize, totalRows)} of {totalRows}
+      </span>
+      <Pagination page={page} total={totalPages} onChange={setPage} className="ml-auto" />
     </div>
   )
 }

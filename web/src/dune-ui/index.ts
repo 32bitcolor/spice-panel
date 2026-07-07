@@ -1,7 +1,7 @@
 /**
- * Dune Admin component library — opinionated wrappers around HeroUI v3 that
- * carry the project's amber/dark aesthetic. Import from here, not from
- * @heroui/react directly, when there's an equivalent dune-ui wrapper.
+ * dune-ui — task-specific wrappers over the spice-panel `ui/` component library
+ * (Deep Desert Night HUD). Import from here for the higher-level admin widgets
+ * (DataTable, PageHeader, SideNav, …); import from `../ui` for base primitives.
  *
  * Side effect: importing this module registers the lucide icon collection
  * with iconify so `<Icon name="..." />` works offline.
@@ -18,7 +18,7 @@ export { Panel } from './Panel'
 export { LoadingState } from './LoadingState'
 export { DataTable } from './DataTable'
 export type { Column } from './DataTable'
-export { ActionBar } from '@heroui-pro/react'
+export { ActionBar } from '../ui'
 export { Dropzone } from './Dropzone'
 export { SideNav } from './SideNav'
 export { ConfirmDialog } from './ConfirmDialog'

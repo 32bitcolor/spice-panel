@@ -1,8 +1,8 @@
 import * as React from 'react'
-import { Select, ListBox } from '@heroui/react'
+import { Select } from '../ui'
 import type { FieldSelectProps } from './interfaces'
 
-// FieldSelect wraps HeroUI Select + ListBox for small, fixed option sets.
+// FieldSelect wraps the spice-panel Select for small, fixed option sets.
 // For large lists (e.g. 400 IANA timezones), keep native <select> for type-to-search.
 export const FieldSelect: React.FC<FieldSelectProps> = ({
   value,
@@ -11,27 +11,13 @@ export const FieldSelect: React.FC<FieldSelectProps> = ({
   className,
   ariaLabel,
   isDisabled,
-}) => (
+}): React.ReactElement => (
   <Select
-    selectedKey={value}
-    onSelectionChange={(k) => onChange(String(k))}
+    value={value}
+    onChange={onChange}
+    options={options.map((opt) => ({ value: opt, label: opt }))}
+    {...(className !== undefined ? { className } : {})}
     {...(ariaLabel !== undefined ? { 'aria-label': ariaLabel } : {})}
     {...(isDisabled !== undefined ? { isDisabled } : {})}
-    {...(className !== undefined ? { className } : {})}
-  >
-    <Select.Trigger>
-      <Select.Value />
-      <Select.Indicator />
-    </Select.Trigger>
-    <Select.Popover>
-      <ListBox>
-        {options.map((opt) => (
-          <ListBox.Item key={opt} id={opt} textValue={opt}>
-            {opt}
-            <ListBox.ItemIndicator />
-          </ListBox.Item>
-        ))}
-      </ListBox>
-    </Select.Popover>
-  </Select>
+  />
 )

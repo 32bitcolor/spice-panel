@@ -1,6 +1,8 @@
 import * as React from 'react'
-import type { Selection } from '@heroui/react'
-import type { DataGridColumnSize } from '@heroui-pro/react'
+import type { Selection } from 'react-aria-components'
+import type { ColumnWidth } from '../ui'
+
+export type { Selection }
 
 export type Column<K extends string> = {
   key: K
@@ -10,7 +12,7 @@ export type Column<K extends string> = {
   /** Marks the row-header column (accessibility). Typically the first one. */
   isRowHeader?: boolean
   /** Fixed column width (px, %, or fr — e.g. 70 or '1fr'). When omitted, column takes remaining space. */
-  width?: DataGridColumnSize
+  width?: ColumnWidth
   /** Minimum column width (px). Useful for the stretchy column or pinned columns. */
   minWidth?: number
   /** Pin this column to start or end so it stays visible during horizontal scroll. */

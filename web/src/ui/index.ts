@@ -105,4 +105,7 @@ export { NumberValue } from './NumberValue'
 export type { NumberValueProps } from './NumberValue'
 
 export { Table } from './Table'
-export type { TableProps, TableColumn } from './Table'
+export type { TableProps, TableColumn, ColumnWidth } from './Table'
+
+export { ActionBar } from './ActionBar'
+export type { ActionBarProps } from './ActionBar'

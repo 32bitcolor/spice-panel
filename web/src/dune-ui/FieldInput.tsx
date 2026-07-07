@@ -1,5 +1,6 @@
 import * as React from 'react'
-import { Input } from '@heroui/react'
+import { TextField as AriaTextField, Input } from 'react-aria-components'
+import { cn } from '../ui'
 import type { FieldInputProps } from './interfaces'
 
 export const FieldInput: React.FC<FieldInputProps> = ({
@@ -10,14 +11,20 @@ export const FieldInput: React.FC<FieldInputProps> = ({
   className,
   ariaLabel,
   isDisabled,
-}) => (
-  <Input
-    type={type}
+}): React.ReactElement => (
+  <AriaTextField
     value={value}
-    onChange={(e) => onChange(e.target.value)}
-    {...(placeholder !== undefined ? { placeholder } : {})}
+    onChange={onChange}
     {...(ariaLabel !== undefined ? { 'aria-label': ariaLabel } : {})}
-    {...(isDisabled !== undefined ? { disabled: isDisabled } : {})}
-    {...(className !== undefined ? { className } : {})}
-  />
+    {...(isDisabled !== undefined ? { isDisabled } : {})}
+  >
+    <Input
+      type={type}
+      {...(placeholder !== undefined ? { placeholder } : {})}
+      className={cn(
+        'hud-field w-full bg-transparent px-3 py-2 font-mono text-[13px] text-foreground outline-none placeholder:text-muted/70 disabled:opacity-40',
+        className,
+      )}
+    />
+  </AriaTextField>
 )

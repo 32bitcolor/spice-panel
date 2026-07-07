@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Spinner, toast } from '@heroui/react'
+import { Spinner, toast } from '../ui'
 import { Icon } from './Icon'
 import type { DropzoneProps } from './types'
 
@@ -67,7 +67,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({
       {uploading
         ? (
             <span className="flex items-center gap-2">
-              <Spinner size="sm" color="current" />
+              <Spinner size={16} />
               {' '}
               Uploading…
             </span>

@@ -1,114 +1,130 @@
 import * as React from 'react'
-import { ListView } from '@heroui-pro/react'
+import { cn } from '../ui'
+import type { SideNavItem, SideNavProps, SideNavRenderSlot } from './types'
 
-import type { SideNavProps } from './types'
+const renderSlot = (slot: SideNavRenderSlot | undefined, active: boolean): React.ReactNode => {
+  if (slot === undefined || slot === null) return null
+  return typeof slot === 'function' ? slot(active) : slot
+}
 
-const ROW_HEIGHT = 56
+const renderItem = <K extends string>(
+  item: SideNavItem<K>,
+  active: K | null,
+  onSelect: (key: K) => void,
+): React.ReactElement => {
+  const isActive = item.key === active
+  return (
+    <button
+      key={item.key}
+      type="button"
+      onClick={() => onSelect(item.key)}
+      aria-current={isActive ? 'true' : undefined}
+      className={cn(
+        'flex w-full items-center gap-2.5 px-3 py-2 text-left outline-none transition',
+        'border-l-2 border-transparent focus-visible:hud-glow',
+        item.depth ? 'pl-6' : '',
+        isActive
+          ? 'border-accent bg-[linear-gradient(90deg,color-mix(in_srgb,var(--accent)_22%,transparent),color-mix(in_srgb,var(--accent)_8%,transparent))]'
+          : 'hover:bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]',
+      )}
+    >
+      {renderIcon(item, isActive)}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <span
+          className={cn('truncate text-sm', isActive ? 'font-semibold text-focus' : 'text-foreground')}
+        >
+          {item.label}
+        </span>
+        {renderSublabel(item.sublabel)}
+      </div>
+      {renderHint(item, isActive)}
+    </button>
+  )
+}
+
+const renderIcon = <K extends string>(item: SideNavItem<K>, active: boolean): React.ReactNode => {
+  if (item.icon === undefined || item.icon === null) return null
+  return <div className="shrink-0">{renderSlot(item.icon, active)}</div>
+}
+
+const renderSublabel = (sublabel: React.ReactNode): React.ReactNode => {
+  if (sublabel === undefined || sublabel === null) return null
+  return <span className="truncate text-xs text-muted">{sublabel}</span>
+}
+
+const renderHint = <K extends string>(item: SideNavItem<K>, active: boolean): React.ReactNode => {
+  if (item.hint === undefined || item.hint === null) return null
+  return <div className="shrink-0 text-xs">{renderSlot(item.hint, active)}</div>
+}
 
 export const SideNav = <K extends string>({
-  items, active, onSelect, title, titleAction, width, children, listHeader, emptyContent,
+  items,
+  active,
+  onSelect,
+  title,
+  titleAction,
+  width,
+  children,
+  listHeader,
+  emptyContent,
 }: SideNavProps<K>): React.ReactElement => {
-  const w = width ?? 'w-60'
-  const wrapperRef = React.useRef<HTMLDivElement>(null)
+  const listRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
-    if (active == null) return
-    const idx = items.findIndex((i) => i.key === active)
-    if (idx < 0) return
-    // Defer so the Virtualizer finishes its initial layout before we scroll
-    const timer = setTimeout(() => {
-      if (!wrapperRef.current) return
-      // children[0] = ListView root (role="grid") which owns overflow-y-auto
-      const scrollEl = wrapperRef.current.children[0] as HTMLElement | null
-      if (!scrollEl) return
-      const itemTop = idx * ROW_HEIGHT
-      const { clientHeight } = scrollEl
-      scrollEl.scrollTo({
-        top: Math.max(0, itemTop - clientHeight / 2 + ROW_HEIGHT / 2),
-        behavior: 'smooth',
-      })
-    }, 80)
-    return () => clearTimeout(timer)
-  }, [active, items])
+    if (active == null || !listRef.current) return
+    const el = listRef.current.querySelector<HTMLElement>('[aria-current="true"]')
+    el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [active])
 
   return (
-    <div className={`${w} shrink-0 flex flex-col rounded-[var(--radius)] bg-surface border border-border/60 overflow-hidden`}>
-      {(title || titleAction) && (
-        <div className="flex items-center justify-between p-3 border-b border-border/60 shrink-0">
-          {title && <span className="text-xs font-semibold uppercase tracking-widest text-accent">{title}</span>}
-          {titleAction}
-        </div>
+    <div
+      className={cn(
+        'flex shrink-0 flex-col overflow-hidden bg-surface ring-1 ring-inset ring-border/60 [border-radius:var(--radius)]',
+        width ?? 'w-60',
       )}
-      {children && <div className="px-3 py-1.5 shrink-0 flex flex-col gap-1">{children}</div>}
-      {listHeader && <div className="px-3 pb-2 shrink-0">{listHeader}</div>}
-
-      {/* wrapperRef gives us the ListView's DOM scroll element via children[0] */}
-      <div ref={wrapperRef} className="relative flex-1 min-h-0">
-        {items.length === 0 && emptyContent
-          ? (
-              <div className="flex items-center justify-center h-full px-4 py-6 text-center text-muted text-sm">
-                {emptyContent}
-              </div>
-            )
-          : (
-              <ListView
-                aria-label={typeof title === 'string' ? title : 'Navigation'}
-                items={items}
-                selectedKeys={active != null ? new Set([active]) : new Set()}
-                selectionMode="single"
-                selectionBehavior="replace"
-                variant="secondary"
-                virtualized
-                rowHeight={ROW_HEIGHT}
-                className="h-full overflow-y-auto overflow-x-hidden"
-                onSelectionChange={(keys) => {
-                  if (keys === 'all') return
-                  const k = [...(keys as Set<K>)][0]
-                  if (k !== undefined) onSelect(k)
-                }}
-              >
-                {(item) => {
-                  const isActive = item.key === active
-                  return (
-                    <ListView.Item
-                      id={item.key}
-                      textValue={typeof item.label === 'string' ? item.label : item.key}
-                      className={[
-                        '!px-3 !py-2',
-                        item.depth ? 'pl-4' : '',
-                        'data-[hovered=true]:!bg-[color-mix(in_srgb,var(--accent)_12%,transparent)]',
-                        'data-[selected=true]:![background:linear-gradient(90deg,color-mix(in_srgb,var(--accent)_32%,transparent),color-mix(in_srgb,var(--accent)_14%,transparent))]',
-                        'data-[selected=true]:!border-[color-mix(in_srgb,var(--accent)_55%,transparent)]',
-                        'data-[selected=true]:![box-shadow:inset_0_0_18px_color-mix(in_srgb,var(--accent)_15%,transparent)]',
-                        'data-[selected=true]:data-[hovered=true]:![background:linear-gradient(90deg,color-mix(in_srgb,var(--accent)_38%,transparent),color-mix(in_srgb,var(--accent)_18%,transparent))]',
-                      ].filter(Boolean).join(' ')}
-                    >
-                      <ListView.ItemContent>
-                        {item.icon != null && (
-                          <div className="shrink-0">
-                            {typeof item.icon === 'function' ? item.icon(isActive) : item.icon}
-                          </div>
-                        )}
-                        <div className="flex flex-col flex-1 min-w-0">
-                          <ListView.Title className={isActive ? '!text-[var(--color-focus)] !font-semibold' : ''}>
-                            {item.label}
-                          </ListView.Title>
-                          {item.sublabel != null && <ListView.Description>{item.sublabel}</ListView.Description>}
-                        </div>
-                      </ListView.ItemContent>
-                      {item.hint != null && (
-                        <ListView.ItemAction>
-                          <div className="text-xs shrink-0">
-                            {typeof item.hint === 'function' ? item.hint(isActive) : item.hint}
-                          </div>
-                        </ListView.ItemAction>
-                      )}
-                    </ListView.Item>
-                  )
-                }}
-              </ListView>
-            )}
+    >
+      {renderHeader(title, titleAction)}
+      {renderChildren(children)}
+      {renderListHeader(listHeader)}
+      <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+        {items.length === 0 ? renderEmpty(emptyContent) : items.map((item) => renderItem(item, active, onSelect))}
       </div>
+    </div>
+  )
+}
+
+const renderHeader = (title: React.ReactNode, titleAction: React.ReactNode): React.ReactNode => {
+  if (!title && !titleAction) return null
+  return (
+    <div className="flex shrink-0 items-center justify-between border-b border-border/60 p-3">
+      {renderTitle(title)}
+      {titleAction}
+    </div>
+  )
+}
+
+const renderTitle = (title: React.ReactNode): React.ReactNode => {
+  if (!title) return null
+  return (
+    <span className="text-xs font-semibold uppercase tracking-widest text-accent">{title}</span>
+  )
+}
+
+const renderChildren = (children: React.ReactNode): React.ReactNode => {
+  if (!children) return null
+  return <div className="flex shrink-0 flex-col gap-1 px-3 py-1.5">{children}</div>
+}
+
+const renderListHeader = (listHeader: React.ReactNode): React.ReactNode => {
+  if (!listHeader) return null
+  return <div className="shrink-0 px-3 pb-2">{listHeader}</div>
+}
+
+const renderEmpty = (emptyContent: React.ReactNode): React.ReactNode => {
+  if (!emptyContent) return null
+  return (
+    <div className="flex h-full items-center justify-center px-4 py-6 text-center text-sm text-muted">
+      {emptyContent}
     </div>
   )
 }
