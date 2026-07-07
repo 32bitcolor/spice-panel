@@ -115,3 +115,9 @@ export type { InputProps } from './Input'
 
 export { ListBox } from './ListBox'
 export type { ListBoxProps, ListBoxItemProps } from './ListBox'
+
+export { Dropdown } from './Dropdown'
+export type { DropdownProps, DropdownItemProps } from './Dropdown'
+
+export { Header } from './Header'
+export type { HeaderProps } from './Header'

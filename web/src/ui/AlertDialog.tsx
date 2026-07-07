@@ -7,6 +7,7 @@ import {
 } from 'react-aria-components'
 import { cn } from './lib/cn'
 import { Button } from './Button'
+import { Modal } from './Modal'
 
 export interface AlertDialogProps {
   isOpen: boolean
@@ -21,7 +22,7 @@ export interface AlertDialogProps {
   className?: string
 }
 
-export const AlertDialog: React.FC<AlertDialogProps> = ({
+const AlertDialogRoot: React.FC<AlertDialogProps> = ({
   isOpen,
   onOpenChange,
   title,
@@ -74,3 +75,44 @@ const renderDescription = (description: React.ReactNode): React.ReactNode => {
   if (description === undefined) return null
   return <p className="text-[13px] leading-relaxed text-muted">{description}</p>
 }
+
+/* ── Compound API (HeroUI-compatible) — reuses Modal's slots ───────────────── */
+
+const STATUS_COLOR: Record<string, string> = {
+  danger: 'text-danger',
+  warning: 'text-warning',
+  success: 'text-success',
+  info: 'text-accent',
+}
+
+const AlertIcon: React.FC<{ status?: string; className?: string }> = ({
+  status = 'danger',
+  className,
+}): React.ReactElement => (
+  <span className={cn('shrink-0', STATUS_COLOR[status] ?? 'text-accent', className)}>
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+    </svg>
+  </span>
+)
+
+const AlertDialogSlot: React.FC<React.HTMLAttributes<HTMLElement>> = ({
+  className,
+  children,
+}): React.ReactElement => (
+  <AriaDialog role="alertdialog" className={cn('outline-none', className)}>
+    {children}
+  </AriaDialog>
+)
+
+export const AlertDialog = Object.assign(AlertDialogRoot, {
+  Backdrop: Modal.Backdrop,
+  Container: Modal.Container,
+  Dialog: AlertDialogSlot,
+  CloseTrigger: Modal.CloseTrigger,
+  Header: Modal.Header,
+  Heading: Modal.Heading,
+  Body: Modal.Body,
+  Footer: Modal.Footer,
+  Icon: AlertIcon,
+})
