@@ -12,8 +12,8 @@ rebuilt from the ground up on an independent, self-built component library.
 
 |  |  |
 | --- | --- |
-| ![Dashboard](docs/media/dashboard.png) | ![Players — Server Overview](docs/media/players-overview.png) |
-| ![Market Board](docs/media/market-board.png) | ![Battlepass reward tracks](docs/media/battlepass.png) |
+| ![Dashboard](docs/media/1-dashboard.png) | ![Players — Server Overview](docs/media/2-players.png) |
+| ![Market Board](docs/media/3-market.png) | ![Battlepass reward tracks](docs/media/4-battlepass.png) |
 
 <sub>Dashboard · Players / Server Overview (live charts on Recharts) · Market Board · Battlepass reward tracks</sub>
 
