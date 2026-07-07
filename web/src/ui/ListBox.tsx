@@ -1,5 +1,9 @@
 import * as React from 'react'
-import { ListBox as AriaListBox, ListBoxItem as AriaListBoxItem } from 'react-aria-components'
+import {
+  ListBox as AriaListBox,
+  ListBoxItem as AriaListBoxItem,
+  ListBoxSection as AriaListBoxSection,
+} from 'react-aria-components'
 import type {
   ListBoxProps as AriaListBoxProps,
   ListBoxItemProps as AriaListBoxItemProps,
@@ -46,4 +50,11 @@ const ItemIndicator: React.FC<{ className?: string }> = ({ className }): React.R
   </svg>
 )
 
-export const ListBox = Object.assign(ListBoxRoot, { Item, ItemIndicator })
+const Section: React.FC<React.ComponentProps<typeof AriaListBoxSection>> = ({
+  className,
+  ...props
+}): React.ReactElement => (
+  <AriaListBoxSection {...props} className={cn('py-1', className as string)} />
+)
+
+export const ListBox = Object.assign(ListBoxRoot, { Item, ItemIndicator, Section })

@@ -30,10 +30,13 @@ export const ToggleButton: React.FC<ToggleButtonProps> = ({
 
 export interface ToggleButtonGroupProps extends Omit<AriaToggleButtonGroupProps, 'className'> {
   className?: string
+  /** Accepted for HeroUI compatibility; styling is unified. */
+  size?: 'sm' | 'md'
 }
 
 export const ToggleButtonGroup: React.FC<ToggleButtonGroupProps> = ({
   className,
+  size: _size,
   ...props
 }): React.ReactElement => (
   <AriaToggleButtonGroup

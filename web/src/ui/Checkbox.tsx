@@ -8,7 +8,7 @@ export interface CheckboxProps extends Omit<AriaCheckboxProps, 'className' | 'ch
   children?: React.ReactNode
 }
 
-export const Checkbox: React.FC<CheckboxProps> = ({
+const CheckboxRoot: React.FC<CheckboxProps> = ({
   className,
   children,
   ...props
@@ -36,3 +36,19 @@ export const Checkbox: React.FC<CheckboxProps> = ({
     {children}
   </AriaCheckbox>
 )
+
+// HeroUI-compatible compound slots. Our Checkbox draws its own box/check, so
+// Control/Indicator render nothing; Content just wraps the label.
+const Control: React.FC<React.PropsWithChildren> = (): null => null
+const Indicator: React.FC = (): null => null
+const Content: React.FC<React.HTMLAttributes<HTMLSpanElement>> = ({
+  className,
+  children,
+  ...props
+}): React.ReactElement => (
+  <span {...props} className={cn(className)}>
+    {children}
+  </span>
+)
+
+export const Checkbox = Object.assign(CheckboxRoot, { Control, Indicator, Content })
