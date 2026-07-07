@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, Chip } from '@heroui/react'
+import { Button, Chip } from '../../ui'
 import { Sidebar } from '@heroui-pro/react'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '../../dune-ui'

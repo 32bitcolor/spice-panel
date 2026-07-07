@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Chip, Spinner, toast } from '@heroui/react'
+import { Button, Chip, Spinner, toast } from '../../ui'
 import { EmptyState } from '@heroui-pro/react'
 import { api } from '../../api/client'
 import type { LandsraadOverview, LandsraadTask } from '../../api/client'
@@ -50,7 +50,7 @@ export const LandsraadTab: React.FC = () => {
       <PageHeader title={t('landsraad.title')} subtitle={t('landsraad.subtitle')}>
         <Button size="sm" variant="ghost" onPress={load} isDisabled={loading}>
           {loading
-            ? <Spinner size="sm" color="current" />
+            ? <Spinner size={16} />
             : (
                 <React.Fragment>
                   <Icon name="refresh-cw" />

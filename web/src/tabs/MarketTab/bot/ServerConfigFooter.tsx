@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, Spinner } from '@heroui/react'
+import { Button, Spinner } from '../../../ui'
 import { useTranslation } from 'react-i18next'
 import type { ServerConfigFooterProps } from './interfaces'
 
@@ -20,7 +20,7 @@ export const ServerConfigFooter: React.FC<ServerConfigFooterProps> = ({ configRe
             .finally(() => setSaving(false))
         }}
       >
-        {saving ? <Spinner size="sm" color="current" /> : null}
+        {saving ? <Spinner size={16} /> : null}
         {t('common.save')}
       </Button>
     </div>

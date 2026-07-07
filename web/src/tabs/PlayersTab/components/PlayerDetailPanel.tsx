@@ -2,7 +2,7 @@ import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'
 import type { PlayerStats, SessionRecord, StatSnapshot } from '../../../api/client'
-import { Avatar } from '@heroui/react'
+import { Avatar } from '../../../ui'
 import { Icon, LoadingState, Panel, SectionLabel } from '../../../dune-ui'
 import { DiscordBadge } from './DiscordBadge'
 import { SolarisChart } from './SolarisChart'
@@ -105,14 +105,11 @@ export const PlayerDetailPanel: React.FC<PlayerDetailPanelProps> = ({ player }) 
               {player.discord_user_id
                 ? (
                     <span className="flex items-center gap-2">
-                      <Avatar className="rounded-4xl" size="sm">
-                        {player.discord_avatar
-                          ? <Avatar.Image src={player.discord_avatar} alt="Discord avatar" />
-                          : null}
-                        <Avatar.Fallback>
-                          <Icon name="user" className="size-3.5" />
-                        </Avatar.Fallback>
-                      </Avatar>
+                      <Avatar
+                        size="sm"
+                        {...(player.discord_avatar ? { src: player.discord_avatar, alt: 'Discord avatar' } : {})}
+                        fallback={<Icon name="user" className="size-3.5" />}
+                      />
                       <DiscordBadge discordUserId={player.discord_user_id} size={12} />
                       <span className="text-sm font-semibold">{t('players.detail.discordLinked')}</span>
                     </span>

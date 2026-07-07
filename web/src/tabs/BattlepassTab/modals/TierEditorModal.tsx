@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Chip, Modal, SearchField, Separator, Switch, TextField, toast } from '@heroui/react'
-import type { Selection } from '@heroui/react'
+import type { Selection } from 'react-aria-components'
 import type { DataGridColumn } from '@heroui-pro/react'
 import { DataGrid } from '@heroui-pro/react'
 import { useAtomValue } from 'jotai'

@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Spinner, toast } from '@heroui/react'
+import { Button, Spinner, toast } from '../../../ui'
 import { EmptyState } from '@heroui-pro/react'
 import { Icon as IconifyIcon } from '@iconify/react'
 import { api } from '../../../api/client'
@@ -104,7 +104,7 @@ export const BackupsView: React.FC<BackupsViewProps> = ({ onRegisterRefresh, hea
             <div>
               <Button size="sm" onPress={take} isDisabled={taking}>
                 {taking
-                  ? <Spinner size="sm" color="current" />
+                  ? <Spinner size={16} />
                   : (
                       <React.Fragment>
                         <Icon name="database-backup" />
@@ -124,7 +124,7 @@ export const BackupsView: React.FC<BackupsViewProps> = ({ onRegisterRefresh, hea
           <Panel>
             <SectionLabel>{t('backups.recent.title')}</SectionLabel>
             {loading
-              ? <div className="py-3 flex justify-center"><Spinner size="sm" color="current" /></div>
+              ? <div className="py-3 flex justify-center"><Spinner size={16} /></div>
               : backups.length === 0
                 ? (
                     <EmptyState size="sm">
@@ -163,7 +163,7 @@ export const BackupsView: React.FC<BackupsViewProps> = ({ onRegisterRefresh, hea
                             {can('backups:manage') && (
                               <Button
                                 size="sm"
-                                variant="outline"
+                                variant="ghost"
                                 isDisabled={busy}
                                 onPress={() => setRestoreTarget(b.name)}
                               >

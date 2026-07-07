@@ -1,8 +1,8 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAtom } from 'jotai'
-import { Button, Chip, Separator, Spinner } from '@heroui/react'
-import type { Selection } from '@heroui/react'
+import { Button, Chip, Separator, Spinner } from '../../../../../ui'
+import type { Selection } from 'react-aria-components'
 import { ActionBar, EmptyState, Segment } from '@heroui-pro/react'
 import type { Key } from 'react-aria-components'
 import { DataTable, Icon, SectionLabel } from '../../../../../dune-ui'
@@ -133,11 +133,11 @@ export const JourneySection: React.FC<JourneySectionProps> = ({ player }) => {
             isDisabled={nodesLoading}
             onPress={() => setNodesLoaded(false)}
           >
-            {nodesLoading ? <Spinner size="sm" color="current" /> : <Icon name="refresh-cw" />}
+            {nodesLoading ? <Spinner size={16} /> : <Icon name="refresh-cw" />}
           </Button>
           <Button
             size="sm"
-            variant="danger-soft"
+            variant="danger"
             isDisabled={busy}
             onPress={handleWipeAllJourney}
           >
@@ -233,7 +233,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({ player }) => {
                       </Button>
                       <Button
                         size="sm"
-                        variant="danger-soft"
+                        variant="danger"
                         isDisabled={busy}
                         onPress={() => handleResetNode(n)}
                       >

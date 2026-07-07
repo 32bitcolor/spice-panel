@@ -1,7 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Card, Spinner, toast } from '@heroui/react'
-import { EmptyState } from '@heroui-pro/react'
+import { Button, Card, Spinner, toast, EmptyState } from '../ui'
 import { api, ApiError } from '../api/client'
 import type { BaseRow } from '../api/client'
 import { DataTable, Icon, PageHeader, type Column } from '../dune-ui'
@@ -67,7 +66,7 @@ export const BasesTab: React.FC<BasesTabProps> = ({ isSignedIn = true }) => {
         <Button size="sm" variant="ghost" onPress={load} isDisabled={loading}>
           {loading
             ? (
-                <Spinner size="sm" color="current" />
+                <Spinner size={16} />
               )
             : (
                 <React.Fragment>
@@ -123,7 +122,7 @@ export const BasesTab: React.FC<BasesTabProps> = ({ isSignedIn = true }) => {
                     return isSignedIn
                       ? (
                           <a href={api.bases.exportUrl(b.id)} download={b.name ? `${b.name}.json` : `base-${b.id}.json`}>
-                            <Button size="sm" variant="outline" className="w-full">
+                            <Button size="sm" variant="ghost" className="w-full">
                               <Icon name="download" />
                               {' '}
                               {t('bases.export')}
@@ -131,7 +130,7 @@ export const BasesTab: React.FC<BasesTabProps> = ({ isSignedIn = true }) => {
                           </a>
                         )
                       : (
-                          <Button size="sm" variant="outline" className="w-full" isDisabled>
+                          <Button size="sm" variant="ghost" className="w-full" isDisabled>
                             <Icon name="download" />
                             {' '}
                             {t('bases.export')}

@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@heroui/react'
+import { Button } from '../../../ui'
 import { Icon, Panel, SectionLabel } from '../../../dune-ui'
 import { FieldRow } from '../fields/FieldRow'
 import { TextInput } from '../fields/TextInput'
@@ -93,7 +93,7 @@ export const ServerAdvancedPanel: React.FC<ServerAdvancedPanelProps> = ({
             {t('settings.adv.deleteServerHint', 'Permanently remove this server and all of its stored data. This cannot be undone.')}
           </p>
           <div className="mt-1">
-            <Button size="sm" variant="danger-soft" onPress={() => onRequestDeleteServer()}>
+            <Button size="sm" variant="danger" onPress={() => onRequestDeleteServer()}>
               <Icon name="trash-2" />
               {' '}
               {activeName

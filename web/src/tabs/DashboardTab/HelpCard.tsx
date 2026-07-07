@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@heroui/react'
+import { Button } from '../../ui'
 import { Icon } from '../../dune-ui'
 import type { HelpCardProps } from './interfaces'
 
@@ -17,7 +17,7 @@ export const HelpCard: React.FC<HelpCardProps> = ({ icon, title, body, cta, onAc
         <span className="text-sm font-semibold text-foreground">{title}</span>
         <p className="text-xs text-muted">{body}</p>
         <div className="mt-2 flex items-center gap-2">
-          <Button size="sm" variant="outline" onPress={onAction}>{cta}</Button>
+          <Button size="sm" variant="ghost" onPress={onAction}>{cta}</Button>
           <Button size="sm" variant="ghost" onPress={onDismiss}>{t('common.dismiss', 'Dismiss')}</Button>
         </div>
       </div>

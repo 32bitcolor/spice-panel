@@ -30,18 +30,36 @@ export const chipStyles = tv({
 })
 
 export type ChipVariants = VariantProps<typeof chipStyles>
+type ChipColorToken = NonNullable<ChipVariants['color']>
 
-export interface ChipProps extends Omit<React.HTMLAttributes<HTMLSpanElement>, 'color'>, ChipVariants {}
+/** Accepts our tokens plus the HeroUI-era aliases used across the app. */
+export type ChipColorInput = ChipColorToken | 'default' | 'primary' | 'secondary'
+
+const normalizeColor = (color: ChipColorInput | undefined): ChipColorToken | undefined => {
+  if (color === undefined) return undefined
+  if (color === 'default') return 'muted'
+  if (color === 'primary' || color === 'secondary') return 'accent'
+  return color
+}
+
+export interface ChipProps
+  extends Omit<React.HTMLAttributes<HTMLSpanElement>, 'color'>,
+    Omit<ChipVariants, 'color'> {
+  color?: ChipColorInput
+  /** HeroUI-era visual variant — accepted for compatibility; styling is unified. */
+  variant?: string
+}
 
 export const Chip: React.FC<ChipProps> = ({
   color,
   size,
   dot,
+  variant: _variant,
   className,
   children,
   ...props
 }): React.ReactElement => (
-  <span {...props} className={cn(chipStyles({ color, size, dot }), className)}>
+  <span {...props} className={cn(chipStyles({ color: normalizeColor(color), size, dot }), className)}>
     {children}
   </span>
 )

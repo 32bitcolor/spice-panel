@@ -54,4 +54,4 @@ const Content: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   </div>
 )
 
-export const ActionBar = Object.assign(ActionBarRoot, { Prefix, Content })
+export const ActionBar = Object.assign(ActionBarRoot, { Prefix, Content, Suffix: Content })

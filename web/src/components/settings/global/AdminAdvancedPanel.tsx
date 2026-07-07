@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@heroui/react'
+import { Button } from '../../../ui'
 import { Panel, SectionLabel } from '../../../dune-ui'
 import { FieldRow } from '../fields/FieldRow'
 import { TextInput } from '../fields/TextInput'
@@ -39,7 +39,7 @@ export const AdminAdvancedPanel: React.FC<AdminAdvancedPanelProps> = ({ cfg, set
           <Button size="sm" onPress={() => window.location.reload()}>{t('settings.adv.applyReload')}</Button>
           <Button
             size="sm"
-            variant="outline"
+            variant="ghost"
             onPress={() => {
               setBackendUrl('')
               localStorage.removeItem('dune_admin_backend')

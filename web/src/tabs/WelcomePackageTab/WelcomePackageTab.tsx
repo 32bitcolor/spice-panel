@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { toast } from '@heroui/react'
+import { toast } from '../../ui'
 import { useTranslation } from 'react-i18next'
 import { Segment } from '@heroui-pro/react'
 import { api } from '../../api/client'

@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Skeleton } from '@heroui/react'
+import { Skeleton } from '../../../ui'
 import type { BGInfo, ServerRow } from '../types'
 import { phaseColor, bgUptimeSeconds } from '../helpers'
 import { formatUptime } from '../uptime'

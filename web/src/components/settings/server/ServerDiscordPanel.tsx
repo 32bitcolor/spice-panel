@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Spinner, toast } from '@heroui/react'
+import { Button, Spinner, toast } from '../../../ui'
 import { api } from '../../../api/client'
 import type {
   DiscordChannelOption, DiscordGuild, DiscordGuildOption, DiscordServerLink,
@@ -123,7 +123,7 @@ export const ServerDiscordPanel: React.FC<ServerDiscordPanelProps> = ({ serverId
         <div className="flex items-center justify-between">
           <SectionLabel>{t('discordGuilds.serverDiscord.title')}</SectionLabel>
           <Button size="sm" variant="ghost" onPress={load} isDisabled={loading}>
-            {loading ? <Spinner size="sm" color="current" /> : <Icon name="refresh-cw" />}
+            {loading ? <Spinner size={16} /> : <Icon name="refresh-cw" />}
             {' '}
             {t('common.refresh')}
           </Button>
@@ -219,7 +219,7 @@ export const ServerDiscordPanel: React.FC<ServerDiscordPanelProps> = ({ serverId
             {saving
               ? (
                   <React.Fragment>
-                    <Spinner size="sm" color="current" />
+                    <Spinner size={16} />
                     {' '}
                     {t('common.saving')}
                   </React.Fragment>
@@ -233,7 +233,7 @@ export const ServerDiscordPanel: React.FC<ServerDiscordPanelProps> = ({ serverId
                 )}
           </Button>
           {hasLink && (
-            <Button size="sm" variant="danger-soft" onPress={() => setUnlinkOpen(true)} isDisabled={saving || loading}>
+            <Button size="sm" variant="danger" onPress={() => setUnlinkOpen(true)} isDisabled={saving || loading}>
               <Icon name="trash-2" />
               {' '}
               {t('discordGuilds.serverDiscord.unlink')}

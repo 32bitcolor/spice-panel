@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Spinner, toast } from '@heroui/react'
+import { Button, Spinner, toast } from '../../ui'
 import { api, ApiError } from '../../api/client'
 import type { DirectorConfig } from '../../api/client'
 import { PageHeader, Panel, SectionLabel, Icon } from '../../dune-ui'
@@ -104,7 +104,7 @@ export const DirectorTab: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full gap-2 text-muted">
-        <Spinner size="sm" color="current" />
+        <Spinner size={16} />
         <span className="text-sm">{t('director.loading')}</span>
       </div>
     )
@@ -146,7 +146,7 @@ export const DirectorTab: React.FC = () => {
           </Button>
           <Button size="sm" onPress={save} isDisabled={dirty === 0 || saving}>
             {saving
-              ? <Spinner size="sm" color="current" />
+              ? <Spinner size={16} />
               : dirty > 0 ? t('director.saveWithCount', { count: dirty }) : t('director.save')}
           </Button>
         </div>

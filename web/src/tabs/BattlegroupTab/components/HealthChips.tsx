@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Chip } from '@heroui/react'
+import { Chip } from '../../../ui'
 import { Icon } from '../../../dune-ui'
 import type { Status } from '../../../api/client'
 import type { BGInfo, ServerRow } from '../types'

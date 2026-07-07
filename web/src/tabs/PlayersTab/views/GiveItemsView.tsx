@@ -2,7 +2,7 @@ import * as React from 'react'
 import {
   Button, Chip, Header, ListBox, SearchField, Select, Separator, Spinner, TextField, toast,
 } from '@heroui/react'
-import type { Selection } from '@heroui/react'
+import type { Selection } from 'react-aria-components'
 import type { DataGridColumn } from '@heroui-pro/react'
 import { DataGrid } from '@heroui-pro/react'
 import { useTranslation } from 'react-i18next'

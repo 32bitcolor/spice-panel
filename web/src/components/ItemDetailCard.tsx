@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Chip, Spinner } from '@heroui/react'
+import { Chip, Spinner } from '../ui'
 import { useAtomValue } from 'jotai'
 import { unwrap } from 'jotai/utils'
 import { DataTable, Panel, SectionLabel } from '../dune-ui'
@@ -191,7 +191,7 @@ export const ItemDetailCard: React.FC<ItemDetailCardProps> = ({ templateId, name
         <SectionLabel>Active Listings</SectionLabel>
         {market.listingsLoading
           ? (
-              <div className="flex justify-center py-4"><Spinner size="sm" /></div>
+              <div className="flex justify-center py-4"><Spinner size={16} /></div>
             )
           : listings.length === 0
             ? (

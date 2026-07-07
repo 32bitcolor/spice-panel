@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useAtom } from 'jotai'
-import { Button, Spinner } from '@heroui/react'
+import { Button, Spinner } from '../../ui'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../api/client'
 import type { MarketItem } from '../../api/client'
@@ -104,7 +104,7 @@ export const MarketTab: React.FC = () => {
         <Button size="sm" variant="ghost" onPress={load} isDisabled={loading}>
           {loading
             ? (
-                <Spinner size="sm" color="current" />
+                <Spinner size={16} />
               )
             : (
                 <React.Fragment>

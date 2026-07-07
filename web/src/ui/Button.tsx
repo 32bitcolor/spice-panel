@@ -21,21 +21,34 @@ export const buttonStyles = tv({
       sm: 'px-3 py-1.5 text-xs',
       md: 'px-[18px] py-[9px] text-[13px]',
     },
+    iconOnly: { true: 'gap-0', false: '' },
   },
-  defaultVariants: { variant: 'solid', size: 'md' },
+  compoundVariants: [
+    { iconOnly: true, size: 'sm', class: 'size-7 p-0' },
+    { iconOnly: true, size: 'md', class: 'size-9 p-0' },
+  ],
+  defaultVariants: { variant: 'solid', size: 'md', iconOnly: false },
 })
 
 export type ButtonVariants = VariantProps<typeof buttonStyles>
 
-export interface ButtonProps extends Omit<AriaButtonProps, 'className'>, ButtonVariants {
+export interface ButtonProps
+  extends Omit<AriaButtonProps, 'className'>,
+    Omit<ButtonVariants, 'iconOnly'> {
   className?: string
+  /** Square icon-only button (HeroUI-compatible prop name). */
+  isIconOnly?: boolean
 }
 
 export const Button: React.FC<ButtonProps> = ({
   variant,
   size,
+  isIconOnly,
   className,
   ...props
 }): React.ReactElement => (
-  <AriaButton {...props} className={cn(buttonStyles({ variant, size }), className)} />
+  <AriaButton
+    {...props}
+    className={cn(buttonStyles({ variant, size, iconOnly: isIconOnly ?? false }), className)}
+  />
 )

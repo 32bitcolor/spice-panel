@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { toast } from '@heroui/react'
+import { toast } from '../../../../ui'
 import { useAtom, useSetAtom } from 'jotai'
 import { ConfirmDialog, SideNav } from '../../../../dune-ui'
 import { ManageLocationsModal } from '../../modals/ManageLocationsModal'

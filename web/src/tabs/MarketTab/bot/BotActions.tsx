@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, Spinner, toast } from '@heroui/react'
+import { Button, Spinner, toast } from '../../../ui'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../../api/client'
 import { Icon, ConfirmDialog } from '../../../dune-ui'
@@ -67,20 +67,20 @@ export const BotActions: React.FC<BotActionsProps> = ({ status, onRefresh }) => 
               <React.Fragment>
                 <Button
                   size="sm"
-                  variant="outline"
+                  variant="ghost"
                   isDisabled={running || busy !== null}
                   onPress={() => run('start')}
                 >
-                  {busy === 'start' ? <Spinner size="sm" color="current" /> : <Icon name="play" />}
+                  {busy === 'start' ? <Spinner size={16} /> : <Icon name="play" />}
                   {t('market.bot.actions.resume')}
                 </Button>
                 <Button
                   size="sm"
-                  variant="danger-soft"
+                  variant="danger"
                   isDisabled={!running || busy !== null}
                   onPress={() => run('stop')}
                 >
-                  {busy === 'stop' ? <Spinner size="sm" color="current" /> : <Icon name="square" />}
+                  {busy === 'stop' ? <Spinner size={16} /> : <Icon name="square" />}
                   {t('market.bot.actions.pause')}
                 </Button>
                 <Button
@@ -89,7 +89,7 @@ export const BotActions: React.FC<BotActionsProps> = ({ status, onRefresh }) => 
                   isDisabled={busy !== null}
                   onPress={() => run('restart')}
                 >
-                  {busy === 'restart' ? <Spinner size="sm" color="current" /> : <Icon name="refresh-cw" />}
+                  {busy === 'restart' ? <Spinner size={16} /> : <Icon name="refresh-cw" />}
                   {t('market.bot.actions.reinitialize')}
                 </Button>
               </React.Fragment>
@@ -97,11 +97,11 @@ export const BotActions: React.FC<BotActionsProps> = ({ status, onRefresh }) => 
 
         <Button
           size="sm"
-          variant="danger-soft"
+          variant="danger"
           isDisabled={busy !== null}
           onPress={() => setConfirmOpen(true)}
         >
-          {busy === 'cleanup' ? <Spinner size="sm" color="current" /> : <Icon name="trash-2" />}
+          {busy === 'cleanup' ? <Spinner size={16} /> : <Icon name="trash-2" />}
           {t('market.bot.actions.wipeListings')}
         </Button>
       </div>

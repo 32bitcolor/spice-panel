@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Spinner, toast } from '@heroui/react'
+import { Spinner, toast } from '../../../ui'
 import { Segment } from '@heroui-pro/react'
 import { api } from '../../../api/client'
 import type { AppConfig } from '../../../api/client'
@@ -109,7 +109,7 @@ export const GlobalSettingsForm: React.FC<GlobalSettingsFormProps> = ({ saveRef,
   if (loading) {
     return (
       <div className="flex items-center justify-center flex-1 gap-2 text-muted">
-        <Spinner size="sm" color="current" />
+        <Spinner size={16} />
         <span className="text-sm">{t('settings.loadingConfig')}</span>
       </div>
     )

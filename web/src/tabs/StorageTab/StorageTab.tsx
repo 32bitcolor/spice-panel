@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import {
   Button, Chip, SearchField, Spinner, toast,
 } from '@heroui/react'
-import type { Selection } from '@heroui/react'
+import type { Selection } from 'react-aria-components'
 import { EmptyState } from '@heroui-pro/react'
 import { Icon as IconifyIcon } from '@iconify/react'
 import { useAtomValue } from 'jotai'

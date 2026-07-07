@@ -4,7 +4,7 @@ import {
   Button,
   Spinner,
   toast,
-} from '@heroui/react'
+} from '../../ui'
 import { EmptyState } from '@heroui-pro/react'
 import { Icon as IconifyIcon } from '@iconify/react'
 import { api } from '../../api/client'
@@ -70,7 +70,7 @@ export const BlueprintsTab: React.FC<BlueprintsTabProps> = ({ isSignedIn = true 
         <Button size="sm" variant="ghost" onPress={load} isDisabled={loading}>
           {loading
             ? (
-                <Spinner size="sm" color="current" />
+                <Spinner size={16} />
               )
             : (
                 <React.Fragment>
@@ -129,7 +129,7 @@ export const BlueprintsTab: React.FC<BlueprintsTabProps> = ({ isSignedIn = true 
                       href={api.blueprints.exportUrl(b.id)}
                       download={b.name ? `${b.name.replace(/[/\\:*?"<React.Fragment>|]/g, '_')}.json` : `blueprint_${b.id}.json`}
                     >
-                      <Button size="sm" variant="outline" className="w-full">
+                      <Button size="sm" variant="ghost" className="w-full">
                         <Icon name="download" />
                         {' '}
                         {t('common.export')}
@@ -137,7 +137,7 @@ export const BlueprintsTab: React.FC<BlueprintsTabProps> = ({ isSignedIn = true 
                     </a>
                   )
                 : (
-                    <Button size="sm" variant="outline" className="w-full" isDisabled>
+                    <Button size="sm" variant="ghost" className="w-full" isDisabled>
                       <Icon name="download" />
                       {' '}
                       {t('common.export')}

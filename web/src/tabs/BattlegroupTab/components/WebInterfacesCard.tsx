@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Skeleton, Spinner, toast } from '@heroui/react'
+import { Button, Skeleton, Spinner, toast } from '../../../ui'
 import { Icon, FieldInput } from '../../../dune-ui'
 import { api } from '../../../api/client'
 import type { Status, WebInterface } from '../../../api/client'
@@ -118,7 +118,7 @@ export const WebInterfacesCard: React.FC<{ status: Status | null }> = ({ status 
             </div>
           ))}
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" onPress={() => setDraft((d) => [...d, { label: '', url: '' }])}>
+            <Button size="sm" variant="ghost" onPress={() => setDraft((d) => [...d, { label: '', url: '' }])}>
               <Icon name="plus" />
               {' '}
               {t('serverHealth.addInterface')}
@@ -126,7 +126,7 @@ export const WebInterfacesCard: React.FC<{ status: Status | null }> = ({ status 
             <div className="flex-1" />
             <Button size="sm" variant="ghost" onPress={() => setEditing(false)}>{t('common.cancel')}</Button>
             <Button size="sm" onPress={save} isDisabled={saving}>
-              {saving ? <Spinner size="sm" color="current" /> : t('serverHealth.saveInterfaces')}
+              {saving ? <Spinner size={16} /> : t('serverHealth.saveInterfaces')}
             </Button>
           </div>
         </div>
@@ -135,7 +135,7 @@ export const WebInterfacesCard: React.FC<{ status: Status | null }> = ({ status 
       {!loading && !editing && !director && items.length === 0 && (
         <div className="flex items-center justify-between gap-2">
           <span className="text-sm text-muted">{t('serverHealth.noInterfaces')}</span>
-          <Button size="sm" variant="outline" onPress={startEdit}>
+          <Button size="sm" variant="ghost" onPress={startEdit}>
             <Icon name="plus" />
             {' '}
             {t('serverHealth.addInterface')}

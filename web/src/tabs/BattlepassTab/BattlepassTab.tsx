@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Chip, Separator, Switch, toast } from '@heroui/react'
-import type { Selection } from '@heroui/react'
+import type { Selection } from 'react-aria-components'
 import { EmptyState, Segment } from '@heroui-pro/react'
 import { api } from '../../api/client'
 import type { BattlepassCatalogExport, BattlepassPendingRow, BattlepassTier, BattlepassTierCounts } from '../../api/client'

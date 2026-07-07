@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, toast } from '@heroui/react'
+import { Button, toast } from '../../../ui'
 import { Icon } from '../../../dune-ui'
 import { copyText } from '../../../utils/clipboard'
 import type { DirectorRowProps } from './types'
@@ -28,7 +28,7 @@ export const DirectorRow: React.FC<DirectorRowProps> = ({ directorURL }) => {
       <Button size="sm" variant="ghost" isIconOnly aria-label={t('serverHealth.copy')} onPress={copy}>
         <Icon name="copy" />
       </Button>
-      <Button size="sm" variant="outline" onPress={() => window.open('/director/', '_blank', 'noopener,noreferrer')}>
+      <Button size="sm" variant="ghost" onPress={() => window.open('/director/', '_blank', 'noopener,noreferrer')}>
         {t('serverHealth.open')}
       </Button>
     </div>

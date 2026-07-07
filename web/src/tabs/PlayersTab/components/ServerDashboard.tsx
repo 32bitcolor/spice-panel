@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Spinner, toast } from '@heroui/react'
+import { Spinner, toast } from '../../../ui'
 import { AreaChart, BarChart, Segment } from '@heroui-pro/react'
 import { api } from '../../../api/client'
 import type { FactionStat, FactionTrends, ServerSummary } from '../../../api/client'

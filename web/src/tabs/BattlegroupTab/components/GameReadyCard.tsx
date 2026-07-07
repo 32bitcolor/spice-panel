@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Skeleton } from '@heroui/react'
+import { Skeleton } from '../../../ui'
 import { Icon } from '../../../dune-ui'
 import type { BGInfo, ServerRow } from '../types'
 import { allServersReady } from '../helpers'

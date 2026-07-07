@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Chip } from '@heroui/react'
+import { Chip } from '../ui'
 import { ItemIcon } from './ItemIcon'
 import type { StagedItemCellProps } from './interfaces'
 

@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@heroui/react'
+import { Button } from '../../ui'
 import { Icon, Panel } from '../../dune-ui'
 import { HelpCard } from './HelpCard'
 import type { OnboardingCardsProps, OnboardingCard } from './interfaces'

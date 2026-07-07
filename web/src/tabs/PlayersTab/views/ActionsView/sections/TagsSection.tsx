@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAtom } from 'jotai'
-import { Button } from '@heroui/react'
+import { Button } from '../../../../../ui'
 import { EmptyState } from '@heroui-pro/react'
 import { Icon as IconifyIcon } from '@iconify/react'
 import { DataTable, Icon, LoadingState, SectionLabel } from '../../../../../dune-ui'
@@ -88,7 +88,7 @@ export const TagsSection: React.FC<TagsSectionProps> = ({ player }) => {
                   <span className="flex-1 font-mono">{tag}</span>
                   <Button
                     size="sm"
-                    variant="danger-soft"
+                    variant="danger"
                     onPress={() => setPendingTags((prev) => prev.filter((t) => t !== tag))}
                     aria-label={`Unstage ${tag}`}
                   >
@@ -150,7 +150,7 @@ export const TagsSection: React.FC<TagsSectionProps> = ({ player }) => {
                   return (
                     <Button
                       size="sm"
-                      variant="danger-soft"
+                      variant="danger"
                       aria-label={`Remove ${r.id}`}
                       onPress={() => handleRemoveTag(r.id)}
                     >

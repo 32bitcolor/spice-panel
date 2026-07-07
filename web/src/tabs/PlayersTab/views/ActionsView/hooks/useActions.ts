@@ -1,5 +1,5 @@
 import { useAtom, useSetAtom } from 'jotai'
-import { toast } from '@heroui/react'
+import { toast } from '../../../../../ui'
 import { busyAtom, confirmAtom } from '../store'
 
 export const useRun = (playerId: number) => {

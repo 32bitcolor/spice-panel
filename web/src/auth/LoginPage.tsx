@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Button, Card, Spinner } from '@heroui/react'
+import { Button, Card, Spinner } from '../ui'
 import { useTranslation } from 'react-i18next'
 import { AuthContext } from './context'
 import { authApi, ApiError } from '../api/client'
@@ -103,7 +103,7 @@ export const LoginPage: React.FC = () => {
             />
             <Button type="submit" className="w-full mt-1" isDisabled={submitting || !username || !password}>
               {submitting
-                ? <Spinner size="sm" color="current" />
+                ? <Spinner size={16} />
                 : t('auth.signIn')}
             </Button>
           </form>
@@ -119,7 +119,7 @@ export const LoginPage: React.FC = () => {
 
         {methods.discord && (
           <Button
-            variant="outline"
+            variant="ghost"
             className="w-full"
             onPress={() => {
               window.location.href = authApi.discordLoginUrl()
@@ -138,7 +138,7 @@ export const LoginPage: React.FC = () => {
             isDisabled={guestSubmitting}
             onPress={() => void continueAsGuest()}
           >
-            {guestSubmitting ? <Spinner size="sm" color="current" /> : t('auth.continueAsGuest')}
+            {guestSubmitting ? <Spinner size={16} /> : t('auth.continueAsGuest')}
           </Button>
         )}
 

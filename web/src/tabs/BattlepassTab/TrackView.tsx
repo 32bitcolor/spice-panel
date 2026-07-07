@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Chip, Tooltip } from '@heroui/react'
+import { Chip, Tooltip } from '../../ui'
 import type { BattlepassTier, BattlepassTierCounts } from '../../api/client'
 import { Icon } from '../../dune-ui'
 import { CardArt } from './CardArt'
@@ -224,8 +224,18 @@ export const TrackView: React.FC<TrackViewProps> = ({ tiers, counts, playerCount
                   {i > 0 && (
                     <div className={`h-0.5 w-12 shrink-0 mt-7 ${pct > 0 ? 'bg-accent/60' : 'bg-border'}`} />
                   )}
-                  <Tooltip delay={300}>
-                    <Tooltip.Trigger>
+                  <Tooltip
+                    delay={300}
+                    content={(
+                      <div className="text-xs">
+                        <div className="font-medium">{tier.label}</div>
+                        <div className="text-muted font-mono">{tier.tier_key}</div>
+                        <div className="mt-1">
+                          {t('battlepass.track.tooltip', { pct, count: achieved, total: playerCount })}
+                        </div>
+                      </div>
+                    )}
+                  >
                       <div className="flex flex-col items-center w-32 shrink-0 gap-1.5">
                         <div
                           className={`size-14 rounded-full border-2 flex items-center justify-center ${
@@ -264,16 +274,6 @@ export const TrackView: React.FC<TrackViewProps> = ({ tiers, counts, playerCount
                           %
                         </Chip>
                       </div>
-                    </Tooltip.Trigger>
-                    <Tooltip.Content>
-                      <div className="text-xs">
-                        <div className="font-medium">{tier.label}</div>
-                        <div className="text-muted font-mono">{tier.tier_key}</div>
-                        <div className="mt-1">
-                          {t('battlepass.track.tooltip', { pct, count: achieved, total: playerCount })}
-                        </div>
-                      </div>
-                    </Tooltip.Content>
                   </Tooltip>
                 </React.Fragment>
               )

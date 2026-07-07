@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { Button, Chip, Skeleton, Spinner, toast } from '@heroui/react'
+import { Button, Chip, Skeleton, Spinner, toast } from '../../ui'
 import { Icon, Panel, PageHeader, LoadingState } from '../../dune-ui'
 import { api } from '../../api/client'
 import type { ServerHealth } from '../../api/client'
@@ -66,7 +66,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
       <PageHeader title={t('dashboard.title', 'Dashboard')} subtitle={t('dashboard.subtitle', 'Servers and setup at a glance')}>
         {hasServers && (
           <Button size="sm" variant="ghost" onPress={load} isDisabled={loading}>
-            {loading ? <Spinner size="sm" color="current" /> : <Icon name="refresh-cw" />}
+            {loading ? <Spinner size={16} /> : <Icon name="refresh-cw" />}
             {' '}
             {t('common.refresh', 'Refresh')}
           </Button>
@@ -145,7 +145,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                       {t('dashboard.view', 'View')}
                     </Button>
                     {canControl && (
-                      <Button size="sm" variant="outline" onPress={() => onManageServer(s.id)}>
+                      <Button size="sm" variant="ghost" onPress={() => onManageServer(s.id)}>
                         <Icon name="settings" />
                         {' '}
                         {t('dashboard.manage', 'Manage')}

@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAtom } from 'jotai'
-import { Button, Spinner } from '@heroui/react'
+import { Button, Spinner } from '../../../../../ui'
 import { NumberValue } from '@heroui-pro/react'
 import { DataTable, Icon, SectionLabel } from '../../../../../dune-ui'
 import { KeystonesToggle } from '../components/KeystonesToggle'
@@ -99,11 +99,11 @@ export const SpecsSection: React.FC<SpecsSectionProps> = ({ player }) => {
       <div className="flex items-center gap-3 min-h-8">
         <div className="flex-1"><SectionLabel>{t('players.actions.specs.specializations')}</SectionLabel></div>
         <Button size="sm" variant="ghost" isDisabled={specsLoading} onPress={() => setSpecsLoaded(false)}>
-          {specsLoading ? <Spinner size="sm" color="current" /> : <Icon name="refresh-cw" />}
+          {specsLoading ? <Spinner size={16} /> : <Icon name="refresh-cw" />}
         </Button>
         <Button
           size="sm"
-          variant="outline"
+          variant="ghost"
           isDisabled={busy || player.online_status === 'Online'}
           onPress={handleGrantMaxKeystones}
         >
@@ -111,7 +111,7 @@ export const SpecsSection: React.FC<SpecsSectionProps> = ({ player }) => {
         </Button>
         <Button
           size="sm"
-          variant="danger-soft"
+          variant="danger"
           isDisabled={busy || player.online_status === 'Online'}
           onPress={handleResetAllKeystones}
         >
@@ -173,7 +173,7 @@ export const SpecsSection: React.FC<SpecsSectionProps> = ({ player }) => {
               return (
                 <Button
                   size="sm"
-                  variant="danger-soft"
+                  variant="danger"
                   isDisabled={busy}
                   onPress={() => handleResetSpec(track)}
                 >

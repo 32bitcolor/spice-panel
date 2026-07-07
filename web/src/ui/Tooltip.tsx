@@ -2,12 +2,13 @@ import * as React from 'react'
 import {
   TooltipTrigger as AriaTooltipTrigger,
   Tooltip as AriaTooltip,
+  Focusable,
   OverlayArrow,
 } from 'react-aria-components'
 import { cn } from './lib/cn'
 
 export interface TooltipProps {
-  /** The trigger element (must be focusable — e.g. a Button). */
+  /** The trigger element. Wrapped in Focusable so any element works. */
   children: React.ReactElement
   content: React.ReactNode
   placement?: 'top' | 'bottom' | 'left' | 'right'
@@ -23,7 +24,9 @@ export const Tooltip: React.FC<TooltipProps> = ({
   className,
 }): React.ReactElement => (
   <AriaTooltipTrigger delay={delay}>
-    {children}
+    <Focusable>
+      {children as unknown as React.ComponentProps<typeof Focusable>['children']}
+    </Focusable>
     <AriaTooltip
       placement={placement}
       offset={8}

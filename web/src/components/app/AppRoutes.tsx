@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Spinner } from '@heroui/react'
+import { Spinner } from '../../ui'
 import { useAtomValue, useSetAtom } from 'jotai'
 import type { TabId } from '../../types'
 import type { AppRoutesProps } from './interfaces'

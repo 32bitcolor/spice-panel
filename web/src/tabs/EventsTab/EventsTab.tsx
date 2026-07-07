@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Chip, Link, Separator, Switch, toast } from '@heroui/react'
-import type { Selection } from '@heroui/react'
+import type { Selection } from 'react-aria-components'
 import { EmptyState } from '@heroui-pro/react'
 import { api } from '../../api/client'
 import type { EventDefinition, EventClaimRecord, EventsConfig } from '../../api/client'

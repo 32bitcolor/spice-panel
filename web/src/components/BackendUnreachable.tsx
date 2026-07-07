@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@heroui/react'
+import { Button } from '../ui'
 import { Icon, Panel, FieldInput } from '../dune-ui'
 import { currentBackendBase } from '../api/client'
 import type { BackendUnreachableProps } from './interfaces'

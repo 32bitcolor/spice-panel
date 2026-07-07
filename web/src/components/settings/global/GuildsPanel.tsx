@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Chip, Separator, toast } from '@heroui/react'
-import type { Selection } from '@heroui/react'
+import { Button, Chip, Separator, toast } from '../../../ui'
+import type { Selection } from 'react-aria-components'
 import { EmptyState } from '@heroui-pro/react'
 import { api } from '../../../api/client'
 import type { DiscordGuild, DiscordServerLink, ServerInfo } from '../../../api/client'
@@ -157,12 +157,12 @@ export const GuildsPanel: React.FC = () => {
               case 'actions':
                 return (
                   <div className="flex gap-1">
-                    <Button size="sm" variant="outline" onPress={() => openEdit(g)}>
+                    <Button size="sm" variant="ghost" onPress={() => openEdit(g)}>
                       <Icon name="pencil" />
                       {' '}
                       {t('common.edit')}
                     </Button>
-                    <Button size="sm" variant="danger-soft" onPress={() => setRemoveTarget(g)}>
+                    <Button size="sm" variant="danger" onPress={() => setRemoveTarget(g)}>
                       <Icon name="trash-2" />
                     </Button>
                   </div>

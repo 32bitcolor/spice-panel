@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { Button, toast } from '@heroui/react'
-import type { Selection } from '@heroui/react'
+import { Button, toast } from '../../../ui'
+import type { Selection } from 'react-aria-components'
 import { EmptyState } from '@heroui-pro/react'
 import { Icon as IconifyIcon } from '@iconify/react'
 import { useTranslation } from 'react-i18next'
@@ -206,7 +206,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ player }) => {
                   {i.max_durability !== 'N/A' && (
                     <Button size="sm" variant="ghost" onPress={() => handleRepair(i)}>{t('players.inventory.repair')}</Button>
                   )}
-                  <Button isIconOnly size="sm" variant="danger-soft" aria-label={t('common.delete')} onPress={() => handleDelete(i.id)}><Icon name="trash" /></Button>
+                  <Button isIconOnly size="sm" variant="danger" aria-label={t('common.delete')} onPress={() => handleDelete(i.id)}><Icon name="trash" /></Button>
                 </div>
               )
           }
@@ -220,7 +220,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ player }) => {
             </span>
           </ActionBar.Prefix>
           <ActionBar.Content>
-            <Button size="sm" variant="danger-soft" onPress={handleBulkDelete}>
+            <Button size="sm" variant="danger" onPress={handleBulkDelete}>
               <Icon name="trash" />
               {t('players.inventory.deleteSelected')}
             </Button>
