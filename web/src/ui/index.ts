@@ -91,3 +91,18 @@ export type { DisclosureProps } from './Disclosure'
 
 export { Pagination } from './Pagination'
 export type { PaginationProps } from './Pagination'
+
+export { EmptyState } from './EmptyState'
+export type { EmptyStateProps } from './EmptyState'
+
+export { Segment } from './Segment'
+export type { SegmentProps, SegmentItemProps } from './Segment'
+
+export { Stepper } from './Stepper'
+export type { StepperProps } from './Stepper'
+
+export { NumberValue } from './NumberValue'
+export type { NumberValueProps } from './NumberValue'
+
+export { Table } from './Table'
+export type { TableProps, TableColumn } from './Table'
