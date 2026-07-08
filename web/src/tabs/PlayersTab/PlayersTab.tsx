@@ -114,7 +114,7 @@ export const PlayersTab: React.FC = () => {
   })
 
   return (
-    <div className="flex h-full min-h-0 gap-3">
+    <div className="flex flex-col lg:flex-row h-full min-h-0 gap-3">
       <SideNav
         items={navItems}
         active={selected ? String(selected.id) : null}
@@ -138,7 +138,7 @@ export const PlayersTab: React.FC = () => {
                 )}
           </Button>
         )}
-        width="w-80"
+        width="w-full lg:w-80"
         listHeader={(
           <Segment
             aria-label={t('players.filter.label')}

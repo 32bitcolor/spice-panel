@@ -154,7 +154,7 @@ export const StorageTab: React.FC = () => {
         <span>{t('storage.warningText')}</span>
       </div>
 
-      <div className="flex gap-3 flex-1 min-h-0">
+      <div className="flex flex-col lg:flex-row gap-3 flex-1 min-h-0">
         <SideNav
           items={navItems}
           active={selected ? String(selected.id) : null}
@@ -168,7 +168,7 @@ export const StorageTab: React.FC = () => {
               {loading ? <Spinner size={16} /> : <Icon name="refresh-cw" />}
             </Button>
           )}
-          width="w-[276px]"
+          width="w-full lg:w-[276px]"
         >
           <SearchField
             aria-label={t('storage.searchLabel')}

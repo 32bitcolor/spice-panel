@@ -11,6 +11,10 @@ export const settingsTabAtom = atom<string | undefined>(undefined)
 // Add-server wizard modal open state.
 export const addServerOpenAtom = atom(false)
 
+// Mobile/tablet nav drawer open state. On lg+ the sidebar is always visible and
+// this is ignored; below lg the sidebar slides in as an off-canvas drawer.
+export const mobileNavOpenAtom = atom(false)
+
 // Manage server is a modal (keyed by id in state, not a route) so the URL never
 // carries a server id that would look stale after a rename. 0 = none.
 export const manageServerIdAtom = atom(0)

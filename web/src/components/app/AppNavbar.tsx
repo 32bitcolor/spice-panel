@@ -12,6 +12,7 @@ import { useActiveServer } from '../../context/useActiveServer'
 import {
   addServerOpenAtom,
   manageServerIdAtom,
+  mobileNavOpenAtom,
   settingsOpenAtom,
   updateInfoAtom,
   updatePromptOpenAtom,
@@ -30,6 +31,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ status, reconnecting, onRe
   const setAddServerOpen = useSetAtom(addServerOpenAtom)
   const setManageServerId = useSetAtom(manageServerIdAtom)
   const setUpdatePromptOpen = useSetAtom(updatePromptOpenAtom)
+  const setMobileNavOpen = useSetAtom(mobileNavOpenAtom)
 
   const renderVersionButton = (): React.ReactNode => {
     if (!status?.version) return null
@@ -72,7 +74,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ status, reconnecting, onRe
             layout doesn't jump when a second server is added. */}
         <Select
           aria-label="Active server"
-          className="w-40"
+          className="w-32 sm:w-40"
           selectedKey={String(activeID || servers[0]?.id || '')}
           onSelectionChange={(id) => {
             const next = Number(id)
@@ -165,8 +167,10 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ status, reconnecting, onRe
         className={settingsOpen ? 'text-accent border-accent' : ''}
       >
         <Icon name="settings" />
-        {' '}
-        {t('app.settings')}
+        <span className="hidden md:inline">
+          {' '}
+          {t('app.settings')}
+        </span>
       </Button>
     )
   }
@@ -190,8 +194,18 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ status, reconnecting, onRe
   }
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
-      <div className="flex items-center gap-3">
+    <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-surface px-3 sm:gap-3 sm:px-4">
+      <Button
+        variant="ghost"
+        isIconOnly
+        size="sm"
+        className="lg:hidden"
+        aria-label={t('nav.menu')}
+        onPress={() => setMobileNavOpen((v) => !v)}
+      >
+        <Icon name="menu" />
+      </Button>
+      <div className="hidden items-center gap-3 lg:flex">
         {/* Connection info is meaningless with no servers configured (fresh
             install / last server deleted) — hide it then. */}
         {servers.length > 0 && status?.control && status.control !== 'none' && <span className="text-xs text-muted">{status.control}</span>}
@@ -207,7 +221,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ status, reconnecting, onRe
 
       <div className="flex-1" />
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 sm:gap-2">
         {/* Connection badges + reconnect only make sense with a server
             configured — hide them on a fresh/empty install. */}
         {renderSshBadge()}
@@ -221,8 +235,10 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ status, reconnecting, onRe
         )}
 
         <HelpMenu status={status} />
-        <ThemeSelector />
-        <LanguageSelector />
+        <span className="hidden items-center gap-2 md:flex">
+          <ThemeSelector />
+          <LanguageSelector />
+        </span>
 
         {renderSettingsButton()}
 

@@ -175,7 +175,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ control }) => {
   }
 
   return (
-    <div className="flex h-full gap-3 min-h-0">
+    <div className="flex flex-col lg:flex-row h-full gap-3 min-h-0">
       <SideNav
         items={navItems}
         active={activeKey}

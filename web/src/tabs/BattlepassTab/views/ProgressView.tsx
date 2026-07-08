@@ -132,7 +132,7 @@ export const ProgressView: React.FC = () => {
   }
 
   return (
-    <div className="flex h-full min-h-0 gap-3">
+    <div className="flex flex-col lg:flex-row h-full min-h-0 gap-3">
       <SideNav
         items={navItems}
         active={selected ? String(selected.account_id) : null}
@@ -144,7 +144,7 @@ export const ProgressView: React.FC = () => {
         titleAction={playersLoading
           ? <Icon name="loader" className="size-4 text-muted animate-spin" />
           : undefined}
-        width="w-72"
+        width="w-full lg:w-72"
       >
         <SearchField
           aria-label={t('battlepass.progress.searchPlaceholder')}

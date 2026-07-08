@@ -136,13 +136,13 @@ export const ActionsView: React.FC<ActionsViewProps> = ({ player }) => {
 
   return (
     <React.Fragment>
-      <div className="flex flex-row h-full min-h-0 gap-3">
+      <div className="flex flex-col lg:flex-row h-full min-h-0 gap-3">
         {/* Vertical section nav (HeroUI Pro ListView via SideNav). */}
         <SideNav
           items={visibleSections.map((s) => ({ key: s.key, label: t(s.label as never) }))}
           active={section}
           onSelect={setSection}
-          width="w-48"
+          width="w-full lg:w-48"
         />
 
         <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">

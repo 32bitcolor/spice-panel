@@ -79,8 +79,11 @@ export const SideNav = <K extends string>({
   return (
     <div
       className={cn(
+        // Stacked above the detail pane on small screens (bounded height, list
+        // scrolls); a fixed-width side column on lg+.
         'flex shrink-0 flex-col overflow-hidden bg-surface ring-1 ring-inset ring-border/60 [border-radius:var(--radius)]',
-        width ?? 'w-60',
+        'max-h-[45vh] lg:max-h-none',
+        width ?? 'w-full lg:w-60',
       )}
     >
       {renderHeader(title, titleAction)}
