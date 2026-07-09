@@ -484,14 +484,25 @@ func (c *ampControl) ListProcesses(_ context.Context, exec Executor) ([]ProcessI
 	return infos, c.container, nil
 }
 
+// defaultContainerRuntime is used wherever a container runtime is unset —
+// existing (podman) installs are unaffected.
+const defaultContainerRuntime = "podman"
+
+// containerRuntimeOrDefault resolves the configured container runtime,
+// defaulting to podman when empty. Shared by ampControl.runtimeCLI and the
+// setup-wizard's probeGameRoot so neither hardcodes "podman" independently.
+func containerRuntimeOrDefault(runtime string) string {
+	if runtime == "" {
+		return defaultContainerRuntime
+	}
+	return runtime
+}
+
 // runtimeCLI returns the container CLI used to wrap in-container operations as
 // `<rt> exec` when useContainer is true. Defaults to podman when unset so
 // existing (podman) installs are unaffected.
 func (c *ampControl) runtimeCLI() string {
-	if c.containerRuntime == "" {
-		return "podman"
-	}
-	return c.containerRuntime
+	return containerRuntimeOrDefault(c.containerRuntime)
 }
 
 // wrapInContainer returns a command string that, when executed via the host
