@@ -6302,6 +6302,36 @@ func cmdFetchPlayerPgStats(ctx context.Context, pool *pgxpool.Pool, accountID in
 		return stats, fmt.Errorf("iterate currency: %w", err)
 	}
 
+	// Solari is also representable as a stackable inventory item (SolarisCoin),
+	// separate from the bank ledger above (dune_exchange_retrieve_solaris_from_item
+	// converts one into the other, confirming they're genuinely distinct stores).
+	// The bank-only total under-reported a player's wealth (#266) — add Solari
+	// the player is carrying, plus Solari sitting in containers they own, using
+	// the same ownership-chain join as cmdListStorageContainers. Top-level
+	// inventories only (no recursion into sub-containers nested inside those).
+	var itemSolari int64
+	itemRow := pool.QueryRow(ctx, `
+		SELECT COALESCE(SUM(i.stack_size), 0)
+		FROM dune.items i
+		JOIN dune.inventories inv ON inv.id = i.inventory_id
+		WHERE lower(i.template_id) = 'solariscoin'
+		  AND (
+		    inv.actor_id IN (SELECT player_pawn_id FROM dune.player_state WHERE account_id = $1)
+		    OR inv.actor_id IN (
+		      SELECT p.id
+		      FROM dune.placeables p
+		      JOIN dune.actor_fgl_entities afe    ON afe.entity_id = p.owner_entity_id
+		      JOIN dune.permission_actor_rank par ON par.permission_actor_id = afe.actor_id
+		      JOIN dune.actors player_a           ON player_a.id = par.player_id
+		      WHERE player_a.owner_account_id = $1
+		    )
+		  )
+	`, accountID)
+	if err := itemRow.Scan(&itemSolari); err != nil {
+		return stats, fmt.Errorf("fetch item-form solari for account %d: %w", accountID, err)
+	}
+	stats.SolarisBal += itemSolari
+
 	// Earned/spent totals from event_log, joined directly via dune.accounts."user"
 	// which stores the hex PlayFab entity ID used as event_log.meta->>'fls_id'.
 	row := pool.QueryRow(ctx, `
