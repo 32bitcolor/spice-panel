@@ -83,16 +83,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ status, can, onClo
                   )
                 : t('app.checkUpdates')}
             </Button>
-            {can('server:control') && updateInfo && !updateInfo.needs_update && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onPress={() => applyUpdate(true)}
-                isDisabled={updateApplying}
-              >
-                {t('app.reinstall')}
-              </Button>
-            )}
             {can('server:control') && updateInfo?.needs_update && (
               <Button size="sm" onPress={() => applyUpdate()} isDisabled={updateApplying}>
                 <span className="font-mono text-xs">
