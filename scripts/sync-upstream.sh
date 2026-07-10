@@ -62,6 +62,8 @@ for p in "${ALLOW_FRONTEND[@]}"; do
     git checkout "$TAG" -- "$p" && echo "INFO took upstream $p"
   fi
 done
+# Version must reflect the upstream release we synced to (merge can keep 'ours').
+git checkout "$TAG" -- VERSION 2>/dev/null || true
 git add -A
 if git diff --name-only --diff-filter=U | grep -q .; then
   echo "ERROR unresolved conflicts:" >&2; git diff --name-only --diff-filter=U >&2
@@ -92,7 +94,9 @@ mv -f "$SRC/dune-admin.synced" "$DEPLOY"
 chmod +x "$DEPLOY"
 
 step 7 "Recording the merge"
-git commit --quiet -m "sync: merge upstream $TAG (keep spice-panel UI)" || true
+git -c user.name="${GIT_AUTHOR:-spice-panel-sync}" \
+    -c user.email="${GIT_EMAIL:-sync@spice-panel.local}" \
+    commit --quiet -m "sync: merge upstream $TAG (keep spice-panel UI)" || true
 if [ "${SYNC_NO_PUSH:-0}" = "1" ]; then
   echo "INFO push skipped (SYNC_NO_PUSH)"
 else
