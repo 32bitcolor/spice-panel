@@ -7,6 +7,7 @@ import { GlobalSettingsForm } from '../settings/global/GlobalSettingsForm'
 import {
   settingsOpenAtom,
   settingsTabAtom,
+  syncStepAtom,
   updateApplyingAtom,
   updateCheckingAtom,
   updateInfoAtom,
@@ -21,7 +22,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ status, can, onClo
   const updateInfo = useAtomValue(updateInfoAtom)
   const updateChecking = useAtomValue(updateCheckingAtom)
   const updateApplying = useAtomValue(updateApplyingAtom)
-  const { checkUpdate, applyUpdate } = useAppUpdate()
+  const syncStep = useAtomValue(syncStepAtom)
+  const { checkUpdate, applyUpdate, syncUpstream } = useAppUpdate()
 
   const [formSaving, setFormSaving] = React.useState(false)
   const formSaveRef = React.useRef<(() => Promise<void>) | null>(null)
@@ -100,6 +102,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ status, can, onClo
                   v
                   {updateInfo.latest.replace(/^v/, '')}
                 </span>
+              </Button>
+            )}
+            {/* Fork-safe upstream sync: merge upstream backend + safe frontend,
+                keep the spice-panel UI, rebuild + restart on the host. */}
+            {can('server:control') && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onPress={() => syncUpstream()}
+                isDisabled={updateApplying}
+                aria-label={t('app.syncUpstream', 'Sync from upstream')}
+              >
+                {syncStep
+                  ? (
+                      <React.Fragment>
+                        <Spinner size={16} />
+                        {' '}
+                        <span className="font-mono text-xs">{syncStep}</span>
+                      </React.Fragment>
+                    )
+                  : (
+                      <React.Fragment>
+                        <Icon name="git-merge" />
+                        {' '}
+                        {t('app.syncUpstream', 'Sync from upstream')}
+                      </React.Fragment>
+                    )}
               </Button>
             )}
 

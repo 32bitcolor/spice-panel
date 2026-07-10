@@ -798,6 +798,15 @@ export interface UpdateApplyResult {
   message: string
 }
 
+export interface SyncStatus {
+  running: boolean
+  step: string // e.g. "4/7"
+  message: string
+  done: boolean
+  no_op: boolean
+  error?: string
+}
+
 export interface WelcomePackageItem {
   template: string
   qty: number
@@ -1497,6 +1506,10 @@ export const api = {
   update: {
     check: () => req<UpdateCheckResult>('GET', '/update/check'),
     apply: (force?: boolean) => req<UpdateApplyResult>('POST', '/update/apply', force ? { force: true } : undefined),
+    // Fork-safe sync: merge upstream backend + safe frontend, keep the UI,
+    // rebuild + restart on the host. Poll syncStatus for progress.
+    sync: () => req<{ status: string }>('POST', '/update/sync'),
+    syncStatus: () => req<SyncStatus>('GET', '/update/sync/status'),
   },
 
   welcomePackage: {

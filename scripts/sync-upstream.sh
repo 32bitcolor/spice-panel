@@ -21,8 +21,6 @@ SRC="${SPICE_SRC:-/home/ladmin/spice-panel}"
 DEPLOY="${SPICE_DEPLOY:-/home/ladmin/dune-admin/dune-admin}"
 GO_BIN="${GO_BIN:-/home/ladmin/go-sdk/go/bin/go}"
 UPSTREAM_REPO="${UPSTREAM_REPO:-Icehunter/dune-admin}"
-# Skip the "reset build clone to origin/main" step (used only for local testing).
-NO_RESET="${SYNC_NO_RESET:-0}"
 
 # UI-agnostic frontend paths safe to adopt from upstream (no rendered components).
 ALLOW_FRONTEND=(web/src/locales web/src/data)
@@ -34,10 +32,12 @@ fail() { echo "ERROR $*" >&2; exit "${2:-1}"; }
 cd "$SRC" || fail "build clone not found at $SRC" 2
 
 step 1 "Fetching origin + upstream"
-git fetch --quiet origin
+git fetch --quiet origin || true
 git fetch --quiet upstream --tags
 git checkout --quiet main
-[ "$NO_RESET" = "1" ] || git reset --hard --quiet origin/main
+# Pull pushed dev updates when the build clone is strictly behind origin; keep
+# any local sync merges otherwise (the server can't push). Never discards work.
+git merge --ff-only --quiet origin/main 2>/dev/null || true
 
 step 2 "Resolving latest upstream release"
 TAG="$(curl -fsSL "https://api.github.com/repos/${UPSTREAM_REPO}/releases/latest" \

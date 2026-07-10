@@ -3,8 +3,10 @@ import { useAtom, useSetAtom } from 'jotai'
 import { toast } from '../../ui'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../api/client'
+import type { SyncStatus } from '../../api/client'
 import {
   settingsOpenAtom,
+  syncStepAtom,
   updateApplyingAtom,
   updateCheckingAtom,
   updateErrorAtom,
@@ -21,6 +23,7 @@ const UPDATE_CACHE_TTL_MS = 60 * 60 * 1000
 export interface AppUpdate {
   checkUpdate: () => Promise<void>
   applyUpdate: (force?: boolean) => Promise<void>
+  syncUpstream: () => Promise<void>
 }
 
 // Owns the update check/apply/poll-and-reload flow. State lives in atoms so the
@@ -34,6 +37,7 @@ export const useAppUpdate = (): AppUpdate => {
   const setError = useSetAtom(updateErrorAtom)
   const setSettingsOpen = useSetAtom(settingsOpenAtom)
   const setPromptOpen = useSetAtom(updatePromptOpenAtom)
+  const setSyncStep = useSetAtom(syncStepAtom)
 
   // Check for a newer release via the backend — cached in localStorage for 1 hour
   // to avoid hammering GitHub's unauthenticated API rate limit during dev HMR cycles.
@@ -150,5 +154,95 @@ export const useAppUpdate = (): AppUpdate => {
     }
   }
 
-  return { checkUpdate, applyUpdate }
+  // Wait for the backend to come back after a re-exec, then reload the page.
+  const waitForServerAndReload = async (): Promise<void> => {
+    const started = Date.now()
+    const TIMEOUT_MS = 120_000
+    await sleep(2000)
+    setPhase('waiting')
+    while (Date.now() - started < TIMEOUT_MS) {
+      if (Date.now() - started > 20_000) setPhase('waitingLong')
+      try {
+        await api.status()
+        setPhase('ready')
+        await sleep(800)
+        window.location.reload()
+        return
+      }
+      catch {
+        await sleep(2000)
+      }
+    }
+    const keepPolling = async (): Promise<void> => {
+      for (;;) {
+        await sleep(3000)
+        try {
+          await api.status()
+          window.location.reload()
+          return
+        }
+        catch { /* keep trying */ }
+      }
+    }
+    void keepPolling()
+  }
+
+  // Fork-safe upstream sync: merge upstream (backend + safe frontend), keep the
+  // spice-panel UI, rebuild + swap + re-exec on the host. Polls progress, then
+  // reuses the wait-and-reload once the server restarts into the new binary.
+  const syncUpstream = async (): Promise<void> => {
+    setApplying(true)
+    setError(undefined)
+    setSyncStep('Starting…')
+    try {
+      await api.update.sync()
+      let st: SyncStatus | null = null
+      const started = Date.now()
+      const RUN_TIMEOUT_MS = 6 * 60_000
+      while (Date.now() - started < RUN_TIMEOUT_MS) {
+        await sleep(1500)
+        try {
+          st = await api.update.syncStatus()
+        }
+        catch {
+          // Connection dropped — the server likely re-exec'd on success.
+          st = null
+          break
+        }
+        setSyncStep(st.step ? `${st.step} · ${st.message}` : st.message)
+        if (st.done) break
+      }
+
+      if (st?.error) {
+        setSyncStep(null)
+        setApplying(false)
+        toast.danger(st.error)
+        return
+      }
+      if (st?.no_op) {
+        setSyncStep(null)
+        setApplying(false)
+        toast.info(st.message || t('app.upToDate', 'Already up to date'))
+        return
+      }
+
+      // Success (done, no error) or the connection dropped on re-exec → the
+      // server is restarting into the freshly-built binary.
+      localStorage.removeItem(UPDATE_CACHE_KEY)
+      setUpdateInfo(null)
+      setSyncStep(null)
+      setSettingsOpen(false)
+      setPhase('restarting')
+      await waitForServerAndReload()
+    }
+    catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      setSyncStep(null)
+      setApplying(false)
+      setError(t('app.updateFailed', { message: msg }))
+      toast.danger(msg)
+    }
+  }
+
+  return { checkUpdate, applyUpdate, syncUpstream }
 }

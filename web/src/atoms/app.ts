@@ -23,6 +23,10 @@ export const manageServerIdAtom = atom(0)
 // onboarding state (e.g. the Discord/auth card disappears once configured).
 export const dashboardRefreshAtom = atom(0)
 
+// Upstream-sync flow: live "step N/M · message" shown while a fork-safe sync
+// (merge upstream + rebuild) runs on the host. null = not syncing.
+export const syncStepAtom = atom<string | null>(null)
+
 // Update flow state.
 export const updateInfoAtom = atom<UpdateCheckResult | null>(null)
 export const updatePromptOpenAtom = atom(false)

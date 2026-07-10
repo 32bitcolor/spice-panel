@@ -123,6 +123,10 @@ func buildMux() *http.ServeMux {
 	handleAPI(mux, "POST /api/v1/discover", capServerControl, handleDiscover)
 	handleAPI(mux, "GET /api/v1/update/check", capServerRead, handleUpdateCheck)
 	handleAPI(mux, "POST /api/v1/update/apply", capServerControl, handleUpdateApply)
+	// Fork-safe "sync from upstream": merge latest upstream (backend + safe
+	// frontend), keep the spice-panel UI, rebuild + swap + re-exec on the host.
+	handleAPI(mux, "POST /api/v1/update/sync", capServerControl, handleUpdateSync)
+	handleAPI(mux, "GET /api/v1/update/sync/status", capServerRead, handleUpdateSyncStatus)
 
 	// ── server settings (UserGame.ini / UserOverrides.ini) ────────────────
 	handleAPI(mux, "GET /api/v1/server-settings", capConfigRead, handleGetServerSettings)
