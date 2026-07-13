@@ -10,7 +10,6 @@ import {
   syncStepAtom,
   updateApplyingAtom,
   updateCheckingAtom,
-  updateInfoAtom,
 } from '../../atoms/app'
 import { useAppUpdate } from './useAppUpdate'
 import type { SettingsModalProps } from './interfaces'
@@ -19,11 +18,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ status, can, onClo
   const { t } = useTranslation()
   const [settingsOpen, setSettingsOpen] = useAtom(settingsOpenAtom)
   const settingsTab = useAtomValue(settingsTabAtom)
-  const updateInfo = useAtomValue(updateInfoAtom)
   const updateChecking = useAtomValue(updateCheckingAtom)
   const updateApplying = useAtomValue(updateApplyingAtom)
   const syncStep = useAtomValue(syncStepAtom)
-  const { checkUpdate, applyUpdate, syncUpstream } = useAppUpdate()
+  const { checkUpdate, syncUpstream } = useAppUpdate()
 
   const [formSaving, setFormSaving] = React.useState(false)
   const formSaveRef = React.useRef<(() => Promise<void>) | null>(null)
@@ -83,17 +81,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ status, can, onClo
                   )
                 : t('app.checkUpdates')}
             </Button>
-            {can('server:control') && updateInfo?.needs_update && (
-              <Button size="sm" onPress={() => applyUpdate()} isDisabled={updateApplying}>
-                <span className="font-mono text-xs">
-                  v
-                  {updateInfo.current}
-                  {' → '}
-                  v
-                  {updateInfo.latest.replace(/^v/, '')}
-                </span>
-              </Button>
-            )}
+            {/* The destructive binary-swap "update now" button was removed — it
+                clobbered the fork frontend. Updating goes through Sync below. */}
             {/* Fork-safe upstream sync: merge upstream backend + safe frontend,
                 keep the spice-panel UI, rebuild + restart on the host. */}
             {can('server:control') && (

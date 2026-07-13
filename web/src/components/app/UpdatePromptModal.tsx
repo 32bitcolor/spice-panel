@@ -16,7 +16,9 @@ export const UpdatePromptModal: React.FC<UpdatePromptModalProps> = ({ can }) => 
   const [updatePromptOpen, setUpdatePromptOpen] = useAtom(updatePromptOpenAtom)
   const updateInfo = useAtomValue(updateInfoAtom)
   const updateApplying = useAtomValue(updateApplyingAtom)
-  const { applyUpdate } = useAppUpdate()
+  // Repointed from the destructive binary-swap applyUpdate() to the fork-safe
+  // Sync flow, which merges upstream backend + keeps the spice-panel frontend.
+  const { syncUpstream } = useAppUpdate()
 
   return (
     <Modal.Backdrop variant="blur" className="bg-linear-to-t from-(--background)/85 via-(--background)/40 to-transparent" isOpen={updatePromptOpen} onOpenChange={(v) => !v && setUpdatePromptOpen(false)}>
@@ -58,11 +60,12 @@ export const UpdatePromptModal: React.FC<UpdatePromptModalProps> = ({ can }) => 
               <Button
                 size="sm"
                 onPress={() => {
-                  void applyUpdate()
+                  setUpdatePromptOpen(false)
+                  void syncUpstream()
                 }}
                 isDisabled={updateApplying}
               >
-                {t('app.updateNow')}
+                {t('app.syncUpstream', 'Sync from upstream')}
               </Button>
             )}
           </Modal.Footer>

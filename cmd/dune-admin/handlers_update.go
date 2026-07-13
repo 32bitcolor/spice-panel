@@ -49,6 +49,18 @@ func parseChecksum(content, artifact string) (string, error) {
 
 const githubRepo = "Icehunter/dune-admin"
 
+// binarySwapSelfUpdateEnabled gates the legacy binary-swap self-updater:
+// POST /update/apply and the -update/-reinstall CLI flags. That path downloads a
+// prebuilt upstream release and replaces the whole binary — which wipes the
+// embedded spice-panel frontend (upstream ships its own UI). It is disabled in
+// favour of the fork-safe "Sync from upstream" flow (POST /update/sync), which
+// rebuilds from source and keeps the fork frontend.
+//
+// GET /update/check stays enabled: the Sync UI uses it to show when an upstream
+// release is available. Kept as a var (not const) so the download/verify/swap
+// machinery below stays reachable for tests.
+var binarySwapSelfUpdateEnabled = false
+
 // updateFetcher is the real HTTP fetcher used in production.
 func updateFetcher(url string) ([]byte, error) {
 	req, err := http.NewRequest("GET", url, nil)
@@ -435,6 +447,13 @@ func scheduleRestart(bin string) {
 // @Failure 502 {object} map[string]string
 // @Router /api/v1/update/apply [post]
 func handleUpdateApply(w http.ResponseWriter, r *http.Request) {
+	// The binary-swap updater pulls a prebuilt upstream release and replaces the
+	// whole binary, wiping the embedded spice-panel frontend. Disabled in favour
+	// of the fork-safe "Sync from upstream" flow (POST /update/sync).
+	if !binarySwapSelfUpdateEnabled {
+		jsonErr(w, fmt.Errorf("binary-swap update is disabled; use Sync from upstream (POST /api/v1/update/sync)"), http.StatusForbidden)
+		return
+	}
 	exe, err := os.Executable()
 	if err != nil {
 		jsonErr(w, fmt.Errorf("cannot determine executable path"), http.StatusInternalServerError)
@@ -465,6 +484,12 @@ func checkForUpdate(fetcher func(string) ([]byte, error)) (string, error) {
 // runSelfUpdate is the CLI entry point for -update and -reinstall flags.
 // force=true reinstalls even when already on the latest version.
 func runSelfUpdate(force bool) {
+	if !binarySwapSelfUpdateEnabled {
+		fmt.Println("the -update/-reinstall binary-swap updater is disabled in spice-panel:")
+		fmt.Println("it would overwrite the embedded fork frontend with an upstream build.")
+		fmt.Println("Use the in-panel \"Sync from upstream\" action, or rebuild from source.")
+		return
+	}
 	tag, htmlURL, err := latestRelease(updateFetcher)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "update check failed: %v\n", err)

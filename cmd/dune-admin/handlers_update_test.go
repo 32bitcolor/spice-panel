@@ -208,6 +208,32 @@ func TestHandleUpdateCheck(t *testing.T) {
 	})
 }
 
+// TestBinarySwapUpdateDisabled locks in the policy: the legacy binary-swap
+// updater (which would overwrite the embedded fork frontend) is disabled, while
+// the fork-safe Sync flow and its /update/check dependency stay available.
+func TestBinarySwapUpdateDisabled(t *testing.T) {
+	if binarySwapSelfUpdateEnabled {
+		t.Fatal("binarySwapSelfUpdateEnabled must be false — /update/apply would clobber the fork frontend")
+	}
+
+	t.Run("apply_is_forbidden_and_touches_nothing", func(t *testing.T) {
+		dir := t.TempDir()
+		bin := filepath.Join(dir, "dune-admin")
+		if err := os.WriteFile(bin, []byte("fork binary"), 0755); err != nil {
+			t.Fatal(err)
+		}
+		r := httptest.NewRequest("POST", "/api/v1/update/apply", http.NoBody)
+		w := httptest.NewRecorder()
+		handleUpdateApply(w, r)
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("status = %d, want 403", w.Code)
+		}
+		if _, err := os.Stat(bin + ".prev"); !os.IsNotExist(err) {
+			t.Error("no backup/swap should occur when binary-swap update is disabled")
+		}
+	})
+}
+
 // buildFakeTarGz creates an in-memory .tar.gz containing one file at name with the given content.
 func buildFakeTarGz(t *testing.T, name string, content []byte) []byte {
 	t.Helper()
