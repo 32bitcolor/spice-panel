@@ -51,6 +51,12 @@ type ampControl struct {
 	// a colon-joined path spanning both. Empty → validated AMP defaults.
 	pgBin string // dir containing pg_dump/pg_restore
 	pgLib string // LD_LIBRARY_PATH for the above
+
+	// afterUpdateRestart, when set, replaces the default post-update recovery
+	// (background: wait for the AMP update task to finish, then restart the
+	// container so it boots clean on the new files). Injected in tests to avoid
+	// spawning the real watcher goroutine.
+	afterUpdateRestart func(client *ampAPIClient, exec Executor)
 }
 
 const (
@@ -255,9 +261,111 @@ func (c *ampControl) ExecCommand(_ context.Context, exec Executor, cmd string) (
 		return exec.Exec(fmt.Sprintf("sudo -i -u %s ampinstmgr -q %s 2>&1", c.ampUser, c.instance))
 	case "restart":
 		return c.restartGame(exec)
+	case "update":
+		return c.updateApplication(exec)
 	default:
 		return "", fmt.Errorf("amp control does not support %q", cmd)
 	}
+}
+
+// ampContainerStopTimeout is the seconds `<runtime> restart` waits for a graceful
+// stop before SIGKILL. See restartGame for why the 10s runtime default is unsafe
+// for this heavy container.
+const ampContainerStopTimeout = 60
+
+// Post-update watcher tunables (vars so tests can reference them). After a
+// SteamCMD update is kicked off, watchUpdateAndRestart polls AMP's running-task
+// count: it waits for the update task to appear (up to ampUpdateAppearGrace) and
+// then clear, restarting the container once it does — or once ampUpdateMaxWait
+// elapses as a safety cap.
+var (
+	ampUpdatePollInterval = 10 * time.Second
+	ampUpdateAppearGrace  = 2 * time.Minute
+	ampUpdateMaxWait      = 30 * time.Minute
+)
+
+// updateApplication triggers AMP's SteamCMD update of the game server through the
+// instance Web API (Core/UpdateApplication) — the same action as the AMP
+// dashboard "Update" button — then kicks off background recovery.
+//
+// Why recovery is needed: SteamCMD rewrites the game files in place while the
+// DuneSandboxServer shards are still running, which crashes them (segfault on the
+// swapped binary/paks). In this containerised setup neither `ampinstmgr` stop nor
+// AMP's own app-stop reap those shards — only a container restart cycles them —
+// and we can't restart before the update because the ADS that runs the update
+// lives inside that same container. So the safe, one-click sequence is: trigger
+// the update, wait for it to finish, then restart the container to boot clean on
+// the new files. The wait+restart runs in the background so the HTTP call returns
+// immediately (a SteamCMD update can take minutes). Requires the AMP API
+// credentials, like server settings.
+func (c *ampControl) updateApplication(exec Executor) (string, error) {
+	if c.apiUser == "" || c.apiPass == "" {
+		return "", fmt.Errorf("amp api credentials not configured — set amp_api_user and amp_api_pass to update the server under AMP")
+	}
+	client := newAMPAPIClient(exec, c.wrapInContainer, c.apiUser, c.apiPass, c.apiPort)
+	if _, err := client.updateApplication(); err != nil {
+		return "", fmt.Errorf("update server: %w", err)
+	}
+	c.kickAfterUpdateRestart(client, exec)
+	return "Server update started via AMP — SteamCMD is updating the game files. " +
+		"The server will go offline during the update and automatically restart on the new files when it finishes.", nil
+}
+
+// kickAfterUpdateRestart launches post-update recovery, using the injected hook
+// when set (tests) or the real background watcher otherwise.
+func (c *ampControl) kickAfterUpdateRestart(client *ampAPIClient, exec Executor) {
+	if c.afterUpdateRestart != nil {
+		c.afterUpdateRestart(client, exec)
+		return
+	}
+	go c.watchUpdateAndRestart(client, exec)
+}
+
+// watchUpdateAndRestart waits for the AMP update to finish, then restarts the
+// container. It logs its own outcome (fire-and-forget goroutine).
+func (c *ampControl) watchUpdateAndRestart(client *ampAPIClient, exec Executor) {
+	log := componentLog("control_amp")
+	log.Info().Msg("update kicked off; waiting for the AMP update task to finish, then restarting the container")
+	err := waitForUpdateThenRestart(
+		client.runningTaskCount,
+		func() error { _, e := c.restartGame(exec); return e },
+		time.Sleep,
+		now,
+	)
+	if err != nil {
+		log.Error().Err(err).Msg("post-update container restart failed — recover manually via Server Control → Restart")
+		return
+	}
+	log.Info().Msg("post-update container restart complete")
+}
+
+// waitForUpdateThenRestart polls statusFn (AMP running-task count) until the
+// update task has appeared and then cleared, then calls restartFn. If no task
+// ever appears within ampUpdateAppearGrace it restarts anyway (fast/no-op
+// update); ampUpdateMaxWait caps the total wait so a task that never clears still
+// recovers. sleepFn/nowFn are injected for testing. Best-effort: transient
+// statusFn errors are ignored (they don't count as "cleared").
+func waitForUpdateThenRestart(statusFn func() (int, error), restartFn func() error, sleepFn func(time.Duration), nowFn func() time.Time) error {
+	start := nowFn()
+	seenTask := false
+	for {
+		if n, err := statusFn(); err == nil {
+			if n > 0 {
+				seenTask = true
+			} else if seenTask {
+				break // task appeared then cleared → update finished
+			}
+		}
+		elapsed := nowFn().Sub(start)
+		if !seenTask && elapsed >= ampUpdateAppearGrace {
+			break // never saw a task within grace → nothing to wait for
+		}
+		if elapsed >= ampUpdateMaxWait {
+			break // safety cap
+		}
+		sleepFn(ampUpdatePollInterval)
+	}
+	return restartFn()
 }
 
 // restartGame cycles the game server so config changes (CVars / UPROPERTYs)
@@ -274,13 +382,21 @@ func (c *ampControl) ExecCommand(_ context.Context, exec Executor, cmd string) (
 //
 // In native mode (no container) the game runs as host processes ampinstmgr
 // manages directly, so the stop/start cycle is retained.
+//
+// The container restart passes an explicit stop timeout (ampContainerStopTimeout)
+// rather than the runtime default of 10s. The Dune shards + in-container Postgres
+// and RabbitMQ take well over 10s to shut down gracefully; at the 10s default,
+// `podman restart` escalates to SIGKILL, which has been observed to leave the
+// container wedged in the "stopping" state ("given PID did not die within
+// timeout") — requiring a manual host-level kill to recover. The generous
+// timeout lets the stack exit cleanly on SIGINT so SIGKILL is never reached.
 func (c *ampControl) restartGame(exec Executor) (string, error) {
 	if c.useContainer {
 		if c.container == "" {
 			return "", fmt.Errorf("amp control in container mode requires amp_container to be set")
 		}
-		return exec.Exec(fmt.Sprintf("sudo -i -u %s %s restart %s 2>&1",
-			c.ampUser, c.runtimeCLI(), c.container))
+		return exec.Exec(fmt.Sprintf("sudo -i -u %s %s restart -t %d %s 2>&1",
+			c.ampUser, c.runtimeCLI(), ampContainerStopTimeout, c.container))
 	}
 	return exec.Exec(fmt.Sprintf("sudo -i -u %s ampinstmgr -q %s 2>&1 && sudo -i -u %s ampinstmgr -s %s 2>&1",
 		c.ampUser, c.instance, c.ampUser, c.instance))
