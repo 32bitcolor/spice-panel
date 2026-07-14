@@ -21,6 +21,7 @@ func ampUpdateControl() *ampControl {
 		instance:           "Dune01",
 		apiUser:            "admin",
 		apiPass:            "pw",
+		updateAutoRestart:  true,
 		afterUpdateRestart: func(*ampAPIClient, Executor) {},
 	}
 }
@@ -111,6 +112,51 @@ func TestAmpExecCommand_UpdateFailureSkipsRecovery(t *testing.T) {
 	}
 	if kicked {
 		t.Error("a failed update must not kick the recovery restart")
+	}
+}
+
+// TestAmpExecCommand_UpdateAutoRestartDisabled verifies that with
+// amp_update_auto_restart=false the update still runs but no recovery restart is
+// kicked, and the message tells the operator to restart manually.
+func TestAmpExecCommand_UpdateAutoRestartDisabled(t *testing.T) {
+	t.Parallel()
+	exec := &fnExecutor{fn: func(cmd string) (string, error) {
+		switch {
+		case strings.Contains(cmd, "Core/Login"):
+			return `{"success":true,"sessionID":"sess"}`, nil
+		case strings.Contains(cmd, "Core/UpdateApplication"):
+			return `{"Id":"task-1"}`, nil
+		default:
+			// GetStatus (watcher) or a restart command here means recovery ran.
+			t.Fatalf("auto-restart disabled must not poll or restart; got: %q", cmd)
+			return "", nil
+		}
+	}}
+	c := &ampControl{
+		useContainer: true, container: "AMP_X", ampUser: "amp", containerRuntime: "docker",
+		instance: "Dune01", apiUser: "admin", apiPass: "pw",
+		updateAutoRestart: false, // afterUpdateRestart intentionally nil → real gate path
+	}
+	out, err := c.ExecCommand(context.Background(), exec, "update")
+	if err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	if !strings.Contains(out, "auto_restart") && !strings.Contains(strings.ToLower(out), "restart the server") {
+		t.Errorf("message should tell the operator to restart manually, got: %q", out)
+	}
+}
+
+// TestAmpRestart_UsesConfiguredStopTimeout verifies a configured
+// amp_container_stop_timeout overrides the default in the restart command.
+func TestAmpRestart_UsesConfiguredStopTimeout(t *testing.T) {
+	t.Parallel()
+	exec := &fakeAMPExecutor{}
+	c := &ampControl{instance: "Dune01", useContainer: true, container: "AMP_X", ampUser: "amp", containerRuntime: "docker", containerStopTimeout: 90}
+	if _, err := c.ExecCommand(context.Background(), exec, "restart"); err != nil {
+		t.Fatalf("restart: %v", err)
+	}
+	if !strings.Contains(exec.cmd, "docker restart -t 90 AMP_X") {
+		t.Errorf("restart cmd = %q, want configured 'restart -t 90'", exec.cmd)
 	}
 }
 

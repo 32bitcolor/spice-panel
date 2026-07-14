@@ -52,6 +52,13 @@ type ampControl struct {
 	pgBin string // dir containing pg_dump/pg_restore
 	pgLib string // LD_LIBRARY_PATH for the above
 
+	// containerStopTimeout is the seconds `<runtime> restart` waits for a graceful
+	// stop before SIGKILL (container mode). 0 → ampContainerStopTimeout.
+	containerStopTimeout int
+	// updateAutoRestart controls whether "update" restarts the container once the
+	// SteamCMD update finishes. Defaults to true when built from config.
+	updateAutoRestart bool
+
 	// afterUpdateRestart, when set, replaces the default post-update recovery
 	// (background: wait for the AMP update task to finish, then restart the
 	// container so it boots clean on the new files). Injected in tests to avoid
@@ -268,10 +275,19 @@ func (c *ampControl) ExecCommand(_ context.Context, exec Executor, cmd string) (
 	}
 }
 
-// ampContainerStopTimeout is the seconds `<runtime> restart` waits for a graceful
-// stop before SIGKILL. See restartGame for why the 10s runtime default is unsafe
-// for this heavy container.
+// ampContainerStopTimeout is the default seconds `<runtime> restart` waits for a
+// graceful stop before SIGKILL when amp_container_stop_timeout is unset. See
+// restartGame for why the 10s runtime default is unsafe for this heavy container.
 const ampContainerStopTimeout = 60
+
+// stopTimeout resolves the configured container stop timeout, falling back to
+// ampContainerStopTimeout when unset (≤0).
+func (c *ampControl) stopTimeout() int {
+	if c.containerStopTimeout > 0 {
+		return c.containerStopTimeout
+	}
+	return ampContainerStopTimeout
+}
 
 // Post-update watcher tunables (vars so tests can reference them). After a
 // SteamCMD update is kicked off, watchUpdateAndRestart polls AMP's running-task
@@ -307,15 +323,24 @@ func (c *ampControl) updateApplication(exec Executor) (string, error) {
 		return "", fmt.Errorf("update server: %w", err)
 	}
 	c.kickAfterUpdateRestart(client, exec)
+	if !c.updateAutoRestart {
+		return "Server update started via AMP — SteamCMD is updating the game files in the background. " +
+			"Auto-restart is disabled (amp_update_auto_restart=false); restart the server via Server Control → Restart once the update finishes.", nil
+	}
 	return "Server update started via AMP — SteamCMD is updating the game files. " +
 		"The server will go offline during the update and automatically restart on the new files when it finishes.", nil
 }
 
 // kickAfterUpdateRestart launches post-update recovery, using the injected hook
-// when set (tests) or the real background watcher otherwise.
+// when set (tests) or the real background watcher otherwise. When auto-restart is
+// disabled it does nothing — the update still runs; the operator restarts.
 func (c *ampControl) kickAfterUpdateRestart(client *ampAPIClient, exec Executor) {
 	if c.afterUpdateRestart != nil {
 		c.afterUpdateRestart(client, exec)
+		return
+	}
+	if !c.updateAutoRestart {
+		componentLog("control_amp").Info().Msg("update kicked off; auto-restart disabled — restart the container manually when the update finishes")
 		return
 	}
 	go c.watchUpdateAndRestart(client, exec)
@@ -396,7 +421,7 @@ func (c *ampControl) restartGame(exec Executor) (string, error) {
 			return "", fmt.Errorf("amp control in container mode requires amp_container to be set")
 		}
 		return exec.Exec(fmt.Sprintf("sudo -i -u %s %s restart -t %d %s 2>&1",
-			c.ampUser, c.runtimeCLI(), ampContainerStopTimeout, c.container))
+			c.ampUser, c.runtimeCLI(), c.stopTimeout(), c.container))
 	}
 	return exec.Exec(fmt.Sprintf("sudo -i -u %s ampinstmgr -q %s 2>&1 && sudo -i -u %s ampinstmgr -s %s 2>&1",
 		c.ampUser, c.instance, c.ampUser, c.instance))
